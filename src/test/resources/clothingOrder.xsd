@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+	<xs:element name="order">
+		<xs:complexType>
+			<xs:choice maxOccurs="unbounded">
+				<xs:element name="items" type="ItemsType" />
+				<xs:element name="product" type="ProductOrderType" />
+			</xs:choice>
+		</xs:complexType>
+		<xs:keyref name="prodNumKeyRef" refer="prodNumKey">
+			<xs:selector xpath="items/*" />
+			<xs:field xpath="@number" />
+		</xs:keyref>
+		<xs:key name="prodNumKey">
+			<xs:selector xpath="./product" />
+			<xs:field xpath="@number" />
+		</xs:key>
+	</xs:element>
+	<xs:complexType name="ItemsType">
+		<xs:choice maxOccurs="unbounded">
+			<xs:element name="shirt" type="ProductOrderType" />
+		</xs:choice>
+	</xs:complexType>
+	<xs:complexType name="ProductOrderType">
+		<xs:attribute name="number" type="xs:integer"></xs:attribute>
+	</xs:complexType>
+</xs:schema>

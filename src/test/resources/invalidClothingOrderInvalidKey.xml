@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<order xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="clothingOrder.xsd">
+	<items>
+		<shirt number="1"></shirt>
+	</items>  
+	 
+	<product number = "one" />
+	<product number = "2" />
+	<product number = "3" /> 
+</order>
