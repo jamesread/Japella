@@ -96,8 +96,8 @@ public class KarmaTracker extends MessagePlugin {
 
 	@Override
 	public void onTimerTick(Bot bot, String channel) {
-		// TODO Auto-generated method stub
-
+		KarmaTracker.LOG.debug("Karma saved on timer tick.");
+		this.saveConfig();
 	}
 
 	public void saveConfig() {
