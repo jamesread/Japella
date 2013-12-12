@@ -6,7 +6,7 @@ import japella.MessagePlugin;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
+import java.util.HashMap; 
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -16,9 +16,7 @@ import org.joda.time.Instant;
 import org.joda.time.Interval;
 
 public class KarmaTracker extends MessagePlugin {
-	public ArrayList<String> supportedMessages = new ArrayList<String>();
 	public HashMap<String, Integer> karma = new HashMap<String, Integer>();
-
 	private final HashMap<String, HashMap<String, Instant>> karmaLog = new HashMap<>();
 
 	private final Duration karmaOverflowDelay = Duration.standardMinutes(20);

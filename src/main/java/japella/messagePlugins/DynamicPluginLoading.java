@@ -1,4 +1,4 @@
-package japella.MessagePlugins;
+package japella.messagePlugins;
 
 import japella.Bot;
 import japella.MessagePlugin;

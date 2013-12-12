@@ -1,10 +1,10 @@
 package japella;
 
-import japella.MessagePlugins.Decide;
-import japella.MessagePlugins.GaggingPlugin;
-import japella.MessagePlugins.KarmaTracker;
-import japella.MessagePlugins.QuizPlugin;
-import japella.MessagePlugins.TicketLookup;
+import japella.messagePlugins.Decide;
+import japella.messagePlugins.GaggingPlugin;
+import japella.messagePlugins.KarmaTracker;
+import japella.messagePlugins.QuizPlugin;
+import japella.messagePlugins.TicketLookup;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -249,7 +249,7 @@ public class Bot extends PircBot implements Runnable {
 			this.sendMessageResponsibly(sender, reply);
 			this.log(reply);
 		} else if (message.contains("!part")) {
-			String channel = message.replace("!join", "").trim();
+			String channel = message.replace("!part", "").trim();
 
 			if (this.admins.contains(sender)) {
 				this.partChannel(channel);
