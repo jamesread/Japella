@@ -10,7 +10,7 @@ public class PropertiesFileCollection extends Properties {
 	private static final HashMap<String, PropertiesConfiguration> db = new HashMap<>();
 
 	public static PropertiesConfiguration get(MessagePlugin p) throws Exception {
-		return PropertiesFileCollection.get(p.getName());
+		return PropertiesFileCollection.get(p.getName() + ".properties");
 	}
 
 	public static PropertiesConfiguration get(String fileName) throws Exception {
