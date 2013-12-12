@@ -1,0 +1,13 @@
+[Unit]
+Description=japella
+After=syslog.target network.target nss-lookup.target
+
+[Service]
+User=japella
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=japella
+ExecStart=/usr/bin/java -jar /opt/japella/targat/Japella*.jar $OPTIONS
+
+[Install]
+WantedBy=multi-user.target
