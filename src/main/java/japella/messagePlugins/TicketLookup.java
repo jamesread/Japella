@@ -1,6 +1,7 @@
 package japella.messagePlugins;
 
 import japella.Bot;
+import japella.Command;
 import japella.MessagePlugin;
 
 import java.io.BufferedReader;
@@ -72,12 +73,10 @@ public class TicketLookup extends MessagePlugin {
 		try {
 			this.recheckTickets();
 
-			if (message.equals("!tickets open")) {
-				bot.sendMessageResponsibly(channel, "There are " + this.jsonOpenTickets.length() + " open tickets. Updated: " + this.httpRespNewTickets.lastModified);
-			} else if (message.equals("!tickets new")) {
+			if (message.equals("!tickets new")) {
 				bot.sendMessageResponsibly(channel, "There are " + this.jsonNewTickets.length() + " open tickets. Updated: " + this.httpRespOpenTickets.lastModified);
 			} else if (message.equals("!ticketsfull new")) {
-				this.sendTicketList("New", this.jsonNewTickets, channel, bot);
+
 			} else if (message.equals("!ticketsfull open")) {
 				this.sendTicketList("Open", this.jsonOpenTickets, channel, bot);
 			} else {
@@ -91,6 +90,20 @@ public class TicketLookup extends MessagePlugin {
 	@Override
 	public void onPrivateMessage(Bot bot, String sender, String message) {
 
+	}
+
+	@CommandMessage(keyword = "!tickets", target = MessageTarget.CHAT)
+	public void onTicketsBrief(String fullMessage, Bot bot, String channel) {
+		bot.sendMessageResponsibly(channel, "There are " + this.jsonOpenTickets.length() + " open tickets. Updated: " + this.httpRespNewTickets.lastModified);
+	}
+
+	@CommandMessage(keyword = "!ticketfull", target = MessageTarget.CHAT)
+	public void onTicketsFull(Command fullMessage, Bot bot, String channel) {
+		if (fullMessage.getString(1).equals("new")) {
+			this.sendTicketList("New", this.jsonNewTickets, channel, bot);
+		} else {
+			this.sendTicketList("Open", this.jsonOpenTickets, channel, bot);
+		}
 	}
 
 	@Override
