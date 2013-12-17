@@ -1,4 +1,4 @@
-package japella;
+package japella.configuration;
 
 import java.io.File;
 

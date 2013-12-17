@@ -1,8 +1,8 @@
 package japella;
 
+import japella.configuration.Configuration;
+
 import java.io.File;
-import java.io.IOException;
-import java.net.BindException;
 import java.util.ArrayList;
 
 import org.apache.commons.configuration.ConfigurationException;
@@ -30,7 +30,6 @@ public class Main {
 
 	private final Configuration compConfig = new Configuration();
 
-	private AdminServer adminServer;
 	private DirectoryMessageWatcher messageWatcher = new DirectoryMessageWatcher();
 	private static final transient Logger LOG = LoggerFactory.getLogger(Main.class);
 	public final ArrayList<Bot> botList = new ArrayList<Bot>();
@@ -62,7 +61,7 @@ public class Main {
 		return this.compConfig;
 	}
 
-	Server lookupServer(final String wantedServer) throws Server.NotFoundException {
+	public Server lookupServer(final String wantedServer) throws Server.NotFoundException {
 		for (final Server server : this.servers) {
 			if (server.getServerName().equals(wantedServer)) {
 				return server;
@@ -75,14 +74,6 @@ public class Main {
 	public void shutdown() {
 		for (Bot bot : this.botList) {
 			bot.disconnect();
-		}
-
-		if (this.adminServer != null) {
-			try {
-				this.adminServer.stop();
-			} catch (IOException e) {
-				System.out.println("Error during shutdown: " + e);
-			}
 		}
 	}
 
@@ -100,14 +91,6 @@ public class Main {
 		this.messageWatcher = new DirectoryMessageWatcher();
 		this.messageWatcher.setMain(this);
 		this.messageWatcher.start();
-
-		try {
-			this.adminServer = new AdminServer(this.compConfig.getInt("[@adminPort]"));
-		} catch (final BindException e) {
-			Main.LOG.warn("Could not bind the admin port, is it in use?", e);
-		} catch (final Exception e) {
-			Main.LOG.warn("Could not create admin server.", e);
-		}
 
 		if (this.servers.isEmpty()) {
 			Main.LOG.error("0 servers found, this program will now exit.");

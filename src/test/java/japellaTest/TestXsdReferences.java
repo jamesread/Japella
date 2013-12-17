@@ -12,7 +12,7 @@ import org.junit.Test;
 import org.w3c.dom.Document;
 import org.xml.sax.SAXParseException;
 
-import japella.NamespaceAwareXmlConfiguration;
+import japella.configuration.NamespaceAwareXmlConfiguration;
 
 public class TestXsdReferences {
 	@Test

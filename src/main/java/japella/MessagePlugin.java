@@ -21,7 +21,7 @@ public abstract class MessagePlugin {
 		MessageTarget target() default MessageTarget.CHAT;
 	}
 
-	protected static class MessagePluginTimer extends TimerTask {
+	public static class MessagePluginTimer extends TimerTask {
 		private final Bot bot;
 		private final String channel;
 		private final MessagePlugin plugin;

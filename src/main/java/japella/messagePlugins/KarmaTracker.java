@@ -2,7 +2,7 @@ package japella.messagePlugins;
 
 import japella.Bot;
 import japella.MessagePlugin;
-import japella.PropertiesFileCollection;
+import japella.configuration.PropertiesFileCollection;
 
 import java.util.Collections;
 import java.util.Comparator;

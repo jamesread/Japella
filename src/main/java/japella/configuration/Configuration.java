@@ -1,6 +1,10 @@
-package japella;
+package japella.configuration;
 
+import japella.Bot;
+import japella.Main;
+import japella.MessagePlugin;
 import japella.MessagePlugin.MessagePluginTimer;
+import japella.Server;
 import japella.Server.NotFoundException;
 
 import java.io.File;

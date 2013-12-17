@@ -1,4 +1,7 @@
-package japella;
+package japella.configuration;
+
+import japella.Main;
+import japella.MessagePlugin;
 
 import java.io.File;
 import java.util.HashMap;
