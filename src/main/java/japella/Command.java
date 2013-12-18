@@ -46,6 +46,10 @@ public class Command {
 		}
 	}
 
+	public boolean isKeyword(String keyword) {
+		return this.getString(0).equalsIgnoreCase(keyword);
+	}
+
 	private boolean isString(int position) {
 		return this.hasParam(position);
 	}

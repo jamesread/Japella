@@ -16,9 +16,9 @@ public abstract class MessagePlugin {
 	@Retention(RetentionPolicy.RUNTIME)
 	@Target(ElementType.METHOD)
 	public static @interface CommandMessage {
-		String keyword();
+		String keyword() default "";
 
-		MessageTarget target() default MessageTarget.CHAT;
+		MessageTarget target() default MessageTarget.ANYWHERE;
 	}
 
 	public static class MessagePluginTimer extends TimerTask {
@@ -48,21 +48,29 @@ public abstract class MessagePlugin {
 	}
 
 	public static enum MessageTarget {
-		PM, CHAT;
+		PM, CHAT, ANYWHERE;
 	}
 
 	private static final transient Logger LOG = LoggerFactory.getLogger(MessagePlugin.class);
 
 	public abstract void addMessage(String m);
 
-	private void call(String input) {
+	void callCommandMessages(String channel, String sender, String input) {
+		Command command = new Command(input);
+
 		for (Method m : this.getMethods()) {
-			if (m.getAnnotation(CommandMessage.class).keyword().equals(input)) {
+			String keyword = m.getAnnotation(CommandMessage.class).keyword();
+
+			if (keyword.isEmpty()) {
+				keyword = m.getName();
+			}
+
+			if (command.isKeyword(keyword)) {
 				if ((m.getGenericParameterTypes().length < 1) || (m.getGenericParameterTypes()[0] != String.class)) {
 					MessagePlugin.LOG.debug("InputSelector method found for " + input + ", but this method needs to take a string argument");
 				} else {
 					try {
-						m.invoke(this, input);
+						m.invoke(this, channel, sender, command);
 						return;
 					} catch (Exception e) {
 						e.printStackTrace();

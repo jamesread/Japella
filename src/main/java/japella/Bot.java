@@ -201,6 +201,7 @@ public class Bot extends PircBot implements Runnable {
 		this.onAnyMessage(channel, sender, message);
 
 		for (MessagePlugin mp : this.messagePlugins) {
+			mp.callCommandMessages(channel, sender, message);
 			mp.onMessage(this, channel, sender, login, hostname, message);
 		}
 	}
