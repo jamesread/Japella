@@ -58,45 +58,37 @@ public class TicketLookup extends MessagePlugin {
 		return httpresp;
 	}
 
-	@Override
-	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
-		if (!message.contains("!tickets")) {
-			return;
-		}
-
-		try {
-			this.recheckTickets();
-
-			if (message.equals("!tickets new")) {
-				bot.sendMessageResponsibly(channel, "There are " + this.jsonNewTickets.length() + " open tickets. Updated: " + this.httpRespOpenTickets.lastModified);
-			} else if (message.equals("!ticketsfull new")) {
-
-			} else if (message.equals("!ticketsfull open")) {
-				this.sendTicketList("Open", this.jsonOpenTickets, channel, bot);
-			} else {
-				bot.sendMessageResponsibly(channel, "There are " + this.jsonOpenTickets.length() + " open tickets and " + this.jsonNewTickets.length() + " new tickets. Updated: " + this.httpRespNewTickets.lastModified);
-			}
-		} catch (Exception e) {
-			bot.sendMessageResponsibly(channel, "Sorry, there was an exception: " + e.toString());
-		}
-	}
-
-	@Override
-	public void onPrivateMessage(Bot bot, String sender, String message) {
-
-	}
-
 	@CommandMessage(keyword = "!tickets", target = MessageTarget.CHAT)
 	public void onTicketsBrief(Message message) {
-		message.bot.sendMessageResponsibly(message.channel, "There are " + this.jsonOpenTickets.length() + " open tickets. Updated: " + this.httpRespNewTickets.lastModified);
+		this.recheckTickets();
+
+		if (message.command.hasParam(1)) {
+			switch (message.command.getString(1)) {
+			case "open":
+				message.reply("There are " + this.jsonOpenTickets.length() + " open tickets. Updated: " + this.httpRespOpenTickets.lastModified);
+				return;
+			case "new":
+				message.reply("There are " + this.jsonNewTickets.length() + " new tickets. Updated: " + this.httpRespNewTickets.lastModified);
+				return;
+			default:
+				message.reply("There are " + this.jsonNewTickets.length() + " new tickets and open " + this.jsonOpenTickets.length() + " tickets Updated: " + this.httpRespNewTickets.lastModified);
+			}
+		}
 	}
 
-	@CommandMessage(keyword = "!ticketfull", target = MessageTarget.CHAT)
+	@CommandMessage(keyword = "!ticketsfull", target = MessageTarget.CHAT)
 	public void onTicketsFull(Message message) {
-		if (message.command.getString(1).equals("new")) {
-			this.sendTicketList("New", this.jsonNewTickets, message.channel, message.bot);
-		} else {
-			this.sendTicketList("Open", this.jsonOpenTickets, message.channel, message.bot);
+		this.recheckTickets();
+
+		if (message.command.hasParam(1)) {
+			switch (message.command.getString(1)) {
+			case "new":
+				this.sendTicketList("New", this.jsonNewTickets, message.channel, message.bot);
+				return;
+			case "open":
+				this.sendTicketList("Open", this.jsonOpenTickets, message.channel, message.bot);
+				return;
+			}
 		}
 	}
 
@@ -104,7 +96,7 @@ public class TicketLookup extends MessagePlugin {
 	public void onTimerTick(Bot bot, String channel) {
 		this.recheckTickets();
 
-		System.out.println("Ticking on " + this.getName());
+		bot.debugMessage("Timer ticking for TicketLookup on " + channel);
 
 		try {
 			if (this.jsonNewTickets.length() > 0) {
@@ -113,7 +105,7 @@ public class TicketLookup extends MessagePlugin {
 				for (int i = 0; i < this.jsonNewTickets.length(); i++) {
 					JSONObject ticket = this.jsonNewTickets.getJSONObject(i);
 
-					bot.sendMessageResponsibly(channel, " - " + ticket.getString("subject"));
+					bot.sendMessageResponsibly(channel, " - " + ticket.getInt("id") + " " + ticket.getString("subject") + " https://rt.corp.redhat.com/rt3/Ticket/Display.html?id=" + ticket.getInt("id"));
 				}
 			}
 		} catch (Exception e) {

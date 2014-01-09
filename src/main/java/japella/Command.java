@@ -30,7 +30,7 @@ public class Command {
 		return this.parts[position];
 	}
 
-	private boolean hasParam(int position) {
+	public boolean hasParam(int position) {
 		if (position >= this.parts.length) {
 			return false;
 		} else {

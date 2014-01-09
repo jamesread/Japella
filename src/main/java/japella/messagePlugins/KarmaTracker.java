@@ -12,6 +12,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.commons.configuration.PropertiesConfiguration;
 import org.joda.time.Duration;
@@ -21,7 +23,21 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class KarmaTracker extends MessagePlugin {
+	public static String findThingToKarma(String message) {
+		Pattern p = Pattern.compile("[\\d+\\w]+([\\+\\+|\\-\\-])");
+		Matcher m = p.matcher(message);
+
+		if (m.matches() && (m.groupCount() == 1)) {
+			String thingToKarma = m.group(1);
+
+			return thingToKarma;
+		} else {
+			return null;
+		}
+	}
+
 	public HashMap<String, Integer> karma = new HashMap<String, Integer>();
+
 	private final HashMap<String, HashMap<String, Instant>> karmaLog = new HashMap<>();
 
 	private final Duration karmaOverflowDelay = Duration.standardMinutes(20);
@@ -118,7 +134,7 @@ public class KarmaTracker extends MessagePlugin {
 			return;
 		}
 
-		String thingToKarma = message.replace("++", "").replace("--", "").trim();
+		String thingToKarma = KarmaTracker.findThingToKarma(message);
 
 		if ((thingToKarma == null) || thingToKarma.isEmpty() || !Character.isAlphabetic(thingToKarma.charAt(0))) {
 			return;

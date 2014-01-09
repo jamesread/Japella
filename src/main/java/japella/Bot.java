@@ -405,6 +405,8 @@ public class Bot extends PircBot implements Runnable {
 			File channelOpsFile = new File("servers/" + this.server.getServerName() + "/channels/" + channel + "/ops.lst");
 
 			if (channelOpsFile.exists()) {
+				this.debugMessage("Opened channel ops file: " + channelOpsFile.getAbsolutePath());
+
 				final BufferedReader in = new BufferedReader(new FileReader(channelOpsFile));
 
 				String line = "";
@@ -423,6 +425,7 @@ public class Bot extends PircBot implements Runnable {
 
 				in.close();
 			} else {
+				this.debugMessage("Channel ops file does not exist: " + channelOpsFile.getAbsolutePath());
 				this.debugMessage("Voicing: \"" + sender + "\", host: \"" + hostname + "\"\n");
 
 				this.voice(channel, sender);

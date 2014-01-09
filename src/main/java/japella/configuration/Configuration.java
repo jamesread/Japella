@@ -23,6 +23,7 @@ import org.apache.commons.configuration.CompositeConfiguration;
 import org.apache.commons.configuration.ConfigurationException;
 import org.apache.commons.configuration.HierarchicalConfiguration;
 import org.apache.commons.configuration.XMLConfiguration;
+import org.joda.time.Period;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
@@ -39,7 +40,7 @@ public class Configuration extends CompositeConfiguration {
 		for (HierarchicalConfiguration plugin : config) {
 			MessagePlugin messagePlugin = bot.getMessagePlugin(plugin.getString("[@name]"));
 
-			new MessagePluginTimer(bot, channelName, messagePlugin, plugin.getInt("[@period]"));
+			new MessagePluginTimer(bot, channelName, messagePlugin, Period.parse(plugin.getString("[@period]")));
 
 			bot.log("Bot " + bot.getName() + " will run " + messagePlugin.getClass().getSimpleName() + " in channel: " + channelName);
 		}

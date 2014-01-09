@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.joda.time.Period;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +47,11 @@ public abstract class MessagePlugin {
 		}
 
 		public void reply(String message) {
-			this.bot.sendMessageResponsibly(this.channel, message);
+			if (this.channel == null) {
+				this.bot.sendMessageResponsibly(this.sender, message);
+			} else {
+				this.bot.sendMessageResponsibly(this.channel, message);
+			}
 		}
 	}
 
@@ -56,14 +61,14 @@ public abstract class MessagePlugin {
 		private final MessagePlugin plugin;
 		private final Timer timer;
 
-		public MessagePluginTimer(Bot bot, String channel, MessagePlugin plugin, int period) {
+		public MessagePluginTimer(Bot bot, String channel, MessagePlugin plugin, Period period) {
 			this.bot = bot;
 			this.channel = channel;
 			this.plugin = plugin;
 
 			this.timer = new Timer(bot.getName() + " MP timer for " + plugin.getClass().getSimpleName() + " with period of " + period, true);
 
-			this.timer.scheduleAtFixedRate(this, 30, period);
+			this.timer.scheduleAtFixedRate(this, 30, period.toStandardDuration().getMillis());
 		}
 
 		public void onTimerTick() {
@@ -88,7 +93,7 @@ public abstract class MessagePlugin {
 		for (Method method : this.getCommandMessageMethod(command)) {
 			Type[] types = method.getGenericParameterTypes();
 
-			if ((types.length != 1) && (types[0] != Message.class)) {
+			if ((types.length != 1) || (types[0] != Message.class)) {
 				MessagePlugin.LOG.debug("InputSelector method found for " + input + ", but this method needs to take a single Message argument");
 			} else {
 				try {
