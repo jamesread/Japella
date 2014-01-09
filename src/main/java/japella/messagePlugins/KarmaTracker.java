@@ -24,11 +24,17 @@ import org.slf4j.LoggerFactory;
 
 public class KarmaTracker extends MessagePlugin {
 	public static String findThingToKarma(String message) {
-		Pattern p = Pattern.compile("[\\d+\\w]+([\\+\\+|\\-\\-])");
+		Pattern p = Pattern.compile(".*?([\\.\\d\\w]+)([\\+|\\-]{2}).*");
 		Matcher m = p.matcher(message);
 
-		if (m.matches() && (m.groupCount() == 1)) {
-			String thingToKarma = m.group(1);
+		if (m.matches()) {
+			System.out.println("gc " + m.groupCount() + "/" + m.group(1));
+		} else {
+			System.out.println("no matchey");
+		}
+
+		if (m.matches() && (m.groupCount() == 2)) {
+			String thingToKarma = m.group(1).trim();
 
 			return thingToKarma;
 		} else {
