@@ -46,7 +46,7 @@ public class Command {
 		}
 	}
 
-	public boolean isKeyword(String keyword) {
+	public boolean supportsKeyword(String keyword) {
 		return this.getString(0).equalsIgnoreCase(keyword);
 	}
 

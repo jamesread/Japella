@@ -4,6 +4,7 @@ import japella.messagePlugins.Decide;
 import japella.messagePlugins.GaggingPlugin;
 import japella.messagePlugins.KarmaTracker;
 import japella.messagePlugins.QuizPlugin;
+import japella.messagePlugins.TestingPlugin;
 import japella.messagePlugins.TicketLookup;
 
 import java.io.BufferedReader;
@@ -163,9 +164,16 @@ public class Bot extends PircBot implements Runnable {
 		this.messagePlugins.add(new TicketLookup());
 		this.messagePlugins.add(new GaggingPlugin());
 		this.messagePlugins.add(new QuizPlugin());
+		this.messagePlugins.add(new TestingPlugin());
 	}
 
-	private void onAnyMessage(final String channel, final String sender, final String message) {}
+	private final void onAnyMessage(final Bot bot, final String channel, final String sender, final String message) {
+		for (MessagePlugin mp : this.messagePlugins) {
+			if (message.startsWith("!")) {
+				mp.callCommandMessages(bot, channel, sender, message);
+			}
+		}
+	}
 
 	/**
 	 * Called by the superclass when the bot is deop'd.
@@ -198,11 +206,10 @@ public class Bot extends PircBot implements Runnable {
 	 */
 	@Override
 	public void onMessage(final String channel, final String sender, final String login, final String hostname, final String message) {
-		this.onAnyMessage(channel, sender, message);
+		this.onAnyMessage(this, channel, sender, message);
 
 		for (MessagePlugin mp : this.messagePlugins) {
-			mp.callCommandMessages(channel, sender, message);
-			mp.onMessage(this, channel, sender, login, hostname, message);
+			mp.onChannelMessage(this, channel, sender, login, hostname, message);
 		}
 	}
 
@@ -224,7 +231,7 @@ public class Bot extends PircBot implements Runnable {
 	public void onPrivateMessage(final String sender, final String login, final String hostname, final String message) {
 		Bot.LOG.debug("recv PM: " + sender + ": " + message);
 
-		this.onAnyMessage(sender, sender, message);
+		this.onAnyMessage(this, sender, sender, message);
 
 		if (message.contains("!join")) {
 			String channel = message.replace("!join", "").trim();

@@ -5,6 +5,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -19,6 +20,24 @@ public abstract class MessagePlugin {
 		String keyword() default "";
 
 		MessageTarget target() default MessageTarget.ANYWHERE;
+	}
+
+	public static class Message {
+		public final Bot bot;
+		public final String channel;
+		public final String sender;
+		public final Command command;
+
+		public Message(Bot bot, String channel2, String sender2, Command command2) {
+			this.bot = bot;
+			this.channel = channel2;
+			this.sender = sender2;
+			this.command = command2;
+		}
+
+		public void reply(String message) {
+			this.bot.sendMessageResponsibly(this.channel, message);
+		}
 	}
 
 	public static class MessagePluginTimer extends TimerTask {
@@ -53,41 +72,41 @@ public abstract class MessagePlugin {
 
 	private static final transient Logger LOG = LoggerFactory.getLogger(MessagePlugin.class);
 
-	public abstract void addMessage(String m);
-
-	void callCommandMessages(String channel, String sender, String input) {
+	public void callCommandMessages(Bot bot, String channel, String sender, String input) {
 		Command command = new Command(input);
 
-		for (Method m : this.getMethods()) {
-			String keyword = m.getAnnotation(CommandMessage.class).keyword();
+		for (Method method : this.getCommandMessageMethod(command)) {
+			Type[] types = method.getGenericParameterTypes();
 
-			if (keyword.isEmpty()) {
-				keyword = m.getName();
-			}
-
-			if (command.isKeyword(keyword)) {
-				if ((m.getGenericParameterTypes().length < 1) || (m.getGenericParameterTypes()[0] != String.class)) {
-					MessagePlugin.LOG.debug("InputSelector method found for " + input + ", but this method needs to take a string argument");
-				} else {
-					try {
-						m.invoke(this, channel, sender, command);
-						return;
-					} catch (Exception e) {
-						e.printStackTrace();
-					}
+			if ((types.length != 1) && (types[0] != Message.class)) {
+				MessagePlugin.LOG.debug("InputSelector method found for " + input + ", but this method needs to take a single Message argument");
+			} else {
+				try {
+					method.invoke(this, new Message(bot, channel, sender, command));
+					return;
+				} catch (Exception e) {
+					e.printStackTrace();
 				}
 			}
 		}
 
-		System.out.println("Could not find: " + input);
+		MessagePlugin.LOG.warn("Could not find command message for: " + input);
 	}
 
-	private ArrayList<Method> getMethods() {
+	private ArrayList<Method> getCommandMessageMethod(Command command) {
 		ArrayList<Method> methods = new ArrayList<>();
 
 		for (Method m : this.getClass().getMethods()) {
 			if (m.isAnnotationPresent(CommandMessage.class)) {
-				methods.add(m);
+				String keyword = m.getAnnotation(CommandMessage.class).keyword();
+
+				if (keyword.isEmpty()) {
+					keyword = m.getName().toLowerCase();
+				}
+
+				if (command.supportsKeyword(keyword)) {
+					methods.add(m);
+				}
 			}
 		}
 
@@ -98,9 +117,17 @@ public abstract class MessagePlugin {
 		return this.getClass().getSimpleName();
 	}
 
-	public abstract void onMessage(Bot bot, String channel, String sender, String login, String hostname, String message);
+	public void onAnyMessage(Message message) {
 
-	public abstract void onPrivateMessage(Bot bot, String sender, String message);
+	}
 
-	public abstract void onTimerTick(Bot bot, String channel);
+	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
+		this.onAnyMessage(new Message(bot, channel, sender, new Command(message)));
+	}
+
+	public void onPrivateMessage(Bot bot, String sender, String message) {
+		this.onAnyMessage(new Message(bot, null, sender, new Command(message)));
+	}
+
+	public void onTimerTick(Bot bot, String channel) {}
 }

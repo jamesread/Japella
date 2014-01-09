@@ -19,9 +19,6 @@ public class QuizPlugin extends MessagePlugin {
 	public Vector<QuizQuestion> questions = new Vector<QuizQuestion>();
 	private final HashMap<String, Integer> scoreboard = new HashMap<String, Integer>();
 
-	@Override
-	public void addMessage(String m) {}
-
 	private void askNextQuestion(Bot bot, String channel) {
 		this.currentQuestion = this.activeQuestions.lastElement();
 
@@ -50,7 +47,7 @@ public class QuizPlugin extends MessagePlugin {
 	}
 
 	@Override
-	public void onMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
+	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
 		if (message.contains("!newquiz")) {
 			System.out.println("new quiz");
 
@@ -141,7 +138,4 @@ public class QuizPlugin extends MessagePlugin {
 			}
 		}
 	}
-
-	@Override
-	public void onTimerTick(Bot bot, String channel) {}
 }

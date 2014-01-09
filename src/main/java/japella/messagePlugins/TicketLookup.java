@@ -1,7 +1,6 @@
 package japella.messagePlugins;
 
 import japella.Bot;
-import japella.Command;
 import japella.MessagePlugin;
 
 import java.io.BufferedReader;
@@ -25,11 +24,6 @@ public class TicketLookup extends MessagePlugin {
 	private HttpResponse httpRespOpenTickets;
 
 	private HttpResponse httpRespNewTickets;
-
-	@Override
-	public void addMessage(String m) {
-
-	}
 
 	@Override
 	public String getName() {
@@ -65,7 +59,7 @@ public class TicketLookup extends MessagePlugin {
 	}
 
 	@Override
-	public void onMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
+	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
 		if (!message.contains("!tickets")) {
 			return;
 		}
@@ -93,16 +87,16 @@ public class TicketLookup extends MessagePlugin {
 	}
 
 	@CommandMessage(keyword = "!tickets", target = MessageTarget.CHAT)
-	public void onTicketsBrief(String fullMessage, Bot bot, String channel) {
-		bot.sendMessageResponsibly(channel, "There are " + this.jsonOpenTickets.length() + " open tickets. Updated: " + this.httpRespNewTickets.lastModified);
+	public void onTicketsBrief(Message message) {
+		message.bot.sendMessageResponsibly(message.channel, "There are " + this.jsonOpenTickets.length() + " open tickets. Updated: " + this.httpRespNewTickets.lastModified);
 	}
 
 	@CommandMessage(keyword = "!ticketfull", target = MessageTarget.CHAT)
-	public void onTicketsFull(Command fullMessage, Bot bot, String channel) {
-		if (fullMessage.getString(1).equals("new")) {
-			this.sendTicketList("New", this.jsonNewTickets, channel, bot);
+	public void onTicketsFull(Message message) {
+		if (message.command.getString(1).equals("new")) {
+			this.sendTicketList("New", this.jsonNewTickets, message.channel, message.bot);
 		} else {
-			this.sendTicketList("Open", this.jsonOpenTickets, channel, bot);
+			this.sendTicketList("Open", this.jsonOpenTickets, message.channel, message.bot);
 		}
 	}
 

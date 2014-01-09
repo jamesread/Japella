@@ -33,9 +33,6 @@ public class KarmaTracker extends MessagePlugin {
 	}
 
 	@Override
-	public void addMessage(String m) {}
-
-	@Override
 	public String getName() {
 		return this.getClass().getSimpleName();
 	}
@@ -57,7 +54,7 @@ public class KarmaTracker extends MessagePlugin {
 	}
 
 	@Override
-	public void onMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
+	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
 		int maxToDisplay = Math.min(5, this.karma.size());
 		if (message.equals("!rank")) {
 			bot.sendMessageResponsibly(channel, "Karma ranks, top " + maxToDisplay + " (" + this.karma.size() + " in total):\n ");
@@ -90,9 +87,6 @@ public class KarmaTracker extends MessagePlugin {
 
 		this.tryGiveKarma(bot, message, channel, sender);
 	}
-
-	@Override
-	public void onPrivateMessage(Bot bot, String sender, String message) {}
 
 	@Override
 	public void onTimerTick(Bot bot, String channel) {
