@@ -15,12 +15,6 @@ public class GaggingPlugin extends MessagePlugin {
 		GaggingPlugin.quietCommands.add("pipe down");
 	}
 
-	@Override
-	public String getName() {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
 	private boolean isGagCommand(String message) {
 		for (String gagCommand : GaggingPlugin.quietCommands) {
 			if (message.contains(gagCommand)) {
@@ -44,12 +38,6 @@ public class GaggingPlugin extends MessagePlugin {
 		if (this.isGagCommand(message)) {
 			bot.toggleChannelGag(channel);
 		}
-	}
-
-	@Override
-	public void onPrivateMessage(Bot bot, String sender, String message) {
-		// TODO Auto-generated method stub
-
 	}
 
 }

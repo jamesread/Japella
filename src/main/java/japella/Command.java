@@ -5,7 +5,10 @@ import java.lang.reflect.Type;
 public class Command {
 	private final String[] parts;
 
+	private final String originalMessage;
+
 	public Command(String command) {
+		this.originalMessage = command;
 		this.parts = command.trim().split(" ");
 	}
 
@@ -17,6 +20,10 @@ public class Command {
 		} else {
 			return Integer.parseInt(i);
 		}
+	}
+
+	public String getOriginalMessage() {
+		return this.originalMessage;
 	}
 
 	public String getString(int position) {
@@ -44,10 +51,6 @@ public class Command {
 				return false;
 			}
 		}
-	}
-
-	public boolean supportsKeyword(String keyword) {
-		return this.getString(0).equalsIgnoreCase(keyword);
 	}
 
 	private boolean isString(int position) {
@@ -80,5 +83,9 @@ public class Command {
 		}
 
 		return true;
+	}
+
+	public boolean supportsKeyword(String keyword) {
+		return this.getString(0).equalsIgnoreCase(keyword);
 	}
 }

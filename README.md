@@ -20,6 +20,28 @@ The bot will then well take admin commands. One of the admin commands is telling
 
     /msg japella !join #testing
 
+Coding your own plugins
+===
+
+package japella.messagePlugins;
+
+import japella.MessagePlugin;
+
+	public class HelloWorld extends MessagePlugin {
+
+		@CommandMessage(keyword = "!goodbye")
+		public void onGoodbye(Message message) {
+			message.reply("aww, see you later :( ");
+		}
+
+		@CommandMessage(keyword = "!hello", target = MessageTarget.CHAT)
+		public void onHello(Message message) {
+			message.reply("Oh, hi there.");
+		}
+	}
+
+To load the message plugin, edit `loadMessagePlugins` in Bot.java (around about line 165).
+
 Note about ongoing development
 ===
 This project was built to forful a personal need for a Java based IRC Bot. This bot is feature complete for my needs and I don't have plans to be actively extending or promoting it. It should serve as a good building block for anyone looking to start their own project. 

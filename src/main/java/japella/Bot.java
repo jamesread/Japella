@@ -2,9 +2,9 @@ package japella;
 
 import japella.messagePlugins.Decide;
 import japella.messagePlugins.GaggingPlugin;
+import japella.messagePlugins.HelloWorld;
 import japella.messagePlugins.KarmaTracker;
 import japella.messagePlugins.QuizPlugin;
-import japella.messagePlugins.TestingPlugin;
 import japella.messagePlugins.TicketLookup;
 
 import java.io.BufferedReader;
@@ -158,13 +158,17 @@ public class Bot extends PircBot implements Runnable {
 
 	}
 
+	public void loadMessagePlugin(MessagePlugin plugin) {
+		this.messagePlugins.add(plugin);
+	}
+
 	private void loadMessagePlugins() {
 		this.messagePlugins.add(new KarmaTracker());
 		this.messagePlugins.add(new Decide());
 		this.messagePlugins.add(new TicketLookup());
 		this.messagePlugins.add(new GaggingPlugin());
 		this.messagePlugins.add(new QuizPlugin());
-		this.messagePlugins.add(new TestingPlugin());
+		this.messagePlugins.add(new HelloWorld());
 	}
 
 	private final void onAnyMessage(final Bot bot, final String channel, final String sender, final String message) {

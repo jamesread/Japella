@@ -2,7 +2,7 @@ package japella.messagePlugins;
 
 import japella.MessagePlugin;
 
-public class TestingPlugin extends MessagePlugin {
+public class HelloWorld extends MessagePlugin {
 
 	@CommandMessage(keyword = "!goodbye")
 	public void onGoodbye(Message message) {

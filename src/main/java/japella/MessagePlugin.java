@@ -27,12 +27,22 @@ public abstract class MessagePlugin {
 		public final String channel;
 		public final String sender;
 		public final Command command;
+		public String originalMessage;
 
-		public Message(Bot bot, String channel2, String sender2, Command command2) {
+		public Message(Bot bot, String channel2, String sender2, Command command) {
 			this.bot = bot;
 			this.channel = channel2;
 			this.sender = sender2;
-			this.command = command2;
+			this.originalMessage = command.getOriginalMessage();
+			this.command = command;
+		}
+
+		public Message(Bot bot, String channel2, String sender2, String originalMessage) {
+			this(bot, channel2, sender2, new Command(originalMessage));
+		}
+
+		public boolean fromAdmin() {
+			return this.bot.hasAdmin(this.sender);
 		}
 
 		public void reply(String message) {
