@@ -3,7 +3,11 @@
   <groupId>Japella</groupId>
   <artifactId>Japella</artifactId>
   <version>0.0.2-SNAPSHOT</version>
-  <packaging>jar</packaging>
+  <packaging>jar</packaging>  
+  <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>  
+  	<releaseVersion>${project.version}</releaseVersion>
+  </properties> 
   <dependencies>
   	<dependency>
   		<groupId>org.json</groupId>
@@ -49,7 +53,13 @@
   </dependencies> 
   
   <build>
-	<finalName>Japella</finalName>
+    <finalName>Japella</finalName>
+    <resources>
+	<resource>
+		<directory>src/main/resources</directory>
+		<filtering>true</filtering>
+	</resource>
+    </resources>
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>

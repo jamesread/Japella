@@ -11,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import javax.xml.XMLConstants;
 import javax.xml.transform.dom.DOMSource;
@@ -32,8 +33,26 @@ import org.xml.sax.SAXParseException;
 public class Configuration extends CompositeConfiguration {
 	private static final transient Logger LOG = LoggerFactory.getLogger(Configuration.class);
 
-	public String getVersion() {
-		return "0.0.1";
+	private static String releaseVersion = null;
+
+	public static String getVersion() {
+		if (Configuration.releaseVersion == null) {
+			Configuration.releaseVersion = Main.class.getPackage().getImplementationVersion();
+
+			try {
+				final Properties props = new Properties();
+				props.load(Main.class.getResourceAsStream("/releaseVersion.properties"));
+				Configuration.releaseVersion = props.getProperty("releaseVersion");
+			} catch (IOException | NullPointerException e) {
+				Configuration.LOG.warn("Could not get release version from jar.", e);
+			}
+
+			if ((Configuration.releaseVersion == null) || Configuration.releaseVersion.isEmpty()) {
+				Configuration.releaseVersion = "?";
+			}
+		}
+
+		return Configuration.releaseVersion;
 	}
 
 	private void parseBotChannelPlugins(Bot bot, String channelName, List<HierarchicalConfiguration> config) {

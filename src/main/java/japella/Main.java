@@ -78,7 +78,7 @@ public class Main {
 	}
 
 	public void startup() throws Exception {
-		Main.LOG.info("Japella " + this.compConfig.getVersion() + "\n");
+		Main.LOG.info("Japella " + Configuration.getVersion() + "\n");
 		Main.LOG.debug("Configuration dir: " + Main.getConfigDir() + ", exists: " + Main.getConfigDir().exists());
 
 		try {
