@@ -2,6 +2,7 @@ package japella.messagePlugins;
 
 import japella.Bot;
 import japella.MessagePlugin;
+import japella.configuration.PropertiesFileCollection;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -100,7 +101,7 @@ public class TicketLookup extends MessagePlugin {
 
 		try {
 			if (this.jsonNewTickets.length() > 0) {
-				bot.sendMessageResponsibly(channel, "There are " + this.jsonNewTickets.length() + " new tickets.");
+				bot.sendMessageResponsibly(channel, "There are " + this.jsonNewTickets.length() + " new tickets." + PropertiesFileCollection.get(this).getString("newTicketsMessageAppend", ""));
 
 				for (int i = 0; i < this.jsonNewTickets.length(); i++) {
 					JSONObject ticket = this.jsonNewTickets.getJSONObject(i);

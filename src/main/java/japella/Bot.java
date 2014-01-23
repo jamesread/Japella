@@ -27,10 +27,7 @@ public class Bot extends PircBot implements Runnable {
 	private final Vector<String> channels = new Vector<String>();
 	private String password = "supersecret";
 	private final Vector<String> admins = new Vector<String>();
-	private boolean discrete = true;
 
-	@Deprecated
-	private Main mainReference = Main.instance;
 	private String ownerNickname = "unknownOwner";
 	private final ArrayList<MessagePlugin> messagePlugins = new ArrayList<MessagePlugin>();
 
@@ -68,14 +65,12 @@ public class Bot extends PircBot implements Runnable {
 		this.debugMessage("Constructing bot: " + this.nick + " with password: " + this.password);
 
 		this.setName(this.nick);
-		this.setVersion("Japella " + this.mainReference.getConfiguration().getVersion());
+		this.setVersion("Japella " + Main.instance.getConfiguration().getVersion());
 		this.setFinger("Get your fingers off me!");
 		this.setLogin(this.nick);
 
 		// this.realname = "Japella " + this.mainReference.VERISON;
 		this.server = server;
-
-		this.mainReference = Main.instance;
 
 		this.loadMessagePlugins();
 
@@ -90,9 +85,6 @@ public class Bot extends PircBot implements Runnable {
 		this.channels.addAll(channels);
 	}
 
-	/**
-	 * A wrapper for connect in pircbot. Simply displays the status message too.
-	 */
 	private void connect() {
 		try {
 			this.debugMessage("Attempting to connect to server \"" + this.server.getServerName() + "\".\n");
@@ -103,7 +95,7 @@ public class Bot extends PircBot implements Runnable {
 		} catch (final NickAlreadyInUseException e) {
 			this.debugMessage("Nickname already in use on \"" + this.server.getServerName() + "\".\n");
 
-			this.disconnect(); // superclass
+			this.disconnect();
 		} catch (final Exception e) {
 			this.debugMessage("Cannot connect: " + e.toString() + "\n");
 		}
@@ -248,9 +240,6 @@ public class Bot extends PircBot implements Runnable {
 				this.sendMessageResponsibly(sender, reply);
 				this.log(reply);
 			}
-		} else if (message.startsWith("!discrete")) {
-			this.discrete = !this.discrete;
-			this.sendMessageResponsibly(sender, "Discression is now: " + this.discrete);
 		} else if (message.startsWith("!channels")) {
 			String reply = "";
 
@@ -301,7 +290,7 @@ public class Bot extends PircBot implements Runnable {
 				this.debugMessage("Administrative password rejected from " + sender + ". They provided: " + password);
 			}
 		} else if (message.equalsIgnoreCase("!help")) {
-			this.sendMessageResponsibly(sender, "Hello there. I am a channel bot (Software: Japella, version " + this.mainReference.getConfiguration().getVersion() + ")");
+			this.sendMessageResponsibly(sender, "Hello there. I am a channel bot (Software: Japella, version " + Main.instance.getConfiguration().getVersion() + ")");
 			this.sendMessageResponsibly(sender, "I am owned by \"" + this.ownerNickname + "\". Please PM \"" + this.ownerNickname + "\" if you are having problems this bot. ");
 		} else if (message.equalsIgnoreCase("!plugins")) {
 			StringBuilder buf = new StringBuilder("Plugins: ");
