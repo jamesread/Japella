@@ -28,7 +28,7 @@ public abstract class MessagePlugin {
 		public final String channel;
 		public final String sender;
 		public final Command command;
-		public String originalMessage;
+		public final String originalMessage;
 
 		public Message(Bot bot, String channel2, String sender2, Command command) {
 			this.bot = bot;
@@ -144,5 +144,6 @@ public abstract class MessagePlugin {
 		this.onAnyMessage(new Message(bot, null, sender, new Command(message)));
 	}
 
-	public void onTimerTick(Bot bot, String channel) {}
+	public void onTimerTick(Bot bot, String channel) {
+	}
 }

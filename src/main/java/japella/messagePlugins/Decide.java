@@ -6,21 +6,16 @@ import java.util.Random;
 
 public class Decide extends MessagePlugin {
 
-	@CommandMessage
+	@CommandMessage(keyword = "!decide")
 	public void decide(Message msg) {
-		String message = msg.originalMessage;
+		String thingToDo = msg.originalMessage.replace("!decide", "").trim();
 
 		Random r = new Random();
 
-		if (message.contains("!decide")) {
-			message = message.replace("!decide", "");
-			message = message.trim();
-
-			if (r.nextBoolean()) {
-				msg.reply("Yep, you should " + message);
-			} else {
-				msg.reply("Nope, don't " + message);
-			}
+		if (r.nextBoolean()) {
+			msg.reply("Yep, you should " + thingToDo);
+		} else {
+			msg.reply("Nope, don't " + thingToDo);
 		}
 	}
 }
