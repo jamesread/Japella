@@ -73,6 +73,10 @@ public class Main {
 
 	public void shutdown() {
 		for (Bot bot : this.botList) {
+			for (MessagePlugin plugin : bot.getMessagePlugins()) {
+				plugin.save();
+			}
+
 			bot.disconnect();
 		}
 	}

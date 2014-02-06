@@ -110,6 +110,11 @@ public class KarmaTracker extends MessagePlugin {
 		this.saveConfig();
 	}
 
+	@Override
+	public void save() {
+		this.saveConfig();
+	}
+
 	public void saveConfig() {
 		try {
 			PropertiesConfiguration properties = PropertiesFileCollection.get(this);

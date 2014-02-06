@@ -1,6 +1,7 @@
 package japella;
 
 import japella.messagePlugins.Decide;
+import japella.messagePlugins.Drone;
 import japella.messagePlugins.GaggingPlugin;
 import japella.messagePlugins.HelloWorld;
 import japella.messagePlugins.KarmaTracker;
@@ -115,6 +116,10 @@ public class Bot extends PircBot implements Runnable {
 		return null;
 	}
 
+	public ArrayList<MessagePlugin> getMessagePlugins() {
+		return this.messagePlugins;
+	}
+
 	public File getWatchDirectory() {
 		return this.watchDirectory;
 	}
@@ -132,6 +137,10 @@ public class Bot extends PircBot implements Runnable {
 
 	public boolean hasAdmin(String sender) {
 		return this.admins.contains(sender);
+	}
+
+	public boolean isInChannel(String channel) {
+		return this.channels.contains(channel);
 	}
 
 	/**
@@ -161,6 +170,7 @@ public class Bot extends PircBot implements Runnable {
 		this.messagePlugins.add(new GaggingPlugin());
 		this.messagePlugins.add(new QuizPlugin());
 		this.messagePlugins.add(new HelloWorld());
+		this.messagePlugins.add(new Drone());
 	}
 
 	private final void onAnyMessage(final Bot bot, final String channel, final String sender, final String message) {
@@ -262,7 +272,7 @@ public class Bot extends PircBot implements Runnable {
 			}
 		} else if (message.startsWith("!quit")) {
 			if (this.admins.contains(sender)) {
-				System.exit(0);
+				Main.instance.shutdown();
 			} else {
 				this.sendMessageResponsibly(sender, "You are not an admin. Won't quit.");
 			}

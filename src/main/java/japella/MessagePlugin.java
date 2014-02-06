@@ -146,4 +146,8 @@ public abstract class MessagePlugin {
 
 	public void onTimerTick(Bot bot, String channel) {
 	}
+
+	public void save() {
+
+	}
 }
