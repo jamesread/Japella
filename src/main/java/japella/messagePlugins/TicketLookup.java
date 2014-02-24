@@ -126,9 +126,10 @@ public class TicketLookup extends MessagePlugin {
 				}
 			}
 
+			/**
 			if (this.jsonNewTickets.length() > 0) {
 				bot.sendMessageResponsibly(channel, "There are " + this.jsonNewTickets.length() + " new tickets." + PropertiesFileCollection.get(this).getString("newTicketsMessageAppend", "(noping)"));
-			}
+			}*/
 
 			if (this.jsonNeedingReplyTickets.length() > 0) {
 				bot.sendMessageResponsibly(channel, "There are " + this.jsonNeedingReplyTickets.length() + " tickets that need a reply!");
