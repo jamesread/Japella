@@ -10,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Main {
-	public final static Main instance = new Main();
+	public static Main instance;
 
 	public static File getConfigDir() throws Exception {
 		File configDir = new File(System.getProperty("user.home"), ".japella/");
@@ -25,7 +25,15 @@ public class Main {
 	}
 
 	public static void main(final String[] args) throws Exception {
-		new Main();
+		Main.instance = new Main();
+
+		try {
+			Main.instance.startup();
+		} catch (Exception e) {
+			System.out.println(e.toString());
+			e.printStackTrace();
+			Main.instance.shutdown();
+		}
 	}
 
 	private final Configuration compConfig = new Configuration();
@@ -34,14 +42,6 @@ public class Main {
 	private static final transient Logger LOG = LoggerFactory.getLogger(Main.class);
 	public final ArrayList<Bot> botList = new ArrayList<Bot>();
 	public final ArrayList<Server> servers = new ArrayList<Server>();
-
-	public Main() {
-		try {
-			Main.instance.startup();
-		} catch (Exception e) {
-			this.shutdown();
-		}
-	}
 
 	public Bot getBot(String botName) {
 		for (Bot bot : this.botList) {
