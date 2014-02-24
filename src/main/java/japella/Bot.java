@@ -1,6 +1,7 @@
 package japella;
 
 import japella.messagePlugins.Decide;
+import japella.messagePlugins.Drone;
 import japella.messagePlugins.GaggingPlugin;
 import japella.messagePlugins.HelloWorld;
 import japella.messagePlugins.Help;
@@ -139,6 +140,10 @@ public class Bot extends PircBot implements Runnable {
 		return this.admins.contains(sender);
 	}
 
+	public boolean isInChannel(String channel) {
+		return this.channels.contains(channel);
+	}
+
 	/**
 	 * Join all the channels within this bot's channel list.
 	 */
@@ -167,6 +172,7 @@ public class Bot extends PircBot implements Runnable {
 		this.messagePlugins.add(new QuizPlugin());
 		this.messagePlugins.add(new HelloWorld());
 		this.messagePlugins.add(new Help());
+		this.messagePlugins.add(new Drone());
 	}
 
 	private final void onAnyMessage(final Bot bot, final String channel, final String sender, final String message) {

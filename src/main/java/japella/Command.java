@@ -12,6 +12,10 @@ public class Command {
 		this.parts = command.trim().split(" ");
 	}
 
+	public String getBody() {
+		return this.originalMessage.replace("", "");
+	}
+
 	public int getInt(int position) {
 		String i = this.parts[position];
 

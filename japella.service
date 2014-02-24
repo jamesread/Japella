@@ -7,7 +7,7 @@ User=japella
 StandardOutput=syslog
 StandardError=syslog
 SyslogIdentifier=japella
-ExecStart=/usr/bin/java -jar /opt/japella/targat/Japella*.jar $OPTIONS
+ExecStart=/usr/bin/java -jar /opt/japella/target/Japella.jar $OPTIONS
 
 [Install]
 WantedBy=multi-user.target
