@@ -90,6 +90,8 @@ public class Command {
 	}
 
 	public boolean supportsKeyword(String keyword) {
-		return this.getString(0).equalsIgnoreCase(keyword);
+		String firstWord = this.getString(0);
+
+		return firstWord.equalsIgnoreCase(keyword);
 	}
 }

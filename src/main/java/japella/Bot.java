@@ -175,8 +175,13 @@ public class Bot extends PircBot implements Runnable {
 		this.messagePlugins.add(new Drone());
 	}
 
-	private final void onAnyMessage(final Bot bot, final String channel, final String sender, final String message) {
+	private final void onAnyMessage(final Bot bot, final String channel, final String sender, String message) {
 		for (MessagePlugin mp : this.messagePlugins) {
+			if (message.startsWith(bot.getName())) {
+				message = message.replace(bot.getName() + ":", "").trim();
+				System.out.println("new message: " + message);
+			}
+
 			if (message.startsWith("!")) {
 				mp.callCommandMessages(bot, channel, sender, message);
 			}

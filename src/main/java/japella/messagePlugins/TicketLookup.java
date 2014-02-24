@@ -72,7 +72,7 @@ public class TicketLookup extends MessagePlugin {
 		return httpresp;
 	}
 
-	@CommandMessage(keyword = "!tickets", target = MessageTarget.CHAT)
+	@CommandMessage(keyword = "!tickets", target = MessageTarget.ANYWHERE)
 	public void onTicketsBrief(Message message) {
 		this.recheckTickets();
 
@@ -90,6 +90,8 @@ public class TicketLookup extends MessagePlugin {
 			default:
 				message.reply("There are " + this.jsonNewTickets.length() + " new tickets and open " + this.jsonOpenTickets.length() + " tickets Updated: " + this.httpRespNewTickets.lastModified);
 			}
+		} else {
+			message.reply("Would you like to know about 'open', 'new' or 'unknowned' tickets? eg: !tickets new'");
 		}
 	}
 
@@ -108,6 +110,8 @@ public class TicketLookup extends MessagePlugin {
 			default:
 				message.reply("Please specify 'new' or 'open' tickets, eg: '!tickets new'. ");
 			}
+		} else {
+			message.reply("Would you like to know about 'open', 'new' or 'unknowned' tickets? eg: !ticketsfull new'");
 		}
 	}
 
