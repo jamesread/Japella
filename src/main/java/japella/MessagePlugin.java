@@ -7,6 +7,7 @@ import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -128,6 +129,18 @@ public abstract class MessagePlugin {
 		return methods;
 	}
 
+	public HashMap<CommandMessage, Method> getCommandMessages() {
+		HashMap<CommandMessage, Method> commandsMessages = new HashMap<CommandMessage, Method>();
+
+		for (Method m : this.getClass().getMethods()) {
+			if (m.isAnnotationPresent(CommandMessage.class)) {
+				commandsMessages.put(m.getAnnotation(CommandMessage.class), m);
+			}
+		}
+
+		return commandsMessages;
+	}
+
 	public String getName() {
 		return this.getClass().getSimpleName();
 	}
@@ -145,4 +158,8 @@ public abstract class MessagePlugin {
 	}
 
 	public void onTimerTick(Bot bot, String channel) {}
+
+	public void saveConfig() {
+
+	}
 }

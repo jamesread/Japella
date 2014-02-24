@@ -40,4 +40,9 @@ public class GaggingPlugin extends MessagePlugin {
 		}
 	}
 
+	@CommandMessage(keyword = "!quiet")
+	public void quiet(Message message) {
+		message.bot.toggleChannelGag(message.channel);
+	}
+
 }

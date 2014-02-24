@@ -19,6 +19,27 @@ public class QuizPlugin extends MessagePlugin {
 	public Vector<QuizQuestion> questions = new Vector<QuizQuestion>();
 	private final HashMap<String, Integer> scoreboard = new HashMap<String, Integer>();
 
+	@CommandMessage(keyword = "!addquizquestion")
+	public void addQuizQuestion(Message message2) {
+		Bot bot = message2.bot;
+		String message = message2.originalMessage;
+
+		String[] messageParts = message.split("=", 2);
+
+		if (messageParts.length != 2) {
+			message2.reply("To add a quiz question, use the syntax: <question>=<answer>");
+		} else {
+			QuizQuestion newQuestion = new QuizQuestion();
+			newQuestion.question = messageParts[0].replace("!quizadd ", "").trim();
+			newQuestion.answer = messageParts[1].trim();
+			newQuestion.createdBy = message2.sender;
+
+			this.questions.add(newQuestion);
+
+			message2.reply("Question accepted.");
+		}
+	}
+
 	private void askNextQuestion(Bot bot, String channel) {
 		this.currentQuestion = this.activeQuestions.lastElement();
 
@@ -46,40 +67,17 @@ public class QuizPlugin extends MessagePlugin {
 		return this.getClass().getSimpleName();
 	}
 
+	@CommandMessage(keyword = "!abortquiz")
+	public void onAbortQuiz(Message message) {
+		this.scoreboard.clear();
+		this.activeQuestions.clear();
+
+		message.reply("Quiz aborted.");
+	}
+
 	@Override
 	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
-		if (message.contains("!newquiz")) {
-			System.out.println("new quiz");
-
-			if (!this.activeQuestions.isEmpty()) {
-				bot.sendMessageResponsibly(channel, sender + ": I won't start a new quiz, because one is already running.");
-				return;
-			}
-
-			if (this.questions.isEmpty()) {
-				bot.sendMessageResponsibly(channel, sender + ": I won't start a new quiz, because there are 0 questions in the datatabase. PM me with !quizadd");
-				return;
-			}
-
-			int questionCount;
-
-			try {
-				questionCount = Integer.parseInt(message.replace("!newquiz", "").trim());
-			} catch (NumberFormatException e) {
-				questionCount = 3;
-			}
-
-			questionCount = Math.min(questionCount, this.questions.size());
-
-			this.activeQuestions.addAll(this.questions);
-			Collections.shuffle(this.activeQuestions);
-			this.activeQuestions.setSize(questionCount);
-
-			this.scoreboard.clear();
-
-			bot.sendMessageResponsibly(channel, "A new quiz has been started with " + this.activeQuestions.size() + " questions - type \"!guess <answer string>\" to play!");
-			this.askNextQuestion(bot, channel);
-		} else if (message.contains("!guess")) {
+		if (message.contains("!guess")) {
 			String answer = message.replace("!guess", "").trim();
 
 			if (this.currentQuestion == null) {
@@ -111,31 +109,42 @@ public class QuizPlugin extends MessagePlugin {
 			}
 		} else if (message.contains("!quizqcount")) {
 			bot.sendMessageResponsiblyUser(channel, sender, "The quiz has " + this.questions.size() + " in the database.");
-		} else if (message.contains("!abortquiz")) {
-			this.scoreboard.clear();
-			this.activeQuestions.clear();
-
-			bot.sendMessageResponsibly(channel, "Quiz aborted.");
 		}
 	}
 
-	@Override
-	public void onPrivateMessage(Bot bot, String sender, String message) {
-		if (message.contains("!quizadd")) {
-			String[] messageParts = message.split("=", 2);
+	@CommandMessage(keyword = "!newquiz")
+	public void onNewQuiz(Message message) {
+		Bot bot = message.bot;
+		String channel = message.channel;
+		String sender = message.sender;
 
-			if (messageParts.length != 2) {
-				bot.sendMessageResponsibly(sender, "To add a quiz question, use the syntax: <question>=<answer>");
-			} else {
-				QuizQuestion newQuestion = new QuizQuestion();
-				newQuestion.question = messageParts[0].replace("!quizadd ", "").trim();
-				newQuestion.answer = messageParts[1].trim();
-				newQuestion.createdBy = sender;
-
-				this.questions.add(newQuestion);
-
-				bot.sendMessageResponsibly(sender, "Question accepted.");
-			}
+		if (!this.activeQuestions.isEmpty()) {
+			bot.sendMessageResponsibly(channel, sender + ": I won't start a new quiz, because one is already running.");
+			return;
 		}
+
+		if (this.questions.isEmpty()) {
+			bot.sendMessageResponsibly(channel, sender + ": I won't start a new quiz, because there are 0 questions in the datatabase. PM me with !quizadd");
+			return;
+		}
+
+		int questionCount;
+
+		try {
+			questionCount = message.command.getInt(1);
+		} catch (NumberFormatException e) {
+			questionCount = 3;
+		}
+
+		questionCount = Math.min(questionCount, this.questions.size());
+
+		this.activeQuestions.addAll(this.questions);
+		Collections.shuffle(this.activeQuestions);
+		this.activeQuestions.setSize(questionCount);
+
+		this.scoreboard.clear();
+
+		bot.sendMessageResponsibly(channel, "A new quiz has been started with " + this.activeQuestions.size() + " questions - type \"!guess <answer string>\" to play!");
+		this.askNextQuestion(bot, channel);
 	}
 }

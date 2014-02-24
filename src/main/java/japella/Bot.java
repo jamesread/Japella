@@ -3,6 +3,7 @@ package japella;
 import japella.messagePlugins.Decide;
 import japella.messagePlugins.GaggingPlugin;
 import japella.messagePlugins.HelloWorld;
+import japella.messagePlugins.Help;
 import japella.messagePlugins.KarmaTracker;
 import japella.messagePlugins.QuizPlugin;
 import japella.messagePlugins.TicketLookup;
@@ -115,6 +116,10 @@ public class Bot extends PircBot implements Runnable {
 		return null;
 	}
 
+	public ArrayList<MessagePlugin> getMessagePlugins() {
+		return this.messagePlugins;
+	}
+
 	public File getWatchDirectory() {
 		return this.watchDirectory;
 	}
@@ -161,6 +166,7 @@ public class Bot extends PircBot implements Runnable {
 		this.messagePlugins.add(new GaggingPlugin());
 		this.messagePlugins.add(new QuizPlugin());
 		this.messagePlugins.add(new HelloWorld());
+		this.messagePlugins.add(new Help());
 	}
 
 	private final void onAnyMessage(final Bot bot, final String channel, final String sender, final String message) {
@@ -262,7 +268,7 @@ public class Bot extends PircBot implements Runnable {
 			}
 		} else if (message.startsWith("!quit")) {
 			if (this.admins.contains(sender)) {
-				System.exit(0);
+				Main.instance.shutdown();
 			} else {
 				this.sendMessageResponsibly(sender, "You are not an admin. Won't quit.");
 			}

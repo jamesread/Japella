@@ -59,6 +59,18 @@ public class KarmaTracker extends MessagePlugin {
 		return this.getClass().getSimpleName();
 	}
 
+	@CommandMessage(keyword = "!karmaload")
+	public void karmaLoad(Message message) {
+		message.bot.sendMessageResponsibly(message.channel, "Karma loaded from file.");
+		this.loadConfig();
+	}
+
+	@CommandMessage(keyword = "!karmasave")
+	public void karmaSave(Message message) {
+		message.bot.sendMessageResponsibly(message.channel, "Karma saved to file.");
+		this.saveConfig();
+	}
+
 	private void loadConfig() {
 		try {
 			PropertiesConfiguration properties = PropertiesFileCollection.get(this);
@@ -77,37 +89,36 @@ public class KarmaTracker extends MessagePlugin {
 
 	@Override
 	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
-		int maxToDisplay = Math.min(5, this.karma.size());
-		if (message.equals("!rank")) {
-			bot.sendMessageResponsibly(channel, "Karma ranks, top " + maxToDisplay + " (" + this.karma.size() + " in total):\n ");
-
-			List<Map.Entry<String, Integer>> list = new LinkedList<Map.Entry<String, Integer>>(this.karma.entrySet());
-			Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
-				@Override
-				public int compare(Map.Entry<String, Integer> one, Map.Entry<String, Integer> two) {
-					return (two.getValue()).compareTo(one.getValue());
-				}
-			});
-
-			int count = 0;
-			for (Map.Entry<String, Integer> row : list) {
-				if (count > maxToDisplay) {
-					break;
-				} else {
-					count++;
-				}
-
-				bot.sendMessageResponsibly(channel, row.getKey() + " (" + row.getValue() + " points)");
-			}
-		} else if (message.equals("!karmasave")) {
-			bot.sendMessageResponsibly(channel, "Karma saved to file.");
-			this.saveConfig();
-		} else if (message.equals("!karmaload")) {
-			bot.sendMessageResponsibly(channel, "Karma loaded from file.");
-			this.loadConfig();
-		}
-
 		this.tryGiveKarma(bot, message, channel, sender);
+	}
+
+	@CommandMessage(keyword = "!rank")
+	public void onRank(Message message) {
+		int maxToDisplay = Math.min(5, this.karma.size());
+
+		Bot bot = message.bot;
+		String channel = message.channel;
+
+		bot.sendMessageResponsibly(channel, "Karma ranks, top " + maxToDisplay + " (" + this.karma.size() + " in total):\n ");
+
+		List<Map.Entry<String, Integer>> list = new LinkedList<Map.Entry<String, Integer>>(this.karma.entrySet());
+		Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
+			@Override
+			public int compare(Map.Entry<String, Integer> one, Map.Entry<String, Integer> two) {
+				return (two.getValue()).compareTo(one.getValue());
+			}
+		});
+
+		int count = 0;
+		for (Map.Entry<String, Integer> row : list) {
+			if (count > maxToDisplay) {
+				break;
+			} else {
+				count++;
+			}
+
+			bot.sendMessageResponsibly(channel, row.getKey() + " (" + row.getValue() + " points)");
+		}
 	}
 
 	@Override
@@ -116,6 +127,7 @@ public class KarmaTracker extends MessagePlugin {
 		this.saveConfig();
 	}
 
+	@Override
 	public void saveConfig() {
 		try {
 			PropertiesConfiguration properties = PropertiesFileCollection.get(this);

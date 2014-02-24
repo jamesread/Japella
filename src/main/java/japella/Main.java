@@ -73,8 +73,14 @@ public class Main {
 
 	public void shutdown() {
 		for (Bot bot : this.botList) {
+			for (MessagePlugin plugin : bot.getMessagePlugins()) {
+				plugin.saveConfig();
+			}
+
 			bot.disconnect();
 		}
+
+		System.exit(0);
 	}
 
 	public void startup() throws Exception {

@@ -11,6 +11,7 @@ import java.net.URL;
 import java.net.URLConnection;
 
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 public class TicketLookup extends MessagePlugin {
@@ -26,12 +27,24 @@ public class TicketLookup extends MessagePlugin {
 
 	private HttpResponse httpRespNewTickets;
 
+	private JSONArray jsonNeedingReplyTickets;
+
+	private JSONArray jsonUnownedTickets;
+
+	private String formatTicket(JSONObject ticket) {
+		try {
+			return ticket.getInt("id") + " " + ticket.getString("subject") + " https://rt.corp.redhat.com/rt3/Ticket/Display.html?id=" + ticket.getInt("id");
+		} catch (JSONException e) {
+			return "{TICKET FORMAT ERROR :(}";
+		}
+	}
+
 	@Override
 	public String getName() {
 		return this.getClass().getSimpleName();
 	}
 
-	public HttpResponse getUrlContent(String url) throws Exception {
+	public HttpResponse getUrl(String url) throws Exception {
 		URL website = new URL(url);
 		HttpResponse httpresp = new HttpResponse();
 
@@ -71,6 +84,9 @@ public class TicketLookup extends MessagePlugin {
 			case "new":
 				message.reply("There are " + this.jsonNewTickets.length() + " new tickets. Updated: " + this.httpRespNewTickets.lastModified);
 				return;
+			case "unowned":
+				message.reply("There are " + this.jsonUnownedTickets.length() + " unowned tickets.");
+				return;
 			default:
 				message.reply("There are " + this.jsonNewTickets.length() + " new tickets and open " + this.jsonOpenTickets.length() + " tickets Updated: " + this.httpRespNewTickets.lastModified);
 			}
@@ -89,6 +105,8 @@ public class TicketLookup extends MessagePlugin {
 			case "open":
 				this.sendTicketList("Open", this.jsonOpenTickets, message.channel, message.bot);
 				return;
+			default:
+				message.reply("Please specify 'new' or 'open' tickets, eg: '!tickets new'. ");
 			}
 		}
 	}
@@ -100,13 +118,19 @@ public class TicketLookup extends MessagePlugin {
 		bot.debugMessage("Timer ticking for TicketLookup on " + channel);
 
 		try {
-			if (this.jsonNewTickets.length() > 0) {
-				bot.sendMessageResponsibly(channel, "There are " + this.jsonNewTickets.length() + " new tickets." + PropertiesFileCollection.get(this).getString("newTicketsMessageAppend", ""));
+			if (this.jsonUnownedTickets.length() > 0) {
+				bot.sendMessageResponsibly(channel, "There are " + this.jsonUnownedTickets.length() + " unowned tickets." + PropertiesFileCollection.get(this).getString("newTicketsMessageAppend", ""));
 
-				for (int i = 0; i < this.jsonNewTickets.length(); i++) {
-					JSONObject ticket = this.jsonNewTickets.getJSONObject(i);
+				for (int i = 0; i < this.jsonUnownedTickets.length(); i++) {
+					bot.sendMessageResponsibly(channel, " - UNOWNED: " + this.formatTicket(this.jsonUnownedTickets.getJSONObject(i)));
+				}
+			}
 
-					bot.sendMessageResponsibly(channel, " - " + ticket.getInt("id") + " " + ticket.getString("subject") + " https://rt.corp.redhat.com/rt3/Ticket/Display.html?id=" + ticket.getInt("id"));
+			if (this.jsonNeedingReplyTickets.length() > 0) {
+				bot.sendMessageResponsibly(channel, "There are " + this.jsonNeedingReplyTickets.length() + " tickets that need a reply!");
+
+				for (int i = 0; i < this.jsonNeedingReplyTickets.length(); i++) {
+					bot.sendMessageResponsibly(channel, "- NEEDS REPLY: " + this.formatTicket(this.jsonNeedingReplyTickets.getJSONObject(i)));
 				}
 			}
 		} catch (Exception e) {
@@ -117,11 +141,17 @@ public class TicketLookup extends MessagePlugin {
 
 	public void recheckTickets() {
 		try {
-			this.httpRespOpenTickets = this.getUrlContent("http://10.33.1.173/rt/openTickets.json");
+			this.httpRespOpenTickets = this.getUrl("http://10.33.1.173/rt/openTickets.json");
 			this.jsonOpenTickets = new JSONArray(this.httpRespOpenTickets.content);
 
-			this.httpRespNewTickets = this.getUrlContent("http://10.33.1.173/rt/newTickets.json");
+			this.httpRespNewTickets = this.getUrl("http://10.33.1.173/rt/newTickets.json");
 			this.jsonNewTickets = new JSONArray(this.httpRespNewTickets.content);
+
+			HttpResponse httpRespNeedingReplyTickets = this.getUrl("http://10.33.1.173/rt/needingReply.json");
+			this.jsonNeedingReplyTickets = new JSONArray(httpRespNeedingReplyTickets.content);
+
+			HttpResponse httpRespUnownedTickets = this.getUrl("http://10.33.1.173/rt/unownedTickets.json");
+			this.jsonUnownedTickets = new JSONArray(httpRespUnownedTickets.content);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
