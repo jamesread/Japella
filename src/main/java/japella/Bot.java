@@ -83,6 +83,12 @@ public class Bot extends PircBot implements Runnable {
 		this.channels.add(channel);
 	}
 
+	public void addChannelGag(String channel) {
+		this.channelGags.add(channel);
+		this.log("Channel gag added on channel: " + channel);
+		this.sendMessage(channel, "I will no longer send messages to this channel.");
+	}
+
 	public void addChannels(Vector<String> channels) {
 		this.channels.addAll(channels);
 	}
@@ -138,6 +144,10 @@ public class Bot extends PircBot implements Runnable {
 
 	public boolean hasAdmin(String sender) {
 		return this.admins.contains(sender);
+	}
+
+	public boolean isGagged(String channel) {
+		return this.channelGags.contains(channel);
 	}
 
 	public boolean isInChannel(String channel) {
@@ -344,6 +354,12 @@ public class Bot extends PircBot implements Runnable {
 		this.debugMessage("Unknown: " + line);
 	}
 
+	public void removeChannelGag(String channel) {
+		this.channelGags.remove(channel);
+		this.log("Channel gag removed on channel:" + channel);
+		this.sendMessage(channel, "Oh, I just woke up. I will talk to this channel again.");
+	}
+
 	/**
 	 * Attempts to connect to the specified server. Will loop in a seperate
 	 * thread until the bot is disconnected. Loops once a seccond.
@@ -451,16 +467,10 @@ public class Bot extends PircBot implements Runnable {
 	}
 
 	public void toggleChannelGag(String channel) {
-		if (this.channelGags.contains(channel)) {
-			this.channelGags.remove(channel);
-
-			this.log("Channel gag removed on channel:" + channel);
-			this.sendMessage(channel, "Oh, I just woke up. I will talk to this channel again.");
+		if (this.isGagged(channel)) {
+			this.removeChannelGag(channel);
 		} else {
-			this.channelGags.add(channel);
-
-			this.log("Channel gag added on channel: " + channel);
-			this.sendMessage(channel, "I will no longer send messages to this channel.");
+			this.addChannelGag(channel);
 		}
 	}
 }
