@@ -6,8 +6,8 @@ public class Drone extends MessagePlugin {
 
 	@CommandMessage(keyword = "!say", target = MessageTarget.PM)
 	public void onSay(Message message) {
-		String channel = message.command.getString(1);
-		String thingToSay = message.command.getOriginalMessage();
+		String channel = message.parser.getString(1);
+		String thingToSay = message.parser.getOriginalMessage();
 
 		thingToSay = thingToSay.replace("!say", "");
 		thingToSay = thingToSay.replace(channel, "");

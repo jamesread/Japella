@@ -75,63 +75,56 @@ public class QuizPlugin extends MessagePlugin {
 		message.reply("Quiz aborted.");
 	}
 
-	@Override
-	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
-		if (message.contains("!guess")) {
-			String answer = message.replace("!guess", "").trim();
+	@CommandMessage(keyword = "!guess")
+	public void onGuess(Message message) {
+		String answer = message.originalMessage.replace("!guess", "").trim();
+		message.parser.toString().replace("!guess", "").trim();
 
-			if (this.currentQuestion == null) {
-				bot.sendMessageResponsiblyUser(channel, sender, "There is no active quiz. To start a new quiz, use !newquiz.");
-				return;
+		if (this.currentQuestion == null) {
+			message.reply("There is no active quiz. To start a new quiz, use !newquiz.");
+			return;
+		}
+
+		if (answer.equalsIgnoreCase(this.currentQuestion.answer)) {
+			message.reply("Correct answer, " + message.sender + "!");
+
+			if (!this.scoreboard.containsKey(message.sender)) {
+				this.scoreboard.put(message.sender, 0);
 			}
 
-			if (answer.equalsIgnoreCase(this.currentQuestion.answer)) {
-				bot.sendMessageResponsibly(channel, "Correct answer, " + sender + "!");
+			this.scoreboard.put(message.sender, this.scoreboard.get(message.sender) + 1);
 
-				if (!this.scoreboard.containsKey(sender)) {
-					this.scoreboard.put(sender, 0);
-				}
+			if (this.activeQuestions.isEmpty()) {
+				String winningPlayer = this.getHighestPlayer();
+				int winningScore = this.scoreboard.get(winningPlayer);
+				this.currentQuestion = null;
 
-				this.scoreboard.put(sender, this.scoreboard.get(sender) + 1);
-
-				if (this.activeQuestions.isEmpty()) {
-					String winningPlayer = this.getHighestPlayer();
-					int winningScore = this.scoreboard.get(winningPlayer);
-					this.currentQuestion = null;
-
-					bot.sendMessageResponsibly(channel, "The quiz is over. The winner is: " + winningPlayer + " with " + winningScore + " point(s)");
-				} else {
-					this.askNextQuestion(bot, channel);
-				}
+				message.reply("The quiz is over. The winner is: " + winningPlayer + " with " + winningScore + " point(s)");
 			} else {
-				bot.sendMessageResponsiblyUser(channel, sender, "Wrong answer!");
-				bot.log(sender + " guessed " + answer + ", but the answer was " + this.currentQuestion.answer);
+				this.askNextQuestion(message.bot, message.channel);
 			}
-		} else if (message.contains("!quizqcount")) {
-			bot.sendMessageResponsiblyUser(channel, sender, "The quiz has " + this.questions.size() + " in the database.");
+		} else {
+			message.reply("Wrong answer!");
+			message.bot.log(message.sender + " guessed " + answer + ", but the answer was " + this.currentQuestion.answer);
 		}
 	}
 
 	@CommandMessage(keyword = "!newquiz")
 	public void onNewQuiz(Message message) {
-		Bot bot = message.bot;
-		String channel = message.channel;
-		String sender = message.sender;
-
 		if (!this.activeQuestions.isEmpty()) {
-			bot.sendMessageResponsibly(channel, sender + ": I won't start a new quiz, because one is already running.");
+			message.reply("I won't start a new quiz, because one is already running.");
 			return;
 		}
 
 		if (this.questions.isEmpty()) {
-			bot.sendMessageResponsibly(channel, sender + ": I won't start a new quiz, because there are 0 questions in the datatabase. PM me with !quizadd");
+			message.reply("I won't start a new quiz, because there are 0 questions in the datatabase. PM me with !quizadd");
 			return;
 		}
 
 		int questionCount;
 
 		try {
-			questionCount = message.command.getInt(1);
+			questionCount = message.parser.getInt(1);
 		} catch (NumberFormatException e) {
 			questionCount = 3;
 		}
@@ -144,7 +137,12 @@ public class QuizPlugin extends MessagePlugin {
 
 		this.scoreboard.clear();
 
-		bot.sendMessageResponsibly(channel, "A new quiz has been started with " + this.activeQuestions.size() + " questions - type \"!guess <answer string>\" to play!");
-		this.askNextQuestion(bot, channel);
+		message.reply("A new quiz has been started with " + this.activeQuestions.size() + " questions - type \"!guess <answer string>\" to play!");
+		this.askNextQuestion(message.bot, message.channel);
+	}
+
+	@CommandMessage(keyword = "!quizquestioncount")
+	public void onQuizQCount(Message message) {
+		message.reply("The quiz has " + this.questions.size() + " in the database.");
 	}
 }

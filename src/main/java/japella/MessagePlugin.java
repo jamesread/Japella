@@ -28,19 +28,19 @@ public abstract class MessagePlugin {
 		public final Bot bot;
 		public final String channel;
 		public final String sender;
-		public final Command command;
+		public final MessageParser parser;
 		public final String originalMessage;
 
-		public Message(Bot bot, String channel2, String sender2, Command command) {
+		public Message(Bot bot, String channel2, String sender2, MessageParser messageParser) {
 			this.bot = bot;
 			this.channel = channel2;
 			this.sender = sender2;
-			this.originalMessage = command.getOriginalMessage();
-			this.command = command;
+			this.originalMessage = messageParser.getOriginalMessage();
+			this.parser = messageParser;
 		}
 
 		public Message(Bot bot, String channel2, String sender2, String originalMessage) {
-			this(bot, channel2, sender2, new Command(originalMessage));
+			this(bot, channel2, sender2, new MessageParser(originalMessage));
 		}
 
 		public boolean fromAdmin() {
@@ -89,16 +89,16 @@ public abstract class MessagePlugin {
 	private static final transient Logger LOG = LoggerFactory.getLogger(MessagePlugin.class);
 
 	public void callCommandMessages(Bot bot, String channel, String sender, String input) {
-		Command command = new Command(input);
+		MessageParser messageParser = new MessageParser(input);
 
-		for (Method method : this.getCommandMessageMethod(command)) {
+		for (Method method : this.getCommandMessageMethod(messageParser)) {
 			Type[] types = method.getGenericParameterTypes();
 
 			if ((types.length != 1) || (types[0] != Message.class)) {
 				MessagePlugin.LOG.debug("InputSelector method found for " + input + ", but this method needs to take a single Message argument");
 			} else {
 				try {
-					method.invoke(this, new Message(bot, channel, sender, command));
+					method.invoke(this, new Message(bot, channel, sender, messageParser));
 					return;
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -109,7 +109,7 @@ public abstract class MessagePlugin {
 		MessagePlugin.LOG.warn("Could not find command message for: " + input);
 	}
 
-	private ArrayList<Method> getCommandMessageMethod(Command command) {
+	private ArrayList<Method> getCommandMessageMethod(MessageParser command) {
 		ArrayList<Method> methods = new ArrayList<>();
 
 		for (Method m : this.getClass().getMethods()) {
@@ -120,7 +120,7 @@ public abstract class MessagePlugin {
 					keyword = m.getName().toLowerCase();
 				}
 
-				if (command.supportsKeyword(keyword)) {
+				if (command.hasKeyword(keyword)) {
 					methods.add(m);
 				}
 			}
@@ -150,11 +150,11 @@ public abstract class MessagePlugin {
 	}
 
 	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
-		this.onAnyMessage(new Message(bot, channel, sender, new Command(message)));
+		this.onAnyMessage(new Message(bot, channel, sender, new MessageParser(message)));
 	}
 
 	public void onPrivateMessage(Bot bot, String sender, String message) {
-		this.onAnyMessage(new Message(bot, null, sender, new Command(message)));
+		this.onAnyMessage(new Message(bot, null, sender, new MessageParser(message)));
 	}
 
 	public void onTimerTick(Bot bot, String channel) {}

@@ -76,8 +76,8 @@ public class TicketLookup extends MessagePlugin {
 	public void onTicketsBrief(Message message) {
 		this.recheckTickets();
 
-		if (message.command.hasParam(1)) {
-			switch (message.command.getString(1)) {
+		if (message.parser.hasParam(1)) {
+			switch (message.parser.getString(1)) {
 			case "open":
 				message.reply("There are " + this.jsonOpenTickets.length() + " open tickets. Updated: " + this.httpRespOpenTickets.lastModified);
 				return;
@@ -99,8 +99,8 @@ public class TicketLookup extends MessagePlugin {
 	public void onTicketsFull(Message message) {
 		this.recheckTickets();
 
-		if (message.command.hasParam(1)) {
-			switch (message.command.getString(1)) {
+		if (message.parser.hasParam(1)) {
+			switch (message.parser.getString(1)) {
 			case "new":
 				this.sendTicketList("New", this.jsonNewTickets, message.channel, message.bot);
 				return;

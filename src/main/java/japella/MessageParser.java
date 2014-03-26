@@ -1,19 +1,35 @@
 package japella;
 
 import java.lang.reflect.Type;
+import java.util.Arrays;
 
-public class Command {
+public class MessageParser {
 	private final String[] parts;
 
 	private final String originalMessage;
 
-	public Command(String command) {
+	public MessageParser(String command) {
 		this.originalMessage = command;
 		this.parts = command.trim().split(" ");
 	}
 
 	public String getBody() {
-		return this.originalMessage.replace("", "");
+		return this.originalMessage.replace(this.getKeyword(), "").trim();
+	}
+
+	public String getBody(int skipWords) {
+		String[] body = this.getBody().split(" ");
+
+		skipWords = Math.min(skipWords, body.length);
+		body = Arrays.copyOfRange(body, skipWords, body.length);
+
+		String ret = "";
+
+		for (String element : body) {
+			ret += element + " ";
+		}
+
+		return ret.trim();
 	}
 
 	public int getInt(int position) {
@@ -26,12 +42,28 @@ public class Command {
 		}
 	}
 
+	public String getKeyword() {
+		String firstWord = this.getString(0);
+
+		if (firstWord.startsWith("!")) {
+			return firstWord;
+		} else {
+			return "";
+		}
+	}
+
 	public String getOriginalMessage() {
 		return this.originalMessage;
 	}
 
 	public String getString(int position) {
 		return this.parts[position];
+	}
+
+	public boolean hasKeyword(String keyword) {
+		String firstWord = this.getString(0);
+
+		return firstWord.equalsIgnoreCase(keyword);
 	}
 
 	public boolean hasParam(int position) {
@@ -87,11 +119,5 @@ public class Command {
 		}
 
 		return true;
-	}
-
-	public boolean supportsKeyword(String keyword) {
-		String firstWord = this.getString(0);
-
-		return firstWord.equalsIgnoreCase(keyword);
 	}
 }

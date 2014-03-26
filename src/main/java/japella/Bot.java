@@ -71,7 +71,6 @@ public class Bot extends PircBot implements Runnable {
 		this.setFinger("Get your fingers off me!");
 		this.setLogin(this.nick);
 
-		// this.realname = "Japella " + this.mainReference.VERISON;
 		this.server = server;
 
 		this.loadMessagePlugins();
@@ -111,6 +110,10 @@ public class Bot extends PircBot implements Runnable {
 
 	public void debugMessage(final String message) {
 		Bot.LOG.debug(this.nick + ": " + message.trim());
+	}
+
+	public Vector<String> getAdmins() {
+		return this.admins;
 	}
 
 	public MessagePlugin getMessagePlugin(String pluginName) {
@@ -154,9 +157,6 @@ public class Bot extends PircBot implements Runnable {
 		return this.channels.contains(channel);
 	}
 
-	/**
-	 * Join all the channels within this bot's channel list.
-	 */
 	private void joinAllChannels() {
 		this.debugMessage("Going to join " + this.channels.size() + " channels.");
 
@@ -198,9 +198,6 @@ public class Bot extends PircBot implements Runnable {
 		}
 	}
 
-	/**
-	 * Called by the superclass when the bot is deop'd.
-	 */
 	@Override
 	public void onDeop(final String channel, final String sourceNick, final String sourceLogin, final String sourceHostname, final String recipient) {
 		if (recipient.matches(this.nick)) {
@@ -210,9 +207,6 @@ public class Bot extends PircBot implements Runnable {
 		}
 	}
 
-	/**
-	 * Called by the superclass when somebody joins the same channel as us.
-	 */
 	@Override
 	public void onJoin(final String channel, final String sender, final String login, final String hostname) {
 		if (this.nick.equals(sender)) {
@@ -224,9 +218,6 @@ public class Bot extends PircBot implements Runnable {
 		this.setUserModes(channel, sender, hostname);
 	}
 
-	/**
-	 * Called by the superclass when this bot recieves a message.
-	 */
 	@Override
 	public void onMessage(final String channel, final String sender, final String login, final String hostname, final String message) {
 		this.onAnyMessage(this, channel, sender, message);
@@ -236,9 +227,6 @@ public class Bot extends PircBot implements Runnable {
 		}
 	}
 
-	/**
-	 * Called by the superclass when the bot is op'ed.
-	 */
 	@Override
 	public void onOp(final String channel, final String sourceNick, final String sourceLogin, final String sourceHostname, final String recipient) {
 		if (recipient.matches(this.nick)) {
@@ -289,13 +277,11 @@ public class Bot extends PircBot implements Runnable {
 			}
 		} else if (message.startsWith("!quit")) {
 			if (this.admins.contains(sender)) {
+
 				Main.instance.shutdown();
 			} else {
 				this.sendMessageResponsibly(sender, "You are not an admin. Won't quit.");
 			}
-		} else if (message.equals("!whoami")) {
-			String whois = this.getWhois(sender);
-			this.sendMessageResponsibly(sender, "Thanks, your whois is: " + whois);
 		} else if (message.contains("!password")) {
 			final String password = message.replace("!password ", "");
 
@@ -316,21 +302,7 @@ public class Bot extends PircBot implements Runnable {
 				this.sendMessageResponsibly(sender, "Password rejected");
 				this.debugMessage("Administrative password rejected from " + sender + ". They provided: " + password);
 			}
-		} else if (message.equalsIgnoreCase("!help")) {
-			this.sendMessageResponsibly(sender, "Hello there. I am a channel bot (Software: Japella, version " + Main.instance.getConfiguration().getVersion() + ")");
-			this.sendMessageResponsibly(sender, "I am owned by \"" + this.ownerNickname + "\". Please PM \"" + this.ownerNickname + "\" if you are having problems this bot. ");
-		} else if (message.equalsIgnoreCase("!plugins")) {
-			StringBuilder buf = new StringBuilder("Plugins: ");
 
-			for (MessagePlugin mp : this.messagePlugins) {
-				buf.append(mp.getClass().getSimpleName() + ". ");
-			}
-
-			this.sendMessageResponsibly(sender, buf.toString());
-		} else if (message.equals("!admins")) {
-			this.sendMessageResponsibly(sender, "Admins: " + this.admins.toString());
-		} else if (message.equals("!version")) {
-			this.sendMessageResponsibly(sender, "Version: " + this.getVersion());
 		} else {
 			for (MessagePlugin mp : this.messagePlugins) {
 				mp.onPrivateMessage(this, sender, message);

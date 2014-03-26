@@ -7,15 +7,15 @@ import java.util.Random;
 public class Decide extends MessagePlugin {
 
 	@CommandMessage(keyword = "!decide")
-	public void decide(Message msg) {
-		String thingToDo = msg.originalMessage.replace("!decide", "").trim();
+	public void decide(Message message) {
+		String thingToDo = message.parser.getBody();
 
 		Random r = new Random();
 
 		if (r.nextBoolean()) {
-			msg.reply("Yep, you should " + thingToDo);
+			message.reply("Yep, you should " + thingToDo);
 		} else {
-			msg.reply("Nope, don't " + thingToDo);
+			message.reply("Nope, don't " + thingToDo);
 		}
 	}
 }
