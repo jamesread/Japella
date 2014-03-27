@@ -20,6 +20,10 @@ public class TestMain {
 	public void testConfigDir() throws Exception {
 		Assert.assertNotNull(Main.getConfigDir());
 		Assert.assertTrue(Main.getConfigDir().exists());
+
+		Main.getConfigDir().delete();
+
+		Assert.assertTrue(Main.getConfigDir().exists());
 	}
 
 	@Test

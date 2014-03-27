@@ -97,8 +97,7 @@ public abstract class MessagePlugin {
 
 	private static final transient Logger LOG = LoggerFactory.getLogger(MessagePlugin.class);
 
-	public void callCommandMessages(Message message) {
-
+	public boolean callCommandMessages(Message message) {
 		for (Method method : this.getCommandMessageMethod(message.parser)) {
 			Type[] types = method.getGenericParameterTypes();
 
@@ -107,7 +106,7 @@ public abstract class MessagePlugin {
 			} else {
 				try {
 					method.invoke(this, message);
-					return;
+					return true;
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -115,6 +114,7 @@ public abstract class MessagePlugin {
 		}
 
 		MessagePlugin.LOG.warn("Could not find command message for: " + message.originalMessage);
+		return false;
 	}
 
 	private ArrayList<Method> getCommandMessageMethod(MessageParser command) {

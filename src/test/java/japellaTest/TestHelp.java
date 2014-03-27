@@ -34,4 +34,10 @@ public class TestHelp {
 
 		Assert.assertEquals("Plugins: Help.", message.getReplies().firstElement());
 	}
+
+	@Test
+	public void testSave() {
+		Help help = new Help();
+		help.saveConfig();
+	}
 }

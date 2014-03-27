@@ -11,6 +11,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.Properties;
 import java.util.Vector;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -103,11 +104,6 @@ public class DirectoryMessageWatcher implements Runnable {
 
 					DirectoryMessageWatcher.LOG.debug("handling event:" + rawEvt.toString());
 
-					if (rawEvt.kind() == StandardWatchEventKinds.OVERFLOW) {
-						DirectoryMessageWatcher.LOG.debug("ignoring event");
-						continue;
-					}
-
 					WatchEvent<Path> evt = (WatchEvent<Path>) rawEvt;
 					Path filename = evt.context();
 
@@ -122,8 +118,6 @@ public class DirectoryMessageWatcher implements Runnable {
 						this.parseFile(newMessage);
 
 						this.hasNewFile.signalAll();
-					} else {
-						DirectoryMessageWatcher.LOG.warn("file created, but noes not exist?!:" + filename.toString());
 					}
 					this.lock.unlock();
 				}
@@ -142,7 +136,7 @@ public class DirectoryMessageWatcher implements Runnable {
 	public void waitForNewFile() throws InterruptedException {
 		this.lock.lock();
 
-		this.hasNewFile.await();
+		this.hasNewFile.await(3, TimeUnit.SECONDS);
 
 		this.lock.unlock();
 	}

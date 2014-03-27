@@ -41,5 +41,7 @@ public class TestDirectoryWatcher {
 		Assert.assertFalse(f.exists());
 
 		Assert.assertEquals(1, watcher.numFiles);
+
+		DirectoryMessageWatcher.stopAll();
 	}
 }

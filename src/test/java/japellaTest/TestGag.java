@@ -26,4 +26,5 @@ public class TestGag {
 
 		Assert.assertFalse(bot.isGagged("#testChannel"));
 	}
+
 }

@@ -15,8 +15,11 @@ public class QuizPlugin extends MessagePlugin {
 	}
 
 	private QuizQuestion currentQuestion = null;
+
 	private final Vector<QuizQuestion> activeQuestions = new Vector<QuizPlugin.QuizQuestion>();
+
 	public Vector<QuizQuestion> questions = new Vector<QuizQuestion>();
+
 	private final HashMap<String, Integer> scoreboard = new HashMap<String, Integer>();
 
 	@CommandMessage(keyword = "!addquizquestion")
@@ -49,6 +52,14 @@ public class QuizPlugin extends MessagePlugin {
 		}
 	}
 
+	public Vector<QuizQuestion> getActiveQuestions() {
+		return this.activeQuestions;
+	}
+
+	public QuizQuestion getCurrentQuestion() {
+		return this.currentQuestion;
+	}
+
 	private String getHighestPlayer() {
 		int currentScore = 0;
 		String currentPlayer = "";
@@ -65,6 +76,14 @@ public class QuizPlugin extends MessagePlugin {
 	@Override
 	public String getName() {
 		return this.getClass().getSimpleName();
+	}
+
+	public Vector<QuizQuestion> getQuestions() {
+		return this.questions;
+	}
+
+	public HashMap<String, Integer> getScoreboard() {
+		return this.scoreboard;
 	}
 
 	@CommandMessage(keyword = "!abortquiz")

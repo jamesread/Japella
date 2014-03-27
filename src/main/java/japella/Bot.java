@@ -38,7 +38,7 @@ public class Bot extends PircBot implements Runnable {
 
 	private String lastWhois = "";
 
-	private static final transient Logger LOG = LoggerFactory.getLogger(Bot.class);
+	public static final transient Logger LOG = LoggerFactory.getLogger(Bot.class);
 
 	private final Hashtable<String, String> cachedWhoisQueries = new Hashtable<String, String>();
 

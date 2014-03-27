@@ -5,6 +5,7 @@ import japella.Main;
 import japella.MessageParser;
 import japella.MessagePlugin.Message;
 import japella.Server;
+import japella.messagePlugins.Help;
 
 import java.util.Arrays;
 
@@ -27,6 +28,16 @@ public class TestBotBasics {
 		bot.addAdmin("superuser");
 
 		Assert.assertThat(bot.getAdmins(), Matchers.contains("superuser"));
+	}
+
+	@Test
+	public void testGetPlugin() {
+		Bot bot = new Bot("test", null);
+		Help help = new Help();
+		bot.loadMessagePlugin(help);
+
+		Assert.assertEquals(help, bot.getMessagePlugin("Help"));
+		Assert.assertEquals(1, bot.getMessagePlugins().size());
 	}
 
 	@Test
