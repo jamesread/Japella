@@ -89,6 +89,7 @@ public class Configuration extends CompositeConfiguration {
 			}
 
 			Bot newBot = new Bot(bot.getString("[@name]"), server);
+			newBot.loadDefaultMessagePlugins();
 			newBot.setOwnerNickname(bot.getString("[@ownerNickname]"));
 			newBot.setPassword(bot.getString("[@password]"));
 

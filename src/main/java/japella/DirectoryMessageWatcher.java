@@ -9,18 +9,7 @@ import org.slf4j.LoggerFactory;
 
 public class DirectoryMessageWatcher implements Runnable {
 	private boolean run = true;
-	private Main main;
 	private static final transient Logger LOG = LoggerFactory.getLogger(DirectoryMessageWatcher.class);
-
-	private boolean isInChannel(Bot bot, String channel) {
-		for (String joinedChannel : bot.getChannels()) {
-			if (joinedChannel.equals(channel)) {
-				return true;
-			}
-		}
-
-		return false;
-	}
 
 	@Override
 	public void run() {
@@ -28,7 +17,7 @@ public class DirectoryMessageWatcher implements Runnable {
 			try {
 				Thread.sleep(10000);
 
-				for (Bot bot : this.main.botList) {
+				for (Bot bot : Main.instance.botList) {
 					File directoryToWatch = bot.getWatchDirectory();
 
 					if ((directoryToWatch == null) || !directoryToWatch.exists()) {
@@ -52,7 +41,7 @@ public class DirectoryMessageWatcher implements Runnable {
 							bot.debugMessage("cl:" + channel.length());
 							bot.debugMessage("message=" + message);
 
-							if (!this.isInChannel(bot, channel)) {
+							if (!bot.isInChannel(channel)) {
 								bot.debugMessage("Cannot send message to a channel that I'm not in: " + channel);
 							}
 
@@ -63,13 +52,9 @@ public class DirectoryMessageWatcher implements Runnable {
 					}
 				}
 			} catch (Exception e) {
-				LOG.error("Exception in DirectoryMessageWatcher: " + e.toString(), e);
+				DirectoryMessageWatcher.LOG.error("Exception in DirectoryMessageWatcher: " + e.toString(), e);
 			}
 		}
-	}
-
-	public void setMain(Main main) {
-		this.main = main;
 	}
 
 	public void start() {

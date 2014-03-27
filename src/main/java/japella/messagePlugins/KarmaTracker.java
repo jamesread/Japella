@@ -82,8 +82,8 @@ public class KarmaTracker extends MessagePlugin {
 	}
 
 	@Override
-	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
-		this.tryGiveKarma(bot, message, channel, sender);
+	public void onChannelMessage(Message message) {
+		this.tryGiveKarma(message);
 	}
 
 	@CommandMessage(keyword = "!rank")
@@ -135,39 +135,39 @@ public class KarmaTracker extends MessagePlugin {
 		}
 	}
 
-	private void tryGiveKarma(Bot bot, String message, String channel, String sender) {
+	private void tryGiveKarma(Message message) {
 		int karmaDelta = 0;
 
-		if (message.contains("++")) {
+		if (message.originalMessage.contains("++")) {
 			karmaDelta++;
-		} else if (message.contains("--")) {
+		} else if (message.originalMessage.contains("--")) {
 			karmaDelta--;
 		} else {
 			return;
 		}
 
-		String thingToKarma = KarmaTracker.findThingToKarma(message);
+		String thingToKarma = KarmaTracker.findThingToKarma(message.originalMessage);
 
 		if ((thingToKarma == null) || thingToKarma.isEmpty() || !Character.isAlphabetic(thingToKarma.charAt(0))) {
 			return;
 		}
 
-		if (thingToKarma.equalsIgnoreCase(sender)) {
-			bot.sendMessageResponsiblyUser(channel, sender, "You cannot change karma on yourself.");
+		if (thingToKarma.equalsIgnoreCase(message.sender)) {
+			message.reply("You cannot change karma on yourself.");
 			return;
 		}
 
-		if (this.karmaLog.get(sender) == null) {
-			this.karmaLog.put(sender, new HashMap<String, Instant>());
+		if (this.karmaLog.get(message.sender) == null) {
+			this.karmaLog.put(message.sender, new HashMap<String, Instant>());
 		}
 
-		HashMap<String, Instant> usersKarmaLog = this.karmaLog.get(sender);
+		HashMap<String, Instant> usersKarmaLog = this.karmaLog.get(message.sender);
 
 		if ((usersKarmaLog != null) && usersKarmaLog.containsKey(thingToKarma)) {
 			Instant lastKarmared = usersKarmaLog.get(thingToKarma);
 
 			if (lastKarmared.plus(this.karmaOverflowDelay).isAfter(Instant.now())) {
-				bot.sendMessageResponsiblyUser(channel, sender, "You must wait until " + new Interval(lastKarmared.plus(this.karmaOverflowDelay), Instant.now()).toDuration().getStandardMinutes() + " minute(s) until you can set karma on that again. ");
+				message.reply("You must wait until " + new Interval(lastKarmared.plus(this.karmaOverflowDelay), Instant.now()).toDuration().getStandardMinutes() + " minute(s) until you can set karma on that again. ");
 				return;
 			}
 		}
@@ -179,10 +179,10 @@ public class KarmaTracker extends MessagePlugin {
 		if (karmaDelta == 0) {
 			this.karma.remove(thingToKarma);
 
-			bot.sendMessageResponsibly(channel, thingToKarma + " now has 0 points and has been garbage collected.");
+			message.reply(thingToKarma + " now has 0 points and has been garbage collected.");
 		} else {
 			this.karma.put(thingToKarma, karmaDelta);
-			bot.sendMessageResponsibly(channel, thingToKarma + " now has " + karmaDelta + " karma");
+			message.reply(thingToKarma + " now has " + karmaDelta + " karma");
 		}
 
 		usersKarmaLog.put(thingToKarma, Instant.now());

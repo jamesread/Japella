@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Vector;
 
 import org.joda.time.Period;
 import org.slf4j.Logger;
@@ -31,6 +32,8 @@ public abstract class MessagePlugin {
 		public final MessageParser parser;
 		public final String originalMessage;
 
+		public Vector<String> replies = new Vector<String>();
+
 		public Message(Bot bot, String channel2, String sender2, MessageParser messageParser) {
 			this.bot = bot;
 			this.channel = channel2;
@@ -47,7 +50,13 @@ public abstract class MessagePlugin {
 			return this.bot.hasAdmin(this.sender);
 		}
 
+		public Vector<String> getReplies() {
+			return this.replies;
+		}
+
 		public void reply(String message) {
+			this.replies.add(message);
+
 			if (this.channel == null) {
 				this.bot.sendMessageResponsibly(this.sender, message);
 			} else {
@@ -88,17 +97,16 @@ public abstract class MessagePlugin {
 
 	private static final transient Logger LOG = LoggerFactory.getLogger(MessagePlugin.class);
 
-	public void callCommandMessages(Bot bot, String channel, String sender, String input) {
-		MessageParser messageParser = new MessageParser(input);
+	public void callCommandMessages(Message message) {
 
-		for (Method method : this.getCommandMessageMethod(messageParser)) {
+		for (Method method : this.getCommandMessageMethod(message.parser)) {
 			Type[] types = method.getGenericParameterTypes();
 
 			if ((types.length != 1) || (types[0] != Message.class)) {
-				MessagePlugin.LOG.debug("InputSelector method found for " + input + ", but this method needs to take a single Message argument");
+				MessagePlugin.LOG.debug("InputSelector method found for " + message.originalMessage + ", but this method needs to take a single Message argument");
 			} else {
 				try {
-					method.invoke(this, new Message(bot, channel, sender, messageParser));
+					method.invoke(this, message);
 					return;
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -106,7 +114,7 @@ public abstract class MessagePlugin {
 			}
 		}
 
-		MessagePlugin.LOG.warn("Could not find command message for: " + input);
+		MessagePlugin.LOG.warn("Could not find command message for: " + message.originalMessage);
 	}
 
 	private ArrayList<Method> getCommandMessageMethod(MessageParser command) {
@@ -149,8 +157,8 @@ public abstract class MessagePlugin {
 
 	}
 
-	public void onChannelMessage(Bot bot, String channel, String sender, String login, String hostname, String message) {
-		this.onAnyMessage(new Message(bot, channel, sender, new MessageParser(message)));
+	public void onChannelMessage(Message message) {
+		this.onAnyMessage(message);
 	}
 
 	public void onPrivateMessage(Bot bot, String sender, String message) {

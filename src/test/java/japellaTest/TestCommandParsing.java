@@ -7,6 +7,20 @@ import org.junit.Test;
 
 public class TestCommandParsing {
 
+	@Test(expected = Exception.class)
+	public void testExpectInt() throws Exception {
+		MessageParser parser = new MessageParser("one");
+
+		parser.matches(Integer.class);
+	}
+
+	@Test(expected = Exception.class)
+	public void testExpectMore() throws Exception {
+		MessageParser parser = new MessageParser("one");
+
+		parser.matches(String.class, Integer.class);
+	}
+
 	@Test
 	public void testMessageParserTypes1() throws Exception {
 		MessageParser parser = new MessageParser("!guess age 18");
@@ -20,6 +34,16 @@ public class TestCommandParsing {
 		Assert.assertEquals("!guess", parser.getString(0));
 		Assert.assertEquals("age", parser.getString(1));
 		Assert.assertEquals(18, parser.getInt(2));
+		Assert.assertEquals(0, parser.getInt(1));
+		Assert.assertFalse(parser.isInt(1));
+		Assert.assertEquals("!guess age 18", parser.getOriginalMessage());
+	}
+
+	@Test
+	public void testNonKeyword() {
+		MessageParser parser = new MessageParser("not a keyword");
+
+		Assert.assertEquals("", parser.getKeyword());
 	}
 
 	@Test

@@ -18,7 +18,7 @@ public class Help extends MessagePlugin {
 			}
 		}
 
-		message.reply(ret);
+		message.reply(ret.trim());
 	}
 
 	@CommandMessage(keyword = "!plugins")
@@ -29,7 +29,7 @@ public class Help extends MessagePlugin {
 			buf.append(mp.getClass().getSimpleName() + ". ");
 		}
 
-		message.reply(buf.toString());
+		message.reply(buf.toString().trim());
 	}
 
 	@CommandMessage(keyword = "!version")

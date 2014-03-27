@@ -1,5 +1,6 @@
 package japella;
 
+import japella.MessagePlugin.Message;
 import japella.messagePlugins.Decide;
 import japella.messagePlugins.Drone;
 import japella.messagePlugins.GaggingPlugin;
@@ -45,21 +46,6 @@ public class Bot extends PircBot implements Runnable {
 
 	private final Vector<String> channelGags = new Vector<String>();
 
-	/**
-	 * The constructor.
-	 * 
-	 * @param nick
-	 *            The nickname that the bot will use on the irc server.
-	 * @param server
-	 *            A string representing the server address. IP addresses or
-	 *            domain names are acceptable.
-	 * @param channels
-	 *            An array list of channels for the bot to connect to. Channels
-	 *            require the additional hash (#) before the channel name.
-	 * @param mainReference
-	 *            A reference to the main class. This is so that Main can shut
-	 *            the bots down and perform additional tasks.
-	 */
 	public Bot(final String nick, final Server server) {
 		this.nick = nick;
 		this.setVerbose(true);
@@ -67,15 +53,17 @@ public class Bot extends PircBot implements Runnable {
 		this.debugMessage("Constructing bot: " + this.nick + " with password: " + this.password);
 
 		this.setName(this.nick);
-		this.setVersion("Japella " + Main.instance.getConfiguration().getVersion());
+		this.setVersion("Japella");
 		this.setFinger("Get your fingers off me!");
 		this.setLogin(this.nick);
 
 		this.server = server;
 
-		this.loadMessagePlugins();
-
 		this.runner = new Thread(this, "Bot: " + this.nick);
+	}
+
+	public void addAdmin(String admin) {
+		this.admins.add(admin);
 	}
 
 	public void addChannel(String channel) {
@@ -86,10 +74,6 @@ public class Bot extends PircBot implements Runnable {
 		this.channelGags.add(channel);
 		this.log("Channel gag added on channel: " + channel);
 		this.sendMessage(channel, "I will no longer send messages to this channel.");
-	}
-
-	public void addChannels(Vector<String> channels) {
-		this.channels.addAll(channels);
 	}
 
 	private void connect() {
@@ -170,11 +154,7 @@ public class Bot extends PircBot implements Runnable {
 
 	}
 
-	public void loadMessagePlugin(MessagePlugin plugin) {
-		this.messagePlugins.add(plugin);
-	}
-
-	private void loadMessagePlugins() {
+	public void loadDefaultMessagePlugins() {
 		this.messagePlugins.add(new KarmaTracker());
 		this.messagePlugins.add(new Decide());
 		this.messagePlugins.add(new TicketLookup());
@@ -185,17 +165,18 @@ public class Bot extends PircBot implements Runnable {
 		this.messagePlugins.add(new Drone());
 	}
 
-	private final void onAnyMessage(final Bot bot, final String channel, final String sender, String message) {
-		for (MessagePlugin mp : this.messagePlugins) {
-			if (message.startsWith(bot.getName())) {
-				message = message.replace(bot.getName() + ":", "").trim();
-				System.out.println("new message: " + message);
-			}
+	public void loadMessagePlugin(MessagePlugin plugin) {
+		this.messagePlugins.add(plugin);
+	}
 
-			if (message.startsWith("!")) {
-				mp.callCommandMessages(bot, channel, sender, message);
+	private final Message onAnyMessage(Message message) {
+		for (MessagePlugin mp : this.messagePlugins) {
+			if (message.originalMessage.startsWith("!")) {
+				mp.callCommandMessages(message);
 			}
 		}
+
+		return message;
 	}
 
 	@Override
@@ -219,12 +200,20 @@ public class Bot extends PircBot implements Runnable {
 	}
 
 	@Override
-	public void onMessage(final String channel, final String sender, final String login, final String hostname, final String message) {
-		this.onAnyMessage(this, channel, sender, message);
+	public void onMessage(final String channel, final String sender, final String login, final String hostname, String smessage) {
+		if (smessage.startsWith(this.getName())) {
+			smessage = smessage.replaceFirst(this.getName() + ": ", "");
+		}
+
+		Message message = this.onAnyMessage(new Message(this, channel, sender, new MessageParser(smessage)));
 
 		for (MessagePlugin mp : this.messagePlugins) {
-			mp.onChannelMessage(this, channel, sender, login, hostname, message);
+			mp.onChannelMessage(message);
 		}
+	}
+
+	public Message onMockMessage(Message message) {
+		return this.onAnyMessage(message);
 	}
 
 	@Override
@@ -242,7 +231,7 @@ public class Bot extends PircBot implements Runnable {
 	public void onPrivateMessage(final String sender, final String login, final String hostname, final String message) {
 		Bot.LOG.debug("recv PM: " + sender + ": " + message);
 
-		this.onAnyMessage(this, sender, sender, message);
+		this.onAnyMessage(new Message(this, null, sender, new MessageParser(message)));
 
 		if (message.contains("!join")) {
 			String channel = message.replace("!join", "").trim();
@@ -445,4 +434,5 @@ public class Bot extends PircBot implements Runnable {
 			this.addChannelGag(channel);
 		}
 	}
+
 }

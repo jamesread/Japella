@@ -43,22 +43,8 @@ public class Main {
 	public final ArrayList<Bot> botList = new ArrayList<Bot>();
 	public final ArrayList<Server> servers = new ArrayList<Server>();
 
-	public Bot getBot(String botName) {
-		for (Bot bot : this.botList) {
-			if (bot.getName().equals(botName)) {
-				return bot;
-			}
-		}
-
-		return null;
-	}
-
-	private File getConfigFile() throws Exception {
+	public File getConfigFile() throws Exception {
 		return new File(Main.getConfigDir(), "config.xml");
-	}
-
-	public Configuration getConfiguration() {
-		return this.compConfig;
 	}
 
 	public Server lookupServer(final String wantedServer) throws Server.NotFoundException {
@@ -95,7 +81,6 @@ public class Main {
 		}
 
 		this.messageWatcher = new DirectoryMessageWatcher();
-		this.messageWatcher.setMain(this);
 		this.messageWatcher.start();
 
 		if (this.servers.isEmpty()) {
