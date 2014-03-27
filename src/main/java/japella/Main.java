@@ -38,7 +38,6 @@ public class Main {
 
 	private final Configuration compConfig = new Configuration();
 
-	private DirectoryMessageWatcher messageWatcher = new DirectoryMessageWatcher();
 	private static final transient Logger LOG = LoggerFactory.getLogger(Main.class);
 	public final ArrayList<Bot> botList = new ArrayList<Bot>();
 	public final ArrayList<Server> servers = new ArrayList<Server>();
@@ -79,9 +78,6 @@ public class Main {
 			Main.LOG.warn("Configuration error: " + e1, e1);
 			return;
 		}
-
-		this.messageWatcher = new DirectoryMessageWatcher();
-		this.messageWatcher.start();
 
 		if (this.servers.isEmpty()) {
 			Main.LOG.error("0 servers found, this program will now exit.");

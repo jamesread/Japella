@@ -45,6 +45,7 @@ public class Bot extends PircBot implements Runnable {
 	private File watchDirectory;
 
 	private final Vector<String> channelGags = new Vector<String>();
+	private DirectoryMessageWatcher watcher;
 
 	public Bot(final String nick, final Server server) {
 		this.nick = nick;
@@ -419,8 +420,18 @@ public class Bot extends PircBot implements Runnable {
 		}
 	}
 
-	public void setWatchDirectory(File watchDirectory) {
+	public DirectoryMessageWatcher setWatchDirectory(File watchDirectory) {
 		this.watchDirectory = watchDirectory;
+
+		try {
+			this.watcher = new DirectoryMessageWatcher(this);
+			return this.watcher;
+		} catch (Exception e) {
+			this.log(e.toString());
+			e.printStackTrace();
+		}
+
+		return null;
 	}
 
 	public void start() {
