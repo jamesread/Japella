@@ -31,7 +31,6 @@ public class TestMain {
 		Main main = new Main();
 
 		Assert.assertNotNull(main.getConfigFile());
-		Assert.assertTrue(main.getConfigFile().exists());
 	}
 
 	@Test(expected = Exception.class)
