@@ -18,7 +18,7 @@ public class TestQuizPlugin {
 
 		Assert.assertEquals(0, quizPlugin.getQuestions().size());
 
-		bot.onMockMessage(new Message(bot, "#channel", "auser", new MessageParser("!addquizquestion foo!")));
+		bot.onMockMessage(new Message(bot, "#channel", "auser", new MessageParser("!quizaddquestion foo!")));
 
 		Assert.assertEquals(0, quizPlugin.getQuestions().size());
 
@@ -33,7 +33,7 @@ public class TestQuizPlugin {
 
 		Assert.assertEquals(0, quizPlugin.getQuestions().size());
 
-		bot.onMockMessage(new Message(bot, "#channel", "auser", new MessageParser("!addquizquestion foo?=bar!")));
+		bot.onMockMessage(new Message(bot, "#channel", "auser", new MessageParser("!quizaddquestion foo?=bar!")));
 
 		Assert.assertEquals(1, quizPlugin.getQuestions().size());
 
