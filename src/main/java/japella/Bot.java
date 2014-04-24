@@ -14,12 +14,17 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Map.Entry;
 import java.util.Vector;
 
 import org.jibble.pircbot.NickAlreadyInUseException;
 import org.jibble.pircbot.PircBot;
 import org.jibble.pircbot.ReplyConstants;
+import org.joda.time.Duration;
+import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,7 +49,7 @@ public class Bot extends PircBot implements Runnable {
 
 	private File watchDirectory;
 
-	private final Vector<String> channelGags = new Vector<String>();
+	private final HashMap<String, Instant> channelGags = new HashMap<String, Instant>();
 	private DirectoryMessageWatcher watcher;
 
 	public Bot(final String nick, final Server server) {
@@ -71,10 +76,28 @@ public class Bot extends PircBot implements Runnable {
 		this.channels.add(channel);
 	}
 
-	public void addChannelGag(String channel) {
-		this.channelGags.add(channel);
+	public void addChannelGag(String channel, Duration timeout) {
+		if (timeout != null) {
+			Instant actualTimeout;
+
+			if (this.channelGags.containsKey(channel)) {
+				actualTimeout = this.channelGags.get(channel).plus(timeout);
+			} else {
+				actualTimeout = Instant.now();
+			}
+
+			this.channelGags.put(channel, actualTimeout);
+		} else {
+			this.channelGags.put(channel, null);
+		}
+
 		this.log("Channel gag added on channel: " + channel);
-		this.sendMessage(channel, "I will no longer send messages to this channel.");
+
+		if (timeout == null) {
+			this.sendMessage(channel, "I will no longer send messages to this channel.");
+		} else {
+			this.sendMessage(channel, "I wont send messages to this channel until: ");
+		}
 	}
 
 	private void connect() {
@@ -135,7 +158,9 @@ public class Bot extends PircBot implements Runnable {
 	}
 
 	public boolean isGagged(String channel) {
-		return this.channelGags.contains(channel);
+		this.removeOldGags();
+
+		return this.channelGags.containsKey(channel);
 	}
 
 	public boolean isInChannel(String channel) {
@@ -322,6 +347,20 @@ public class Bot extends PircBot implements Runnable {
 		this.sendMessage(channel, "Oh, I just woke up. I will talk to this channel again.");
 	}
 
+	private void removeOldGags() {
+		Iterator<Entry<String, Instant>> gagIterator = this.channelGags.entrySet().iterator();
+
+		while (gagIterator.hasNext()) {
+			Entry<String, Instant> gag = gagIterator.next();
+
+			if ((gag.getValue() != null) && gag.getValue().isAfterNow()) {
+				gagIterator.remove();
+
+				this.log("Gag timeout expired on channel: " + gag.getKey());
+			}
+		}
+	}
+
 	/**
 	 * Attempts to connect to the specified server. Will loop in a seperate
 	 * thread until the bot is disconnected. Loops once a seccond.
@@ -332,7 +371,9 @@ public class Bot extends PircBot implements Runnable {
 
 		while (this.isConnected()) {
 			try {
-				Thread.sleep(1000); // 1 sec
+				Thread.sleep(5000); // 1 sec
+
+				this.removeOldGags();
 			} catch (final Exception e) {
 				System.out.print("Cannot sleep: " + e.toString() + "\n");
 				break;
@@ -343,7 +384,7 @@ public class Bot extends PircBot implements Runnable {
 	}
 
 	public void sendMessageResponsibly(String target, String message) {
-		if (this.channelGags.contains(target)) {
+		if (this.isGagged(target)) {
 			Bot.LOG.info("Gagged, wont send - " + target + ": " + message);
 		} else {
 			Bot.LOG.info("Sending - " + target + ": " + message);
@@ -437,13 +478,4 @@ public class Bot extends PircBot implements Runnable {
 	public void start() {
 		this.runner.start();
 	}
-
-	public void toggleChannelGag(String channel) {
-		if (this.isGagged(channel)) {
-			this.removeChannelGag(channel);
-		} else {
-			this.addChannelGag(channel);
-		}
-	}
-
 }
