@@ -1,6 +1,7 @@
 package japella.messagePlugins;
 
 import japella.MessagePlugin;
+import japella.configuration.Configuration;
 
 import java.util.Collections;
 import java.util.Vector;
@@ -46,6 +47,6 @@ public class Help extends MessagePlugin {
 
 	@CommandMessage(keyword = "!version")
 	public void onVersion(Message message) {
-		message.reply("?.?.?");
+		message.reply(Configuration.getVersion());
 	}
 }
