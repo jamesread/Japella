@@ -22,7 +22,7 @@ public class QuizPlugin extends MessagePlugin {
 
 	private final HashMap<String, Integer> scoreboard = new HashMap<String, Integer>();
 
-	@CommandMessage(keyword = "!addquizquestion")
+	@CommandMessage(keyword = "!quizaddquestion")
 	public void addQuizQuestion(Message message2) {
 		Bot bot = message2.bot;
 		String message = message2.originalMessage;
@@ -86,12 +86,12 @@ public class QuizPlugin extends MessagePlugin {
 		return this.scoreboard;
 	}
 
-	@CommandMessage(keyword = "!abortquiz")
+	@CommandMessage(keyword = "!quizstop")
 	public void onAbortQuiz(Message message) {
 		this.scoreboard.clear();
 		this.activeQuestions.clear();
 
-		message.reply("Quiz aborted.");
+		message.reply("Quiz stopped.");
 	}
 
 	@CommandMessage(keyword = "!guess")
@@ -128,7 +128,7 @@ public class QuizPlugin extends MessagePlugin {
 		}
 	}
 
-	@CommandMessage(keyword = "!newquiz")
+	@CommandMessage(keyword = "!quizstart")
 	public void onNewQuiz(Message message) {
 		if (!this.activeQuestions.isEmpty()) {
 			message.reply("I won't start a new quiz, because one is already running.");
