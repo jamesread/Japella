@@ -113,7 +113,6 @@ public abstract class MessagePlugin {
 			}
 		}
 
-		MessagePlugin.LOG.warn("Could not find command message for: " + message.originalMessage);
 		return false;
 	}
 

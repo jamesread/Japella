@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.ArrayList;
 
 import org.apache.commons.configuration.ConfigurationException;
+import org.joda.time.Instant;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,8 @@ public class Main {
 	public final ArrayList<Bot> botList = new ArrayList<Bot>();
 	public final ArrayList<Server> servers = new ArrayList<Server>();
 
+	public Instant startTime;
+
 	public File getConfigFile() throws Exception {
 		return new File(Main.getConfigDir(), "config.xml");
 	}
@@ -69,6 +72,8 @@ public class Main {
 	}
 
 	public void startup() throws Exception {
+		Main.instance.startTime = Instant.now();
+
 		Main.LOG.info("Japella " + Configuration.getVersion() + "\n");
 		Main.LOG.debug("Configuration dir: " + Main.getConfigDir() + ", exists: " + Main.getConfigDir().exists());
 

@@ -60,6 +60,10 @@ public class MessageParser {
 		return this.parts[position];
 	}
 
+	public String getStringFirstArgument() {
+		return this.getString(1).trim();
+	}
+
 	public boolean hasKeyword(String keyword) {
 		String firstWord = this.getString(0);
 

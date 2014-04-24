@@ -22,6 +22,13 @@ public class TestCommandParsing {
 	}
 
 	@Test
+	public void testGetFirstArgument() throws Exception {
+		MessageParser parser = new MessageParser("!join #testChannel");
+
+		Assert.assertEquals("#testChannel", parser.getStringFirstArgument());
+	}
+
+	@Test
 	public void testMessageParserTypes1() throws Exception {
 		MessageParser parser = new MessageParser("!guess age 18");
 

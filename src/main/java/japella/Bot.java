@@ -1,6 +1,7 @@
 package japella;
 
 import japella.MessagePlugin.Message;
+import japella.messagePlugins.Admin;
 import japella.messagePlugins.Decide;
 import japella.messagePlugins.Drone;
 import japella.messagePlugins.GaggingPlugin;
@@ -8,6 +9,7 @@ import japella.messagePlugins.HelloWorld;
 import japella.messagePlugins.Help;
 import japella.messagePlugins.KarmaTracker;
 import japella.messagePlugins.QuizPlugin;
+import japella.messagePlugins.Standard;
 import japella.messagePlugins.TicketLookup;
 
 import java.io.BufferedReader;
@@ -18,6 +20,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.Vector;
 
 import org.jibble.pircbot.NickAlreadyInUseException;
@@ -77,26 +80,26 @@ public class Bot extends PircBot implements Runnable {
 	}
 
 	public void addChannelGag(String channel, Duration timeout) {
-		if (timeout != null) {
-			Instant actualTimeout;
+		Instant actualTimeout = null;
 
+		if (timeout != null) {
 			if (this.channelGags.containsKey(channel)) {
 				actualTimeout = this.channelGags.get(channel).plus(timeout);
 			} else {
-				actualTimeout = Instant.now();
+				actualTimeout = Instant.now().plus(timeout);
 			}
 
 			this.channelGags.put(channel, actualTimeout);
 		} else {
-			this.channelGags.put(channel, null);
+			this.channelGags.put(channel, actualTimeout);
 		}
 
 		this.log("Channel gag added on channel: " + channel);
 
-		if (timeout == null) {
+		if (actualTimeout == null) {
 			this.sendMessage(channel, "I will no longer send messages to this channel.");
 		} else {
-			this.sendMessage(channel, "I wont send messages to this channel until: ");
+			this.sendMessage(channel, "I wont send messages to this channel until: " + actualTimeout);
 		}
 	}
 
@@ -122,6 +125,10 @@ public class Bot extends PircBot implements Runnable {
 
 	public Vector<String> getAdmins() {
 		return this.admins;
+	}
+
+	public Set<Entry<String, Instant>> getGags() {
+		return this.channelGags.entrySet();
 	}
 
 	public MessagePlugin getMessagePlugin(String pluginName) {
@@ -157,6 +164,14 @@ public class Bot extends PircBot implements Runnable {
 		return this.admins.contains(sender);
 	}
 
+	public boolean hasGags() {
+		return this.channelGags.size() > 0;
+	}
+
+	public boolean isAdminPassword(String password2) {
+		return this.password.equals(password2);
+	}
+
 	public boolean isGagged(String channel) {
 		this.removeOldGags();
 
@@ -181,6 +196,8 @@ public class Bot extends PircBot implements Runnable {
 	}
 
 	public void loadDefaultMessagePlugins() {
+		this.messagePlugins.add(new Standard());
+		this.messagePlugins.add(new Admin());
 		this.messagePlugins.add(new KarmaTracker());
 		this.messagePlugins.add(new Decide());
 		this.messagePlugins.add(new TicketLookup());
@@ -196,10 +213,18 @@ public class Bot extends PircBot implements Runnable {
 	}
 
 	private final Message onAnyMessage(Message message) {
+		boolean calledAnything = false;
+
 		for (MessagePlugin mp : this.messagePlugins) {
 			if (message.originalMessage.startsWith("!")) {
-				mp.callCommandMessages(message);
+				if (mp.callCommandMessages(message)) {
+					calledAnything = true;
+				}
 			}
+		}
+
+		if (!calledAnything) {
+			this.log("Could not find command message for: " + message.originalMessage);
 		}
 
 		return message;
@@ -259,69 +284,8 @@ public class Bot extends PircBot implements Runnable {
 
 		this.onAnyMessage(new Message(this, null, sender, new MessageParser(message)));
 
-		if (message.contains("!join")) {
-			String channel = message.replace("!join", "").trim();
-
-			if (this.admins.contains(sender)) {
-				this.joinChannel(channel);
-			} else {
-				String reply = "You cannot tell me to join a channel (" + channel + "), because you are not an admin";
-
-				this.sendMessageResponsibly(sender, reply);
-				this.log(reply);
-			}
-		} else if (message.startsWith("!channels")) {
-			String reply = "";
-
-			for (String channel : this.getChannels()) {
-				reply += channel + " ";
-			}
-
-			this.sendMessageResponsibly(sender, reply);
-			this.log(reply);
-		} else if (message.contains("!part")) {
-			String channel = message.replace("!part", "").trim();
-
-			if (this.admins.contains(sender)) {
-				this.partChannel(channel);
-			} else {
-				String reply = "You cannot tell me to leave a channel (" + channel + "), because you are not an admin";
-
-				this.sendMessageResponsibly(sender, reply);
-				this.log(reply);
-			}
-		} else if (message.startsWith("!quit")) {
-			if (this.admins.contains(sender)) {
-
-				Main.instance.shutdown();
-			} else {
-				this.sendMessageResponsibly(sender, "You are not an admin. Won't quit.");
-			}
-		} else if (message.contains("!password")) {
-			final String password = message.replace("!password ", "");
-
-			final String whoisLine = this.getWhois(sender);
-
-			if (whoisLine == null) {
-				this.sendMessageResponsibly(sender, "Cannot get your WHOIS details. Did you do a !whoami ?");
-				this.debugMessage("Cannot get WHOIS details for " + sender);
-
-				return;
-			}
-
-			if (password.trim().equals(this.password)) {
-				this.sendMessageResponsibly(sender, "Password accepted.");
-				this.debugMessage("Administrative password accepted from " + sender);
-				this.admins.add(sender);
-			} else {
-				this.sendMessageResponsibly(sender, "Password rejected");
-				this.debugMessage("Administrative password rejected from " + sender + ". They provided: " + password);
-			}
-
-		} else {
-			for (MessagePlugin mp : this.messagePlugins) {
-				mp.onPrivateMessage(this, sender, message);
-			}
+		for (MessagePlugin mp : this.messagePlugins) {
+			mp.onPrivateMessage(this, sender, message);
 		}
 	}
 
@@ -353,9 +317,10 @@ public class Bot extends PircBot implements Runnable {
 		while (gagIterator.hasNext()) {
 			Entry<String, Instant> gag = gagIterator.next();
 
-			if ((gag.getValue() != null) && gag.getValue().isAfterNow()) {
+			if ((gag.getValue() != null) && gag.getValue().isBeforeNow()) {
 				gagIterator.remove();
 
+				this.sendMessageResponsibly(gag.getKey(), "I just woke up from sleeping, and will send messages to this channel again.");
 				this.log("Gag timeout expired on channel: " + gag.getKey());
 			}
 		}

@@ -5,6 +5,7 @@ import japella.Main;
 import japella.MessageParser;
 import japella.MessagePlugin.Message;
 import japella.Server;
+import japella.messagePlugins.Admin;
 import japella.messagePlugins.Help;
 
 import org.hamcrest.Matchers;
@@ -27,12 +28,13 @@ public class TestHelp {
 	@Test
 	public void testPlugins() {
 		Bot bot = new Bot("test", null);
+		bot.loadMessagePlugin(new Admin());
 		bot.loadMessagePlugin(new Help());
 
 		Message message = new Message(bot, "testchannel", "testsender", new MessageParser("!plugins"));
 		bot.onMockMessage(message);
 
-		Assert.assertEquals("Plugins: Help.", message.getReplies().firstElement());
+		Assert.assertEquals("Plugins: [Admin, Help]", message.getReplies().firstElement());
 	}
 
 	@Test
