@@ -12,6 +12,7 @@ public class TestQuizPlugin {
 	@Test
 	public void testAddBadQuizQuestion() {
 		QuizPlugin quizPlugin = new QuizPlugin();
+		quizPlugin.clearQuestions();
 
 		Bot bot = new Bot("QuizBot", null);
 		bot.loadMessagePlugin(quizPlugin);
@@ -27,6 +28,7 @@ public class TestQuizPlugin {
 	@Test
 	public void testAddQuizQuestion() {
 		QuizPlugin quizPlugin = new QuizPlugin();
+		quizPlugin.clearQuestions();
 
 		Bot bot = new Bot("QuizBot", null);
 		bot.loadMessagePlugin(quizPlugin);
@@ -39,6 +41,6 @@ public class TestQuizPlugin {
 
 		Message messageQuizQuestionCount = bot.onMockMessage(new Message(bot, "#channel", "auser", new MessageParser("!quizquestioncount")));
 
-		Assert.assertEquals("The quiz has 1 in the database.", messageQuizQuestionCount.replies.firstElement());
+		Assert.assertEquals("The quiz has 1 question(s) in the database.", messageQuizQuestionCount.replies.firstElement());
 	}
 }
