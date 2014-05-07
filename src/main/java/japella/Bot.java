@@ -216,7 +216,7 @@ public class Bot extends PircBot implements Runnable {
 		boolean calledAnything = false;
 
 		for (MessagePlugin mp : this.messagePlugins) {
-			if (message.originalMessage.startsWith("!")) {
+			if (message.parser.hasKeyword()) {
 				if (mp.callCommandMessages(message)) {
 					calledAnything = true;
 				}
@@ -224,7 +224,7 @@ public class Bot extends PircBot implements Runnable {
 		}
 
 		if (!calledAnything) {
-			this.log("Could not find command message for: " + message.originalMessage);
+			this.log("Could not find command message for: " + message.parser.getKeyword());
 		}
 
 		return message;
@@ -252,10 +252,6 @@ public class Bot extends PircBot implements Runnable {
 
 	@Override
 	public void onMessage(final String channel, final String sender, final String login, final String hostname, String smessage) {
-		if (smessage.startsWith(this.getName())) {
-			smessage = smessage.replaceFirst(this.getName() + ": ", "");
-		}
-
 		Message message = this.onAnyMessage(new Message(this, channel, sender, new MessageParser(smessage)));
 
 		for (MessagePlugin mp : this.messagePlugins) {
@@ -326,10 +322,6 @@ public class Bot extends PircBot implements Runnable {
 		}
 	}
 
-	/**
-	 * Attempts to connect to the specified server. Will loop in a seperate
-	 * thread until the bot is disconnected. Loops once a seccond.
-	 */
 	@Override
 	public void run() {
 		this.connect();

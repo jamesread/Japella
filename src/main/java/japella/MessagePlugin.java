@@ -116,7 +116,7 @@ public abstract class MessagePlugin {
 		return false;
 	}
 
-	private ArrayList<Method> getCommandMessageMethod(MessageParser command) {
+	private ArrayList<Method> getCommandMessageMethod(MessageParser parser) {
 		ArrayList<Method> methods = new ArrayList<>();
 
 		for (Method m : this.getClass().getMethods()) {
@@ -127,7 +127,7 @@ public abstract class MessagePlugin {
 					keyword = m.getName().toLowerCase();
 				}
 
-				if (command.hasKeyword(keyword)) {
+				if (parser.hasKeyword(keyword)) {
 					methods.add(m);
 				}
 			}

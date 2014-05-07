@@ -2,23 +2,37 @@ package japella;
 
 import java.lang.reflect.Type;
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MessageParser {
 	private final String[] parts;
 
 	private final String originalMessage;
+	private String alertUsername;
+	private final String actualContent;
 
-	public MessageParser(String command) {
-		this.originalMessage = command;
-		this.parts = command.trim().split(" ");
+	public MessageParser(String smessage) {
+		this.originalMessage = smessage;
+
+		Pattern p = Pattern.compile("((\\w+)[:,]).+");
+		Matcher m = p.matcher(smessage);
+
+		if (m.matches()) {
+			this.alertUsername = m.group(2);
+			smessage = smessage.replaceFirst(m.group(1), "");
+		}
+
+		this.actualContent = smessage.trim();
+		this.parts = this.actualContent.split(" ");
 	}
 
-	public String getBody() {
-		return this.originalMessage.replace(this.getKeyword(), "").trim();
+	public String getAlertUsername() {
+		return this.alertUsername;
 	}
 
 	public String getBody(int skipWords) {
-		String[] body = this.getBody().split(" ");
+		String[] body = this.getContentBody().split(" ");
 
 		skipWords = Math.min(skipWords, body.length);
 		body = Arrays.copyOfRange(body, skipWords, body.length);
@@ -30,6 +44,14 @@ public class MessageParser {
 		}
 
 		return ret.trim();
+	}
+
+	public String getContent() {
+		return this.actualContent;
+	}
+
+	public String getContentBody() {
+		return this.actualContent.replace(this.getKeyword(), "").trim();
 	}
 
 	public int getInt(int position) {
@@ -64,10 +86,14 @@ public class MessageParser {
 		return this.getString(1).trim();
 	}
 
-	public boolean hasKeyword(String keyword) {
-		String firstWord = this.getString(0);
+	public boolean hasKeyword() {
+		return this.getKeyword() != null;
+	}
 
-		return firstWord.equalsIgnoreCase(keyword);
+	public boolean hasKeyword(String keyword) {
+		String mykeyword = this.getKeyword();
+
+		return mykeyword.equalsIgnoreCase(keyword);
 	}
 
 	public boolean hasParam(int position) {
@@ -123,5 +149,9 @@ public class MessageParser {
 		}
 
 		return true;
+	}
+
+	public boolean startsWithUsername() {
+		return this.alertUsername != null;
 	}
 }

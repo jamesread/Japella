@@ -9,7 +9,7 @@ public class Decide extends MessagePlugin {
 
 	@CommandMessage(keyword = "!decide")
 	public void decide(Message message) {
-		String thingToDo = message.parser.getBody();
+		String thingToDo = message.parser.getContentBody();
 
 		if (Decide.randomGenerator.nextBoolean()) {
 			message.reply("Yep, you should " + thingToDo);

@@ -23,13 +23,13 @@ public class TestDecide {
 		String replyYep = bot.onMockMessage(messageYep).getReplies().firstElement();
 
 		Assert.assertThat(replyYep, Matchers.startsWith("Yep"));
-		Assert.assertThat(replyYep, Matchers.containsString(messageYep.parser.getBody()));
+		Assert.assertThat(replyYep, Matchers.containsString(messageYep.parser.getContentBody()));
 
 		Decide.randomGenerator = new MockRandomBooleans(false);
 		Message messageNope = new Message(bot, "testchannel", "testsender", new MessageParser("!decide hello"));
 		String replyNope = bot.onMockMessage(messageNope).getReplies().firstElement();
 
 		Assert.assertThat(replyNope, Matchers.startsWith("Nope"));
-		Assert.assertThat(replyNope, Matchers.containsString(messageNope.parser.getBody()));
+		Assert.assertThat(replyNope, Matchers.containsString(messageNope.parser.getContentBody()));
 	}
 }

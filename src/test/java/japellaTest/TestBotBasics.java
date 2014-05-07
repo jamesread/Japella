@@ -5,6 +5,7 @@ import japella.Main;
 import japella.MessageParser;
 import japella.MessagePlugin.Message;
 import japella.Server;
+import japella.messagePlugins.HelloWorld;
 import japella.messagePlugins.Help;
 
 import java.util.Arrays;
@@ -28,6 +29,42 @@ public class TestBotBasics {
 		bot.addAdmin("superuser");
 
 		Assert.assertThat(bot.getAdmins(), Matchers.contains("superuser"));
+	}
+
+	@Test
+	public void testCommandsWithHighlightComma() {
+		Bot bot = new Bot("mybot", null);
+		bot.loadMessagePlugin(new HelloWorld());
+
+		Message message;
+
+		message = new Message(bot, "#test", "auser", new MessageParser("mybot, !hello"));
+		Assert.assertTrue(message.parser.startsWithUsername());
+		Assert.assertEquals("mybot", message.parser.getAlertUsername());
+		Assert.assertEquals("!hello", message.parser.getKeyword());
+
+		bot.onMockMessage(message);
+
+		Assert.assertThat(message.replies, Matchers.is(Matchers.not(Matchers.empty())));
+		Assert.assertEquals("Oh, hi there.", message.replies.firstElement());
+	}
+
+	@Test
+	public void testCommandsWithHighlighters() {
+		Bot bot = new Bot("mybot", null);
+		bot.loadMessagePlugin(new HelloWorld());
+
+		Message message;
+
+		message = new Message(bot, "#test", "auser", new MessageParser("mybot: !hello"));
+		Assert.assertTrue(message.parser.startsWithUsername());
+		Assert.assertEquals("mybot", message.parser.getAlertUsername());
+		Assert.assertEquals("!hello", message.parser.getKeyword());
+
+		bot.onMockMessage(message);
+
+		Assert.assertThat(message.replies, Matchers.is(Matchers.not(Matchers.empty())));
+		Assert.assertEquals("Oh, hi there.", message.replies.firstElement());
 	}
 
 	@Test

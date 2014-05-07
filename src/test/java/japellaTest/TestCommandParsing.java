@@ -54,12 +54,31 @@ public class TestCommandParsing {
 	}
 
 	@Test
+	public void testParseAlertUsernames() {
+		MessageParser parser;
+
+		parser = new MessageParser("mybot: !test");
+
+		Assert.assertTrue(parser.startsWithUsername());
+		Assert.assertEquals("mybot", parser.getAlertUsername());
+		Assert.assertEquals("!test", parser.getContent());
+
+		parser = new MessageParser("mybot, !test");
+		Assert.assertTrue(parser.startsWithUsername());
+		Assert.assertEquals("mybot", parser.getAlertUsername());
+		Assert.assertEquals("!test", parser.getContent());
+
+		parser = new MessageParser("!test");
+		Assert.assertFalse(parser.startsWithUsername());
+	}
+
+	@Test
 	public void testParser1() {
 		MessageParser parser = new MessageParser("!say this is a testing message");
 
 		Assert.assertTrue(parser.hasKeyword("!say"));
 		Assert.assertEquals("!say", parser.getKeyword());
-		Assert.assertEquals("this is a testing message", parser.getBody());
+		Assert.assertEquals("this is a testing message", parser.getContentBody());
 	}
 
 	@Test
@@ -68,7 +87,7 @@ public class TestCommandParsing {
 
 		Assert.assertTrue(parser.hasKeyword("!say"));
 		Assert.assertEquals("!say", parser.getKeyword());
-		Assert.assertEquals("one two three", parser.getBody());
+		Assert.assertEquals("one two three", parser.getContentBody());
 		Assert.assertEquals("two three", parser.getBody(1));
 		Assert.assertEquals("three", parser.getBody(2));
 		Assert.assertEquals("", parser.getBody(9));
