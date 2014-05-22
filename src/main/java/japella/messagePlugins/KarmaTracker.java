@@ -7,11 +7,13 @@ import japella.configuration.PropertiesFileCollection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,6 +48,14 @@ public class KarmaTracker extends MessagePlugin {
 
 	public KarmaTracker() {
 		this.loadConfig();
+	}
+
+	public int getKarma(String string) {
+		if (this.karma.containsKey(string)) {
+			return this.karma.get(string);
+		}
+
+		return 0;
 	}
 
 	@Override
@@ -88,14 +98,29 @@ public class KarmaTracker extends MessagePlugin {
 
 	@CommandMessage(keyword = "!rank")
 	public void onRank(Message message) {
-		int maxToDisplay = Math.min(5, this.karma.size());
-
 		Bot bot = message.bot;
 		String channel = message.channel;
 
-		bot.sendMessageResponsibly(channel, "Karma ranks, top " + maxToDisplay + " (" + this.karma.size() + " in total):\n ");
+		Set<Entry<String, Integer>> matchedKarma;
 
-		List<Map.Entry<String, Integer>> list = new LinkedList<Map.Entry<String, Integer>>(this.karma.entrySet());
+		if (message.parser.hasParam(1)) {
+			String search = message.parser.getStringFirstArgument();
+
+			matchedKarma = new HashSet<Entry<String, Integer>>();
+
+			for (Entry<String, Integer> entry : this.karma.entrySet()) {
+				if (entry.getKey().contains(search)) {
+					matchedKarma.add(entry);
+				}
+			}
+		} else {
+			matchedKarma = this.karma.entrySet();
+		}
+
+		int maxToDisplay = Math.min(5, matchedKarma.size());
+		bot.sendMessageResponsibly(channel, "Karma ranks, top " + maxToDisplay + " (" + matchedKarma.size() + " in total):\n ");
+
+		List<Map.Entry<String, Integer>> list = new LinkedList<Map.Entry<String, Integer>>(matchedKarma);
 		Collections.sort(list, new Comparator<Map.Entry<String, Integer>>() {
 			@Override
 			public int compare(Map.Entry<String, Integer> one, Map.Entry<String, Integer> two) {
