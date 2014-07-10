@@ -34,12 +34,18 @@ public class TicketLookup extends MessagePlugin {
 	private String formatTicket(JSONObject ticket) {
 		try {
 			String owner = ticket.getString("owner");
+			
+			try {
+				owner = owner.replace(PropertiesFileCollection.get(this).getString("ownerStrip", ""), ""); 	
+			} catch (Exception e) {
+
+			}
 
 			if (owner == null) { 
 				owner = "unowned";
 			}
 
-			return ticket.getInt("id") + " (" + owner + ")" + ticket.getString("subject") + " https://rt.corp.redhat.com/rt3/Ticket/Display.html?id=" + ticket.getInt("id");
+			return ticket.getInt("id") + " (" + owner + ") " + ticket.getString("subject") + " https://rt.corp.redhat.com/rt3/Ticket/Display.html?id=" + ticket.getInt("id");
 		} catch (JSONException e) {
 			return "{TICKET FORMAT ERROR :(}";
 		}
