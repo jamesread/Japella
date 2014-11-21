@@ -9,6 +9,7 @@ import japella.messagePlugins.HelloWorld;
 import japella.messagePlugins.Help;
 import japella.messagePlugins.KarmaTracker;
 import japella.messagePlugins.QuizPlugin;
+import japella.messagePlugins.RequireUsernameInChannel;
 import japella.messagePlugins.Standard;
 import japella.messagePlugins.TicketLookup;
 
@@ -206,6 +207,7 @@ public class Bot extends PircBot implements Runnable {
 		this.messagePlugins.add(new HelloWorld());
 		this.messagePlugins.add(new Help());
 		this.messagePlugins.add(new Drone());
+		this.messagePlugins.add(new RequireUsernameInChannel());
 	}
 
 	public void loadMessagePlugin(MessagePlugin plugin) {
