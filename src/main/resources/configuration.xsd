@@ -57,9 +57,9 @@
 	</xs:element>
 	<xs:element name="channel">
 		<xs:complexType>
-			<xs:all>  
+			<xs:choice>  
 				<xs:element ref="plugin" minOccurs="0" maxOccurs="unbounded" />
-			</xs:all>
+			</xs:choice>
 			<xs:attribute name="name" use="required" />
 		</xs:complexType>
 	</xs:element>
