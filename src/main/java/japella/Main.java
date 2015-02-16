@@ -60,12 +60,17 @@ public class Main {
 	}
 
 	public void shutdown() {
-		for (Bot bot : this.botList) {
-			for (MessagePlugin plugin : bot.getMessagePlugins()) {
-				plugin.saveConfig();
-			}
+		try {
+			for (Bot bot : this.botList) {
+				for (MessagePlugin plugin : bot.getMessagePlugins()) {
+					plugin.saveConfig();
+				}
 
-			bot.disconnect();
+				bot.disconnect();
+			}
+		} catch (Exception e) {
+			Main.LOG.error("Unhandled exception in the shutdown handler! " + e.toString());
+			e.printStackTrace();
 		}
 
 		System.exit(0);

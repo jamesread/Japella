@@ -254,10 +254,14 @@ public class Bot extends PircBot implements Runnable {
 
 	@Override
 	public void onMessage(final String channel, final String sender, final String login, final String hostname, String smessage) {
-		Message message = this.onAnyMessage(new Message(this, channel, sender, new MessageParser(smessage)));
+		try { 
+			Message message = this.onAnyMessage(new Message(this, channel, sender, new MessageParser(smessage)));
 
-		for (MessagePlugin mp : this.messagePlugins) {
-			mp.onChannelMessage(message);
+			for (MessagePlugin mp : this.messagePlugins) {
+				mp.onChannelMessage(message);
+			}
+		} catch (Exception e) {
+			this.log("Uncaught exception: " + e.toString());
 		}
 	}
 
