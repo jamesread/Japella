@@ -77,17 +77,17 @@ public abstract class MessagePlugin {
 			this.plugin = plugin;
 
 			this.timer = new Timer(bot.getName() + " MP timer for " + plugin.getClass().getSimpleName() + " with period of " + period, true);
-
 			this.timer.scheduleAtFixedRate(this, 30, period.toStandardDuration().getMillis());
-		}
-
-		public void onTimerTick() {
-			this.plugin.onTimerTick(this.bot, this.channel);
 		}
 
 		@Override
 		public void run() {
-			this.onTimerTick();
+            if (!this.bot.isConnected()) {
+                this.timer.cancel();
+                return;
+            }
+
+            this.plugin.onTimerTick(this.bot, this.channel);
 		}
 	}
 
