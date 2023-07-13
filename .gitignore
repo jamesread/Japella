@@ -1,1 +1,8 @@
 target
+**/*.swp
+**/*.swo
+config.yaml
+/japella-adaptor-discord
+/japella-bot-utils-discord
+/tmp
+/gen
