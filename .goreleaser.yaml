@@ -1,0 +1,39 @@
+---
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 1
+
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+    # you may remove this if you don't need go generate
+    - go generate ./...
+
+builds:
+  - id: bot-utils
+    main: cmd/japella-bot-utils/main.go
+    binary: japella-bot-utils
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+
+archives:
+  - builds:
+
+dockers:
+  - id: bot-utils
+    dockerfile: Dockerfile.japella-bot-utils
+    image_templates:
+      - ghcr.io/jamesread/japella-bot-utils
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

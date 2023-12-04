@@ -6,3 +6,5 @@ config.yaml
 /japella-bot-utils-discord
 /tmp
 /gen
+
+dist/
