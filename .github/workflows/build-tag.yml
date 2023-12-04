@@ -1,12 +1,13 @@
 ---
-name: "Build Snapshot"
+name: "Build Tag"
 
 on:
-  - push
-  - workflow_dispatch
+  push:
+    tags:
+      - '*'
 
 jobs:
-  build-snapshot:
+  build-tag:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -20,15 +21,21 @@ jobs:
           go-version: '^1.18.0'
           cache: true
 
-      - name: buf-setup
-        uses: bufbuild/buf-setup-action@v1.28.1
+      - name: Login to ghcr
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.CONTAINER_TOKEN }}
 
       - name: grpc
-        run: make -w grpc
+        run: make grpc
 
       - name: goreleaser
         uses: goreleaser/goreleaser-action@v4.2.0
         with:
           distribution: goreleaser
           version: latest
-          args: release --snapshot --clean --skip-docker
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONTAINER_TOKEN }}
