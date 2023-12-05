@@ -1,51 +1,13 @@
-Quickstart
+Japella
 ===
-A super simple IRC Bot that supports Java Plugins. Based on the PIRC Library.
+An extensible chatbot application, built with containers connected to a message queue.
 
-This is an example of ~/.japella/config.xml
+Japella's architecture splits out the connections to different protocols (eg Telegram, Discord) into "adaptor" services, and all bot functionality is implemented in a separate service, meaning that the chatbot functionality can easily work with new protocols, by just creating a new adaptor, or, can relay chat messages across protocols, for example. 
 
-    <config>
-    	<server name = "freenode" address = "irc.freenode.net" port = "6667" />
+=== Quickstart
 
-        <bot name = "japella" serverRef = "freenode" ownerNickname = "myNameHere" password = "mySekritPassword">
-            <channel name = "#firstChannel" />
-        </bot>
-    </config>
+Japella is only distributed as a x86_64 Linux container.
 
-Start the bot up, then send it a private message with the password;
-
-    /msg japella !password mySekritPassword
-
-The bot will then well take admin commands. One of the admin commands is telling it to join another channel.
-
-    /msg japella !join #testing
-
-Coding your own plugins
-===
-
-package japella.messagePlugins;
-
-import japella.MessagePlugin;
-
-	public class HelloWorld extends MessagePlugin {
-
-		@CommandMessage(keyword = "!goodbye")
-		public void onGoodbye(Message message) {
-			message.reply("aww, see you later :( ");
-		}
-
-		@CommandMessage(keyword = "!hello", target = MessageTarget.CHAT)
-		public void onHello(Message message) {
-			message.reply("Oh, hi there.");
-		}
-	}
-
-To load the message plugin, edit `loadMessagePlugins` in Bot.java (around about line 165).
-
-Note about ongoing development
-===
-This project was built to forful a personal need for a Java based IRC Bot. This bot is feature complete for my needs and I don't have plans to be actively extending or promoting it. It should serve as a good building block for anyone looking to start their own project. 
-
-Patches and forks are totally welcome. The code is GPLv2.
-
-The upstream library is well maintained; http://code.google.com/p/pircbotx/
+````
+user@host: docker create ghcr.io/jamesread/japella-adaptor-telegram --name japella-telegram
+````
