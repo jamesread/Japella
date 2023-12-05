@@ -8,3 +8,4 @@ config.yaml
 /gen
 
 dist/
+config*

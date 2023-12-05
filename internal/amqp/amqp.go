@@ -127,7 +127,7 @@ func Publish(routingKey string, msg amqp.Publishing) error {
 
 func PublishWithChannel(c *amqp.Channel, routingKey string, msg amqp.Publishing) error {
 	err := c.Publish(
-		"ex_upsilon",
+		"ex_japella",
 		routingKey,
 		false, // mandatory
 		false, // immediate
@@ -235,7 +235,7 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 	err = c.QueueBind(
 		queueName,
 		deliveryTag, // key
-		"ex_upsilon",
+		"ex_japella",
 		true, // nowait
 		nil,  // args
 	)
