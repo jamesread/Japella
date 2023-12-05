@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/amqp"
+	"github.com/jamesread/japella/internal/adaptor/discord"
 	"time"
 
 	"gopkg.in/yaml.v2"
@@ -28,7 +29,7 @@ func main() {
 
 	log.Infof("cfg: %+v", cfg)
 
-	Start(cfg.AppId, cfg.PublicKey, cfg.Token)
+	discord.Start(cfg.AppId, cfg.PublicKey, cfg.Token)
 
 	for {
 		time.Sleep(1 * time.Second)
