@@ -1,0 +1,24 @@
+name: build site
+
+on:
+  push:
+    branches:
+    - main
+jobs:
+  adoc_build:
+    runs-on: ubuntu-latest
+    name: Asciidoctoring the docs to pretty HTML!
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+    - name: Get build container
+      id: adocbuild
+      uses: avattathil/asciidoctor-action@master
+      with:
+          program: "gem install rouge asciidoctor-multipage && asciidoctor -r asciidoctor-multipage -b multipage_html5 -D docs_html -a stylesheet=style.css -o index.html docs/index.adoc && cp -r etc/ images/ api/ CNAME docs_html/"
+    - name: Deploy docs to ghpages
+      uses: peaceiris/actions-gh-pages@v3
+      with: 
+        deploy_key: ${{ secrets.ACTIONS_DEPLOY_KEY }}
+        publish_branch: docs-html
+        publish_dir: ./docs_html/
