@@ -5,26 +5,16 @@ import (
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/amqp"
 	pb "github.com/jamesread/japella/gen/protobuf"
-
-	"gopkg.in/yaml.v2"
 )
 
 var cfg struct {
-	Amqp runtimeconfig.AmqpConfig
-	AppId string
-	PublicKey string
-	Token string
+	Common *runtimeconfig.CommonConfig
 }
 
 func main() {
 	log.Infof("japella-bot-utils")
 
-	yaml.UnmarshalStrict(runtimeconfig.Load("config.yaml"), &cfg)
-
-	amqp.AmqpHost = cfg.Amqp.Host
-	amqp.AmqpUser = cfg.Amqp.User
-	amqp.AmqpPass = cfg.Amqp.Pass
-	amqp.AmqpPort = cfg.Amqp.Port
+	runtimeconfig.LoadConfigCommon(cfg.Common);
 
 	log.Infof("cfg: %+v", cfg)
 

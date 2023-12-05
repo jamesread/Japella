@@ -4,9 +4,17 @@ import (
 	"os"
 	"io/ioutil"
 	log "github.com/sirupsen/logrus"
+
+	"github.com/jamesread/japella/internal/amqp"
+
+	"gopkg.in/yaml.v2"
 )
 
-func Load(filename string) []byte {
+type CommonConfig struct {
+	Amqp AmqpConfig
+}
+
+func readFile(filename string) []byte {
 	handle, err := os.Open(filename)
 
 	if err != nil {
@@ -20,4 +28,26 @@ func Load(filename string) []byte {
 	}
 
 	return content
+}
+
+func LoadConfig(filename string, cfg interface{}) {
+	err := yaml.UnmarshalStrict(readFile(filename), cfg)
+
+	log.Infof("loaded %+v", cfg)
+	if err != nil {
+		log.Fatalf("could not load common config!")
+	}
+
+	log.Infof("Loaded config: %v", filename)
+}
+
+func LoadConfigCommon(cfg *CommonConfig) {
+	LoadConfig("config.common.yaml", cfg)
+
+	//	log.Infof("after %+v", cfg)
+
+	amqp.AmqpHost = cfg.Amqp.Host
+	amqp.AmqpUser = cfg.Amqp.User
+	amqp.AmqpPass = cfg.Amqp.Pass
+	amqp.AmqpPort = cfg.Amqp.Port
 }

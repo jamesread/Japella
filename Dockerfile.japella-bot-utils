@@ -1,0 +1,5 @@
+FROM registry.fedoraproject.org/fedora-minimal:38-x86_64
+
+ADD japella-bot-utils /
+
+ENTRYPOINT /japella-bot-utils

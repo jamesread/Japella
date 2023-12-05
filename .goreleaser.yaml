@@ -1,0 +1,47 @@
+---
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 1
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: bot-utils
+    main: cmd/japella-bot-utils/main.go
+    binary: japella-bot-utils
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+
+  - id: adaptor-discord
+    main: ./cmd/japella-adaptor-discord/main.go
+    binary: japella-adaptor-discord
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+
+archives:
+  - builds:
+
+dockers:
+  - id: bot-utils
+    dockerfile: Dockerfile.japella-bot-utils
+    image_templates:
+      - ghcr.io/jamesread/japella-bot-utils
+
+  - id: adaptor-discord
+    dockerfile: Dockerfile.japella-adaptor-discord
+    image_templates:
+      - ghcr.io/jamesread/japella-adaptor-discord
+
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

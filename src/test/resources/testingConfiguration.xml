@@ -1,9 +1,0 @@
-<config adminPort = "6666">
-	<server name = "localhost" port = "6667" address = "localhost" />
-	
-	<bot name = "testingBot1" serverRef = "localhost" ownerNickname = "fred" password = "sekrit" >
-		<channel name = "#japella">
-			<plugin name = "TicketLookup" period = "PT5M" />		
-		</channel>
-	</bot>
-</config>
