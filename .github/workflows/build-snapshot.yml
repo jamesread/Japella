@@ -32,3 +32,5 @@ jobs:
           distribution: goreleaser
           version: latest
           args: release --snapshot --clean --skip=docker
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONTAINER_TOKEN }}
