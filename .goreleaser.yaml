@@ -24,6 +24,14 @@ builds:
     goos: [linux]
     goarch: [amd64]
 
+  - id: adaptor-telegram
+    main: ./cmd/japella-adaptor-telegram/main.go
+    binary: japella-adaptor-telegram
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+
+
 archives:
   - builds:
 
@@ -38,6 +46,10 @@ dockers:
     image_templates:
       - ghcr.io/jamesread/japella-adaptor-discord
 
+  - id: adaptor-telegram
+    dockerfile: Dockerfile.japella-adaptor-telegram
+    image_templates:
+      - ghcr.io/jamesread/japella-adaptor-telegram
 
 changelog:
   sort: asc
