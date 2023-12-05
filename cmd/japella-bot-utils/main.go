@@ -1,19 +1,19 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/jamesread/japella/internal/runtimeconfig"
-	"github.com/jamesread/japella/internal/amqp"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	"github.com/jamesread/japella/internal/amqp"
+	"github.com/jamesread/japella/internal/runtimeconfig"
+	log "github.com/sirupsen/logrus"
 
 	"gopkg.in/yaml.v2"
 )
 
 var cfg struct {
-	Amqp runtimeconfig.AmqpConfig
-	AppId string
+	Amqp      runtimeconfig.AmqpConfig
+	AppId     string
 	PublicKey string
-	Token string
+	Token     string
 }
 
 func main() {

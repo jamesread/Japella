@@ -1,9 +1,9 @@
 package runtimeconfig
 
 import (
-	"os"
-	"io/ioutil"
 	log "github.com/sirupsen/logrus"
+	"io/ioutil"
+	"os"
 )
 
 func Load(filename string) []byte {

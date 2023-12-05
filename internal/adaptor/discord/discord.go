@@ -65,13 +65,13 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	msg := pb.MessageReceived {
-		Author: m.Author.ID,
+	msg := pb.MessageReceived{
+		Author:  m.Author.ID,
 		Content: m.Content,
 		Channel: m.ChannelID,
 	}
 
 	amqp.PublishPb(&msg)
 
-	//_, _ = s.ChannelMessageSend(m.ChannelID, "pong")
+	// _, _ = s.ChannelMessageSend(m.ChannelID, "pong")
 }

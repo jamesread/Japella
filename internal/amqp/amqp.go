@@ -1,21 +1,21 @@
 package amqp
 
 import (
-	"github.com/teris-io/shortid"
+	"fmt"
 	log "github.com/sirupsen/logrus"
 	"github.com/streadway/amqp"
-	"time"
-	"reflect"
+	"github.com/teris-io/shortid"
 	"os"
+	"reflect"
 	"sync"
-	"fmt"
+	"time"
 )
 
 var (
-	conn    *amqp.Connection
-	channels map[string]*amqp.Channel
+	conn                 *amqp.Connection
+	channels             map[string]*amqp.Channel
 	ConnectionIdentifier string
-	connMutex sync.Mutex
+	connMutex            sync.Mutex
 
 	InstanceId string
 
@@ -44,9 +44,9 @@ type HandlerFunc func(d Delivery)
 
 func getDialURL() string {
 	log.WithFields(log.Fields{
-		"host": AmqpHost,
-		"user": AmqpUser,
-		"port": AmqpPort,
+		"host":     AmqpHost,
+		"user":     AmqpUser,
+		"port":     AmqpPort,
 		"instance": InstanceId,
 	}).Infof("AMQP Dial URL")
 
@@ -107,11 +107,11 @@ func getConn() (*amqp.Connection, error) {
 }
 
 func getMsgType(msg interface{}) string {
-    if t := reflect.TypeOf(msg); t.Kind() == reflect.Ptr {
-        return t.Elem().Name()
-    } else {
-        return t.Name()
-    }
+	if t := reflect.TypeOf(msg); t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	} else {
+		return t.Name()
+	}
 }
 
 func Publish(routingKey string, msg amqp.Publishing) error {
@@ -192,7 +192,7 @@ func Consume(deliveryTag string, handlerFunc HandlerFunc, count int) (*sync.Wait
 		handlerDoneInfinate.Add(1)
 
 		go consumeForever(chanReady, nil, deliveryTag, handlerFunc)
-	
+
 		return chanReady, handlerDoneInfinate
 	} else {
 		go consumeForever(chanReady, handlerDone, deliveryTag, handlerFunc)
@@ -221,10 +221,10 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 	_, err := c.QueueDeclare(
 		queueName,
 		false, // durable
-		true, // delete when unused
+		true,  // delete when unused
 		false, // exclusive
-		true, // nowait
-		nil, // args
+		true,  // nowait
+		nil,   // args
 	)
 
 	if err != nil {
@@ -233,28 +233,28 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 	}
 
 	err = c.QueueBind(
-		queueName, 
+		queueName,
 		deliveryTag, // key
 		"ex_upsilon",
 		true, // nowait
-		nil, // args
+		nil,  // args
 	)
 
 	if err != nil {
 		log.Warnf("Queue bind error: %v %v", deliveryTag, err)
-		return 
+		return
 	}
 
 	log.Infof("Consumer channel creating for: %v", deliveryTag)
 
 	deliveries, err := c.Consume(
-		queueName,  // name
-		"consume-" + deliveryTag, // consumer tag
-		false,      // noAck
-		false,      // exclusive
-		false,      // noLocal
-		false,      // noWait
-		nil,        // arguments
+		queueName,              // name
+		"consume-"+deliveryTag, // consumer tag
+		false,                  // noAck
+		false,                  // exclusive
+		false,                  // noLocal
+		false,                  // noWait
+		nil,                    // arguments
 	)
 
 	if err != nil {
@@ -272,8 +272,8 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 func newEnvelope(msgType string, body []byte) amqp.Publishing {
 	return amqp.Publishing{
 		DeliveryMode: amqp.Persistent,
-		Timestamp: time.Now(),
-		ContentType: "application/binary",
+		Timestamp:    time.Now(),
+		ContentType:  "application/binary",
 		Headers: amqp.Table{
 			"Upsilon-Msg-Type": msgType,
 		},
@@ -283,7 +283,7 @@ func newEnvelope(msgType string, body []byte) amqp.Publishing {
 
 func consumeDeliveries(deliveries <-chan amqp.Delivery, handlerFunc HandlerFunc, handlerWait *sync.WaitGroup) {
 	for d := range deliveries {
-		handlerFunc(Delivery {
+		handlerFunc(Delivery{
 			Message: d,
 		})
 
