@@ -1,3 +1,5 @@
 FROM fedora-minimal:latest
 
-ADD japella-adaptor-discord
+ADD japella-adaptor-discord /
+
+ENTRYPOINT [ "/japella-adaptor-discord" ]
