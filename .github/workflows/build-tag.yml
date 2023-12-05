@@ -28,6 +28,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: buf-setup
+        uses: bufbuild/buf-setup-action@v1.28.1
+
       - name: grpc
         run: make grpc
 
