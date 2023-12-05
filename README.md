@@ -1,4 +1,4 @@
-# japella
+# Japella
 
 An extensible chatbot application, built with containers connected to a message queue.
 
