@@ -9,6 +9,6 @@ Japella's architecture splits out the connections to different protocols (eg Tel
 Japella is only distributed as a x86_64 Linux container, and requires a RabbitMQ server as the message queue.
 
 ````
-user@host: docker create docker.io/rabbitmq -P 5672:5672 --name rabbitmq
-user@host: docker create ghcr.io/jamesread/japella-adaptor-telegram --name japella-telegram
+user@host: docker create --name rabbitmq docker.io/rabbitmq -P 5672:5672
+user@host: docker create --name japella-telegram ghcr.io/jamesread/japella-adaptor-telegram
 ````
