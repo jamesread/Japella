@@ -1,4 +1,4 @@
-FROM fedora-minimal:latest
+FROM registry.fedoraproject.org/fedora-minimal:38-x86_64
 
 ADD japella-adaptor-discord /
 
