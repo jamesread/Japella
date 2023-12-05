@@ -3,19 +3,18 @@ package main
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	log "github.com/sirupsen/logrus"
 
 	"time"
 )
 
 var cfg struct {
-	Common *runtimeconfig.CommonConfig
+	Common   *runtimeconfig.CommonConfig
 	Telegram struct {
 		BotToken string
 	}
 }
-
 
 func main() {
 	log.Infof("japella-adaptor-telegram")

@@ -5,21 +5,19 @@ import (
 	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
-
-	"gopkg.in/yaml.v2"
 )
 
 var cfg struct {
-	Amqp      runtimeconfig.AmqpConfig
+	Common    *runtimeconfig.CommonConfig
 	AppId     string
 	PublicKey string
 	Token     string
-)
+}
 
 func main() {
 	log.Infof("japella-bot-utils")
 
-	runtimeconfig.LoadConfigCommon(cfg.Common);
+	runtimeconfig.LoadConfigCommon(cfg.Common)
 
 	log.Infof("cfg: %+v", cfg)
 

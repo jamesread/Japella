@@ -1,21 +1,18 @@
 package main
 
 import (
-	log "github.com/sirupsen/logrus"
-	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/adaptor/discord"
-	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
 var cfg struct {
-	Common *runtimeconfig.CommonConfig
+	Common  *runtimeconfig.CommonConfig
 	Discord struct {
-		AppId string
+		AppId     string
 		PublicKey string
-		Token string
+		Token     string
 	}
 }
 
