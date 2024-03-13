@@ -13,7 +13,7 @@ require (
 	github.com/streadway/amqp v1.0.0
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.3.0
-	google.golang.org/protobuf v1.31.1-0.20231027082548-f4a6c1f6e5c1
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 
