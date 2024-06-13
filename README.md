@@ -17,9 +17,9 @@ user@host: docker create --name japella-telegram ghcr.io/jamesread/japella-adapt
 
 ```yaml
 amqp:
-	host: localhost
-	user: guest
-	pass: guest
-	exchange: japella
-	port: 5672
+  host: localhost
+  user: guest
+  pass: guest
+  exchange: japella
+  port: 5672
 ```
