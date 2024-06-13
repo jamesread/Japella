@@ -9,21 +9,24 @@ import (
 
 var BotId string
 var goBot *discordgo.Session
+var registeredCommands map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
-func Start(appId string, publicKey string, token string) {
+func Start(appId string, publicKey string, token string) *discordgo.Session {
 	var err error
 	goBot, err = discordgo.New("Bot " + token)
 
+	registeredCommands = make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate))
+
 	if err != nil {
 		log.Errorf("Cannot create new discord bot: %v", err)
-		return
+		return nil
 	}
 
 	u, err := goBot.User("@me")
 
 	if err != nil {
 		log.Fatalf("%v", err)
-		return
+		return nil
 	}
 
 	BotId = u.ID
@@ -33,14 +36,46 @@ func Start(appId string, publicKey string, token string) {
 
 	err = goBot.Open()
 
+	log.Errorf("err: %v", err)
+
+	goBot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
+		if h, ok := registeredCommands[i.ApplicationCommandData().Name]; ok {
+			h(s, i)
+		}
+	})
+
+	registerCommand("ping", cmdPing);
+
 	go Replier()
 
 	if err != nil {
 		log.Fatalf("%v", err)
-		return
+		return nil
 	}
 
 	log.Infof("Discord adaptor bot is running !")
+
+	return goBot
+}
+
+func cmdPing(s *discordgo.Session, i *discordgo.InteractionCreate) {
+	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		Data: &discordgo.InteractionResponseData{
+			Content: "Pong!",
+		},
+	})
+}
+
+func registerCommand(name string, handler func(s *discordgo.Session, i *discordgo.InteractionCreate)) {
+	_, err := goBot.ApplicationCommandCreate(goBot.State.User.ID, "", &discordgo.ApplicationCommand{
+		Name: name,
+		Description: "A japella command",
+	})
+
+	log.Errorf("err: %v", err)
+
+	registeredCommands[name] = handler
 }
 
 func Replier() {
