@@ -19,10 +19,17 @@ var cfg struct {
 func main() {
 	log.Infof("japella-adaptor-discord")
 
-	runtimeconfig.LoadConfigCommon(cfg.Common)
-	runtimeconfig.LoadConfig("config.discord.yaml", cfg.Discord)
+	cfg.Common = &runtimeconfig.CommonConfig{}
 
-	log.Infof("cfg: %+v", cfg)
+	log.Infof("cfg before parse: %+v", cfg)
+
+	runtimeconfig.LoadConfigCommon(cfg.Common)
+	runtimeconfig.LoadConfig("config.discord.yaml", &cfg.Discord)
+
+	log.WithFields(log.Fields{
+		"amqpHost":     cfg.Common.Amqp.Host,
+		"appId":     cfg.Discord.AppId,
+	}).Infof("cfg after parse")
 
 	discord.Start(cfg.Discord.AppId, cfg.Discord.PublicKey, cfg.Discord.Token)
 

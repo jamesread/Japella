@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var cfg struct {
+type LocalConfig struct {
 	Common    *runtimeconfig.CommonConfig
 	AppId     string
 	PublicKey string
@@ -15,7 +15,11 @@ var cfg struct {
 }
 
 func main() {
-	log.Infof("japella-bot-utils")
+	cfg := &LocalConfig{}
+	cfg.Common = &runtimeconfig.CommonConfig{}
+
+	log.Infof("japella-bot-utils %+v", cfg.Common)
+
 
 	runtimeconfig.LoadConfigCommon(cfg.Common)
 

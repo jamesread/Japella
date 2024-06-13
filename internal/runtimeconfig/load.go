@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/jamesread/japella/internal/amqp"
 
@@ -11,10 +12,33 @@ import (
 )
 
 type CommonConfig struct {
-	Amqp AmqpConfig
+	Amqp *AmqpConfig
+}
+
+func findFile(filename string) string {
+	paths := []string {
+		"./",
+		"/config/",
+	}
+
+	for _, path := range paths {
+		absPath, _ := filepath.Abs(filepath.Join(path, filename))
+
+		if _, err := os.Stat(absPath); err == nil {
+			log.Infof("Found %v at %v", filename, absPath)
+
+			return absPath
+		} else {
+			log.Infof("Didn't find %v at %v", filename, absPath)
+		}
+	}
+
+	return filename
 }
 
 func readFile(filename string) []byte {
+	filename = findFile(filename)
+
 	handle, err := os.Open(filename)
 
 	if err != nil {
@@ -30,21 +54,30 @@ func readFile(filename string) []byte {
 	return content
 }
 
-func LoadConfig(filename string, cfg interface{}) {
-	err := yaml.UnmarshalStrict(readFile(filename), cfg)
+func LoadConfig[V interface{}](filename string, cfg V) {
+	log.WithFields(log.Fields{
+		"file": filename,
+	}).Infof("Loading started")
 
-	log.Infof("loaded %+v", cfg)
+	err := yaml.UnmarshalStrict(readFile(filename), &cfg)
+
+	log.Infof("Result after UnmarshalStrict %+v", cfg)
+
 	if err != nil {
-		log.Fatalf("could not load common config!")
+		log.Fatalf("could not load common config! %v", err)
 	}
 
-	log.Infof("Loaded config: %v", filename)
+	log.WithFields(log.Fields {
+		"file": filename,
+	}).Infof("Loading complete")
 }
 
 func LoadConfigCommon(cfg *CommonConfig) {
+	cfg.Amqp = &AmqpConfig{}
+
 	LoadConfig("config.common.yaml", cfg)
 
-	//	log.Infof("after %+v", cfg)
+	log.Infof("LoadConfigCommon AMQP: %+v", cfg.Amqp.Host);
 
 	amqp.AmqpHost = cfg.Amqp.Host
 	amqp.AmqpUser = cfg.Amqp.User

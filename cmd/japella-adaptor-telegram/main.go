@@ -20,7 +20,7 @@ func main() {
 	log.Infof("japella-adaptor-telegram")
 
 	runtimeconfig.LoadConfigCommon(cfg.Common)
-	runtimeconfig.LoadConfig("config.telegram.yaml", cfg.Telegram)
+//	runtimeconfig.LoadConfig("config.telegram.yaml", cfg.Telegram)
 
 	log.Infof("cfg: %+v", cfg)
 

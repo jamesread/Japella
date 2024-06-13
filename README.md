@@ -12,3 +12,14 @@ Japella is only distributed as a x86_64 Linux container, and requires a RabbitMQ
 user@host: docker create --name rabbitmq docker.io/rabbitmq -P 5672:5672
 user@host: docker create --name japella-telegram ghcr.io/jamesread/japella-adaptor-telegram
 ````
+
+## `config.common.yaml`
+
+```yaml
+amqp:
+	host: localhost
+	user: guest
+	pass: guest
+	exchange: japella
+	port: 5672
+```
