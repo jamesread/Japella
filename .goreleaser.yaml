@@ -17,6 +17,13 @@ builds:
     goos: [linux]
     goarch: [amd64]
 
+  - id: bot-watcher-prometheus
+    main: cmd/japella-bot-watcher-prometheus/main.go
+    binary: japella-bot-watcher-prometheus
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+
   - id: adaptor-discord
     main: ./cmd/japella-adaptor-discord/main.go
     binary: japella-adaptor-discord
