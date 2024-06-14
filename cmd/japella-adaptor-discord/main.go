@@ -19,11 +19,7 @@ var cfg struct {
 func main() {
 	log.Infof("japella-adaptor-discord")
 
-	cfg.Common = &runtimeconfig.CommonConfig{}
-
-	log.Infof("cfg before parse: %+v", cfg)
-
-	runtimeconfig.LoadConfigCommon(cfg.Common)
+	cfg.Common = runtimeconfig.LoadNewConfigCommon()
 	runtimeconfig.LoadConfig("config.discord.yaml", &cfg.Discord)
 
 	log.WithFields(log.Fields{

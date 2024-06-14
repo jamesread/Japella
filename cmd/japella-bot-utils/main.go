@@ -15,13 +15,10 @@ type LocalConfig struct {
 }
 
 func main() {
+	log.Infof("japella-bot-utils")
+
 	cfg := &LocalConfig{}
-	cfg.Common = &runtimeconfig.CommonConfig{}
-
-	log.Infof("japella-bot-utils %+v", cfg.Common)
-
-
-	runtimeconfig.LoadConfigCommon(cfg.Common)
+	cfg.Common = runtimeconfig.LoadNewConfigCommon()
 
 	log.Infof("cfg: %+v", cfg)
 

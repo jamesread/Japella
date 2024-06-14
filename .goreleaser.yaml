@@ -41,6 +41,11 @@ dockers:
     image_templates:
       - ghcr.io/jamesread/japella-bot-utils
 
+  - id: bot-watcher-prometheus
+    dockerfile: Dockerfile.japella-bot-watcher-prometheus
+    image_templates:
+      - ghcr.io/jamesread/japella-bot-watcher-prometheus
+
   - id: adaptor-discord
     dockerfile: Dockerfile.japella-adaptor-discord
     image_templates:

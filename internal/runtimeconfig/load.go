@@ -84,3 +84,11 @@ func LoadConfigCommon(cfg *CommonConfig) {
 	amqp.AmqpPass = cfg.Amqp.Pass
 	amqp.AmqpPort = cfg.Amqp.Port
 }
+
+func LoadNewConfigCommon() *CommonConfig {
+	cfg := &CommonConfig{}
+
+	LoadConfigCommon(cfg)
+
+	return cfg
+}
