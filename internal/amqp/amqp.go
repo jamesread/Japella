@@ -137,6 +137,23 @@ func PublishWithChannel(c *amqp.Channel, routingKey string, msg amqp.Publishing)
 	return err
 }
 
+func PublishPbWithRoutingKey(msg interface{}, routingKey string) {
+	channel, err := GetChannel("Publish-" + getMsgType(msg))
+
+	if err != nil {
+		log.Errorf("PublishPbWithRoutingKey: %v", err)
+		return
+	}
+
+	env := newEnvelope(getMsgType(msg), Encode(msg))
+
+	err = PublishWithChannel(channel, routingKey, env)
+
+	if err != nil {
+		log.Errorf("PublishPbWithRoutingKey: %v", err)
+	}
+}
+
 func PublishPb(msg interface{}) {
 	channel, err := GetChannel("Publish-" + getMsgType(msg))
 
@@ -216,7 +233,7 @@ func consumeForever(consumerReady *sync.WaitGroup, handlerDone *sync.WaitGroup, 
 }
 
 func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTag string, handlerFunc HandlerFunc) {
-	queueName := getHostname() + "-" + InstanceId + "-" + deliveryTag
+	queueName := "japella-" + getHostname() + "-" + InstanceId + "-" + deliveryTag
 
 	_, err := c.QueueDeclare(
 		queueName,

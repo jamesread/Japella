@@ -79,12 +79,12 @@ func registerCommand(name string, handler func(s *discordgo.Session, i *discordg
 }
 
 func Replier() {
-	amqp.ConsumeForever("MessageReply", func(d amqp.Delivery) {
-		reply := pb.MessageReply{}
+	amqp.ConsumeForever("discord-OutgoingMessage", func(d amqp.Delivery) {
+		reply := pb.OutgoingMessage{}
 
 		amqp.Decode(d.Message.Body, &reply)
 
-		log.Infof("reply: %+v %v", reply, goBot)
+		log.Infof("reply: %+v %v", &reply, goBot)
 
 		goBot.ChannelMessageSend(reply.Channel, reply.Content)
 
@@ -100,10 +100,12 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	msg := pb.MessageReceived{
+	msg := pb.IncommingMessage{
 		Author:  m.Author.ID,
 		Content: m.Content,
 		Channel: m.ChannelID,
+		MessageId: m.ID,
+		Protocol: "discord",
 	}
 
 	amqp.PublishPb(&msg)
