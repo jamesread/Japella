@@ -4,8 +4,8 @@ tmp_dir = "tmp"
 
 [build]
   args_bin = []
-  bin = "./japella"
-  cmd = "go build -o japella github.com/jamesread/japella/cmd/japella-adaptor-discord"
+  bin = "./japella-air"
+  cmd = "go build -o japella-air github.com/jamesread/japella/cmd/japella-bot-dblogger"
   delay = 1000
   exclude_dir = ["assets", "tmp", "vendor", "testdata"]
   exclude_file = []

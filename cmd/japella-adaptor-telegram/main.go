@@ -73,6 +73,7 @@ func Start(botToken string) {
 				Content: update.Message.Text,
 				Channel: strconv.FormatInt(update.Message.Chat.ID, 10),
 				Protocol: "telegram",
+				Timestamp: time.Now().Unix(),
 			})
 		}
 	}

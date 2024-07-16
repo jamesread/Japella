@@ -69,7 +69,7 @@ func ConnectDatabase(cfg *LocalConfig) *sql.DB {
 func handleMessage(db *sql.DB, msg *pb.IncommingMessage) {
 	log.Infof("handleMessage: %+v", msg)
 
-	_, err := db.Exec("INSERT INTO messages (channel, author, content) VALUES (?, ?, ?)", msg.Channel, msg.Author, msg.Content)
+	_, err := db.Exec("INSERT INTO messages (protocol, channel, author, content, timestamp) VALUES (?, ?, ?, ?, ?)", msg.Protocol, msg.Channel, msg.Author, msg.Content, msg.Timestamp)
 
 	if err != nil {
 		log.Errorf("err: %v", err)

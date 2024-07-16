@@ -9,6 +9,7 @@ message IncommingMessage {
 	string server = 4;
 	string protocol = 5;
 	string message_id = 6;
+	int64 timestamp = 7;
 }
 
 message OutgoingMessage {

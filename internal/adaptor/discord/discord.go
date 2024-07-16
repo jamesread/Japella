@@ -5,6 +5,7 @@ import (
 	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/amqp"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 var BotId string
@@ -106,6 +107,7 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		Channel: m.ChannelID,
 		MessageId: m.ID,
 		Protocol: "discord",
+		Timestamp: time.Now().Unix(),
 	}
 
 	amqp.PublishPb(&msg)
