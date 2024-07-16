@@ -38,6 +38,14 @@ builds:
     goos: [linux]
     goarch: [amd64]
 
+  - id: bot-dblogger
+    main: ./cmd/japella-bot-dblogger/main.go
+    binary: japella-bot-dblogger
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64]
+
+
 
 archives:
   - builds:
@@ -62,6 +70,12 @@ dockers:
     dockerfile: Dockerfile.japella-adaptor-telegram
     image_templates:
       - ghcr.io/jamesread/japella-adaptor-telegram
+
+  - id: bot-dblogger
+    dockerfile: Dockerfile.japella-bot-dblogger
+    image_templates:
+      - ghcr.io/jamesread/japella-bot-dblogger
+
 
 changelog:
   sort: asc

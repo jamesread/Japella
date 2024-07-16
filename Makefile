@@ -3,6 +3,7 @@ default:
 	go build -o japella-adaptor-telegram github.com/jamesread/japella/cmd/japella-adaptor-telegram/
 	go build -o japella-bot-utils github.com/jamesread/japella/cmd/japella-bot-utils/
 	go build -o japella-bot-watcher-prometheus github.com/jamesread/japella/cmd/japella-bot-watcher-prometheus/
+	go build -o japella-bot-dblogger github.com/jamesread/japella/cmd/japella-bot-dblogger/
 
 grpc: go-tools
 	buf generate
