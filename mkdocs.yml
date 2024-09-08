@@ -1,1 +1,12 @@
 site_name: Japella Docs
+site_description: Documentation for Japella.
+repo_url: https://github.com/jamesread/japella
+repo_name: jamesread/japella
+
+mardown_extensions:
+  - codehilite
+  - toc:
+      permalink: true
+
+nav:
+  - Getting Started: gettingStarted.md
