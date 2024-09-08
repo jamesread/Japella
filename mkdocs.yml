@@ -1,3 +1,4 @@
+---
 site_name: Japella Docs
 site_description: Documentation for Japella.
 repo_url: https://github.com/jamesread/japella
@@ -40,10 +41,10 @@ nav:
   - Welcome: index.md
   - Getting Started: gettingStarted.md
   - Installation:
-    - Introduction: installation/index.md
-    - docker: installation/docker.md
-    - docker-compose: installation/docker-compose.md
+      - Introduction: installation/index.md
+      - docker: installation/docker.md
+      - docker-compose: installation/docker-compose.md
   - Adapters:
-    - Introduction: adapters/index.md
-    - Discord: adapters/discord.md
-    - Telegram: adapters/telegram.md
+      - Introduction: adapters/index.md
+      - Discord: adapters/discord.md
+      - Telegram: adapters/telegram.md
