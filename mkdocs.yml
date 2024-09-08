@@ -18,6 +18,24 @@ theme:
     - search.highlight
     - search.share
 
+
+plugins:
+  - search:
+  - minify:
+      minify_html: true
+  - tags:
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/jamesread/japella
+
+    - icon: fontawesome/brands/mastodon
+      link: https://mastodon.social/@jamesread
+
+    - icon: fontawesome/brands/x-twitter
+      link: https://twitter.com/jamesreadtweets
+
 nav:
   - Welcome: index.md
   - Getting Started: gettingStarted.md
