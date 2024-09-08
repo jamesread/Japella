@@ -1,4 +1,6 @@
 version: v1
+name: buf.build/japella/japella
+
 breaking:
   use:
     - FILE
