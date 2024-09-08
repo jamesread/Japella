@@ -5,6 +5,13 @@ default:
 	go build -o japella-bot-watcher-prometheus github.com/jamesread/japella/cmd/japella-bot-watcher-prometheus/
 	go build -o japella-bot-dblogger github.com/jamesread/japella/cmd/japella-bot-dblogger/
 
+localcontainers:
+	buildah bud -f Dockerfile.japella-adaptor-discord 			-t registry.k8s.teratan.lan/japella-adaptor-discord
+	buildah bud -f Dockerfile.japella-adaptor-telegram  		-t registry.k8s.teratan.lan/japella-adaptor-telegram
+	buildah bud -f Dockerfile.japella-bot-utils         		-t registry.k8s.teratan.lan/japella-bot-utils
+	buildah bud -f Dockerfile.japella-bot-watcher-prometheus  	-t registry.k8s.teratan.lan/japella-bot-watcher-prometheus
+	buildah bud -f Dockerfile.japella-bot-dblogger 				-t registry.k8s.teratan.lan/japella-bot-dblogger
+
 grpc: go-tools
 	buf generate
 
