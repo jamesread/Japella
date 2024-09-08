@@ -33,7 +33,7 @@ func Start(appId string, publicKey string, token string) *discordgo.Session {
 	BotId = u.ID
 
 	goBot.AddHandler(messageHandler)
-	goBot.Identify.Intents = discordgo.IntentsGuildMessages
+	goBot.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 
 	err = goBot.Open()
 
