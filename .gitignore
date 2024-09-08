@@ -5,6 +5,6 @@ config.yaml
 /japella-*
 /tmp
 /gen
-
+site/
 dist/
 config*
