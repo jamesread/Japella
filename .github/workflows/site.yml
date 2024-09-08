@@ -15,7 +15,7 @@ jobs:
       id: adocbuild
       uses: avattathil/asciidoctor-action@master
       with:
-          program: "gem install rouge asciidoctor-multipage && asciidoctor -r asciidoctor-multipage -b multipage_html5 -D docs_html -a stylesheet=style.css -o index.html docs/index.adoc && cp -r etc/ images/ api/ CNAME docs_html/"
+          program: "gem install rouge asciidoctor-multipage && asciidoctor -r asciidoctor-multipage -b multipage_html5 -D docs_html -a stylesheet=style.css -o index.html docs/index.adoc "
     - name: Deploy docs to ghpages
       uses: peaceiris/actions-gh-pages@v3
       with: 
