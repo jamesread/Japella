@@ -3,10 +3,19 @@ site_description: Documentation for Japella.
 repo_url: https://github.com/jamesread/japella
 repo_name: jamesread/japella
 
-mardown_extensions:
+markdown_extensions:
   - codehilite
   - toc:
       permalink: true
 
 nav:
+  - Welcome: index.md
   - Getting Started: gettingStarted.md
+  - Installation:
+    - Introduction: installation/index.md
+    - docker: installation/docker.md
+    - docker-compose: installation/docker-compose.md
+  - Adapters:
+    - Introduction: adapters/index.md
+    - Discord: adapters/discord.md
+    - Telegram: adapters/telegram.md
