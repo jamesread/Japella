@@ -1,9 +1,11 @@
 default:
 	go build -o japella-adaptor-discord github.com/jamesread/japella/cmd/japella-adaptor-discord/
 	go build -o japella-adaptor-telegram github.com/jamesread/japella/cmd/japella-adaptor-telegram/
+	go build -o japella-adaptor-mastodon github.com/jamesread/japella/cmd/japella-adaptor-mastodon/
 	go build -o japella-bot-utils github.com/jamesread/japella/cmd/japella-bot-utils/
 	go build -o japella-bot-watcher-prometheus github.com/jamesread/japella/cmd/japella-bot-watcher-prometheus/
 	go build -o japella-bot-dblogger github.com/jamesread/japella/cmd/japella-bot-dblogger/
+	go build -o japella-dashboard github.com/jamesread/japella/cmd/japella-dashboard/
 
 localcontainers:
 	buildah bud -f Dockerfile.japella-adaptor-discord 			-t registry.k8s.teratan.lan/japella-adaptor-discord

@@ -1,6 +1,8 @@
 version: v1
 name: buf.build/japella/japella
 
+deps:
+  - buf.build/googleapis/googleapis
 breaking:
   use:
     - FILE
