@@ -12,7 +12,7 @@ var BotId string
 var goBot *discordgo.Session
 var registeredCommands map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
-func Start(appId string, publicKey string, token string) *discordgo.Session {
+func startActual(appId string, publicKey string, token string) *discordgo.Session {
 	var err error
 	goBot, err = discordgo.New("Bot " + token)
 
@@ -37,7 +37,9 @@ func Start(appId string, publicKey string, token string) *discordgo.Session {
 
 	err = goBot.Open()
 
-	log.Errorf("err: %v", err)
+	if err != nil {
+		log.Errorf("err: %v", err)
+	}
 
 	goBot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := registeredCommands[i.ApplicationCommandData().Name]; ok {
@@ -48,6 +50,7 @@ func Start(appId string, publicKey string, token string) *discordgo.Session {
 	registerCommand("ping", cmdPing);
 
 	go Replier()
+	go MessageSearch()
 
 	if err != nil {
 		log.Fatalf("%v", err)
@@ -74,9 +77,62 @@ func registerCommand(name string, handler func(s *discordgo.Session, i *discordg
 		Description: "A japella command",
 	})
 
-	log.Errorf("err: %v", err)
+	if err != nil {
+		log.Errorf("register cmd err: %v", err)
+	}
 
 	registeredCommands[name] = handler
+}
+
+func MessageSearch() {
+	log.Info("msg search")
+	amqp.ConsumeForever("ThreadSearchRequest", func(d amqp.Delivery) {
+		log.Infof("searching for messages")
+
+		/*
+		for _, guild := range goBot.State.Guilds {
+			log.Infof("guild: %v %v", guild.ID, guild.Name)
+
+			channels, err := goBot.GuildChannels(guild.ID)
+
+			if err != nil {
+				log.Errorf("channels err: %v", err)
+				continue
+			}
+
+			for _, channel := range channels {
+				log.Infof("channel: %v %v %v", channel.ID, channel.Name, channel.Type)
+			}
+		}
+		*/
+
+		res, err := goBot.GuildThreadsActive(
+			"846737624960860180",
+		)
+
+		if err != nil {
+			log.Errorf("threads err: %v", err)
+		}
+
+		for _, thread := range res.Threads {
+			log.Infof("res: %v %v %v", thread.ID, thread.Name, thread.ParentID)
+
+			lastMsg, err := goBot.ChannelMessage(thread.ParentID, thread.LastMessageID)
+
+			if err != nil {
+				log.Errorf("msg err: %v %v %v", err, thread.ParentID, thread.LastMessageID)
+				continue
+			}
+
+			log.Infof("msg: %v", lastMsg)
+		}
+
+		msg := &pb.ThreadSearchResponse{
+		}
+
+		amqp.PublishPbWithRoutingKey(msg, "ThreadSearchResponse")
+//		amqp.PublishPb(msg)
+	})
 }
 
 func Replier() {
@@ -94,7 +150,7 @@ func Replier() {
 }
 
 func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
-	log.Infof("msg2: %+v %v", m.Message, m.Content)
+	log.Infof("discord messageHandler: %+v %v", m.Message, m.Content)
 
 	if m.Author.ID == s.State.User.ID {
 		log.Infof("Ignoring msg from myself")

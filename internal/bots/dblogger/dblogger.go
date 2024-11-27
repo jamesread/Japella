@@ -1,4 +1,4 @@
-package main
+package dblogger
 
 import (
 	"database/sql"
@@ -7,9 +7,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 
 	"github.com/jamesread/japella/internal/amqp"
-	log "github.com/sirupsen/logrus"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	"github.com/jamesread/japella/internal/botbase"
 )
 
 type DatabaseConfig struct {
@@ -24,8 +24,13 @@ type LocalConfig struct {
 	Database *DatabaseConfig
 }
 
-func main() {
-	log.Infof("japella-bot-dblogger")
+type DbLogger struct {
+	botbase.Bot
+}
+
+func (bot *DbLogger) Start() {
+	bot.SetName("dblogger")
+	bot.Logger().Infof("japella-bot-dblogger")
 
 	cfg := &LocalConfig{}
 	cfg.Common = runtimeconfig.LoadNewConfigCommon()
@@ -33,46 +38,52 @@ func main() {
 
 	runtimeconfig.LoadConfig("config.database.yaml", cfg.Database)
 
-	log.Infof("cfg: %+v", cfg)
+	bot.Logger().Infof("cfg: %+v", cfg)
 
-	db := ConnectDatabase(cfg)
-	ListenForMessages(db)
+	db := bot.ConnectDatabase(cfg)
+	bot.ListenForMessages(db)
 }
 
-func ListenForMessages(db *sql.DB) {
+func (bot *DbLogger) Stop() {
+}
+
+func (bot *DbLogger) Name() string {
+	return "dblogger"
+}
+
+func (bot *DbLogger) ListenForMessages(db *sql.DB) {
 	_, handler := amqp.ConsumeForever("IncommingMessage", func(d amqp.Delivery) {
 		msg := &pb.IncommingMessage{}
 
 		amqp.Decode(d.Message.Body, &msg)
 
-		log.Infof("recv: %+v", msg)
+		bot.Logger().Infof("dblogger recv: %+v", msg)
 
-		handleMessage(db, msg)
+		bot.handleMessage(db, msg)
 	})
 
 	handler.Wait()
-	log.Infof("done")
+	bot.Logger().Infof("done")
 }
 
-func ConnectDatabase(cfg *LocalConfig) *sql.DB {
+func (bot *DbLogger) ConnectDatabase(cfg *LocalConfig) *sql.DB {
 	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", cfg.Database.User, cfg.Database.Password, cfg.Database.Host, cfg.Database.Database)
 
 	db, err := sql.Open("mysql", url)
 
 	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+		bot.Logger().Fatalf("Failed to connect to database: %v", err)
 	}
 
 	return db
 }
 
-func handleMessage(db *sql.DB, msg *pb.IncommingMessage) {
-	log.Infof("handleMessage: %+v", msg)
+func (bot *DbLogger) handleMessage(db *sql.DB, msg *pb.IncommingMessage) {
+	bot.Logger().Infof("handleMessage: %+v", msg)
 
 	_, err := db.Exec("INSERT INTO messages (protocol, channel, author, content, timestamp) VALUES (?, ?, ?, ?, ?)", msg.Protocol, msg.Channel, msg.Author, msg.Content, msg.Timestamp)
 
 	if err != nil {
-		log.Errorf("err: %v", err)
+		bot.Logger().Errorf("err: %v", err)
 	}
 }
-

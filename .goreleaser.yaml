@@ -10,72 +10,21 @@ before:
     - go generate ./...
 
 builds:
-  - id: bot-utils
-    main: cmd/japella-bot-utils/main.go
-    binary: japella-bot-utils
+  - id: japella
+    main: main.go
+    binary: japella
     env: [CGO_ENABLED=0]
     goos: [linux]
     goarch: [amd64]
-
-  - id: bot-watcher-prometheus
-    main: cmd/japella-bot-watcher-prometheus/main.go
-    binary: japella-bot-watcher-prometheus
-    env: [CGO_ENABLED=0]
-    goos: [linux]
-    goarch: [amd64]
-
-  - id: adaptor-discord
-    main: ./cmd/japella-adaptor-discord/main.go
-    binary: japella-adaptor-discord
-    env: [CGO_ENABLED=0]
-    goos: [linux]
-    goarch: [amd64]
-
-  - id: adaptor-telegram
-    main: ./cmd/japella-adaptor-telegram/main.go
-    binary: japella-adaptor-telegram
-    env: [CGO_ENABLED=0]
-    goos: [linux]
-    goarch: [amd64]
-
-  - id: bot-dblogger
-    main: ./cmd/japella-bot-dblogger/main.go
-    binary: japella-bot-dblogger
-    env: [CGO_ENABLED=0]
-    goos: [linux]
-    goarch: [amd64]
-
-
 
 archives:
   - builds:
 
 dockers:
-  - id: bot-utils
-    dockerfile: Dockerfile.japella-bot-utils
+  - id: japella
+    dockerfile: Dockerfile
     image_templates:
-      - ghcr.io/jamesread/japella-bot-utils
-
-  - id: bot-watcher-prometheus
-    dockerfile: Dockerfile.japella-bot-watcher-prometheus
-    image_templates:
-      - ghcr.io/jamesread/japella-bot-watcher-prometheus
-
-  - id: adaptor-discord
-    dockerfile: Dockerfile.japella-adaptor-discord
-    image_templates:
-      - ghcr.io/jamesread/japella-adaptor-discord
-
-  - id: adaptor-telegram
-    dockerfile: Dockerfile.japella-adaptor-telegram
-    image_templates:
-      - ghcr.io/jamesread/japella-adaptor-telegram
-
-  - id: bot-dblogger
-    dockerfile: Dockerfile.japella-bot-dblogger
-    image_templates:
-      - ghcr.io/jamesread/japella-bot-dblogger
-
+      - ghcr.io/jamesread/japella
 
 changelog:
   sort: asc

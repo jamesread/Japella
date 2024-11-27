@@ -1,4 +1,4 @@
-package main
+package telegram
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -21,7 +21,10 @@ var cfg struct {
 	}
 }
 
-func main() {
+type TelegramAdaptor struct {
+}
+
+func (n TelegramAdaptor) Start() {
 	log.Infof("japella-adaptor-telegram")
 
 	cfg.Common = &runtimeconfig.CommonConfig{}
@@ -31,14 +34,14 @@ func main() {
 
 	log.Infof("cfg: %+v", cfg)
 
-	Start(cfg.Telegram.BotToken)
+	StartBot(cfg.Telegram.BotToken)
 
 	for {
 		time.Sleep(1 * time.Second)
 	}
 }
 
-func Start(botToken string) {
+func StartBot(botToken string) {
 	log.Infof("botToken: %v", botToken)
 
 	var err error
@@ -66,7 +69,7 @@ func Start(botToken string) {
 		log.Infof("update: %v", update)
 
 		if update.Message != nil { // If we got a message
-			log.Infof("[%s] %s", update.Message.From.UserName, update.Message.Text)
+			log.Infof("msg from [%s] %s", update.Message.From.UserName, update.Message.Text)
 
 			amqp.PublishPb(&pb.IncommingMessage {
 				Author: update.Message.From.UserName,

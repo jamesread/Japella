@@ -1,7 +1,6 @@
-package main
+package discord
 
 import (
-	"github.com/jamesread/japella/internal/adaptor/discord"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 	"time"
@@ -16,7 +15,10 @@ var cfg struct {
 	}
 }
 
-func main() {
+type DiscordAdaptor struct {
+}
+
+func (a *DiscordAdaptor) Start() {
 	log.Infof("japella-adaptor-discord")
 
 	cfg.Common = runtimeconfig.LoadNewConfigCommon()
@@ -27,7 +29,7 @@ func main() {
 		"appId":     cfg.Discord.AppId,
 	}).Infof("cfg after parse")
 
-	discord.Start(cfg.Discord.AppId, cfg.Discord.PublicKey, cfg.Discord.Token)
+	startActual(cfg.Discord.AppId, cfg.Discord.PublicKey, cfg.Discord.Token)
 
 	for {
 		time.Sleep(1 * time.Second)

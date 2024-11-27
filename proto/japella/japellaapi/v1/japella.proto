@@ -19,3 +19,14 @@ message OutgoingMessage {
 	string incomming_message_id = 4;
 }
 
+message ThreadSearchRequest {
+    string protocol = 1;
+}
+
+message ThreadSearchResponse {
+    repeated Thread threads = 1;
+}
+
+message Thread {
+    string title = 1;
+}

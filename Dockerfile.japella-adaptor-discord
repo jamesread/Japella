@@ -1,7 +1,0 @@
-FROM registry.fedoraproject.org/fedora-minimal:38-x86_64
-
-LABEL org.opencontainers.image.source https://github.com/jamesread/japella
-
-ADD japella-adaptor-discord /
-
-ENTRYPOINT [ "/japella-adaptor-discord" ]

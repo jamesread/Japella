@@ -126,6 +126,8 @@ func Publish(routingKey string, msg amqp.Publishing) error {
 }
 
 func PublishWithChannel(c *amqp.Channel, routingKey string, msg amqp.Publishing) error {
+	log.Infof("Publishing to %v", routingKey)
+
 	err := c.Publish(
 		"ex_japella",
 		routingKey,
@@ -133,6 +135,10 @@ func PublishWithChannel(c *amqp.Channel, routingKey string, msg amqp.Publishing)
 		false, // immediate
 		msg,
 	)
+
+	if err != nil {
+		log.Errorf("PublishWithChannel error: %v", err)
+	}
 
 	return err
 }
