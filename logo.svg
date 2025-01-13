@@ -113,7 +113,7 @@
      id="path5-7"
      sodipodi:nodetypes="ccccccc" />
   <path
-     style="fill:url(#linearGradient5);stroke:#000000;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1"
+     style="fill:url(#linearGradient5);stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;fill-opacity:1"
      d="M 5.379,7.909 4,11.5 l 0.8688741,6.200247 1.6470805,1.458459 5.6086284,0.307477 1.789767,1.46891 2.599571,0.975454 L 16.526,19.502 18.621,18.505 19.465132,15.726031 18.621,7.909 15.01541,7.0069784 7,7 Z"
      id="path4" />
   <g
