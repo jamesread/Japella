@@ -8,4 +8,4 @@ config.yaml
 site/
 dist/
 config*
-/proto/**
+/japella
