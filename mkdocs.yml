@@ -14,6 +14,7 @@ markdown_extensions:
 theme:
   name: material
   language: en
+  logo: logo.png
   favicon: logo.png
   include_search_page: true
   search_index_only: true
@@ -28,7 +29,6 @@ theme:
     accent: light-blue
 
   icon:
-    logo: logo.png
     repo: fontawesome/brands/github
 
 
