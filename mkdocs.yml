@@ -1,7 +1,7 @@
 ---
 site_name: Japella Docs
-site_description: Documentation for Japella.
-repo_url: https://github.com/jamesread/japella
+site_description: A chatbot, which is multi-protocol, powerful and highly resilient.
+repo_url: https://jamesread.github.io/Japella
 repo_name: jamesread/japella
 edit_uri: edit/main/docs
 strict: true
@@ -34,6 +34,7 @@ theme:
 
 plugins:
   - search:
+  - social:
   - minify:
       minify_html: true
   - tags:
