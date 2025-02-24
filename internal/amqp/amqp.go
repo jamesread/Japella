@@ -268,8 +268,6 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 		return
 	}
 
-	log.Infof("Consumer channel creating for: %v", deliveryTag)
-
 	deliveries, err := c.Consume(
 		queueName,              // name
 		"consume-"+deliveryTag, // consumer tag
@@ -287,9 +285,13 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 
 	consumerReady.Done()
 
-	consumeDeliveries(deliveries, handlerFunc, handlerWait)
+	for {
+		log.Infof("Consumer channel creating for: %v", deliveryTag)
 
-	log.Infof("Consumer channel closed for: %v", deliveryTag)
+		consumeDeliveries(deliveries, handlerFunc, handlerWait)
+
+		log.Infof("Consumer channel closed for: %v", deliveryTag)
+	}
 }
 
 func newEnvelope(msgType string, body []byte) amqp.Publishing {

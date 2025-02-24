@@ -16,7 +16,6 @@ type Bot struct {
 
 	logger *log.Logger
 
-	Protocol string
 	bangCommands map[string]func(*pb.IncommingMessage)
 }
 
@@ -68,8 +67,7 @@ func (b *Bot) RegisterBangCommand(command string, handler func(*pb.IncommingMess
 	b.bangCommands[command] = handler
 }
 
-func (b *Bot) Setup(protocol string) {
-	b.Protocol = protocol
+func (b *Bot) Setup() {
 	b.bangCommands = make(map[string]func(*pb.IncommingMessage))
 
 	common := runtimeconfig.CommonConfig{}
@@ -80,7 +78,7 @@ func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 	log.Infof("ConsumeBangCommands")
 
 	_, handler := amqp.ConsumeForever("IncommingMessage", func(d amqp.Delivery) {
-		log.Infof("consumeBangCommands")
+		log.Infof("Bot %v - consumeBangCommands", b.name)
 
 		msg := &pb.IncommingMessage{}
 
@@ -102,9 +100,9 @@ func (b *Bot) Config() {
 }
 
 func (b *Bot) handleBangCommand(msg *pb.IncommingMessage) {
-	command := ""
+	command := msg.Content[1:]
 
-	log.Infof("Command: %v", msg.Content)
+	log.Infof("Command: %v", command)
 
 	handler, ok := b.bangCommands[command]
 
@@ -113,6 +111,10 @@ func (b *Bot) handleBangCommand(msg *pb.IncommingMessage) {
 		handler(msg)
 	} else {
 		log.Warnf("Unhandled message: %v, %+v", command, msg)
+
+		for k, _ := range b.bangCommands {
+			log.Warnf("Available command: %v", k)
+		}
 	}
 }
 
@@ -144,8 +146,12 @@ func Consume[M interface{}](handler func(M)) {
 	consumeHandler.Wait()
 }
 
+func (b *Bot) SendMessage(msg *pb.OutgoingMessage) {
+	amqp.PublishPbWithRoutingKey(msg, msg.Protocol + "-OutgoingMessage")
+}
+
 func (b *Bot) Publish(msg protoreflect.ProtoMessage) {
 	messageType := fmt.Sprintf("%v", msg.ProtoReflect().Descriptor().FullName())
 
-	amqp.PublishPbWithRoutingKey(msg, b.Protocol + "-" + messageType)
+	amqp.PublishPbWithRoutingKey(msg, messageType)
 }

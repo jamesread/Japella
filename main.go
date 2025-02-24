@@ -1,6 +1,10 @@
 package main
 
 import (
+	"github.com/jamesread/japella/internal/nanoservice"
+	"github.com/jamesread/japella/internal/dashboard"
+	"github.com/jamesread/japella/internal/adaptor/telegram"
+	"github.com/jamesread/japella/internal/bots/exec"
 	log "github.com/sirupsen/logrus"
 	"strings"
 	"time"
@@ -11,8 +15,10 @@ import (
 	"context"
 )
 
+var serviceRegistry = make(map[string]nanoservice.Nanoservice)
+
 func main() {
-	log.Infof("japella")
+	log.Infof("japella startup")
 
 	kod.WithConfigFile("japella.toml")
 
@@ -21,6 +27,14 @@ func main() {
 	}
 }
 
+func init() {
+	log.SetOutput(os.Stdout)
+	log.SetLevel(log.InfoLevel)
+
+	serviceRegistry["telegram"] = telegram.TelegramAdaptor{}
+	serviceRegistry["dashboard"] = dashboard.Dashboard{}
+	serviceRegistry["exec"] = exec.Exec{}
+}
 
 type app struct {
 	kod.Implements[kod.Main]
@@ -43,14 +57,33 @@ func startNanoservices() {
 			continue
 		}
 
-		log.Infof("Starting service: %s", serviceName)
+		startService(serviceName)
 	}
+
+	startService("dashboard")
 
 	log.Infof("japella started")
 
 	for {
 		time.Sleep(1 * time.Second)
 	}
+}
+
+func startService(serviceName string) {
+	service, ok := serviceRegistry[serviceName]
+
+	if !ok {
+		log.WithFields(log.Fields {
+			"name": serviceName,
+		}).Errorf("Service not found")
+		return
+	} else {
+		log.WithFields(log.Fields {
+			"name": serviceName,
+		}).Infof("Starting service")
+	}
+
+	go service.Start()
 }
 
 func getNanoservices() []string {

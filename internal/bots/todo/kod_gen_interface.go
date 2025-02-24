@@ -2,7 +2,8 @@
 
 package todo
 
-// TodoBot is implemented by [TodoBotImpl].
+// TodoBot is implemented by [TodoBotImpl],
+// which can be mocked with [NewMockTodoBot].
 type TodoBot interface {
 	// Name is implemented by [TodoBotImpl.Name]
 	Name() string
