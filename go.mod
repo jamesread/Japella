@@ -1,8 +1,6 @@
 module github.com/jamesread/japella
 
-go 1.23.0
-
-toolchain go1.23.0
+go 1.22.9
 
 require (
 	github.com/bufbuild/buf v1.48.0
