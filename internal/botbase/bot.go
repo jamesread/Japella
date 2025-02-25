@@ -52,7 +52,7 @@ func (b *Bot) Logger() *log.Logger {
 	if b.logger == nil {
 		logger := log.StandardLogger()
 		logger.SetFormatter(&PrefixFormatter{
-			Prefix: b.Name(),
+			Prefix: "[" + b.Name() + "] ",
 			Formatter: &log.TextFormatter{},
 		})
 

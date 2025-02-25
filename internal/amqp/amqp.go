@@ -280,6 +280,7 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 
 	if err != nil {
 		log.Warnf("Consumer channel creation error: %v %v", deliveryTag, err)
+		time.Sleep(10 * time.Second)
 		return
 	}
 
