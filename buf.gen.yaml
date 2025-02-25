@@ -3,12 +3,12 @@ plugins:
   - name: go
     out: .
 
-    #  - name: go-grpc
-    #    out: .
-    #    opt: require_unimplemented_servers=false
+  - name: go-grpc
+    out: .
+    opt: require_unimplemented_servers=false
 
-    #  - name: grpc-gateway
-    #    out: .
+  - name: grpc-gateway
+    out: .
 
     #  - name: js
     #    out: .
