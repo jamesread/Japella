@@ -4,7 +4,9 @@ import (
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/botbase"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	"os"
 	"os/exec"
+	"strings"
 )
 
 type Exec struct {
@@ -15,40 +17,63 @@ type ExecBot struct {
 	botbase.Bot
 }
 
+var commands = ""
+
 func (e Exec) Start() {
 	bot := ExecBot{}
 	bot.SetName("Exec")
 	bot.Setup()
-	bot.RegisterBangCommand("execreq", bot.execreq)
-	bot.RegisterBangCommand("nextweekend", bot.nextweekend)
+
+	// List files in /usr/libexec/japella/
+
+	files, err := os.ReadDir("/usr/libexec/japella/")
+
+	if err != nil {
+		bot.Logger().Errorf("Error reading directory: %v", err)
+		return
+	}
+
+	for _, file := range files {
+		bot.Logger().Infof("Registering bang command: %v", file.Name())
+		bot.RegisterBangCommand(file.Name(), bot.execreq)
+
+		commands += file.Name() + " "
+	}
+
+	bot.RegisterBangCommand("exechelp", bot.exechelp)
+
 	bot.ConsumeBangCommands().Wait()
 }
 
-func (b *ExecBot) execreq(m *pb.IncommingMessage) {
+func(b *ExecBot) exechelp(m *pb.IncommingMessage) {
 	out := &pb.OutgoingMessage{
 		Channel: m.Channel,
-		Content: "execreq",
 		Protocol: "telegram",
 	}
 
-	b.Logger().Info("execreq")
-
+	out.Content = "Available commands: " + commands
 	b.SendMessage(out)
 }
 
-func(b *ExecBot) nextweekend(m *pb.IncommingMessage) {
+func(b *ExecBot) execreq(m *pb.IncommingMessage) {
 	out := &pb.OutgoingMessage{
 		Channel: m.Channel,
-		Content: "nextweekend",
 		Protocol: "telegram",
 	}
 
-	// exec nextweekend.py and get output
+	b.Logger().Infof("Executing command: %v", m.Content)
 
-	cmd := exec.Command("nextweekend.py")
+	script := m.Content
+	script = strings.ReplaceAll(script, ".", "")
+	script = strings.ReplaceAll(script, "!", "")
+
+	b.Logger().Infof("Executing command: %v", script)
+
+	cmd := exec.Command("sh", "-c", "/usr/libexec/japella/" + script)
 	output, err := cmd.Output()
 
 	if err != nil {
+		b.Logger().Errorf("Error executing command: %v", err)
 		out.Content = "Error executing command"
 	} else {
 		out.Content = string(output)
