@@ -45,6 +45,8 @@ type PrefixFormatter struct {
 func (f *PrefixFormatter) Format(entry *log.Entry) ([]byte, error) {
 	entry.Message = fmt.Sprintf("%s %s", f.Prefix, entry.Message)
 
+	f.Formatter.(*log.TextFormatter).DisableTimestamp = true
+
 	return f.Formatter.Format(entry)
 }
 
