@@ -86,8 +86,10 @@ func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 
 		log.Infof("Received %+v", msg)
 
-		if msg.Content[0] == '!' {
-			b.handleBangCommand(msg)
+		if len(msg.Content) > 0 {
+			if msg.Content[0] == '!' {
+				b.handleBangCommand(msg)
+			}
 		}
 	})
 
