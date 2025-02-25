@@ -238,6 +238,17 @@ func consumeForever(consumerReady *sync.WaitGroup, handlerDone *sync.WaitGroup, 
 	}
 }
 
+func consumeWithChannelForever(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTag string, handlerFunc HandlerFunc) {
+	for {
+		log.Infof("Consumer channel creating for: %v", deliveryTag)
+
+		consumeWithChannel(consumerReady, handlerWait, c, deliveryTag, handlerFunc)
+
+		log.Infof("Consumer channel closed for: %v", deliveryTag)
+		time.Sleep(10 * time.Second)
+	}
+}
+
 func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTag string, handlerFunc HandlerFunc) {
 	queueName := "japella-" + getHostname() + "-" + InstanceId + "-" + deliveryTag
 
@@ -280,19 +291,14 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 
 	if err != nil {
 		log.Warnf("Consumer channel creation error: %v %v", deliveryTag, err)
-		time.Sleep(10 * time.Second)
 		return
 	}
 
 	consumerReady.Done()
 
-	for {
-		log.Infof("Consumer channel creating for: %v", deliveryTag)
+	consumeDeliveries(deliveries, handlerFunc, handlerWait)
 
-		consumeDeliveries(deliveries, handlerFunc, handlerWait)
-
-		log.Infof("Consumer channel closed for: %v", deliveryTag)
-	}
+	log.Infof("Consumer deliveries finished: %v", deliveryTag)
 }
 
 func newEnvelope(msgType string, body []byte) amqp.Publishing {
