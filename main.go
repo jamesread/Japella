@@ -5,6 +5,7 @@ import (
 	"github.com/jamesread/japella/internal/dashboard"
 	"github.com/jamesread/japella/internal/bots/dblogger"
 	"github.com/jamesread/japella/internal/adaptor/telegram"
+	"github.com/jamesread/japella/internal/adaptor/discord"
 	"github.com/jamesread/japella/internal/bots/exec"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -41,6 +42,7 @@ func init() {
 	serviceRegistry["dashboard"] = dashboard.Dashboard{}
 	serviceRegistry["exec"] = exec.Exec{}
 	serviceRegistry["dblogger"] = dblogger.DbLogger{}
+	serviceRegistry["discord"] = discord.DiscordAdaptor{}
 }
 
 type app struct {

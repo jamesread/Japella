@@ -18,7 +18,7 @@ var cfg struct {
 type DiscordAdaptor struct {
 }
 
-func (a *DiscordAdaptor) Start() {
+func (a DiscordAdaptor) Start() {
 	log.Infof("japella-adaptor-discord")
 
 	cfg.Common = runtimeconfig.LoadNewConfigCommon()
