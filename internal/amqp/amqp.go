@@ -3,7 +3,7 @@ package amqp
 import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
-	"github.com/streadway/amqp"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/teris-io/shortid"
 	"os"
 	"reflect"
@@ -60,7 +60,7 @@ func GetChannel(name string) (*amqp.Channel, error) {
 		return nil, err
 	}
 
-	if channel, ok := channels[name]; !ok {
+	if channel, ok := channels[name]; !ok || channel.IsClosed() {
 		log.Debugf("GetChannel() - Opening new channel for %v", name)
 
 		channel, err = conn.Channel()
