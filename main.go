@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/dashboard"
+	"github.com/jamesread/japella/internal/bots/dblogger"
 	"github.com/jamesread/japella/internal/adaptor/telegram"
 	"github.com/jamesread/japella/internal/bots/exec"
 	log "github.com/sirupsen/logrus"
@@ -39,6 +40,7 @@ func init() {
 	serviceRegistry["telegram"] = telegram.TelegramAdaptor{}
 	serviceRegistry["dashboard"] = dashboard.Dashboard{}
 	serviceRegistry["exec"] = exec.Exec{}
+	serviceRegistry["dblogger"] = dblogger.DbLogger{}
 }
 
 type app struct {

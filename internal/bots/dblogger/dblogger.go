@@ -28,7 +28,7 @@ type DbLogger struct {
 	botbase.Bot
 }
 
-func (bot *DbLogger) Start() {
+func (bot DbLogger) Start() {
 	bot.SetName("dblogger")
 	bot.Logger().Infof("japella-bot-dblogger")
 
