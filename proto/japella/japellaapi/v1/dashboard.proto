@@ -1,19 +1,17 @@
 syntax = "proto3";
 
-option go_package = "./gen/protobuf";
+package japella.japellaapi.v1;
 
 import "google/api/annotations.proto";
 
-package japella.japellaapi.v1;
+option go_package = "./gen/protobuf";
 
 message SendMessageRequest {}
 
 message SendMessageResponse {}
 
 service JapellaDashboardApiService {
-	rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {
-		option (google.api.http) = {
-			get: "/api/SendMessage"
-		};
-	}
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {
+    option (google.api.http) = {get: "/api/SendMessage"};
+  }
 }
