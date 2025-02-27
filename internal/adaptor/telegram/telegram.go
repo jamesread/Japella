@@ -86,7 +86,7 @@ func messageHandler(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Updat
 		}).Infof("Telegram - message recevied");
 
 		amqp.PublishPb(&pb.IncomingMessage {
-//			Author: update.Message.From,
+			Author: update.Message.From.Username,
 			Content: update.Message.Text,
 			Channel: strconv.FormatInt(update.Message.Chat.ID, 10),
 			Protocol: "telegram",
