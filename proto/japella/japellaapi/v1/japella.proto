@@ -4,7 +4,7 @@ package japella.japellaapi.v1;
 
 option go_package = "./gen/protobuf";
 
-message IncommingMessage {
+message IncomingMessage {
   string content = 1;
   string channel = 2;
   string author = 3;

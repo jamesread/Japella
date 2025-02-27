@@ -16,7 +16,7 @@ type Bot struct {
 
 	logger *log.Logger
 
-	bangCommands map[string]func(*pb.IncommingMessage)
+	bangCommands map[string]func(*pb.IncomingMessage)
 }
 
 func (b *Bot) Start() {
@@ -65,12 +65,12 @@ func (b *Bot) Logger() *log.Logger {
 	return b.logger
 }
 
-func (b *Bot) RegisterBangCommand(command string, handler func(*pb.IncommingMessage)) {
+func (b *Bot) RegisterBangCommand(command string, handler func(*pb.IncomingMessage)) {
 	b.bangCommands[command] = handler
 }
 
 func (b *Bot) Setup() {
-	b.bangCommands = make(map[string]func(*pb.IncommingMessage))
+	b.bangCommands = make(map[string]func(*pb.IncomingMessage))
 
 	common := runtimeconfig.CommonConfig{}
 	runtimeconfig.LoadConfigCommon(&common)
@@ -79,10 +79,10 @@ func (b *Bot) Setup() {
 func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 	log.Infof("ConsumeBangCommands")
 
-	_, handler := amqp.ConsumeForever("IncommingMessage", func(d amqp.Delivery) {
+	_, handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
 		log.Infof("Bot %v - consumeBangCommands", b.name)
 
-		msg := &pb.IncommingMessage{}
+		msg := &pb.IncomingMessage{}
 
 		amqp.Decode(d.Message.Body, &msg)
 
@@ -103,7 +103,7 @@ func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 func (b *Bot) Config() {
 }
 
-func (b *Bot) handleBangCommand(msg *pb.IncommingMessage) {
+func (b *Bot) handleBangCommand(msg *pb.IncomingMessage) {
 	command := msg.Content[1:]
 
 	log.Infof("Command: %v", command)
