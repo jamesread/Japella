@@ -52,7 +52,7 @@ func (f *PrefixFormatter) Format(entry *log.Entry) ([]byte, error) {
 
 func (b *Bot) Logger() *log.Logger {
 	if b.logger == nil {
-		logger := log.StandardLogger()
+		logger := log.New()
 		logger.SetFormatter(&PrefixFormatter{
 			Prefix: "[Bot: " + b.Name() + "]",
 			Formatter: &log.TextFormatter{},
