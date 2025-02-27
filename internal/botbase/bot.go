@@ -52,7 +52,7 @@ func (f *PrefixFormatter) Format(entry *log.Entry) ([]byte, error) {
 
 func (b *Bot) Logger() *log.Logger {
 	if b.logger == nil {
-		logger := log.StandardLogger()
+		logger := log.New()
 		logger.SetFormatter(&PrefixFormatter{
 			Prefix: "[Bot: " + b.Name() + "]",
 			Formatter: &log.TextFormatter{},
@@ -77,16 +77,16 @@ func (b *Bot) Setup() {
 }
 
 func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
-	log.Infof("ConsumeBangCommands")
+	b.Logger().Infof("ConsumeBangCommands")
 
 	_, handler := amqp.ConsumeForever("IncommingMessage", func(d amqp.Delivery) {
-		log.Infof("Bot %v - consumeBangCommands", b.name)
+		b.Logger().Infof("consumeBangCommands")
 
 		msg := &pb.IncommingMessage{}
 
 		amqp.Decode(d.Message.Body, &msg)
 
-		log.Infof("Received %+v", msg)
+		b.Logger().Infof("Received %+v", msg)
 
 		if len(msg.Content) > 0 {
 			if msg.Content[0] == '!' {
@@ -106,18 +106,18 @@ func (b *Bot) Config() {
 func (b *Bot) handleBangCommand(msg *pb.IncommingMessage) {
 	command := msg.Content[1:]
 
-	log.Infof("Command: %v", command)
+	b.Logger().Infof("Command: %v", command)
 
 	handler, ok := b.bangCommands[command]
 
 	if ok {
-		log.Infof("Handled command message: %+v", command)
+		b.Logger().Infof("Handled command message: %+v", command)
 		handler(msg)
 	} else {
-		log.Warnf("Unhandled message: %v, %+v", command, msg)
+		b.Logger().Warnf("Unhandled message: %v, %+v", command, msg)
 
 		for k, _ := range b.bangCommands {
-			log.Warnf("Available command: %v", k)
+			b.Logger().Warnf("Available command: %v", k)
 		}
 	}
 }
