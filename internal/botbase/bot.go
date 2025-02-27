@@ -9,6 +9,7 @@ import (
 	pb "github.com/jamesread/japella/gen/protobuf"
 	"reflect"
 	"sync"
+	"regexp"
 )
 
 type Bot struct {
@@ -16,7 +17,7 @@ type Bot struct {
 
 	logger *log.Logger
 
-	bangCommands map[string]func(*pb.IncomingMessage)
+	bangCommands map[string]func(*pb.IncomingMessage, string, string)
 }
 
 func (b *Bot) Start() {
@@ -65,12 +66,12 @@ func (b *Bot) Logger() *log.Logger {
 	return b.logger
 }
 
-func (b *Bot) RegisterBangCommand(command string, handler func(*pb.IncomingMessage)) {
+func (b *Bot) RegisterBangCommand(command string, handler func(*pb.IncomingMessage, string, string)) {
 	b.bangCommands[command] = handler
 }
 
 func (b *Bot) Setup() {
-	b.bangCommands = make(map[string]func(*pb.IncomingMessage))
+	b.bangCommands = make(map[string]func(*pb.IncomingMessage, string, string))
 
 	common := runtimeconfig.CommonConfig{}
 	runtimeconfig.LoadConfigCommon(&common)
@@ -103,21 +104,30 @@ func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 func (b *Bot) Config() {
 }
 
+var commandMatcher = regexp.MustCompile(`^!(\w+)(?:\s+(.*))?$`)
+
 func (b *Bot) handleBangCommand(msg *pb.IncomingMessage) {
-	command := msg.Content[1:]
+	match := commandMatcher.FindStringSubmatch(msg.Content)
 
-	b.Logger().Infof("Command: %v", command)
-
-	handler, ok := b.bangCommands[command]
-
-	if ok {
-		b.Logger().Infof("Handled command message: %+v", command)
-		handler(msg)
+	if len(match) < 2 {
+		b.Logger().Warnf("Failed to match command: %v", msg.Content)
 	} else {
-		b.Logger().Warnf("Unhandled message: %v, %+v", command, msg)
+		command := match[1]
+		args := match[2]
 
-		for k, _ := range b.bangCommands {
-			b.Logger().Warnf("Available command: %v", k)
+		b.Logger().Infof("Command: %v", command)
+
+		handler, ok := b.bangCommands[command]
+
+		if ok {
+			b.Logger().Infof("Handled command message: %+v", command)
+			handler(msg, command, args)
+		} else {
+			b.Logger().Warnf("Unhandled message: %v, %+v", command, msg)
+
+			for k, _ := range b.bangCommands {
+				b.Logger().Warnf("Available command: %v", k)
+			}
 		}
 	}
 }

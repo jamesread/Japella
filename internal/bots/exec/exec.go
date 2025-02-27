@@ -4,9 +4,13 @@ import (
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/botbase"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"strings"
+	"fmt"
+	"context"
+	"time"
 )
 
 type Exec struct {
@@ -45,20 +49,20 @@ func (e Exec) Start() {
 	bot.ConsumeBangCommands().Wait()
 }
 
-func(b *ExecBot) exechelp(m *pb.IncomingMessage) {
+func(b *ExecBot) exechelp(m *pb.IncomingMessage, command string, arguments string) {
 	out := &pb.OutgoingMessage{
 		Channel: m.Channel,
-		Protocol: "telegram",
+		Protocol: m.Protocol,
 	}
 
 	out.Content = "Available commands: " + commands
 	b.SendMessage(out)
 }
 
-func(b *ExecBot) execreq(m *pb.IncomingMessage) {
+func(b *ExecBot) execreq(m *pb.IncomingMessage, command string, arguments string) {
 	out := &pb.OutgoingMessage{
 		Channel: m.Channel,
-		Protocol: "telegram",
+		Protocol: m.Protocol,
 	}
 
 	b.Logger().Infof("Executing command: %v", m.Content)
@@ -69,7 +73,20 @@ func(b *ExecBot) execreq(m *pb.IncomingMessage) {
 
 	b.Logger().Infof("Executing command: %v", script)
 
-	cmd := exec.Command("sh", "-c", "/usr/libexec/japella/" + script)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10*time.Second))
+	cmd := exec.CommandContext(ctx, "sh", "-c", "/usr/libexec/japella/" + script)
+
+	defer cancel()
+
+	args := make(map[string]string)
+	args["channel"] = m.Channel
+	args["protocol"] = m.Protocol
+	args["author"] = m.Author
+	args["server"] = m.Server
+	args["content"] = m.Content
+	args["args"] = arguments
+	cmd.Env = buildEnv(b.Logger(), args)
+
 	output, err := cmd.Output()
 
 	if err != nil {
@@ -80,4 +97,21 @@ func(b *ExecBot) execreq(m *pb.IncomingMessage) {
 	}
 
 	b.SendMessage(out)
+}
+
+func buildEnv(logger *log.Logger, args map[string]string) []string {
+	env := os.Environ()
+	env = append(env, "JAPELLA=1")
+
+	for key, value := range args {
+		keyName := fmt.Sprintf("%v", strings.TrimSpace(strings.ToUpper(key)))
+
+		if keyName == "" {
+			continue
+		}
+
+		env = append(env, keyName + "=" + value)
+	}
+
+	return env
 }
