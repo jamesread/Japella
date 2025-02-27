@@ -1,3 +1,4 @@
+---
 version: v1
 name: buf.build/japella/japella
 
@@ -8,4 +9,4 @@ breaking:
     - FILE
 lint:
   use:
-    - DEFAULT
+    - STANDARD
