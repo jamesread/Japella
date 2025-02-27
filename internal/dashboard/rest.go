@@ -26,7 +26,7 @@ func newMux() *runtime.ServeMux {
 
 	opts := []grpc.DialOption{grpc.WithInsecure()}
 
-	err := pb.RegisterJapellaDashboardApiHandlerFromEndpoint(ctx, mux, "localhost:50051", opts)
+	err := pb.RegisterJapellaDashboardApiServiceHandlerFromEndpoint(ctx, mux, "localhost:50051", opts)
 
 	if err != nil {
 		log.Fatalf("Failed to register gateway: %v", err)

@@ -45,7 +45,7 @@ func (e Exec) Start() {
 	bot.ConsumeBangCommands().Wait()
 }
 
-func(b *ExecBot) exechelp(m *pb.IncommingMessage) {
+func(b *ExecBot) exechelp(m *pb.IncomingMessage) {
 	out := &pb.OutgoingMessage{
 		Channel: m.Channel,
 		Protocol: "telegram",
@@ -55,7 +55,7 @@ func(b *ExecBot) exechelp(m *pb.IncommingMessage) {
 	b.SendMessage(out)
 }
 
-func(b *ExecBot) execreq(m *pb.IncommingMessage) {
+func(b *ExecBot) execreq(m *pb.IncomingMessage) {
 	out := &pb.OutgoingMessage{
 		Channel: m.Channel,
 		Protocol: "telegram",

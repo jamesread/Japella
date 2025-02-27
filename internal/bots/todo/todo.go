@@ -34,13 +34,13 @@ func (bot *TodoBotImpl) Start() {
 	bot.Logger().Infof("Exiting")
 }
 
-func (bot *TodoBotImpl) onNew(msg *pb.IncommingMessage) {
+func (bot *TodoBotImpl) onNew(msg *pb.IncomingMessage) {
 	bot.Logger().Infof("Creating new todo")
 
 	bot.list = append(bot.list, msg.Content)
 }
 
-func (bot *TodoBotImpl) onDone(msg *pb.IncommingMessage) {
+func (bot *TodoBotImpl) onDone(msg *pb.IncomingMessage) {
 	bot.Logger().Infof("Completing todo")
 
 	bot.list = bot.list[1:]

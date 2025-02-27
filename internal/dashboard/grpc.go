@@ -17,7 +17,7 @@ func StartGrpc() {
 	lis, err := net.Listen("tcp", ":50051")
 
 	grpcServer := grpc.NewServer()
-	pb.RegisterJapellaDashboardApiServer(grpcServer, &JapellaDashboardApi{})
+	pb.RegisterJapellaDashboardApiServiceServer(grpcServer, &JapellaDashboardApi{})
 
 	err = grpcServer.Serve(lis)
 

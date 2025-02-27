@@ -20,7 +20,7 @@ func main() {
 	bot.ConsumeBangCommands().Wait()
 }
 
-func (bot *SupportBot) searchForThreads(msg *pb.IncommingMessage) {
+func (bot *SupportBot) searchForThreads(msg *pb.IncomingMessage) {
 	bot.Logger().Infof("Searching for threads")
 
 	res := &pb.ThreadSearchRequest{

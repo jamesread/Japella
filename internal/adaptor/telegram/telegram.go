@@ -85,7 +85,7 @@ func messageHandler(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Updat
 			"content": update.Message.Text,
 		}).Infof("Telegram - message recevied");
 
-		amqp.PublishPb(&pb.IncommingMessage {
+		amqp.PublishPb(&pb.IncomingMessage {
 //			Author: update.Message.From,
 			Content: update.Message.Text,
 			Channel: strconv.FormatInt(update.Message.Chat.ID, 10),
@@ -111,7 +111,7 @@ func Replier() {
 			Text: reply.Content,
 		})
 
-//		messageId, _ := strconv.Atoi(reply.IncommingMessageId)
+//		messageId, _ := strconv.Atoi(reply.IncomingMessageId)
 
 //		log.Infof("messageId: %v %v", messageId, bot)
 //		msg.ReplyToMessageID = messageId

@@ -52,8 +52,8 @@ func (bot *DbLogger) Name() string {
 }
 
 func (bot *DbLogger) ListenForMessages(db *sql.DB) {
-	_, handler := amqp.ConsumeForever("IncommingMessage", func(d amqp.Delivery) {
-		msg := &pb.IncommingMessage{}
+	_, handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
+		msg := &pb.IncomingMessage{}
 
 		amqp.Decode(d.Message.Body, &msg)
 
@@ -78,7 +78,7 @@ func (bot *DbLogger) ConnectDatabase(cfg *LocalConfig) *sql.DB {
 	return db
 }
 
-func (bot *DbLogger) handleMessage(db *sql.DB, msg *pb.IncommingMessage) {
+func (bot *DbLogger) handleMessage(db *sql.DB, msg *pb.IncomingMessage) {
 	bot.Logger().Infof("handleMessage: %+v", msg)
 
 	_, err := db.Exec("INSERT INTO messages (protocol, channel, author, content, timestamp) VALUES (?, ?, ?, ?, ?)", msg.Protocol, msg.Channel, msg.Author, msg.Content, msg.Timestamp)

@@ -26,8 +26,8 @@ func main() {
 }
 
 func Start() {
-	_, handler := amqp.ConsumeForever("IncommingMessage", func(d amqp.Delivery) {
-		msg := &pb.IncommingMessage{}
+	_, handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
+		msg := &pb.IncomingMessage{}
 
 		amqp.Decode(d.Message.Body, &msg)
 
@@ -40,7 +40,7 @@ func Start() {
 	log.Infof("done")
 }
 
-func handleMessage(msg *pb.IncommingMessage) {
+func handleMessage(msg *pb.IncomingMessage) {
 	switch msg.Content {
 	case "!test":
 		replyTest(msg)
@@ -50,11 +50,11 @@ func handleMessage(msg *pb.IncommingMessage) {
 	}
 }
 
-func replyTest(msg *pb.IncommingMessage) {
+func replyTest(msg *pb.IncomingMessage) {
 	reply := &pb.OutgoingMessage{
 		Channel: msg.Channel,
 		Content: "This is a reply",
-		IncommingMessageId: msg.MessageId,
+		IncomingMessageId: msg.MessageId,
 		Protocol: msg.Protocol,
 	}
 
