@@ -80,7 +80,7 @@ func (b *Bot) Setup() {
 func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 	b.Logger().Infof("ConsumeBangCommands")
 
-	_, handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
+	handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
 		b.Logger().Infof("consumeBangCommands")
 
 		msg := &pb.IncomingMessage{}
@@ -144,7 +144,7 @@ func Consume[M interface{}](handler func(M)) {
 
 	log.Infof("Consuming messages of type: %v", messageType)
 
-	_, consumeHandler := amqp.ConsumeForever(messageType, func(d amqp.Delivery) {
+	consumeHandler := amqp.ConsumeForever(messageType, func(d amqp.Delivery) {
 		log.Infof("Received message: %v", d)
 
 		err := amqp.Decode(d.Message.Body, &msg)
@@ -162,6 +162,13 @@ func Consume[M interface{}](handler func(M)) {
 
 func (b *Bot) SendMessage(msg *pb.OutgoingMessage) {
 	amqp.PublishPbWithRoutingKey(msg, msg.Protocol + "-OutgoingMessage")
+}
+
+func (b *Bot) Reply(msg *pb.IncomingMessage) *pb.OutgoingMessage {
+	return &pb.OutgoingMessage{
+		Protocol: msg.Protocol,
+		Channel: msg.Channel,
+	}
 }
 
 func (b *Bot) Publish(msg protoreflect.ProtoMessage) {

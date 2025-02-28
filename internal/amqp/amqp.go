@@ -48,7 +48,7 @@ func getDialURL() string {
 		"user":     AmqpUser,
 		"port":     AmqpPort,
 		"instance": InstanceId,
-	}).Infof("AMQP Dial URL")
+	}).Debugf("AMQP Dial URL")
 
 	return fmt.Sprintf("amqp://%v:%v@%v:%v", AmqpUser, AmqpPass, AmqpHost, AmqpPort)
 }
@@ -81,7 +81,7 @@ func getConn() (*amqp.Connection, error) {
 	connMutex.Lock()
 
 	if conn == nil || conn.IsClosed() {
-		log.Debugf("getConn() - Creating conn")
+		log.Infof("AMQP Connecting...")
 
 		cfg := amqp.Config{
 			Properties: amqp.Table{
@@ -96,6 +96,8 @@ func getConn() (*amqp.Connection, error) {
 			connMutex.Unlock()
 
 			return nil, err
+		} else {
+			log.Infof("AMQP Connected")
 		}
 
 		channels = make(map[string]*amqp.Channel)
@@ -195,18 +197,15 @@ func getHostname() string {
 	return hostname
 }
 
-func ConsumeSingle(deliveryTag string, handlerFunc HandlerFunc) (*sync.WaitGroup, *sync.WaitGroup) {
+func ConsumeSingle(deliveryTag string, handlerFunc HandlerFunc) (*sync.WaitGroup) {
 	return Consume(deliveryTag, handlerFunc, 1)
 }
 
-func ConsumeForever(deliveryTag string, handlerFunc HandlerFunc) (*sync.WaitGroup, *sync.WaitGroup) {
+func ConsumeForever(deliveryTag string, handlerFunc HandlerFunc) (*sync.WaitGroup) {
 	return Consume(deliveryTag, handlerFunc, 0)
 }
 
-func Consume(deliveryTag string, handlerFunc HandlerFunc, count int) (*sync.WaitGroup, *sync.WaitGroup) {
-	chanReady := &sync.WaitGroup{}
-	chanReady.Add(1)
-
+func Consume(deliveryTag string, handlerFunc HandlerFunc, count int) (*sync.WaitGroup) {
 	handlerDone := &sync.WaitGroup{}
 	handlerDone.Add(count)
 
@@ -214,42 +213,42 @@ func Consume(deliveryTag string, handlerFunc HandlerFunc, count int) (*sync.Wait
 		handlerDoneInfinate := &sync.WaitGroup{}
 		handlerDoneInfinate.Add(1)
 
-		go consumeForever(chanReady, nil, deliveryTag, handlerFunc)
+		go consumeForever(nil, deliveryTag, handlerFunc)
 
-		return chanReady, handlerDoneInfinate
+		return handlerDoneInfinate
 	} else {
-		go consumeForever(chanReady, handlerDone, deliveryTag, handlerFunc)
+		go consumeForever(handlerDone, deliveryTag, handlerFunc)
 
-		return chanReady, handlerDone
+		return handlerDone
 	}
 }
 
-func consumeForever(consumerReady *sync.WaitGroup, handlerDone *sync.WaitGroup, deliveryTag string, handlerFunc HandlerFunc) {
+func consumeForever(handlerDone *sync.WaitGroup, deliveryTag string, handlerFunc HandlerFunc) {
 	for {
 		channel, err := GetChannel(deliveryTag)
 
 		if err != nil {
 			log.Errorf("Get Channel error: %v", err)
 		} else {
-			consumeWithChannel(consumerReady, handlerDone, channel, deliveryTag, handlerFunc)
+			consumeWithChannel(handlerDone, channel, deliveryTag, handlerFunc)
 		}
 
 		time.Sleep(10 * time.Second)
 	}
 }
 
-func consumeWithChannelForever(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTag string, handlerFunc HandlerFunc) {
+func consumeWithChannelForever(handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTag string, handlerFunc HandlerFunc) {
 	for {
 		log.Infof("Consumer channel creating for: %v", deliveryTag)
 
-		consumeWithChannel(consumerReady, handlerWait, c, deliveryTag, handlerFunc)
+		consumeWithChannel(handlerWait, c, deliveryTag, handlerFunc)
 
 		log.Infof("Consumer channel closed for: %v", deliveryTag)
 		time.Sleep(10 * time.Second)
 	}
 }
 
-func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTag string, handlerFunc HandlerFunc) {
+func consumeWithChannel(handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTag string, handlerFunc HandlerFunc) {
 	queueName := "japella-" + getHostname() + "-" + InstanceId + "-" + deliveryTag
 
 	_, err := c.QueueDeclare(
@@ -293,8 +292,6 @@ func consumeWithChannel(consumerReady *sync.WaitGroup, handlerWait *sync.WaitGro
 		log.Warnf("Consumer channel creation error: %v %v", deliveryTag, err)
 		return
 	}
-
-	consumerReady.Done()
 
 	consumeDeliveries(deliveries, handlerFunc, handlerWait)
 

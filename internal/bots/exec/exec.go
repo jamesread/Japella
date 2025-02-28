@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"context"
 	"time"
+	"bytes"
 )
 
 type Exec struct {
@@ -30,23 +31,39 @@ func (e Exec) Start() {
 
 	// List files in /usr/libexec/japella/
 
+	bot.RegisterBangCommand("exechelp", bot.exechelp)
+	bot.RegisterBangCommand("execrefresh", bot.refreshCommands)
+
+	bot.refreshCommands(nil, "execrefresh", "")
+
+	bot.ConsumeBangCommands().Wait()
+}
+
+func(b *ExecBot) refreshCommands(m *pb.IncomingMessage, command string, arguments string) {
 	files, err := os.ReadDir("/usr/libexec/japella/")
 
 	if err != nil {
-		bot.Logger().Errorf("Error reading directory: %v", err)
+		b.Logger().Errorf("Error reading directory: %v", err)
 		return
 	}
 
+	count := 0
+
 	for _, file := range files {
-		bot.Logger().Infof("Registering bang command: %v", file.Name())
-		bot.RegisterBangCommand(file.Name(), bot.execreq)
+		b.Logger().Infof("Registering bang command: %v", file.Name())
+		b.RegisterBangCommand(file.Name(), b.execreq)
 
 		commands += file.Name() + " "
+
+		count++
 	}
 
-	bot.RegisterBangCommand("exechelp", bot.exechelp)
+	if m != nil {
+		reply := b.Reply(m);
+		reply.Content = fmt.Sprintf("%v commands registered.", count)
 
-	bot.ConsumeBangCommands().Wait()
+		b.SendMessage(reply)
+	}
 }
 
 func(b *ExecBot) exechelp(m *pb.IncomingMessage, command string, arguments string) {
@@ -78,6 +95,8 @@ func(b *ExecBot) execreq(m *pb.IncomingMessage, command string, arguments string
 
 	defer cancel()
 
+	var stderr bytes.Buffer
+
 	args := make(map[string]string)
 	args["channel"] = m.Channel
 	args["protocol"] = m.Protocol
@@ -86,11 +105,13 @@ func(b *ExecBot) execreq(m *pb.IncomingMessage, command string, arguments string
 	args["content"] = m.Content
 	args["args"] = arguments
 	cmd.Env = buildEnv(b.Logger(), args)
+	cmd.Stderr = &stderr
 
 	output, err := cmd.Output()
 
 	if err != nil {
-		b.Logger().Errorf("Error executing command: %v", err)
+		b.Logger().Errorf("Error executing command: %v %v", err, stderr.String())
+
 		out.Content = "Error executing command"
 	} else {
 		out.Content = string(output)
