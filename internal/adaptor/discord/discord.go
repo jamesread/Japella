@@ -158,7 +158,7 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	msg := pb.IncomingMessage{
-		Author:  m.Author.ID,
+		Author:  m.Member.DisplayName(),
 		Content: m.Content,
 		Channel: m.ChannelID,
 		MessageId: m.ID,
