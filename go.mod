@@ -4,7 +4,7 @@ go 1.22.9
 
 require (
 	github.com/bufbuild/buf v1.48.0
-	github.com/bwmarrin/discordgo v0.26.1
+	github.com/bwmarrin/discordgo v0.28.1
 	github.com/fzipp/gocyclo v0.6.0
 	github.com/go-critic/go-critic v0.11.5
 	github.com/go-kod/kod v0.17.0
