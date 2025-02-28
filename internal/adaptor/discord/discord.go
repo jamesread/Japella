@@ -6,6 +6,7 @@ import (
 	"github.com/jamesread/japella/internal/amqp"
 	log "github.com/sirupsen/logrus"
 	"time"
+	"strconv"
 )
 
 var BotId string
@@ -158,7 +159,7 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	msg := pb.IncomingMessage{
-		Author:  m.Member.DisplayName(),
+		Author:  getUsername(m),
 		Content: m.Content,
 		Channel: m.ChannelID,
 		MessageId: m.ID,
@@ -169,4 +170,24 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	amqp.PublishPb(&msg)
 
 	// _, _ = s.ChannelMessageSend(m.ChannelID, "pong")
+}
+
+func getUsername(m *discordgo.MessageCreate) string {
+	ret := "?"
+
+	log.Infof("getUsername() %v %v %v", m.Member.DisplayName(), m.Author.GlobalName,  m.Author.Username)
+
+	if m.Member != nil {
+		ret = m.Member.DisplayName()
+
+		_, err := strconv.Atoi(ret)
+
+		if err == nil {
+			ret = m.Author.Username
+		}
+	} else {
+		ret = m.Author.Username
+	}
+
+	return ret
 }
