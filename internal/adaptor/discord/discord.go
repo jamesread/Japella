@@ -175,8 +175,6 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 func getUsername(m *discordgo.MessageCreate) string {
 	ret := "?"
 
-	log.Infof("getUsername() %v %v %v", m.Member.DisplayName(), m.Author.GlobalName,  m.Author.Username)
-
 	if m.Member != nil {
 		ret = m.Member.DisplayName()
 
