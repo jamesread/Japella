@@ -3,20 +3,20 @@ package botbase
 import (
 	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/jamesread/japella/internal/utils"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"fmt"
-	log "github.com/sirupsen/logrus"
 	pb "github.com/jamesread/japella/gen/protobuf"
-	"reflect"
 	"sync"
+	"regexp"
 )
 
 type Bot struct {
 	name string
 
-	logger *log.Logger
+	utils.LogComponent
 
-	bangCommands map[string]func(*pb.IncomingMessage)
+	bangCommands map[string]func(*pb.IncomingMessage, string, string)
 }
 
 func (b *Bot) Start() {
@@ -27,6 +27,8 @@ func (b *Bot) Stop() {
 
 func (b *Bot) SetName(name string) {
 	b.name = name
+
+	b.SetPrefix("Bot: " + b.Name())
 }
 
 func (b *Bot) Name() string {
@@ -37,40 +39,12 @@ func (b *Bot) Name() string {
 	return b.name
 }
 
-type PrefixFormatter struct {
-	Prefix string
-	Formatter log.Formatter
-}
-
-func (f *PrefixFormatter) Format(entry *log.Entry) ([]byte, error) {
-	entry.Message = fmt.Sprintf("%s %s", f.Prefix, entry.Message)
-
-	f.Formatter.(*log.TextFormatter).DisableTimestamp = true
-
-	return f.Formatter.Format(entry)
-}
-
-func (b *Bot) Logger() *log.Logger {
-	if b.logger == nil {
-		logger := log.New()
-		logger.SetFormatter(&PrefixFormatter{
-			Prefix: "[Bot: " + b.Name() + "]",
-			Formatter: &log.TextFormatter{},
-		})
-
-		b.logger = logger
-		b.logger.Infof("Logger created for %v", b.Name())
-	}
-
-	return b.logger
-}
-
-func (b *Bot) RegisterBangCommand(command string, handler func(*pb.IncomingMessage)) {
+func (b *Bot) RegisterBangCommand(command string, handler func(*pb.IncomingMessage, string, string)) {
 	b.bangCommands[command] = handler
 }
 
 func (b *Bot) Setup() {
-	b.bangCommands = make(map[string]func(*pb.IncomingMessage))
+	b.bangCommands = make(map[string]func(*pb.IncomingMessage, string, string))
 
 	common := runtimeconfig.CommonConfig{}
 	runtimeconfig.LoadConfigCommon(&common)
@@ -79,7 +53,7 @@ func (b *Bot) Setup() {
 func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 	b.Logger().Infof("ConsumeBangCommands")
 
-	_, handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
+	handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
 		b.Logger().Infof("consumeBangCommands")
 
 		msg := &pb.IncomingMessage{}
@@ -103,44 +77,54 @@ func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 func (b *Bot) Config() {
 }
 
+var commandMatcher = regexp.MustCompile(`^!(\w+)(?:\s+(.*))?$`)
+
 func (b *Bot) handleBangCommand(msg *pb.IncomingMessage) {
-	command := msg.Content[1:]
+	match := commandMatcher.FindStringSubmatch(msg.Content)
 
-	b.Logger().Infof("Command: %v", command)
-
-	handler, ok := b.bangCommands[command]
-
-	if ok {
-		b.Logger().Infof("Handled command message: %+v", command)
-		handler(msg)
+	if len(match) < 2 {
+		b.Logger().Warnf("Failed to match command: %v", msg.Content)
 	} else {
-		b.Logger().Warnf("Unhandled message: %v, %+v", command, msg)
+		command := match[1]
+		args := match[2]
 
-		for k, _ := range b.bangCommands {
-			b.Logger().Warnf("Available command: %v", k)
+		b.Logger().Infof("Command: %v", command)
+
+		handler, ok := b.bangCommands[command]
+
+		if ok {
+			b.Logger().Infof("Handled command message: %+v", command)
+			handler(msg, command, args)
+		} else {
+			b.Logger().Warnf("Unhandled message: %v, %+v", command, msg)
+
+			for k, _ := range b.bangCommands {
+				b.Logger().Warnf("Available command: %v", k)
+			}
 		}
 	}
 }
 
+/**
 type MessageHandler[M interface{}] func(msg M)
 
-func Consume[M interface{}](handler func(M)) {
-	log.Infof("Consume")
+func Consumek[M interface{}](log *utils.LogComponent, handler func(M)) {
+	log.Logger().Infof("Consume")
 
 	var msg M
 
 	messageType := fmt.Sprintf("%+v", reflect.TypeOf(msg).Name())
 
 
-	log.Infof("Consuming messages of type: %v", messageType)
+	log.Logger().Infof("Consuming messages of type: %v", messageType)
 
-	_, consumeHandler := amqp.ConsumeForever(messageType, func(d amqp.Delivery) {
-		log.Infof("Received message: %v", d)
+	consumeHandler := amqp.ConsumeForever(messageType, func(d amqp.Delivery) {
+		log.Logger().Infof("Received message: %v", d)
 
 		err := amqp.Decode(d.Message.Body, &msg)
 
 		if err != nil {
-			log.Errorf("Failed to unmarshal message: %v", err)
+			log.Logger().Errorf("Failed to unmarshal message: %v", err)
 			return
 		}
 
@@ -149,9 +133,17 @@ func Consume[M interface{}](handler func(M)) {
 
 	consumeHandler.Wait()
 }
+*/
 
 func (b *Bot) SendMessage(msg *pb.OutgoingMessage) {
 	amqp.PublishPbWithRoutingKey(msg, msg.Protocol + "-OutgoingMessage")
+}
+
+func (b *Bot) Reply(msg *pb.IncomingMessage) *pb.OutgoingMessage {
+	return &pb.OutgoingMessage{
+		Protocol: msg.Protocol,
+		Channel: msg.Channel,
+	}
 }
 
 func (b *Bot) Publish(msg protoreflect.ProtoMessage) {

@@ -52,7 +52,7 @@ func (bot *DbLogger) Name() string {
 }
 
 func (bot *DbLogger) ListenForMessages(db *sql.DB) {
-	_, handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
+	handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
 		msg := &pb.IncomingMessage{}
 
 		amqp.Decode(d.Message.Body, &msg)
