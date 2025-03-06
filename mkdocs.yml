@@ -55,7 +55,6 @@ nav:
   - Welcome: index.md
   - Getting Started: gettingStarted.md
   - Installation:
-      - Introduction: installation/index.md
       - docker: installation/docker.md
       - docker-compose: installation/docker-compose.md
   - Adapters:
