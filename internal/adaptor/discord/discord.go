@@ -6,7 +6,6 @@ import (
 	"github.com/jamesread/japella/internal/amqp"
 	log "github.com/sirupsen/logrus"
 	"time"
-	"strconv"
 )
 
 var BotId string
@@ -173,19 +172,15 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func getUsername(m *discordgo.MessageCreate) string {
-	ret := "?"
-
 	if m.Member != nil {
-		ret = m.Member.DisplayName()
-
-		_, err := strconv.Atoi(ret)
-
-		if err == nil {
-			ret = m.Author.Username
+		if m.Member.Nick != "" {
+			return m.Member.Nick
 		}
-	} else {
-		ret = m.Author.Username
+
+		if m.Member.User != nil {
+			return m.Member.User.GlobalName
+		}
 	}
 
-	return ret
+	return m.Author.Username
 }
