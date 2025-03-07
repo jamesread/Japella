@@ -5,6 +5,7 @@ import (
 	"github.com/jamesread/japella/internal/botbase"
 	pb "github.com/jamesread/japella/gen/protobuf"
 	log "github.com/sirupsen/logrus"
+	"github.com/google/shlex"
 	"os"
 	"os/exec"
 	"strings"
@@ -76,6 +77,18 @@ func(b *ExecBot) exechelp(m *pb.IncomingMessage, command string, arguments strin
 	b.SendMessage(out)
 }
 
+func getCommandContext(ctx context.Context, command string) (*exec.Cmd, error) {
+	args, err := shlex.Split(command)
+
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := exec.CommandContext(ctx, "/usr/libexec/japella/" + args[0], args[1:]...)
+
+	return cmd, nil
+}
+
 func(b *ExecBot) execreq(m *pb.IncomingMessage, command string, arguments string) {
 	out := &pb.OutgoingMessage{
 		Channel: m.Channel,
@@ -91,30 +104,37 @@ func(b *ExecBot) execreq(m *pb.IncomingMessage, command string, arguments string
 	b.Logger().Infof("Executing command: %v", script)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10*time.Second))
-	cmd := exec.CommandContext(ctx, "sh", "-c", "/usr/libexec/japella/" + script)
-
+	
 	defer cancel()
 
+	cmd, err := getCommandContext(ctx, script)
+	
 	var stderr bytes.Buffer
+	var output string
+	
+	if err == nil {
+		args := make(map[string]string)
+		args["channel"] = m.Channel
+		args["protocol"] = m.Protocol
+		args["author"] = m.Author
+		args["server"] = m.Server
+		args["content"] = m.Content
+		args["args"] = arguments
+		cmd.Env = buildEnv(b.Logger(), args)
+		cmd.Stderr = &stderr
 
-	args := make(map[string]string)
-	args["channel"] = m.Channel
-	args["protocol"] = m.Protocol
-	args["author"] = m.Author
-	args["server"] = m.Server
-	args["content"] = m.Content
-	args["args"] = arguments
-	cmd.Env = buildEnv(b.Logger(), args)
-	cmd.Stderr = &stderr
+		var outputBytes []byte
 
-	output, err := cmd.Output()
+		outputBytes, err = cmd.Output()
+		output = string(outputBytes)
+	}
 
 	if err != nil {
 		b.Logger().Errorf("Error executing command: %v %v", err, stderr.String())
 
 		out.Content = "Error executing command"
 	} else {
-		out.Content = string(output)
+		out.Content = output
 	}
 
 	b.SendMessage(out)

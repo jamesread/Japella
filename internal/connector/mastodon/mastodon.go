@@ -20,19 +20,19 @@ type MastodonConfig struct {
 
 var c *mastodon.Client
 
-type mastodonAdaptor struct {
+type mastodonConnector struct {
 	config *MastodonConfig
 	libconfig *mastodon.Config
 	token string
 }
 
-func New(mastodonConfig *MastodonConfig) *mastodonAdaptor {
-	return &mastodonAdaptor{
+func New(mastodonConfig *MastodonConfig) *mastodonConnector {
+	return &mastodonConnector{
 		config: mastodonConfig,
 	}
 }
 
-func (adaptor *mastodonAdaptor) register() {
+func (adaptor *mastodonConnector) register() {
 	app, err := mastodon.RegisterApp(context.Background(), &mastodon.AppConfig{
 		Server:       "https://mastodon.social",
 		ClientName: "japella",
@@ -56,7 +56,7 @@ func (adaptor *mastodonAdaptor) register() {
 	}
 }
 
-func (adaptor *mastodonAdaptor) Start() {
+func (adaptor *mastodonConnector) Start() {
 	if (adaptor.config.Register) {
 		adaptor.register()
 	}

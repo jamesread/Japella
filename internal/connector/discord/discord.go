@@ -57,7 +57,7 @@ func startActual(appId string, publicKey string, token string) *discordgo.Sessio
 		return nil
 	}
 
-	log.Infof("Discord adaptor bot is running !")
+	log.Infof("Discord connector is running !")
 
 	return goBot
 }

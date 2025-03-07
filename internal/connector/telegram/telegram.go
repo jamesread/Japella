@@ -5,12 +5,12 @@ import (
 	tgbotmdl "github.com/go-telegram/bot/models"
 
 	"github.com/jamesread/japella/internal/runtimeconfig"
-	log "github.com/sirupsen/logrus"
 	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/go-kod/kod"
 	"strconv"
+	"github.com/jamesread/japella/internal/utils"
 
 	"os/signal"
 	"os"
@@ -19,28 +19,19 @@ import (
 	"time"
 )
 
-var cfg struct {
-	Common   *runtimeconfig.CommonConfig
-	Telegram struct {
-		BotToken string
-	}
-}
-
-type TelegramAdaptor struct {
+type TelegramConnector struct {
 	kod.Implements[nanoservice.Nanoservice]
+
+	utils.LogComponent
 }
 
-func (n TelegramAdaptor) Start() {
-	log.Infof("japella-adaptor-telegram")
+func (c TelegramConnector) Start() {
+	c.SetPrefix("Telegram")
+	c.Logger().Infof("Telegram connector started")
 
-	cfg.Common = &runtimeconfig.CommonConfig{}
+	cfg := runtimeconfig.Get()
 
-	runtimeconfig.LoadConfigCommon(cfg.Common)
-	runtimeconfig.LoadConfig("config.telegram.yaml", &cfg.Telegram)
-
-	log.Infof("cfg: %+v", cfg)
-
-	StartBot(cfg.Telegram.BotToken)
+	c.startBot(cfg.Connectors.Telegram.BotToken)
 
 	for {
 		time.Sleep(1 * time.Second)
@@ -49,8 +40,8 @@ func (n TelegramAdaptor) Start() {
 
 var bot *tgbotapi.Bot
 
-func StartBot(botToken string) {
-	log.Infof("botToken: %v", botToken)
+func (c TelegramConnector) startBot(botToken string) {
+	c.Logger().Infof("botToken: %v", botToken)
 
 	var err error
 
@@ -58,32 +49,29 @@ func StartBot(botToken string) {
 	defer cancel()
 
 	if err != nil {
-		log.Panic(err)
+		c.Logger().Panic(err)
 	}
 
 	opts := []tgbotapi.Option {
-		tgbotapi.WithDefaultHandler(messageHandler),
+		tgbotapi.WithDefaultHandler(c.messageHandler),
 	}
 
 	bot, err = tgbotapi.New(botToken, opts...)
 
-	go Replier()
+	go c.Replier()
 
 	me, _ := bot.GetMe(ctx)
 
-	log.Infof("Telegram getMe(): %+v", me)
+	c.Logger().Infof("Telegram getMe(): %+v", me)
 
 	bot.Start(ctx)
 }
 
-func messageHandler(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Update) {
-	log.Infof("Telegram - update: %+v", update)
+func (c TelegramConnector) messageHandler(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Update) {
+	c.Logger().Infof("Telegram - update: %+v", update)
 
 	if update.Message != nil { // If we got a message
-		log.WithFields(log.Fields{
-			"from": update.Message.From,
-			"content": update.Message.Text,
-		}).Infof("Telegram - message recevied");
+		c.Logger().Infof("Telegram - message recevied from:%v content:%v", update.Message.From, update.Message.Text);
 
 		amqp.PublishPb(&pb.IncomingMessage {
 			Author: update.Message.From.Username,
@@ -95,7 +83,7 @@ func messageHandler(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Updat
 	}
 }
 
-func Replier() {
+func (c TelegramConnector) Replier() {
 	ctx := context.Background()
 
 	amqp.ConsumeForever("telegram-OutgoingMessage", func(d amqp.Delivery) {
@@ -103,7 +91,7 @@ func Replier() {
 
 		amqp.Decode(d.Message.Body, &reply)
 
-		log.Infof("reply: %v", &reply)
+		c.Logger().Infof("reply: %v", &reply)
 
 		channelId, _ := strconv.ParseInt(reply.Channel, 10, 64)
 		bot.SendMessage(ctx, &tgbotapi.SendMessageParams{

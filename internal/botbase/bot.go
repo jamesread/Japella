@@ -2,7 +2,6 @@ package botbase
 
 import (
 	"github.com/jamesread/japella/internal/amqp"
-	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"fmt"
@@ -45,9 +44,6 @@ func (b *Bot) RegisterBangCommand(command string, handler func(*pb.IncomingMessa
 
 func (b *Bot) Setup() {
 	b.bangCommands = make(map[string]func(*pb.IncomingMessage, string, string))
-
-	common := runtimeconfig.CommonConfig{}
-	runtimeconfig.LoadConfigCommon(&common)
 }
 
 func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {

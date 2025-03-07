@@ -4,6 +4,7 @@ import (
 	"fmt"
 	log "github.com/sirupsen/logrus"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/teris-io/shortid"
 	"os"
 	"reflect"
@@ -33,6 +34,13 @@ func init() {
 	}
 
 	InstanceId, _ = sid.Generate()
+
+	cfg := runtimeconfig.Get().Amqp
+
+	AmqpHost = cfg.Host
+	AmqpUser = cfg.User
+	AmqpPass = cfg.Pass
+	AmqpPort = cfg.Port
 }
 
 // A dumb Delivery wrapper, so dependencies on this lib don't have to depened on the streadway lib

@@ -4,8 +4,8 @@ import (
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/dashboard"
 	"github.com/jamesread/japella/internal/bots/dblogger"
-	"github.com/jamesread/japella/internal/adaptor/telegram"
-	"github.com/jamesread/japella/internal/adaptor/discord"
+	"github.com/jamesread/japella/internal/connector/telegram"
+	"github.com/jamesread/japella/internal/connector/discord"
 	"github.com/jamesread/japella/internal/bots/exec"
 	log "github.com/sirupsen/logrus"
 	"strings"
@@ -38,11 +38,11 @@ func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 
-	serviceRegistry["telegram"] = telegram.TelegramAdaptor{}
+	serviceRegistry["telegram"] = telegram.TelegramConnector{}
+	serviceRegistry["discord"] = discord.DiscordConnector{}
 	serviceRegistry["dashboard"] = dashboard.Dashboard{}
 	serviceRegistry["exec"] = exec.Exec{}
 	serviceRegistry["dblogger"] = dblogger.DbLogger{}
-	serviceRegistry["discord"] = discord.DiscordAdaptor{}
 }
 
 type app struct {

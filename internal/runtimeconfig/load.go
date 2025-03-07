@@ -6,14 +6,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/jamesread/japella/internal/amqp"
-
 	"gopkg.in/yaml.v2"
+
+	"sync"
 )
 
-type CommonConfig struct {
-	Amqp *AmqpConfig
-}
+var cfg *CommonConfig;
 
 func findFile(filename string) string {
 	paths := []string {
@@ -54,14 +52,33 @@ func readFile(filename string) []byte {
 	return content
 }
 
-func LoadConfig[V interface{}](filename string, cfg V) {
+var cfgGetLock sync.RWMutex
+
+func Get() *CommonConfig {
+	cfgGetLock.Lock()
+
+	if cfg == nil {
+		cfg = &CommonConfig{}
+		cfg.Amqp = &AmqpConfig{}
+		cfg.Connectors = &ConnectorConfig{}
+		cfg.Connectors.Discord = &DiscordConfig{}
+		cfg.Connectors.Telegram = &TelegramConfig{}
+
+		loadConfig("config.yaml")
+	}
+
+	cfgGetLock.Unlock()
+
+	return cfg;
+}
+
+func loadConfig(filename string) *CommonConfig {
 	log.WithFields(log.Fields{
 		"file": filename,
 	}).Infof("Loading started")
 
-	err := yaml.UnmarshalStrict(readFile(filename), &cfg)
 
-	log.Infof("Result after UnmarshalStrict %+v", cfg)
+	err := yaml.UnmarshalStrict(readFile(filename), &cfg)
 
 	if err != nil {
 		log.Fatalf("could not load common config! %v", err)
@@ -70,25 +87,6 @@ func LoadConfig[V interface{}](filename string, cfg V) {
 	log.WithFields(log.Fields {
 		"file": filename,
 	}).Infof("Loading complete")
-}
-
-func LoadConfigCommon(cfg *CommonConfig) {
-	cfg.Amqp = &AmqpConfig{}
-
-	LoadConfig("config.common.yaml", cfg)
-
-	log.Infof("LoadConfigCommon AMQP: %+v", cfg.Amqp.Host);
-
-	amqp.AmqpHost = cfg.Amqp.Host
-	amqp.AmqpUser = cfg.Amqp.User
-	amqp.AmqpPass = cfg.Amqp.Pass
-	amqp.AmqpPort = cfg.Amqp.Port
-}
-
-func LoadNewConfigCommon() *CommonConfig {
-	cfg := &CommonConfig{}
-
-	LoadConfigCommon(cfg)
-
+	
 	return cfg
 }
