@@ -8,7 +8,16 @@ edit_uri: edit/main/docs
 strict: true
 
 markdown_extensions:
+  - admonition
   - codehilite
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.details
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.superfences
   - toc:
       permalink: true
 
@@ -25,6 +34,8 @@ theme:
     - search.share
     - content.code.copy
     - content.code.download
+    - content.action.edit
+    - content.action.meta
   palette:
     primary: blue
     accent: light-blue
