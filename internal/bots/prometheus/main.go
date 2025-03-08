@@ -4,28 +4,28 @@ import (
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 	//pb "github.com/jamesread/japella/gen/protobuf"
-	api "github.com/prometheus/client_golang/api"
-	"github.com/prometheus/common/model"
-	promq "github.com/prometheus/client_golang/api/prometheus/v1"
-	"time"
 	"context"
+	api "github.com/prometheus/client_golang/api"
+	promq "github.com/prometheus/client_golang/api/prometheus/v1"
+	"github.com/prometheus/common/model"
+	"time"
 )
 
 type LocalConfig struct {
-	Common    *runtimeconfig.CommonConfig
+	Common      *runtimeconfig.CommonConfig
 	PromWatcher *PromWatcherConfig
 }
 
 type PromWatcherConfig struct {
-	PromUrl   string
-	Metrics	 []*PromMetric
+	PromUrl string
+	Metrics []*PromMetric
 }
 
 type PromMetric struct {
-	Name      string
+	Name string
 }
 
-var lastValue int;
+var lastValue int
 
 func getPrometheusValue(a promq.API, q string) int {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

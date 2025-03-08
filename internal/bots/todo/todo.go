@@ -1,8 +1,8 @@
 package todo
 
 import (
-	"github.com/jamesread/japella/internal/botbase"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	"github.com/jamesread/japella/internal/botbase"
 
 	"github.com/go-kod/kod"
 )

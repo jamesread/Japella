@@ -2,13 +2,12 @@ package dashboard
 
 import (
 	"net/http"
-//	"net/http/httputil"
-//	"net/url"
+	//	"net/http/httputil"
+	//	"net/url"
 	log "github.com/sirupsen/logrus"
 )
 
 type Dashboard struct {
-
 }
 
 func (d Dashboard) Start() {

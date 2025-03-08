@@ -4,17 +4,17 @@ import (
 	tgbotapi "github.com/go-telegram/bot"
 	tgbotmdl "github.com/go-telegram/bot/models"
 
-	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/go-kod/kod"
 	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/nanoservice"
-	"github.com/go-kod/kod"
-	"strconv"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
+	"strconv"
 
-	"os/signal"
-	"os"
 	"context"
+	"os"
+	"os/signal"
 
 	"time"
 )
@@ -52,7 +52,7 @@ func (c TelegramConnector) startBot(botToken string) {
 		c.Logger().Panic(err)
 	}
 
-	opts := []tgbotapi.Option {
+	opts := []tgbotapi.Option{
 		tgbotapi.WithDefaultHandler(c.messageHandler),
 	}
 
@@ -71,13 +71,13 @@ func (c TelegramConnector) messageHandler(ctx context.Context, b *tgbotapi.Bot, 
 	c.Logger().Infof("Telegram - update: %+v", update)
 
 	if update.Message != nil { // If we got a message
-		c.Logger().Infof("Telegram - message recevied from:%v content:%v", update.Message.From, update.Message.Text);
+		c.Logger().Infof("Telegram - message recevied from:%v content:%v", update.Message.From, update.Message.Text)
 
-		amqp.PublishPb(&pb.IncomingMessage {
-			Author: update.Message.From.Username,
-			Content: update.Message.Text,
-			Channel: strconv.FormatInt(update.Message.Chat.ID, 10),
-			Protocol: "telegram",
+		amqp.PublishPb(&pb.IncomingMessage{
+			Author:    update.Message.From.Username,
+			Content:   update.Message.Text,
+			Channel:   strconv.FormatInt(update.Message.Chat.ID, 10),
+			Protocol:  "telegram",
 			Timestamp: time.Now().Unix(),
 		})
 	}
@@ -96,14 +96,14 @@ func (c TelegramConnector) Replier() {
 		channelId, _ := strconv.ParseInt(reply.Channel, 10, 64)
 		bot.SendMessage(ctx, &tgbotapi.SendMessageParams{
 			ChatID: channelId,
-			Text: reply.Content,
+			Text:   reply.Content,
 		})
 
-//		messageId, _ := strconv.Atoi(reply.IncomingMessageId)
+		//		messageId, _ := strconv.Atoi(reply.IncomingMessageId)
 
-//		log.Infof("messageId: %v %v", messageId, bot)
-//		msg.ReplyToMessageID = messageId
+		//		log.Infof("messageId: %v %v", messageId, bot)
+		//		msg.ReplyToMessageID = messageId
 
-//		bot.Send(msg)
+		//		bot.Send(msg)
 	})
 }

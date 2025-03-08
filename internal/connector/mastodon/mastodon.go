@@ -2,18 +2,18 @@ package mastodon
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
-	pb "github.com/jamesread/japella/gen/protobuf"
 	"fmt"
-	"github.com/mattn/go-mastodon"
+	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/amqp"
+	"github.com/mattn/go-mastodon"
+	log "github.com/sirupsen/logrus"
 )
 
 type MastodonConfig struct {
 	Register bool
-	AppId string
+	AppId    string
 	ClientId string
-	Website string
+	Website  string
 
 	Inert bool
 }
@@ -21,9 +21,9 @@ type MastodonConfig struct {
 var client *mastodon.Client
 
 type mastodonConnector struct {
-	config *MastodonConfig
+	config    *MastodonConfig
 	libconfig *mastodon.Config
-	token string
+	token     string
 }
 
 func New(mastodonConfig *MastodonConfig) *mastodonConnector {
@@ -34,10 +34,10 @@ func New(mastodonConfig *MastodonConfig) *mastodonConnector {
 
 func (adaptor *mastodonConnector) register() {
 	app, err := mastodon.RegisterApp(context.Background(), &mastodon.AppConfig{
-		Server:       "https://mastodon.social",
+		Server:     "https://mastodon.social",
 		ClientName: "japella",
-		Scopes: "read write follow",
-		Website: adaptor.config.Website,
+		Scopes:     "read write follow",
+		Website:    adaptor.config.Website,
 	})
 
 	if err != nil {
@@ -59,7 +59,7 @@ func (adaptor *mastodonConnector) register() {
 }
 
 func (adaptor *mastodonConnector) Start() {
-	if (adaptor.config.Register) {
+	if adaptor.config.Register {
 		adaptor.register()
 	}
 
@@ -96,7 +96,7 @@ func Replier() {
 func Post(toot *mastodon.Toot) {
 	log.Infof("Post: %v", toot)
 
-//	post, err := c.PostStatus(context.Background(), toot)
+	//	post, err := c.PostStatus(context.Background(), toot)
 
-//	log.Errorf("Error: %s", err)
+	// log.Errorf("Error: %s", err)
 }

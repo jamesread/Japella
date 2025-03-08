@@ -3,13 +3,13 @@ package runtimeconfig
 type CommonConfig struct {
 	ConfigVersion int
 
-	Amqp *AmqpConfig
+	Amqp       *AmqpConfig
 	Connectors *ConnectorConfig
-	Database *DatabaseConfig
+	Database   *DatabaseConfig
 }
 
 type ConnectorConfig struct {
-	Discord *DiscordConfig
+	Discord  *DiscordConfig
 	Telegram *TelegramConfig
 }
 
@@ -37,4 +37,3 @@ type DatabaseConfig struct {
 	Password string
 	Database string
 }
-

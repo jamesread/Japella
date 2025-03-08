@@ -2,7 +2,7 @@ package runtimeconfig
 
 import (
 	log "github.com/sirupsen/logrus"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -14,13 +14,17 @@ import (
 var cfg *CommonConfig
 
 func findFile(filename string) string {
-	paths := []string {
+	paths := []string{
 		"./",
 		"/config/",
 	}
 
 	for _, path := range paths {
-		absPath, _ := filepath.Abs(filepath.Join(path, filename))
+		absPath, err := filepath.Abs(filepath.Join(path, filename))
+
+		if err != nil {
+			log.Warnf("Failed to get the absolute path for %v / %v", path, filename)
+		}
 
 		if _, err := os.Stat(absPath); err == nil {
 			log.Infof("Found %v at %v", filename, absPath)
@@ -43,7 +47,7 @@ func readFile(filename string) []byte {
 		log.Fatalf("Load %v", err)
 	}
 
-	content, err := ioutil.ReadAll(handle)
+	content, err := io.ReadAll(handle)
 
 	if err != nil {
 		log.Fatalf("Load %v", err)
@@ -53,6 +57,16 @@ func readFile(filename string) []byte {
 }
 
 var cfgGetLock sync.RWMutex
+
+func getConfigFilename() string {
+	configFilename := os.Getenv("CONFIG_FILE")
+
+	if configFilename == "" {
+		configFilename = "config.yaml"
+	}
+
+	return configFilename
+}
 
 func Get() *CommonConfig {
 	cfgGetLock.Lock()
@@ -64,12 +78,12 @@ func Get() *CommonConfig {
 		cfg.Connectors.Discord = &DiscordConfig{}
 		cfg.Connectors.Telegram = &TelegramConfig{}
 
-		loadConfig("config.yaml")
+		loadConfig(getConfigFilename())
 	}
 
 	cfgGetLock.Unlock()
 
-	return cfg;
+	return cfg
 }
 
 func loadConfig(filename string) *CommonConfig {
@@ -83,9 +97,9 @@ func loadConfig(filename string) *CommonConfig {
 		log.Fatalf("could not load common config! %v", err)
 	}
 
-	log.WithFields(log.Fields {
+	log.WithFields(log.Fields{
 		"file": filename,
 	}).Infof("Loading complete")
-	
+
 	return cfg
 }

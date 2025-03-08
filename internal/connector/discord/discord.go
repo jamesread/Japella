@@ -47,7 +47,7 @@ func startActual(appId string, publicKey string, token string) *discordgo.Sessio
 		}
 	})
 
-	registerCommand("ping", cmdPing);
+	registerCommand("ping", cmdPing)
 
 	go Replier()
 	go MessageSearch()
@@ -73,7 +73,7 @@ func cmdPing(s *discordgo.Session, i *discordgo.InteractionCreate) {
 
 func registerCommand(name string, handler func(s *discordgo.Session, i *discordgo.InteractionCreate)) {
 	_, err := goBot.ApplicationCommandCreate(goBot.State.User.ID, "", &discordgo.ApplicationCommand{
-		Name: name,
+		Name:        name,
 		Description: "A japella command",
 	})
 
@@ -90,20 +90,20 @@ func MessageSearch() {
 		log.Infof("searching for messages")
 
 		/*
-		for _, guild := range goBot.State.Guilds {
-			log.Infof("guild: %v %v", guild.ID, guild.Name)
+			for _, guild := range goBot.State.Guilds {
+				log.Infof("guild: %v %v", guild.ID, guild.Name)
 
-			channels, err := goBot.GuildChannels(guild.ID)
+				channels, err := goBot.GuildChannels(guild.ID)
 
-			if err != nil {
-				log.Errorf("channels err: %v", err)
-				continue
+				if err != nil {
+					log.Errorf("channels err: %v", err)
+					continue
+				}
+
+				for _, channel := range channels {
+					log.Infof("channel: %v %v %v", channel.ID, channel.Name, channel.Type)
+				}
 			}
-
-			for _, channel := range channels {
-				log.Infof("channel: %v %v %v", channel.ID, channel.Name, channel.Type)
-			}
-		}
 		*/
 
 		res, err := goBot.GuildThreadsActive(
@@ -127,11 +127,10 @@ func MessageSearch() {
 			log.Infof("msg: %v", lastMsg)
 		}
 
-		msg := &pb.ThreadSearchResponse{
-		}
+		msg := &pb.ThreadSearchResponse{}
 
 		amqp.PublishPbWithRoutingKey(msg, "ThreadSearchResponse")
-//		amqp.PublishPb(msg)
+		//		amqp.PublishPb(msg)
 	})
 }
 
@@ -158,11 +157,11 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 	}
 
 	msg := pb.IncomingMessage{
-		Author:  getUsername(m),
-		Content: m.Content,
-		Channel: m.ChannelID,
+		Author:    getUsername(m),
+		Content:   m.Content,
+		Channel:   m.ChannelID,
 		MessageId: m.ID,
-		Protocol: "discord",
+		Protocol:  "discord",
 		Timestamp: time.Now().Unix(),
 	}
 

@@ -1,12 +1,12 @@
 package utils
 
 import (
-	log "github.com/sirupsen/logrus"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 )
 
 type PrefixFormatter struct {
-	Prefix string
+	Prefix    string
 	Formatter log.Formatter
 }
 
@@ -24,10 +24,10 @@ type LogComponent struct {
 
 func (c *LogComponent) SetPrefix(prefix string) {
 	c.Logger().SetFormatter(&PrefixFormatter{
-		Prefix: "[" + prefix + "]",
+		Prefix:    "[" + prefix + "]",
 		Formatter: &log.TextFormatter{},
 	})
-	
+
 	c.logger.Infof("Logger created for %v", prefix)
 }
 
@@ -38,4 +38,3 @@ func (c *LogComponent) Logger() *log.Logger {
 
 	return c.logger
 }
-

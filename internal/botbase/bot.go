@@ -1,13 +1,13 @@
 package botbase
 
 import (
+	"fmt"
+	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/utils"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"fmt"
-	pb "github.com/jamesread/japella/gen/protobuf"
-	"sync"
 	"regexp"
+	"sync"
 )
 
 type Bot struct {
@@ -132,13 +132,13 @@ func Consumek[M interface{}](log *utils.LogComponent, handler func(M)) {
 */
 
 func (b *Bot) SendMessage(msg *pb.OutgoingMessage) {
-	amqp.PublishPbWithRoutingKey(msg, msg.Protocol + "-OutgoingMessage")
+	amqp.PublishPbWithRoutingKey(msg, msg.Protocol+"-OutgoingMessage")
 }
 
 func (b *Bot) Reply(msg *pb.IncomingMessage) *pb.OutgoingMessage {
 	return &pb.OutgoingMessage{
 		Protocol: msg.Protocol,
-		Channel: msg.Channel,
+		Channel:  msg.Channel,
 	}
 }
 

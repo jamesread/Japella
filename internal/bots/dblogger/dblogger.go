@@ -6,10 +6,10 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/jamesread/japella/internal/amqp"
-	"github.com/jamesread/japella/internal/runtimeconfig"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/botbase"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 )
 
 type DbLogger struct {
