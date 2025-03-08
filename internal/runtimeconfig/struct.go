@@ -11,6 +11,7 @@ type CommonConfig struct {
 type ConnectorConfig struct {
 	Discord  *DiscordConfig
 	Telegram *TelegramConfig
+	Mastodon *MastodonConfig
 }
 
 type DiscordConfig struct {
@@ -36,4 +37,13 @@ type DatabaseConfig struct {
 	User     string
 	Password string
 	Database string
+}
+
+type MastodonConfig struct {
+	Register bool
+	AppId    string
+	ClientId string
+	Website  string
+
+	Inert bool
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/jamesread/japella/internal/bots/exec"
 	"github.com/jamesread/japella/internal/connector/discord"
 	"github.com/jamesread/japella/internal/connector/telegram"
+	"github.com/jamesread/japella/internal/connector/mastodon"
 	"github.com/jamesread/japella/internal/dashboard"
 	"github.com/jamesread/japella/internal/nanoservice"
 	log "github.com/sirupsen/logrus"
@@ -40,6 +41,7 @@ func init() {
 
 	serviceRegistry["telegram"] = telegram.TelegramConnector{}
 	serviceRegistry["discord"] = discord.DiscordConnector{}
+	serviceRegistry["mastodon"] = mastodon.MastodonConnector{}
 	serviceRegistry["dashboard"] = dashboard.Dashboard{}
 	serviceRegistry["exec"] = exec.Exec{}
 	serviceRegistry["dblogger"] = dblogger.DbLogger{}

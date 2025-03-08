@@ -5,34 +5,23 @@ import (
 	"fmt"
 	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/amqp"
+	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/mattn/go-mastodon"
 	log "github.com/sirupsen/logrus"
 )
 
-type MastodonConfig struct {
-	Register bool
-	AppId    string
-	ClientId string
-	Website  string
-
-	Inert bool
-}
-
 var client *mastodon.Client
 
-type mastodonConnector struct {
-	config    *MastodonConfig
+type MastodonConnector struct {
+    token string
 	libconfig *mastodon.Config
-	token     string
+    config runtimeconfig.MastodonConfig
+
+	nanoservice.Nanoservice
 }
 
-func New(mastodonConfig *MastodonConfig) *mastodonConnector {
-	return &mastodonConnector{
-		config: mastodonConfig,
-	}
-}
-
-func (adaptor *mastodonConnector) register() {
+func (adaptor *MastodonConnector) register() {
 	app, err := mastodon.RegisterApp(context.Background(), &mastodon.AppConfig{
 		Server:     "https://mastodon.social",
 		ClientName: "japella",
@@ -58,7 +47,7 @@ func (adaptor *mastodonConnector) register() {
 	}
 }
 
-func (adaptor *mastodonConnector) Start() {
+func (adaptor MastodonConnector) Start() {
 	if adaptor.config.Register {
 		adaptor.register()
 	}
@@ -69,7 +58,7 @@ func (adaptor *mastodonConnector) Start() {
 
 	log.Errorf("Error: %s", err)
 
-	account, err := c.GetAccountCurrentUser(context.Background())
+	account, err := client.GetAccountCurrentUser(context.Background())
 
 	log.Errorf("Error: %s", err)
 
