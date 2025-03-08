@@ -3,13 +3,9 @@ package todo
 import (
 	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/botbase"
-
-	"github.com/go-kod/kod"
 )
 
 type TodoBotImpl struct {
-	kod.Implements[TodoBot]
-
 	botbase.Bot
 
 	list []string

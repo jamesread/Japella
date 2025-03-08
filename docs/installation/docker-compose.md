@@ -17,6 +17,8 @@ services:
     volumes:
       - japella-config:/config
     restart: unless-stopped
+    environment:
+      JAPELLA_NANOSERVICES: dashboard,telegram,exec
 
   rabbitmq:
     container_name: rabbitmq
@@ -42,5 +44,12 @@ volumes:
 Open a terminal in the same directory as your new `docker-compose.yml` file and run the following command;
 
 ```bash
-$ docker compose up
+user@host: docker compose up
 ```
+
+## Check out the config file
+
+Change into the directory that contains your japella-config volume like this;
+
+```bash
+user@host: cd "$(docker volume inspect japella-config --format '{{ .Mountpoint }}')"

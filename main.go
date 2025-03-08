@@ -13,20 +13,12 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/go-kod/kod"
-
-	"context"
 )
 
 var serviceRegistry = make(map[string]nanoservice.Nanoservice)
 
 func main() {
-	kod.WithConfigFile("japella.toml")
-
-	if err := kod.Run(context.Background(), serve); err != nil {
-		log.Fatalf("error: %v", err)
-	}
+	startNanoservices()
 }
 
 func init() {
@@ -64,15 +56,6 @@ func initServiceRegistry() {
 	serviceRegistry["dblogger"] = dblogger.DbLogger{}
 }
 
-type app struct {
-	kod.Implements[kod.Main]
-}
-
-func serve(context.Context, *app) error {
-	startNanoservices()
-	return nil
-}
-
 func startNanoservices() {
 	services := getNanoservices()
 
@@ -87,8 +70,6 @@ func startNanoservices() {
 
 		startService(serviceName)
 	}
-
-	startService("dashboard")
 
 	log.Infof("japella started")
 

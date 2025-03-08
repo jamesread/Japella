@@ -4,7 +4,6 @@ import (
 	tgbotapi "github.com/go-telegram/bot"
 	tgbotmdl "github.com/go-telegram/bot/models"
 
-	"github.com/go-kod/kod"
 	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/nanoservice"
@@ -20,8 +19,7 @@ import (
 )
 
 type TelegramConnector struct {
-	kod.Implements[nanoservice.Nanoservice]
-
+    nanoservice.Nanoservice
 	utils.LogComponent
 }
 
