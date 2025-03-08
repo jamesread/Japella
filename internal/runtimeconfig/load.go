@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-var cfg *CommonConfig;
+var cfg *CommonConfig
 
 func findFile(filename string) string {
 	paths := []string {
@@ -76,7 +76,6 @@ func loadConfig(filename string) *CommonConfig {
 	log.WithFields(log.Fields{
 		"file": filename,
 	}).Infof("Loading started")
-
 
 	err := yaml.UnmarshalStrict(readFile(filename), &cfg)
 

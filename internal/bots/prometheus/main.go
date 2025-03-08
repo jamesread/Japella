@@ -1,4 +1,4 @@
-package main
+package prometheus
 
 import (
 	"github.com/jamesread/japella/internal/runtimeconfig"

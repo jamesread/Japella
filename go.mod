@@ -10,6 +10,7 @@ require (
 	github.com/go-kod/kod v0.17.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/go-telegram/bot v1.13.3
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1
 	github.com/mattn/go-mastodon v0.0.8
 	github.com/prometheus/client_golang v1.20.5
@@ -89,7 +90,6 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-containerregistry v0.20.2 // indirect
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
-	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

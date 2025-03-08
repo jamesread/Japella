@@ -1,4 +1,4 @@
-package main
+package support
 
 import (
 	"github.com/jamesread/japella/internal/botbase"

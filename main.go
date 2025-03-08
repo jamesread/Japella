@@ -20,12 +20,12 @@ import (
 var serviceRegistry = make(map[string]nanoservice.Nanoservice)
 
 func main() {
+	log.Infof("japella startup")
+
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: false,
 		DisableTimestamp: true,
 	})
-
-	log.Infof("japella startup")
 
 	kod.WithConfigFile("japella.toml")
 

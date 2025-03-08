@@ -18,7 +18,7 @@ type MastodonConfig struct {
 	Inert bool
 }
 
-var c *mastodon.Client
+var client *mastodon.Client
 
 type mastodonConnector struct {
 	config *MastodonConfig
@@ -40,7 +40,9 @@ func (adaptor *mastodonConnector) register() {
 		Website: adaptor.config.Website,
 	})
 
-	log.Errorf("Error: %s", err)
+	if err != nil {
+		log.Errorf("Error: %s", err)
+	}
 
 	log.Infof("client-id: %v", app.ClientID)
 	log.Infof("client-secret: %v", app.ClientSecret)
@@ -61,7 +63,7 @@ func (adaptor *mastodonConnector) Start() {
 		adaptor.register()
 	}
 
-	client := mastodon.NewClient(adaptor.libconfig)
+	client = mastodon.NewClient(adaptor.libconfig)
 
 	err := client.AuthenticateToken(context.Background(), adaptor.token, "urn:ietf:wg:oauth:2.0:oob")
 
