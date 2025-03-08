@@ -25,6 +25,8 @@ dockers:
     dockerfile: Dockerfile
     image_templates:
       - ghcr.io/jamesread/japella
+    extra_files:
+      - config.dist.yaml
 
 changelog:
   sort: asc
