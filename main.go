@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/jamesread/japella/internal/bots/dblogger"
 	"github.com/jamesread/japella/internal/bots/exec"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/connector/discord"
 	"github.com/jamesread/japella/internal/connector/telegram"
 	"github.com/jamesread/japella/internal/connector/mastodon"
@@ -21,13 +22,6 @@ import (
 var serviceRegistry = make(map[string]nanoservice.Nanoservice)
 
 func main() {
-	log.Infof("japella startup")
-
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:    false,
-		DisableTimestamp: true,
-	})
-
 	kod.WithConfigFile("japella.toml")
 
 	if err := kod.Run(context.Background(), serve); err != nil {
@@ -36,9 +30,32 @@ func main() {
 }
 
 func init() {
+	log.SetFormatter(&log.TextFormatter{
+		FullTimestamp:    false,
+		DisableTimestamp: true,
+	})
+
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 
+	log.Infof("japella startup")
+
+	supportedVersion := 2
+	configVersion := runtimeconfig.Get().ConfigVersion
+
+	if configVersion == 0 {
+		log.Fatal("The configuration version is zero, this probably means `configVersion` has not been set.")
+		os.Exit(1)
+	}
+
+	if configVersion != supportedVersion {
+		log.Fatalf("This version of Japella only supports config files with version %v", supportedVersion)
+	}
+
+	initServiceRegistry()
+}
+
+func initServiceRegistry() {
 	serviceRegistry["telegram"] = telegram.TelegramConnector{}
 	serviceRegistry["discord"] = discord.DiscordConnector{}
 	serviceRegistry["mastodon"] = mastodon.MastodonConnector{}

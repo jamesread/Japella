@@ -68,7 +68,7 @@ nav:
   - Installation:
       - docker: installation/docker.md
       - docker-compose: installation/docker-compose.md
-  - Adapters:
-      - Introduction: adapters/index.md
-      - Discord: adapters/discord.md
-      - Telegram: adapters/telegram.md
+  - Connectors:
+      - Introduction: connectors/index.md
+      - Discord: connectors/discord.md
+      - Telegram: connectors/telegram.md
