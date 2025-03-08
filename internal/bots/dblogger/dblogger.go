@@ -6,23 +6,11 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 
-	"github.com/jamesread/japella/internal/amqp"
-	"github.com/jamesread/japella/internal/runtimeconfig"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/botbase"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 )
-
-type DatabaseConfig struct {
-	Host     string
-	User     string
-	Password string
-	Database string
-}
-
-type LocalConfig struct {
-	Common  *runtimeconfig.CommonConfig
-	Database *DatabaseConfig
-}
 
 type DbLogger struct {
 	botbase.Bot
@@ -32,13 +20,7 @@ func (bot DbLogger) Start() {
 	bot.SetName("dblogger")
 	bot.Logger().Infof("japella-bot-dblogger")
 
-	cfg := &LocalConfig{}
-	cfg.Common = runtimeconfig.LoadNewConfigCommon()
-	cfg.Database = &DatabaseConfig{}
-
-	runtimeconfig.LoadConfig("config.database.yaml", cfg.Database)
-
-	bot.Logger().Infof("cfg: %+v", cfg)
+	cfg := runtimeconfig.Get().Database
 
 	db := bot.ConnectDatabase(cfg)
 	bot.ListenForMessages(db)
@@ -66,16 +48,16 @@ func (bot *DbLogger) ListenForMessages(db *sql.DB) {
 	bot.Logger().Infof("done")
 }
 
-func (bot *DbLogger) ConnectDatabase(cfg *LocalConfig) *sql.DB {
-	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", cfg.Database.User, cfg.Database.Password, cfg.Database.Host, cfg.Database.Database)
+func (bot *DbLogger) ConnectDatabase(db *runtimeconfig.DatabaseConfig) *sql.DB {
+	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", db.User, db.Password, db.Host, db.Database)
 
-	db, err := sql.Open("mysql", url)
+	conn, err := sql.Open("mysql", url)
 
 	if err != nil {
 		bot.Logger().Fatalf("Failed to connect to database: %v", err)
 	}
 
-	return db
+	return conn
 }
 
 func (bot *DbLogger) handleMessage(db *sql.DB, msg *pb.IncomingMessage) {

@@ -1,17 +1,18 @@
 package exec
 
 import (
-	"github.com/jamesread/japella/internal/nanoservice"
-	"github.com/jamesread/japella/internal/botbase"
+	"bytes"
+	"context"
+	"fmt"
+	"github.com/google/shlex"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	"github.com/jamesread/japella/internal/botbase"
+	"github.com/jamesread/japella/internal/nanoservice"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"strings"
-	"fmt"
-	"context"
 	"time"
-	"bytes"
 )
 
 type Exec struct {
@@ -39,7 +40,7 @@ func (e Exec) Start() {
 	bot.ConsumeBangCommands().Wait()
 }
 
-func(b *ExecBot) refreshCommands(m *pb.IncomingMessage, command string, arguments string) {
+func (b *ExecBot) refreshCommands(m *pb.IncomingMessage, command string, arguments string) {
 	files, err := os.ReadDir("/usr/libexec/japella/")
 
 	if err != nil {
@@ -59,16 +60,16 @@ func(b *ExecBot) refreshCommands(m *pb.IncomingMessage, command string, argument
 	}
 
 	if m != nil {
-		reply := b.Reply(m);
+		reply := b.Reply(m)
 		reply.Content = fmt.Sprintf("%v commands registered.", count)
 
 		b.SendMessage(reply)
 	}
 }
 
-func(b *ExecBot) exechelp(m *pb.IncomingMessage, command string, arguments string) {
+func (b *ExecBot) exechelp(m *pb.IncomingMessage, command string, arguments string) {
 	out := &pb.OutgoingMessage{
-		Channel: m.Channel,
+		Channel:  m.Channel,
 		Protocol: m.Protocol,
 	}
 
@@ -76,9 +77,21 @@ func(b *ExecBot) exechelp(m *pb.IncomingMessage, command string, arguments strin
 	b.SendMessage(out)
 }
 
-func(b *ExecBot) execreq(m *pb.IncomingMessage, command string, arguments string) {
+func getCommandContext(ctx context.Context, command string) (*exec.Cmd, error) {
+	args, err := shlex.Split(command)
+
+	if err != nil {
+		return nil, err
+	}
+
+	cmd := exec.CommandContext(ctx, "/usr/libexec/japella/"+args[0], args[1:]...)
+
+	return cmd, nil
+}
+
+func (b *ExecBot) execreq(m *pb.IncomingMessage, command string, arguments string) {
 	out := &pb.OutgoingMessage{
-		Channel: m.Channel,
+		Channel:  m.Channel,
 		Protocol: m.Protocol,
 	}
 
@@ -91,30 +104,37 @@ func(b *ExecBot) execreq(m *pb.IncomingMessage, command string, arguments string
 	b.Logger().Infof("Executing command: %v", script)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10*time.Second))
-	cmd := exec.CommandContext(ctx, "sh", "-c", "/usr/libexec/japella/" + script)
 
 	defer cancel()
 
+	cmd, err := getCommandContext(ctx, script)
+
 	var stderr bytes.Buffer
+	var output string
 
-	args := make(map[string]string)
-	args["channel"] = m.Channel
-	args["protocol"] = m.Protocol
-	args["author"] = m.Author
-	args["server"] = m.Server
-	args["content"] = m.Content
-	args["args"] = arguments
-	cmd.Env = buildEnv(b.Logger(), args)
-	cmd.Stderr = &stderr
+	if err == nil {
+		args := make(map[string]string)
+		args["channel"] = m.Channel
+		args["protocol"] = m.Protocol
+		args["author"] = m.Author
+		args["server"] = m.Server
+		args["content"] = m.Content
+		args["args"] = arguments
+		cmd.Env = buildEnv(b.Logger(), args)
+		cmd.Stderr = &stderr
 
-	output, err := cmd.Output()
+		var outputBytes []byte
+
+		outputBytes, err = cmd.Output()
+		output = string(outputBytes)
+	}
 
 	if err != nil {
 		b.Logger().Errorf("Error executing command: %v %v", err, stderr.String())
 
 		out.Content = "Error executing command"
 	} else {
-		out.Content = string(output)
+		out.Content = output
 	}
 
 	b.SendMessage(out)
@@ -131,7 +151,7 @@ func buildEnv(logger *log.Logger, args map[string]string) []string {
 			continue
 		}
 
-		env = append(env, keyName + "=" + value)
+		env = append(env, keyName+"="+value)
 	}
 
 	return env

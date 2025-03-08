@@ -2,8 +2,9 @@ package amqp
 
 import (
 	"fmt"
-	log "github.com/sirupsen/logrus"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 	amqp "github.com/rabbitmq/amqp091-go"
+	log "github.com/sirupsen/logrus"
 	"github.com/teris-io/shortid"
 	"os"
 	"reflect"
@@ -33,6 +34,13 @@ func init() {
 	}
 
 	InstanceId, _ = sid.Generate()
+
+	cfg := runtimeconfig.Get().Amqp
+
+	AmqpHost = cfg.Host
+	AmqpUser = cfg.User
+	AmqpPass = cfg.Pass
+	AmqpPort = cfg.Port
 }
 
 // A dumb Delivery wrapper, so dependencies on this lib don't have to depened on the streadway lib
@@ -197,15 +205,15 @@ func getHostname() string {
 	return hostname
 }
 
-func ConsumeSingle(deliveryTag string, handlerFunc HandlerFunc) (*sync.WaitGroup) {
+func ConsumeSingle(deliveryTag string, handlerFunc HandlerFunc) *sync.WaitGroup {
 	return Consume(deliveryTag, handlerFunc, 1)
 }
 
-func ConsumeForever(deliveryTag string, handlerFunc HandlerFunc) (*sync.WaitGroup) {
+func ConsumeForever(deliveryTag string, handlerFunc HandlerFunc) *sync.WaitGroup {
 	return Consume(deliveryTag, handlerFunc, 0)
 }
 
-func Consume(deliveryTag string, handlerFunc HandlerFunc, count int) (*sync.WaitGroup) {
+func Consume(deliveryTag string, handlerFunc HandlerFunc, count int) *sync.WaitGroup {
 	handlerDone := &sync.WaitGroup{}
 	handlerDone.Add(count)
 

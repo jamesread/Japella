@@ -1,16 +1,16 @@
 package main
 
 import (
-	"github.com/jamesread/japella/internal/nanoservice"
-	"github.com/jamesread/japella/internal/dashboard"
 	"github.com/jamesread/japella/internal/bots/dblogger"
-	"github.com/jamesread/japella/internal/adaptor/telegram"
-	"github.com/jamesread/japella/internal/adaptor/discord"
 	"github.com/jamesread/japella/internal/bots/exec"
+	"github.com/jamesread/japella/internal/connector/discord"
+	"github.com/jamesread/japella/internal/connector/telegram"
+	"github.com/jamesread/japella/internal/dashboard"
+	"github.com/jamesread/japella/internal/nanoservice"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"strings"
 	"time"
-	"os"
 
 	"github.com/go-kod/kod"
 
@@ -20,12 +20,12 @@ import (
 var serviceRegistry = make(map[string]nanoservice.Nanoservice)
 
 func main() {
+	log.Infof("japella startup")
+
 	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: false,
+		FullTimestamp:    false,
 		DisableTimestamp: true,
 	})
-
-	log.Infof("japella startup")
 
 	kod.WithConfigFile("japella.toml")
 
@@ -38,11 +38,11 @@ func init() {
 	log.SetOutput(os.Stdout)
 	log.SetLevel(log.InfoLevel)
 
-	serviceRegistry["telegram"] = telegram.TelegramAdaptor{}
+	serviceRegistry["telegram"] = telegram.TelegramConnector{}
+	serviceRegistry["discord"] = discord.DiscordConnector{}
 	serviceRegistry["dashboard"] = dashboard.Dashboard{}
 	serviceRegistry["exec"] = exec.Exec{}
 	serviceRegistry["dblogger"] = dblogger.DbLogger{}
-	serviceRegistry["discord"] = discord.DiscordAdaptor{}
 }
 
 type app struct {
@@ -57,7 +57,7 @@ func serve(context.Context, *app) error {
 func startNanoservices() {
 	services := getNanoservices()
 
-	log.WithFields(log.Fields {
+	log.WithFields(log.Fields{
 		"names": services,
 	}).Infof("Starting nanoservices")
 
@@ -82,12 +82,12 @@ func startService(serviceName string) {
 	service, ok := serviceRegistry[serviceName]
 
 	if !ok {
-		log.WithFields(log.Fields {
+		log.WithFields(log.Fields{
 			"name": serviceName,
 		}).Errorf("Service not found")
 		return
 	} else {
-		log.WithFields(log.Fields {
+		log.WithFields(log.Fields{
 			"name": serviceName,
 		}).Infof("Starting service")
 	}

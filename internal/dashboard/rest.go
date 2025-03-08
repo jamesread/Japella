@@ -1,12 +1,12 @@
 package dashboard
 
 import (
-	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"context"
-	log "github.com/sirupsen/logrus"
-	"net/http"
-	"google.golang.org/grpc"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	pb "github.com/jamesread/japella/gen/protobuf"
+	log "github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
+	"net/http"
 )
 
 func StartRestGateway() {

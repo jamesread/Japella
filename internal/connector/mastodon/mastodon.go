@@ -2,45 +2,47 @@ package mastodon
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
-	pb "github.com/jamesread/japella/gen/protobuf"
 	"fmt"
-	"github.com/mattn/go-mastodon"
+	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/amqp"
+	"github.com/mattn/go-mastodon"
+	log "github.com/sirupsen/logrus"
 )
 
 type MastodonConfig struct {
 	Register bool
-	AppId string
+	AppId    string
 	ClientId string
-	Website string
+	Website  string
 
 	Inert bool
 }
 
-var c *mastodon.Client
+var client *mastodon.Client
 
-type mastodonAdaptor struct {
-	config *MastodonConfig
+type mastodonConnector struct {
+	config    *MastodonConfig
 	libconfig *mastodon.Config
-	token string
+	token     string
 }
 
-func New(mastodonConfig *MastodonConfig) *mastodonAdaptor {
-	return &mastodonAdaptor{
+func New(mastodonConfig *MastodonConfig) *mastodonConnector {
+	return &mastodonConnector{
 		config: mastodonConfig,
 	}
 }
 
-func (adaptor *mastodonAdaptor) register() {
+func (adaptor *mastodonConnector) register() {
 	app, err := mastodon.RegisterApp(context.Background(), &mastodon.AppConfig{
-		Server:       "https://mastodon.social",
+		Server:     "https://mastodon.social",
 		ClientName: "japella",
-		Scopes: "read write follow",
-		Website: adaptor.config.Website,
+		Scopes:     "read write follow",
+		Website:    adaptor.config.Website,
 	})
 
-	log.Errorf("Error: %s", err)
+	if err != nil {
+		log.Errorf("Error: %s", err)
+	}
 
 	log.Infof("client-id: %v", app.ClientID)
 	log.Infof("client-secret: %v", app.ClientSecret)
@@ -56,12 +58,12 @@ func (adaptor *mastodonAdaptor) register() {
 	}
 }
 
-func (adaptor *mastodonAdaptor) Start() {
-	if (adaptor.config.Register) {
+func (adaptor *mastodonConnector) Start() {
+	if adaptor.config.Register {
 		adaptor.register()
 	}
 
-	client := mastodon.NewClient(adaptor.libconfig)
+	client = mastodon.NewClient(adaptor.libconfig)
 
 	err := client.AuthenticateToken(context.Background(), adaptor.token, "urn:ietf:wg:oauth:2.0:oob")
 
@@ -94,7 +96,7 @@ func Replier() {
 func Post(toot *mastodon.Toot) {
 	log.Infof("Post: %v", toot)
 
-//	post, err := c.PostStatus(context.Background(), toot)
+	//	post, err := c.PostStatus(context.Background(), toot)
 
-//	log.Errorf("Error: %s", err)
+	// log.Errorf("Error: %s", err)
 }

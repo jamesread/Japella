@@ -10,6 +10,7 @@ require (
 	github.com/go-kod/kod v0.17.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/go-telegram/bot v1.13.3
+	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1
 	github.com/mattn/go-mastodon v0.0.8
 	github.com/prometheus/client_golang v1.20.5

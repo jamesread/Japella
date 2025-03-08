@@ -2,15 +2,14 @@ package dashboard
 
 import (
 	pb "github.com/jamesread/japella/gen/protobuf"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"net"
-	log "github.com/sirupsen/logrus"
 
 	"context"
 )
 
 type JapellaDashboardApi struct {
-
 }
 
 func StartGrpc() {
