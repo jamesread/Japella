@@ -66,8 +66,8 @@ nav:
   - Welcome: index.md
   - Getting Started: gettingStarted.md
   - Installation:
-      - docker: installation/docker.md
       - docker-compose: installation/docker-compose.md
+      - docker: installation/docker.md
   - Connectors:
       - Introduction: connectors/index.md
       - Discord: connectors/discord.md

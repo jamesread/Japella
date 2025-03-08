@@ -4,6 +4,10 @@ Docker compose is the recommended way to run Japella. It allows you to easily ma
 
 You can use the following `docker-compose.yml` file to run Japella.
 
+## Create the docker-compose.yml file
+
+Create this file in a location that is easy to remember.
+
 ```yaml title="docker-compose.yml"
 ---
 services:
@@ -13,4 +17,17 @@ services:
     volumes:
       - japella-config:/config
     restart: unless-stopped
+
+volumes:
+  japella-config:
+    name: japella-config
+    external: false
+```
+
+## docker compose up
+
+Open a terminal in the same directory as your new `docker-compose.yml` file and run the following command;
+
+```bash
+$ docker compose up
 ```
