@@ -17,4 +17,4 @@ There is ready-to-go docker-compose.yml file here: https://jamesread.github.io/J
 
 ## Helpful links
 
-* [https://jamesread.github.io/Japella/](Japella Documentation)
+* [Japella Documentation](https://jamesread.github.io/Japella/)
