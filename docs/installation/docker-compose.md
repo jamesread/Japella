@@ -18,6 +18,19 @@ services:
       - japella-config:/config
     restart: unless-stopped
 
+  rabbitmq:
+    container_name: rabbitmq
+    image: docker.io/rabbitmq
+    hostname: rabbitmq
+
+# The database in Japella 2 is entirely optional.
+#  mariadb:
+#    container_name: mariadb
+#    image: docker.io/mariadb
+#    environment:
+#      MARIADB_ROOT_PASSWORD: password
+#      MARIADB_DATABASE: japella
+
 volumes:
   japella-config:
     name: japella-config
