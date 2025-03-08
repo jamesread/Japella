@@ -72,3 +72,5 @@ nav:
       - Introduction: connectors/index.md
       - Discord: connectors/discord.md
       - Telegram: connectors/telegram.md
+  - Nanoservices:
+      - Introduction: nanoservices/intro.md
