@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package japella.japellaapi.v1;
+package japella.control-api.v1;
 
 import "google/api/annotations.proto";
 
