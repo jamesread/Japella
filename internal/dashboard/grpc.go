@@ -29,3 +29,7 @@ func StartGrpc() {
 func (s *JapellaDashboardApi) SendMessage(ctx context.Context, in *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
 	return &pb.SendMessageResponse{}, nil
 }
+
+func (s *JapellaDashboardApi) GetStatus(ctx context.Context, in *pb.GetStatusRequest) (*pb.GetStatusResponse, error) {
+	return &pb.GetStatusResponse{}, nil
+}

@@ -44,8 +44,23 @@ volumes:
 Open a terminal in the same directory as your new `docker-compose.yml` file and run the following command;
 
 ```bash
-user@host: docker compose up
+user@host: docker compose up -d
 ```
+
+If all goes well, the output should look like this;
+
+```bash
+user@host: docker compose up -d
+[+] Running 2/2
+ ✔ Container rabbitmq  Running
+ ✔ Container japella   Running
+```
+
+If something has gone wrong, run `docker logs japella` to view the output.
+
+## Check the web interface
+
+
 
 ## Check out the config file
 
@@ -53,3 +68,4 @@ Change into the directory that contains your japella-config volume like this;
 
 ```bash
 user@host: cd "$(docker volume inspect japella-config --format '{{ .Mountpoint }}')"
+```

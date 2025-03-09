@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package japella.japellaapi.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "./gen/protobuf";
+
+message SendMessageRequest {}
+
+message SendMessageResponse {}
+
+message GetStatusRequest {}
+
+message GetStatusResponse {}
+
+service JapellaDashboardApiService {
+	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {
+		option (google.api.http) = {get: "/api/GetStatus"};
+	}
+
+	rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {
+		option (google.api.http) = {get: "/api/SendMessage"};
+	}
+}

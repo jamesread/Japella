@@ -32,7 +32,10 @@ jobs:
         uses: bufbuild/buf-setup-action@v1.28.1
 
       - name: grpc
-        run: make grpc
+        run: make -w grpc
+
+      - name: webui
+        run: make -w webui-dist
 
       - name: goreleaser
         uses: goreleaser/goreleaser-action@v4.2.0

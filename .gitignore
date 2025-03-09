@@ -8,3 +8,6 @@ config.yaml
 site/
 dist/
 /japella
+/webui
+/webui.dev/node_modules
+/webui.dev/.parcel-cache

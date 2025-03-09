@@ -18,3 +18,8 @@ go-tools:
 	go install "google.golang.org/protobuf/cmd/protoc-gen-go"
 	#go install "github.com/go-kod/kod/cmd/kod"
 	go install "go.uber.org/mock/mockgen"
+
+webui-dist:
+	cd webui.dev && npm install
+	cd webui.dev && npx parcel build --public-url "."
+	mv webui.dev/dist webui
