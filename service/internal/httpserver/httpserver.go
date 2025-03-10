@@ -36,7 +36,7 @@ func Start() {
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", apihandler))
 	mux.Handle("/", http.StripPrefix("/", dashboard.GetNewHandler()))
 
-	endpoint := "localhost:8080"
+	endpoint := "0.0.0.0:8080"
 
 	log.Infof("Starting http server on %v", endpoint)
 	log.Infof("API available at http://%v/api%v", endpoint, apipath)
