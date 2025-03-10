@@ -5,7 +5,7 @@ EXPOSE 8080/tcp
 LABEL org.opencontainers.image.source https://github.com/jamesread/japella
 LABEL org.opencontainers.image.title Japella
 
-COPY webui /usr/share/Japella/
+COPY webui /usr/share/Japella/webui/
 COPY var/config-skel/ /config/config.yaml
 COPY japella /app/
 
