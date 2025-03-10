@@ -9,10 +9,10 @@
 	"license": "ISC",
 	"description": "",
 	"dependencies": {
-		"@buf/japella_japella.connectrpc_query-es": "^2.0.1-20250309213621-b12e7e3f90a6.1",
-		"vite": "^6.2.1"
+		"@buf/japella_japella.connectrpc_query-es": "^2.0.1-20250309213621-b12e7e3f90a6.1"
 	},
 	"devDependencies": {
+		"vite": "^6.2.1",
 		"@bufbuild/buf": "^1.50.0",
 		"@bufbuild/protobuf": "^2.2.3",
 		"@bufbuild/protoc-gen-es": "^2.2.3",
