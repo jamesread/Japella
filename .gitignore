@@ -4,10 +4,11 @@ target
 config.yaml
 /japella-*
 /tmp
-/gen
+/service/tmp
+/service/gen
 site/
 dist/
-/japella
+/service/apella
 /webui
-/webui.dev/node_modules
-/webui.dev/.parcel-cache
+/frontend/node_modules
+/frontend/.parcel-cache

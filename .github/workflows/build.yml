@@ -1,0 +1,62 @@
+---
+name: "Build"
+
+on:
+  - push
+  - workflow_dispatch
+
+jobs:
+  setup-build-environment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: 'service/go.mod'
+          cache: true
+
+      - name: buf-setup
+        uses: bufbuild/buf-action@v1
+
+      - name: make targets
+        run: make -w proto frontend
+
+      - name: Login to ghcr
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.CONTAINER_TOKEN }}
+
+  snapshot:
+    needs: setup-build-environment
+    runs-on: ubuntu-latest
+    if: github.ref_type != "tag"
+    steps:
+      - name: goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --snapshot --clean --skip=docker
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONTAINER_TOKEN }}
+
+  tag:
+    needs: setup-build-environment
+    runs-on: ubuntu-latest
+    if: github.ref_type != "tag"
+    steps:
+      - name: goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: latest
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.CONTAINER_TOKEN }}

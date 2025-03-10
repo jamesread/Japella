@@ -4,13 +4,9 @@
 
 version: 2
 
-before:
-  hooks:
-    - go mod tidy
-    - go generate ./...
-
 builds:
   - id: japella
+    dir: service
     main: main.go
     binary: japella
     env: [CGO_ENABLED=0]
@@ -27,6 +23,7 @@ dockers:
       - ghcr.io/jamesread/japella
     extra_files:
       - README.md
+      - webui
       - var/config-skel/
 
 changelog:
