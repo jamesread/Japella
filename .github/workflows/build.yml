@@ -36,7 +36,7 @@ jobs:
   snapshot:
     needs: setup-build-environment
     runs-on: ubuntu-latest
-    if: github.ref_type != "tag"
+    if: github.ref_type != 'tag'
     steps:
       - name: goreleaser
         uses: goreleaser/goreleaser-action@v6
@@ -50,7 +50,7 @@ jobs:
   tag:
     needs: setup-build-environment
     runs-on: ubuntu-latest
-    if: github.ref_type != "tag"
+    if: github.ref_type != 'tag'
     steps:
       - name: goreleaser
         uses: goreleaser/goreleaser-action@v6
