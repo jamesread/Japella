@@ -23,6 +23,11 @@ jobs:
       - name: buf-setup
         uses: bufbuild/buf-action@v1
 
+      - name: install protoc stuff
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install connectrpc.com/connect/cmd/protoc-gen-connect-go@latest
+
       - name: make targets
         run: make -w proto frontend
 
