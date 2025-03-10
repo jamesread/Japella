@@ -8,5 +8,9 @@ plugins:
     out: ../service/gen/
     opt: paths=source_relative
 
+  - remote: buf.build/bufbuild/es
+    out: ../frontend/resources/javascript/gen/
+    opt: target=ts
+
     #  - name: js
     #    out: .

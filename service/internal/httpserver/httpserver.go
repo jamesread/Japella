@@ -10,6 +10,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+/*
+func allowCors(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET,POST")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Connect-Protocol-Version, Connect-Timeout-Ms, X-User-Agent")
+
+		if origin := r.Header.Get("Origin"); origin != "" {
+			log.Infof("Adding CORS Header origin %v", origin)
+
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+		}
+
+		h.ServeHTTP(w, r)
+	})
+}
+*/
+
 func Start() {
 	mux := http.NewServeMux()
 

@@ -19,6 +19,17 @@
 		</header>
 
 		<main>
+			<section>
+				<fieldset>
+					<label>Status:</label>
+					<div id = "status" />
+				</fieldset>
+
+				<fieldset>
+					<label>Nanoservices:</label>
+					<div id = "nanoservices"></label>
+				</fieldset>
+			</section>
 			<form>
 				<h2>Post</h2>
 
@@ -33,7 +44,8 @@
 		</main>
 
 		<script type = "module">
-			import { main } from "./resources/javascript/main.js";
+			import { main } from "./resources/javascript/main.ts";
+			main()
 		</script>
 	</body>
 </html>
