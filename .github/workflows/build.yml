@@ -38,12 +38,8 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.CONTAINER_TOKEN }}
 
-  snapshot:
-    needs: setup-build-environment
-    runs-on: ubuntu-latest
-    if: github.ref_type != 'tag'
-    steps:
-      - name: goreleaser
+      - name: goreleaser snapshot
+        if: github.ref_type != 'tag'
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
@@ -52,12 +48,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.CONTAINER_TOKEN }}
 
-  tag:
-    needs: setup-build-environment
-    runs-on: ubuntu-latest
-    if: github.ref_type != 'tag'
-    steps:
-      - name: goreleaser
+      - name: goreleaser tag
+        if: github.ref_type == 'tag'
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
