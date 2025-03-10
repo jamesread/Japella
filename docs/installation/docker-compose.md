@@ -19,6 +19,8 @@ services:
     restart: unless-stopped
     environment:
       JAPELLA_NANOSERVICES: dashboard,telegram,exec
+    ports:
+      - "8080:8080"
 
   rabbitmq:
     container_name: rabbitmq
