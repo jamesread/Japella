@@ -7,5 +7,5 @@ configversion: 2
 
 connectors:
   telegram:
-    bottoken: "as23l4kjdfsdf323l4kj23lk4jg"
+    bottoken: "asdf12344kjdfsdf323l4kj23lk4jg" #notsecret
 ```

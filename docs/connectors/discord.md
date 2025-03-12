@@ -7,7 +7,7 @@ configversion: 2
 
 connectors:
   discord:
-    appid: "1234567890"
-    publickey: "asdfasdf234lk2j34lkjasasdf"
-    token: "3234l2kjlasjalkskj"
+    appid: "1234567890" #notsecret
+    publickey: "asdfasdf234lk2j34lkjasasdf" #notsecret
+    token: "asdf12343234l2kjlasjalkskj" #notsecret
 ```
