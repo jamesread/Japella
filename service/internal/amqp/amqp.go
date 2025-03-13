@@ -79,9 +79,29 @@ func GetChannel(name string) (*amqp.Channel, error) {
 		}
 
 		channels[name] = channel
+
+		declareExchange(channel)
 	}
 
 	return channels[name], nil
+}
+
+func declareExchange(channel *amqp.Channel) {
+	err := channel.ExchangeDeclarePassive(
+		"ex_japella",
+		"direct",
+		true,
+		false,
+		false,
+		false, // nowait
+		nil,
+	)
+
+	if err != nil {
+		log.Errorf("declareExchange() - err: %v. Will also pause.", err)
+
+		time.Sleep(10 * time.Second)
+	}
 }
 
 func getConn() (*amqp.Connection, error) {
