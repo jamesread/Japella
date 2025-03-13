@@ -87,7 +87,7 @@ func GetChannel(name string) (*amqp.Channel, error) {
 }
 
 func declareExchange(channel *amqp.Channel) {
-	err := channel.ExchangeDeclarePassive(
+	err := channel.ExchangeDeclare(
 		"ex_japella",
 		"direct",
 		true,
