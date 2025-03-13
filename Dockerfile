@@ -12,5 +12,6 @@ COPY japella /app/
 RUN mkdir -p /config/exec/
 
 VOLUME /config
+VOLUME /usr/libexec/japella/
 
 ENTRYPOINT [ "/app/japella" ]
