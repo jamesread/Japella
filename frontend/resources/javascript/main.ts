@@ -3,6 +3,9 @@ import { createConnectTransport } from "@connectrpc/connect-web"
 
 import { JapellaControlApiService } from './gen/japella/controlapi/v1/control_pb'
 
+import { createApp } from 'vue';
+import Calendar from '../vue/calendar.vue';
+
 function setupPostBox () {
   document.getElementById('submit-post').addEventListener('click', () => {
     submitPost(document.getElementById('post-box').value)
@@ -25,7 +28,11 @@ function submitPost (post) {
   })
 }
 
-export async function main(): void {
+export function main(): void {
+	createApp(Calendar).mount('#calendar')
+}
+
+async function main2(): void {
 	const transport = createConnectTransport({
 		baseUrl: 'http://localhost:8080/api/',
 	})

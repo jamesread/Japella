@@ -2,6 +2,8 @@
 
 <html lang="en">
 	<head>
+		<meta charset = "UTF-8" />
+
 		<title>Japella</title>
 
 		<link rel = "stylesheet" type = "text/css" href = "resources/stylesheets/main.css" />
@@ -30,18 +32,26 @@
 					<div id = "nanoservices"></label>
 				</fieldset>
 			</section>
-			<form>
-				<h2>Post</h2>
 
-				<fieldset>
-					<label>Message</label>
-					<textarea id = "post" rows = "8" cols = "80">
+			<section>
+				<form>
+					<h2>Post</h2>
 
-					</textarea>
-				</fieldset>
-			<button id = "submit">Submit</button>
-			</form>
+					<fieldset>
+						<label>Message</label>
+						<textarea id = "post" rows = "8" cols = "80"></textarea>
+					</fieldset>
+				<button id = "submit">Submit</button>
+				</form>
+			</section>
+
+			<slot id = "calendar" />
+
 		</main>
+
+		<footer>
+			<a href = "https://github.com/jamesread/Japella">Japella on GitHub</a>
+		</footer>
 
 		<script type = "module">
 			import { main } from "./resources/javascript/main.ts";
