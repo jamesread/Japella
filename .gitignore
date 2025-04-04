@@ -5,11 +5,9 @@ config.yaml
 /japella-*
 /tmp
 /service/tmp
-/service/gen
 site/
 dist/
 /service/japella
 /webui
 /frontend/node_modules
 /frontend/.parcel-cache
-/frontend/resources/javascript/gen/
