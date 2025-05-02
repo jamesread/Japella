@@ -23,6 +23,10 @@ jobs:
       - name: make frontend
         run: make -w frontend
 
+      - name: print checksums of frontend resources
+        run:
+          find frontend/resources/ -type f -exec sh -c 'echo "$(sha1sum $1) $(stat -c%s $1)  "' _ {} \;
+
       - name: Login to ghcr
         if: github.ref_type == 'tag'
         uses: docker/login-action@v2
