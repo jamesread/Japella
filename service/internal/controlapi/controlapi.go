@@ -9,11 +9,10 @@ import (
 
 	"github.com/rs/cors"
 
+	buildinfo "github.com/jamesread/japella/internal/buildinfo"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
-
-	"os"
-	"strings"
+	"github.com/jamesread/japella/internal/nanoservice"
 )
 
 type ControlApi struct{}
@@ -21,7 +20,8 @@ type ControlApi struct{}
 func (s ControlApi) GetStatus(ctx context.Context, req *connect.Request[controlv1.GetStatusRequest]) (*connect.Response[controlv1.GetStatusResponse], error) {
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
 		Status: "OK!",
-		Nanoservices: strings.Split(os.Getenv("JAPELLA_NANOSERVICES"), ","),
+		Nanoservices: nanoservice.GetNanoservices(),
+		Version: buildinfo.Version,
 	})
 
 	return res, nil

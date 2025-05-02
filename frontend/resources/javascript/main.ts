@@ -30,22 +30,34 @@ function submitPost (post) {
 
 export function main(): void {
 	createApp(Calendar).mount('#calendar')
+
+	createApiClient()
+	setupApi()
 }
 
-async function main2(): void {
-	const transport = createConnectTransport({
-		baseUrl: 'http://localhost:8080/api/',
+function createApiClient(): void {
+	let baseUrl = '/api/'
+
+	if (window.location.hostname.includes('localhost')) {
+		baseUrl = 'http://localhost:8080/api/'
+	}
+
+	window.transport = createConnectTransport({
+		baseUrl: baseUrl,
 	})
 
-	const client = createClient(JapellaControlApiService, transport)
-
-	const status = await client.getStatus();
-
-	console.log(status)
-
-	document.getElementById('status').innerText = status.status;
-	document.getElementById('nanoservices').innerText = status.nanoservices.join(", ");
-
+	window.client = createClient(JapellaControlApiService, window.transport)
 
 //	setupPostBox()
+}
+
+async function setupApi(): void {
+	const status = await window.client.getStatus();
+
+	console.log("getStatus()", status)
+
+	document.getElementById('status').innerText = status.status;
+	document.getElementById('nanoservices').innerText = status.nanoservices.join(", ") + "(" + (status.nanoservices.length > 0 ? "" : "") + status.nanoservices.length + " nanoservices)";
+	document.getElementById('currentVersion').innerText = 'Version: ' + status.version;
+
 }

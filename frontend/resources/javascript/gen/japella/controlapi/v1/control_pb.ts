@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file japella/controlapi/v1/control.proto.
  */
 export const file_japella_controlapi_v1_control: GenFile = /*@__PURE__*/
-  fileDesc("CiNqYXBlbGxhL2NvbnRyb2xhcGkvdjEvY29udHJvbC5wcm90bxIVamFwZWxsYS5jb250cm9sYXBpLnYxIhQKElNlbmRNZXNzYWdlUmVxdWVzdCIVChNTZW5kTWVzc2FnZVJlc3BvbnNlIhIKEEdldFN0YXR1c1JlcXVlc3QiOQoRR2V0U3RhdHVzUmVzcG9uc2USDgoGc3RhdHVzGAEgASgJEhQKDG5hbm9zZXJ2aWNlcxgCIAMoCTLkAQoYSmFwZWxsYUNvbnRyb2xBcGlTZXJ2aWNlEmAKCUdldFN0YXR1cxInLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTdGF0dXNSZXF1ZXN0GiguamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgASZgoLU2VuZE1lc3NhZ2USKS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2VuZE1lc3NhZ2VSZXF1ZXN0GiouamFwZWxsYS5jb250cm9sYXBpLnYxLlNlbmRNZXNzYWdlUmVzcG9uc2UiAEJCWkBnaXRodWIuY29tL2phbWVzcmVhZC9qYXBlbGxhL2dlbi9qYXBlbGxhL2NvbnRyb2xhcGkvdjE7Y29udHJvbHYxYgZwcm90bzM");
+  fileDesc("CiNqYXBlbGxhL2NvbnRyb2xhcGkvdjEvY29udHJvbC5wcm90bxIVamFwZWxsYS5jb250cm9sYXBpLnYxIhQKElNlbmRNZXNzYWdlUmVxdWVzdCIVChNTZW5kTWVzc2FnZVJlc3BvbnNlIhIKEEdldFN0YXR1c1JlcXVlc3QiSgoRR2V0U3RhdHVzUmVzcG9uc2USDgoGc3RhdHVzGAEgASgJEhQKDG5hbm9zZXJ2aWNlcxgCIAMoCRIPCgd2ZXJzaW9uGAMgASgJMuQBChhKYXBlbGxhQ29udHJvbEFwaVNlcnZpY2USYAoJR2V0U3RhdHVzEicuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFN0YXR1c1JlcXVlc3QaKC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0U3RhdHVzUmVzcG9uc2UiABJmCgtTZW5kTWVzc2FnZRIpLmphcGVsbGEuY29udHJvbGFwaS52MS5TZW5kTWVzc2FnZVJlcXVlc3QaKi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2VuZE1lc3NhZ2VSZXNwb25zZSIAQkJaQGdpdGh1Yi5jb20vamFtZXNyZWFkL2phcGVsbGEvZ2VuL2phcGVsbGEvY29udHJvbGFwaS92MTtjb250cm9sdjFiBnByb3RvMw");
 
 /**
  * @generated from message japella.controlapi.v1.SendMessageRequest
@@ -64,6 +64,11 @@ export type GetStatusResponse = Message<"japella.controlapi.v1.GetStatusResponse
    * @generated from field: repeated string nanoservices = 2;
    */
   nanoservices: string[];
+
+  /**
+   * @generated from field: string version = 3;
+   */
+  version: string;
 };
 
 /**

@@ -141,3 +141,4 @@ export type Thread = Message<"japella.nodemsgs.v1.Thread"> & {
  */
 export const ThreadSchema: GenMessage<Thread> = /*@__PURE__*/
   messageDesc(file_japella_nodemsgs_v1_nodemessages, 4);
+

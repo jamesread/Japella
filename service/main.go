@@ -11,10 +11,12 @@ import (
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 	"os"
-	"strings"
 )
 
-var serviceRegistry = make(map[string]nanoservice.Nanoservice)
+var (
+	serviceRegistry = make(map[string]nanoservice.Nanoservice)
+	Version = "dev"
+)
 
 func main() {
 	log.SetFormatter(&log.TextFormatter{
@@ -54,7 +56,7 @@ func initServiceRegistry() {
 }
 
 func startNanoservices() {
-	services := getNanoservices()
+	services := nanoservice.GetNanoservices()
 
 	log.WithFields(log.Fields{
 		"names": services,
@@ -86,10 +88,4 @@ func startService(serviceName string) {
 	}
 
 	go service.Start()
-}
-
-func getNanoservices() []string {
-	services := strings.Split(os.Getenv("JAPELLA_NANOSERVICES"), ",")
-
-	return services
 }
