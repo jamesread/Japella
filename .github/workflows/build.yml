@@ -6,14 +6,13 @@ on:
   - workflow_dispatch
 
 jobs:
-  setup-build-environment:
+  build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-          submodules: true
+          submodules: recursive
 
       - name: Setup Go
         uses: actions/setup-go@v5
