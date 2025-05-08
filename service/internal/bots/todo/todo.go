@@ -21,7 +21,7 @@ func (bot *TodoBotImpl) Start() {
 
 	bot.list = make([]string, 0)
 
-	bot.Setup("todo")
+	bot.Setup()
 	bot.RegisterBangCommand("todo", bot.onNew)
 	bot.RegisterBangCommand("done", bot.onDone)
 

@@ -5,6 +5,7 @@ import { JapellaControlApiService } from './gen/japella/controlapi/v1/control_pb
 
 import { createApp } from 'vue';
 import Calendar from '../vue/calendar.vue';
+import PostBox from '../vue/post-box.vue';
 
 function setupPostBox () {
   document.getElementById('submit-post').addEventListener('click', () => {
@@ -29,6 +30,7 @@ function submitPost (post) {
 }
 
 export function main(): void {
+	createApp(PostBox).mount('#post-box')
 	createApp(Calendar).mount('#calendar')
 
 	createApiClient()
@@ -53,8 +55,6 @@ function createApiClient(): void {
 
 async function setupApi(): void {
 	const status = await window.client.getStatus();
-
-	console.log("getStatus()", status)
 
 	document.getElementById('status').innerText = status.status;
 	document.getElementById('nanoservices').innerText = status.nanoservices.join(", ") + "(" + (status.nanoservices.length > 0 ? "" : "") + status.nanoservices.length + " nanoservices)";

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/bots/dblogger"
 	"github.com/jamesread/japella/internal/bots/exec"
 	"github.com/jamesread/japella/internal/connector/discord"
@@ -28,6 +29,9 @@ func main() {
 	log.SetLevel(log.InfoLevel)
 
 	log.Infof("japella startup")
+	log.WithFields(log.Fields{
+		"commit": buildinfo.Commit,
+	}).Infof("buildinfo")
 
 	supportedVersion := 2
 	configVersion := runtimeconfig.Get().ConfigVersion

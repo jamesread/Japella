@@ -4,9 +4,12 @@ package japella.controlapi.v1;
 
 option go_package = "github.com/jamesread/japella/gen/japella/controlapi/v1;controlv1";
 
-message SendMessageRequest {}
+message SubmitPostRequest {
+	string content = 1;
+	string posting_service = 2;
+}
 
-message SendMessageResponse {}
+message SubmitPostResponse {}
 
 message GetStatusRequest {}
 
@@ -16,8 +19,23 @@ message GetStatusResponse {
 	string version = 3;
 }
 
+message GetPostingServicesRequest {
+}
+
+message GetPostingServicesResponse {
+	repeated PostingService services = 1;
+}
+
+message PostingService {
+	string id = 1;
+	string name = 2;
+	string identity = 3;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
-	rpc SendMessage(SendMessageRequest) returns (SendMessageResponse) {}
+	rpc SubmitPost(SubmitPostRequest) returns (SubmitPostResponse) {}
+
+	rpc GetPostingServices(GetPostingServicesRequest) returns (GetPostingServicesResponse) {}
 }

@@ -34,19 +34,9 @@
 				</fieldset>
 			</section>
 
-			<section>
-				<form>
-					<h2>Post</h2>
+			<slot id = "post-box"></slot>
 
-					<fieldset>
-						<label>Message</label>
-						<textarea id = "post" rows = "8" cols = "80"></textarea>
-					</fieldset>
-				<button id = "submit">Submit</button>
-				</form>
-			</section>
-
-			<slot id = "calendar" />
+			<slot id = "calendar"></slot>
 
 		</main>
 

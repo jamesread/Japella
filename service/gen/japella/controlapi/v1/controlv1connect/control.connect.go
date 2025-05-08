@@ -36,23 +36,28 @@ const (
 	// JapellaControlApiServiceGetStatusProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetStatus RPC.
 	JapellaControlApiServiceGetStatusProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetStatus"
-	// JapellaControlApiServiceSendMessageProcedure is the fully-qualified name of the
-	// JapellaControlApiService's SendMessage RPC.
-	JapellaControlApiServiceSendMessageProcedure = "/japella.controlapi.v1.JapellaControlApiService/SendMessage"
+	// JapellaControlApiServiceSubmitPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SubmitPost RPC.
+	JapellaControlApiServiceSubmitPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/SubmitPost"
+	// JapellaControlApiServiceGetPostingServicesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetPostingServices RPC.
+	JapellaControlApiServiceGetPostingServicesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetPostingServices"
 )
 
 // These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
 var (
-	japellaControlApiServiceServiceDescriptor           = v1.File_japella_controlapi_v1_control_proto.Services().ByName("JapellaControlApiService")
-	japellaControlApiServiceGetStatusMethodDescriptor   = japellaControlApiServiceServiceDescriptor.Methods().ByName("GetStatus")
-	japellaControlApiServiceSendMessageMethodDescriptor = japellaControlApiServiceServiceDescriptor.Methods().ByName("SendMessage")
+	japellaControlApiServiceServiceDescriptor                  = v1.File_japella_controlapi_v1_control_proto.Services().ByName("JapellaControlApiService")
+	japellaControlApiServiceGetStatusMethodDescriptor          = japellaControlApiServiceServiceDescriptor.Methods().ByName("GetStatus")
+	japellaControlApiServiceSubmitPostMethodDescriptor         = japellaControlApiServiceServiceDescriptor.Methods().ByName("SubmitPost")
+	japellaControlApiServiceGetPostingServicesMethodDescriptor = japellaControlApiServiceServiceDescriptor.Methods().ByName("GetPostingServices")
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
 // service.
 type JapellaControlApiServiceClient interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
-	SendMessage(context.Context, *connect.Request[v1.SendMessageRequest]) (*connect.Response[v1.SendMessageResponse], error)
+	SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error)
+	GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -72,10 +77,16 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceGetStatusMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
-		sendMessage: connect.NewClient[v1.SendMessageRequest, v1.SendMessageResponse](
+		submitPost: connect.NewClient[v1.SubmitPostRequest, v1.SubmitPostResponse](
 			httpClient,
-			baseURL+JapellaControlApiServiceSendMessageProcedure,
-			connect.WithSchema(japellaControlApiServiceSendMessageMethodDescriptor),
+			baseURL+JapellaControlApiServiceSubmitPostProcedure,
+			connect.WithSchema(japellaControlApiServiceSubmitPostMethodDescriptor),
+			connect.WithClientOptions(opts...),
+		),
+		getPostingServices: connect.NewClient[v1.GetPostingServicesRequest, v1.GetPostingServicesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetPostingServicesProcedure,
+			connect.WithSchema(japellaControlApiServiceGetPostingServicesMethodDescriptor),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -83,8 +94,9 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 
 // japellaControlApiServiceClient implements JapellaControlApiServiceClient.
 type japellaControlApiServiceClient struct {
-	getStatus   *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	sendMessage *connect.Client[v1.SendMessageRequest, v1.SendMessageResponse]
+	getStatus          *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	submitPost         *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
+	getPostingServices *connect.Client[v1.GetPostingServicesRequest, v1.GetPostingServicesResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -92,16 +104,22 @@ func (c *japellaControlApiServiceClient) GetStatus(ctx context.Context, req *con
 	return c.getStatus.CallUnary(ctx, req)
 }
 
-// SendMessage calls japella.controlapi.v1.JapellaControlApiService.SendMessage.
-func (c *japellaControlApiServiceClient) SendMessage(ctx context.Context, req *connect.Request[v1.SendMessageRequest]) (*connect.Response[v1.SendMessageResponse], error) {
-	return c.sendMessage.CallUnary(ctx, req)
+// SubmitPost calls japella.controlapi.v1.JapellaControlApiService.SubmitPost.
+func (c *japellaControlApiServiceClient) SubmitPost(ctx context.Context, req *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error) {
+	return c.submitPost.CallUnary(ctx, req)
+}
+
+// GetPostingServices calls japella.controlapi.v1.JapellaControlApiService.GetPostingServices.
+func (c *japellaControlApiServiceClient) GetPostingServices(ctx context.Context, req *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error) {
+	return c.getPostingServices.CallUnary(ctx, req)
 }
 
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
-	SendMessage(context.Context, *connect.Request[v1.SendMessageRequest]) (*connect.Response[v1.SendMessageResponse], error)
+	SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error)
+	GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -116,18 +134,26 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceGetStatusMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
-	japellaControlApiServiceSendMessageHandler := connect.NewUnaryHandler(
-		JapellaControlApiServiceSendMessageProcedure,
-		svc.SendMessage,
-		connect.WithSchema(japellaControlApiServiceSendMessageMethodDescriptor),
+	japellaControlApiServiceSubmitPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSubmitPostProcedure,
+		svc.SubmitPost,
+		connect.WithSchema(japellaControlApiServiceSubmitPostMethodDescriptor),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetPostingServicesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetPostingServicesProcedure,
+		svc.GetPostingServices,
+		connect.WithSchema(japellaControlApiServiceGetPostingServicesMethodDescriptor),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
 			japellaControlApiServiceGetStatusHandler.ServeHTTP(w, r)
-		case JapellaControlApiServiceSendMessageProcedure:
-			japellaControlApiServiceSendMessageHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSubmitPostProcedure:
+			japellaControlApiServiceSubmitPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetPostingServicesProcedure:
+			japellaControlApiServiceGetPostingServicesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -141,6 +167,10 @@ func (UnimplementedJapellaControlApiServiceHandler) GetStatus(context.Context, *
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetStatus is not implemented"))
 }
 
-func (UnimplementedJapellaControlApiServiceHandler) SendMessage(context.Context, *connect.Request[v1.SendMessageRequest]) (*connect.Response[v1.SendMessageResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SendMessage is not implemented"))
+func (UnimplementedJapellaControlApiServiceHandler) SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SubmitPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetPostingServices is not implemented"))
 }

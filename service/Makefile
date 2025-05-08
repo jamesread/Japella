@@ -1,5 +1,5 @@
 default:
-	go build
+	go build -ldflags="-s -w -X buildinfo.Commit=$(shell git rev-parse HEAD)"
 
 dev:
 	air

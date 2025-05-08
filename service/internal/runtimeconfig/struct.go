@@ -12,6 +12,7 @@ type ConnectorConfig struct {
 	Discord  *DiscordConfig
 	Telegram *TelegramConfig
 	Mastodon *MastodonConfig
+	WhatsApp *WhatsAppConfig
 }
 
 type DiscordConfig struct {
@@ -46,4 +47,10 @@ type MastodonConfig struct {
 	Website  string
 
 	Inert bool
+}
+
+type WhatsAppConfig struct {
+	AccessToken string
+	PhoneNumberID string
+	BusinessAccountID string
 }
