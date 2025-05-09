@@ -1,7 +1,7 @@
 <div align = "center">
 	<img alt = "project logo" src = "logo.png" width = "128" />
 	<h1>Japella</h1>
-	<p>A chatbot, which is multi-protocol, powerful and highly resilient.</p>
+	<p>A spcial media & chat multitool.</p>
 
 [![Maturity](https://img.shields.io/badge/maturity-Sandbox-yellow)](#none)
 [![Build Tag](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml/badge.svg)](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml)
