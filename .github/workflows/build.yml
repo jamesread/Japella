@@ -2,17 +2,37 @@
 name: "Build"
 
 on:
-  - push
-  - workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release'
+        required: false
+        default: 'latest'
+        type: string
+  push:
+    tags:
+      - '*'
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Setup QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          cache-image: true
+          platforms: arm64,amd64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Setup Go
         uses: actions/setup-go@v5
@@ -28,29 +48,29 @@ jobs:
           find frontend/resources/ -type f -exec sh -c 'echo "$(sha1sum $1) $(stat -c%s $1)  "' _ {} \;
 
       - name: Login to ghcr
-        if: github.ref_type == 'tag'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.CONTAINER_TOKEN }}
 
-      - name: goreleaser snapshot
-        if: github.ref_type != 'tag'
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          distribution: goreleaser
-          version: latest
-          args: release --snapshot --clean --skip=docker
-        env:
-          GITHUB_TOKEN: ${{ secrets.CONTAINER_TOKEN }}
+      - name: Test build
+        run: make -w service
 
-      - name: goreleaser tag
-        if: github.ref_type == 'tag'
+      - name: Install goreleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          distribution: goreleaser
-          version: latest
-          args: release --clean
+          install-only: true
+
+      - name: release
+        if: github.ref_type != 'tag'
+        uses: cycjimmy/semantic-release-action@v4
+        with:
+          extra_plugins: |
+            @semantic-release/commit-analyzer
+            @semantic-release/exec
+            @semantic-release/git
+
         env:
+          GH_TOKEN: ${{ secrets.CONTAINER_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.CONTAINER_TOKEN }}

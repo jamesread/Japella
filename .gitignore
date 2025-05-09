@@ -11,3 +11,4 @@ dist/
 /webui
 /frontend/node_modules
 /frontend/.parcel-cache
+.cache

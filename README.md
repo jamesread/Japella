@@ -3,6 +3,7 @@
 	<h1>Japella</h1>
 	<p>A chatbot, which is multi-protocol, powerful and highly resilient.</p>
 
+[![Maturity](https://img.shields.io/badge/maturity-Sandbox-yellow)](#none)
 [![Build Tag](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml/badge.svg)](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml)
 [![Discord](https://img.shields.io/discord/846737624960860180?label=Discord%20Server)](https://discord.gg/jhYWWpNJ3v)
 </div>
