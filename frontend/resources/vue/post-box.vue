@@ -48,14 +48,14 @@
 
 			window.client.submitPost(req)
 				.then((res) => {
-					submit.innerText = "Submit";
+					submit.innerText = "Post";
 					submit.disabled = false;
 
 					console.log(res);
 				})
 				.catch((error) => {
 					alert("Error posting message: " + error);
-					submit.innerText = "Submit";
+					submit.innerText = "Post";
 					submit.disabled = false;
 				});
 		} else {
@@ -91,7 +91,7 @@ fieldset {
 				<textarea id = "post" rows = "8" cols = "80"></textarea>
 			</fieldset>
 
-			<button id = "submit" type = "submit">Submit</button>
+			<button id = "submit" type = "submit">Post</button>
 		</form>
 	</section>
 </template>
