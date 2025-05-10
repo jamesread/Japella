@@ -1,7 +1,7 @@
 <div align = "center">
 	<img alt = "project logo" src = "logo.png" width = "128" />
 	<h1>Japella</h1>
-	<p>A spcial media & chat multitool.</p>
+	<p>A social media & chat powertool.</p>
 
 [![Maturity](https://img.shields.io/badge/maturity-Sandbox-yellow)](#none)
 [![Build Tag](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml/badge.svg)](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml)
