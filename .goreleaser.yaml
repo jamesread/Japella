@@ -13,7 +13,11 @@ builds:
     goos: [linux]
     goarch: [amd64]
     ldflags:
-      - -s -w -X buildinfo.Version={{.Version}} -X buildinfo.GitCommit={{.Commit}} -X buildinfo.BuildDate={{.Date}}
+      - >
+        -s -w
+        -X github.com/jamesread/japella/internal/buildinfo.Version={{.Version}}
+        -X github.com/jamesread/japella/internal/buildinfo.GitCommit={{.Commit}}
+        -X github.com/jamesread/japella/internal/buildinfo.BuildDate={{.Date}}
 
 archives:
   - builds: [japella]
