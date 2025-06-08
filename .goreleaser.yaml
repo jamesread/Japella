@@ -11,7 +11,11 @@ builds:
     binary: japella
     env: [CGO_ENABLED=0]
     goos: [linux]
-    goarch: [amd64]
+    goarch: [amd64, arm64]
+    goarm:
+      - v8.0
+    goamd64:
+      - v3
     ldflags:
       - >
         -s -w
@@ -19,18 +23,49 @@ builds:
         -X github.com/jamesread/japella/internal/buildinfo.GitCommit={{.Commit}}
         -X github.com/jamesread/japella/internal/buildinfo.BuildDate={{.Date}}
 
-archives:
-  - builds: [japella]
+archives: []
 
 dockers:
-  - id: japella
-    dockerfile: Dockerfile
+  - dockerfile: Dockerfile
+    goarch: amd64
+    goamd64: v3
+    use: buildx
     image_templates:
-      - ghcr.io/jamesread/japella
+      - ghcr.io/jamesread/japella-amd64:{{.Version}}
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
     extra_files:
       - README.md
       - webui
       - var/config-skel/
+
+  - dockerfile: Dockerfile
+    goarch: arm64
+    goarm: v8.0
+    use: buildx
+    image_templates:
+      - ghcr.io/jamesread/japella-arm64:{{.Version}}
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - README.md
+      - webui
+      - var/config-skel/
+
+docker_manifests:
+  - name_template: ghcr.io/jamesread/japella:{{.Version}}
+    image_templates:
+      - ghcr.io/jamesread/japella-amd64:{{.Version}}
+      - ghcr.io/jamesread/japella-arm64:{{.Version}}
+
+  - name_template: ghcr.io/jamesread/japella:latest
+    image_templates:
+      - ghcr.io/jamesread/japella-arm64:{{.Version}}
+      - ghcr.io/jamesread/japella-amd64:{{.Version}}
 
 changelog:
   sort: asc
