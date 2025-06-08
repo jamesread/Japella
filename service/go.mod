@@ -1,8 +1,6 @@
 module github.com/jamesread/japella
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.23.8
 
 require (
 	connectrpc.com/connect v1.18.1
@@ -13,19 +11,23 @@ require (
 	github.com/go-critic/go-critic v0.11.5
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/go-telegram/bot v1.13.3
+	github.com/goccy/go-yaml v1.18.0
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
+	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1
+	github.com/jamesread/golure v0.0.0-20250602094058-842cf536d370
 	github.com/mattn/go-mastodon v0.0.8
+	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/prometheus/client_golang v1.20.2
 	github.com/prometheus/common v0.55.0
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/rs/cors v1.11.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
+	go.mau.fi/whatsmeow v0.0.0-20250501130609-4c93ee4e6efa
 	golang.org/x/net v0.39.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.5.1
 	google.golang.org/protobuf v1.36.6
-	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -88,7 +90,6 @@ require (
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/go-containerregistry v0.20.2 // indirect
 	github.com/google/pprof v0.0.0-20241210010833-40e02aabc2ad // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jdx/go-netrc v1.0.0 // indirect
@@ -97,7 +98,6 @@ require (
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-sqlite3 v1.14.28 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/locker v1.0.1 // indirect
@@ -143,7 +143,6 @@ require (
 	go.lsp.dev/uri v0.3.0 // indirect
 	go.mau.fi/libsignal v0.1.2 // indirect
 	go.mau.fi/util v0.8.6 // indirect
-	go.mau.fi/whatsmeow v0.0.0-20250501130609-4c93ee4e6efa // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.58.0 // indirect

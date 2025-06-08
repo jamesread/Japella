@@ -42,14 +42,15 @@ const (
 	// JapellaControlApiServiceGetPostingServicesProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetPostingServices RPC.
 	JapellaControlApiServiceGetPostingServicesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetPostingServices"
-)
-
-// These variables are the protoreflect.Descriptor objects for the RPCs defined in this package.
-var (
-	japellaControlApiServiceServiceDescriptor                  = v1.File_japella_controlapi_v1_control_proto.Services().ByName("JapellaControlApiService")
-	japellaControlApiServiceGetStatusMethodDescriptor          = japellaControlApiServiceServiceDescriptor.Methods().ByName("GetStatus")
-	japellaControlApiServiceSubmitPostMethodDescriptor         = japellaControlApiServiceServiceDescriptor.Methods().ByName("SubmitPost")
-	japellaControlApiServiceGetPostingServicesMethodDescriptor = japellaControlApiServiceServiceDescriptor.Methods().ByName("GetPostingServices")
+	// JapellaControlApiServiceGetCannedPostsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetCannedPosts RPC.
+	JapellaControlApiServiceGetCannedPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCannedPosts"
+	// JapellaControlApiServiceCreateCannedPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateCannedPost RPC.
+	JapellaControlApiServiceCreateCannedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateCannedPost"
+	// JapellaControlApiServiceDeleteCannedPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteCannedPost RPC.
+	JapellaControlApiServiceDeleteCannedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteCannedPost"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -58,6 +59,9 @@ type JapellaControlApiServiceClient interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error)
 	GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error)
+	GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error)
+	CreateCannedPost(context.Context, *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error)
+	DeleteCannedPost(context.Context, *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -70,23 +74,42 @@ type JapellaControlApiServiceClient interface {
 // http://api.acme.com or https://acme.com/grpc).
 func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL string, opts ...connect.ClientOption) JapellaControlApiServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
+	japellaControlApiServiceMethods := v1.File_japella_controlapi_v1_control_proto.Services().ByName("JapellaControlApiService").Methods()
 	return &japellaControlApiServiceClient{
 		getStatus: connect.NewClient[v1.GetStatusRequest, v1.GetStatusResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceGetStatusProcedure,
-			connect.WithSchema(japellaControlApiServiceGetStatusMethodDescriptor),
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetStatus")),
 			connect.WithClientOptions(opts...),
 		),
 		submitPost: connect.NewClient[v1.SubmitPostRequest, v1.SubmitPostResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceSubmitPostProcedure,
-			connect.WithSchema(japellaControlApiServiceSubmitPostMethodDescriptor),
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SubmitPost")),
 			connect.WithClientOptions(opts...),
 		),
 		getPostingServices: connect.NewClient[v1.GetPostingServicesRequest, v1.GetPostingServicesResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceGetPostingServicesProcedure,
-			connect.WithSchema(japellaControlApiServiceGetPostingServicesMethodDescriptor),
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPostingServices")),
+			connect.WithClientOptions(opts...),
+		),
+		getCannedPosts: connect.NewClient[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetCannedPostsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCannedPosts")),
+			connect.WithClientOptions(opts...),
+		),
+		createCannedPost: connect.NewClient[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateCannedPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateCannedPost")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteCannedPost: connect.NewClient[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteCannedPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteCannedPost")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -97,6 +120,9 @@ type japellaControlApiServiceClient struct {
 	getStatus          *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
 	submitPost         *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
 	getPostingServices *connect.Client[v1.GetPostingServicesRequest, v1.GetPostingServicesResponse]
+	getCannedPosts     *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
+	createCannedPost   *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
+	deleteCannedPost   *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -114,12 +140,30 @@ func (c *japellaControlApiServiceClient) GetPostingServices(ctx context.Context,
 	return c.getPostingServices.CallUnary(ctx, req)
 }
 
+// GetCannedPosts calls japella.controlapi.v1.JapellaControlApiService.GetCannedPosts.
+func (c *japellaControlApiServiceClient) GetCannedPosts(ctx context.Context, req *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error) {
+	return c.getCannedPosts.CallUnary(ctx, req)
+}
+
+// CreateCannedPost calls japella.controlapi.v1.JapellaControlApiService.CreateCannedPost.
+func (c *japellaControlApiServiceClient) CreateCannedPost(ctx context.Context, req *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error) {
+	return c.createCannedPost.CallUnary(ctx, req)
+}
+
+// DeleteCannedPost calls japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost.
+func (c *japellaControlApiServiceClient) DeleteCannedPost(ctx context.Context, req *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error) {
+	return c.deleteCannedPost.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error)
 	GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error)
+	GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error)
+	CreateCannedPost(context.Context, *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error)
+	DeleteCannedPost(context.Context, *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -128,22 +172,41 @@ type JapellaControlApiServiceHandler interface {
 // By default, handlers support the Connect, gRPC, and gRPC-Web protocols with the binary Protobuf
 // and JSON codecs. They also support gzip compression.
 func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
+	japellaControlApiServiceMethods := v1.File_japella_controlapi_v1_control_proto.Services().ByName("JapellaControlApiService").Methods()
 	japellaControlApiServiceGetStatusHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceGetStatusProcedure,
 		svc.GetStatus,
-		connect.WithSchema(japellaControlApiServiceGetStatusMethodDescriptor),
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceSubmitPostHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceSubmitPostProcedure,
 		svc.SubmitPost,
-		connect.WithSchema(japellaControlApiServiceSubmitPostMethodDescriptor),
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SubmitPost")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceGetPostingServicesHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceGetPostingServicesProcedure,
 		svc.GetPostingServices,
-		connect.WithSchema(japellaControlApiServiceGetPostingServicesMethodDescriptor),
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPostingServices")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetCannedPostsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetCannedPostsProcedure,
+		svc.GetCannedPosts,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCannedPosts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateCannedPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateCannedPostProcedure,
+		svc.CreateCannedPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateCannedPost")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteCannedPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteCannedPostProcedure,
+		svc.DeleteCannedPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteCannedPost")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -154,6 +217,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceSubmitPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetPostingServicesProcedure:
 			japellaControlApiServiceGetPostingServicesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetCannedPostsProcedure:
+			japellaControlApiServiceGetCannedPostsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateCannedPostProcedure:
+			japellaControlApiServiceCreateCannedPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteCannedPostProcedure:
+			japellaControlApiServiceDeleteCannedPostHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -173,4 +242,16 @@ func (UnimplementedJapellaControlApiServiceHandler) SubmitPost(context.Context, 
 
 func (UnimplementedJapellaControlApiServiceHandler) GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetPostingServices is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCannedPosts is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateCannedPost(context.Context, *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateCannedPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteCannedPost(context.Context, *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost is not implemented"))
 }

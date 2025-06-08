@@ -6,6 +6,8 @@ import { JapellaControlApiService } from './gen/japella/controlapi/v1/control_pb
 import { createApp } from 'vue';
 import Calendar from '../vue/calendar.vue';
 import PostBox from '../vue/post-box.vue';
+import CannedPosts from '../vue/canned-posts.vue';
+import AppStatus from '../vue/app-status.vue';
 
 function setupPostBox () {
   document.getElementById('submit-post').addEventListener('click', () => {
@@ -32,9 +34,42 @@ function submitPost (post) {
 export function main(): void {
 	createApp(PostBox).mount('#post-box')
 	createApp(Calendar).mount('#calendar')
+	createApp(CannedPosts).mount('#canned-posts')
+	createApp(AppStatus).mount('#app-status')
+
+	createSectionLink('Canned Posts', 'canned-posts').click()
+	createSectionLink('Post', 'post-box')
+	createSectionLink('Calendar', 'calendar')
+	createSectionLink('Status', 'status')
 
 	createApiClient()
 	setupApi()
+}
+
+function createSectionLink(name: string, sectionClass: string): HTMLAnchorElement {
+	const link = document.createElement('a');
+	link.innerText = name;
+
+	link.onclick = () => {
+		document.getElementsByTagName('nav')[0].querySelector('ul').querySelectorAll('a').forEach((a) => {
+			a.classList.remove('active')
+		});
+
+		for (const section of document.querySelectorAll('section')) {
+			const shown = section.classList.contains(sectionClass)
+
+			section.hidden = !shown
+		}
+
+		link.classList.add('active')
+	}
+
+	const li = document.createElement('li');
+	li.appendChild(link);
+
+	document.getElementsByTagName('nav')[0].querySelector('ul').appendChild(li);
+
+	return link;
 }
 
 function createApiClient(): void {
@@ -56,8 +91,10 @@ function createApiClient(): void {
 async function setupApi(): void {
 	const status = await window.client.getStatus();
 
-	document.getElementById('status').innerText = status.status;
-	document.getElementById('nanoservices').innerText = status.nanoservices.join(", ") + "(" + (status.nanoservices.length > 0 ? "" : "") + status.nanoservices.length + " nanoservices)";
+	window.dispatchEvent(new CustomEvent('status-updated', {
+		"detail": status
+	}));
+
 	document.getElementById('currentVersion').innerText = 'Version: ' + status.version;
 
 }

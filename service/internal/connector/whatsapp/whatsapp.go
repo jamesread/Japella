@@ -10,28 +10,25 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 
 	"go.mau.fi/whatsmeow"
-	"go.mau.fi/whatsmeow/types/events"
 	"go.mau.fi/whatsmeow/store/sqlstore"
+	"go.mau.fi/whatsmeow/types/events"
 
 	"github.com/jamesread/japella/internal/utils"
-	"github.com/jamesread/japella/internal/nanoservice"
 )
 
 type DeviceStore struct {
-
 }
 
 type WhatsAppConnector struct {
-	nanoservice.Nanoservice
 	utils.LogComponent
 
 	deviceStore *DeviceStore
-	clientLog *WaLogAdaptor
+	clientLog   *WaLogAdaptor
 }
 
 func (c WhatsAppConnector) Start() {
 	c.deviceStore = &DeviceStore{}
-	c.clientLog = &WaLogAdaptor{ Logger: c.Logger() }
+	c.clientLog = &WaLogAdaptor{Logger: c.Logger()}
 
 	c.connect()
 }

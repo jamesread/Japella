@@ -1,7 +1,7 @@
 package todo
 
 import (
-	pb "github.com/jamesread/japella/gen/protobuf"
+	pb "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/botbase"
 )
 

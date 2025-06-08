@@ -8,11 +8,10 @@ import (
 	"time"
 )
 
-var BotId string
 var goBot *discordgo.Session
 var registeredCommands map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
 
-func startActual(appId string, publicKey string, token string) *discordgo.Session {
+func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 	var err error
 	goBot, err = discordgo.New("Bot " + token)
 
@@ -30,7 +29,7 @@ func startActual(appId string, publicKey string, token string) *discordgo.Sessio
 		return nil
 	}
 
-	BotId = u.ID
+	a.nickname = u.ID
 
 	goBot.AddHandler(messageHandler)
 	goBot.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
@@ -49,15 +48,17 @@ func startActual(appId string, publicKey string, token string) *discordgo.Sessio
 
 	registerCommand("ping", cmdPing)
 
-	go Replier()
-	go MessageSearch()
+	if false {
+		go Replier()
+		go MessageSearch()
+	}
 
 	if err != nil {
 		log.Fatalf("%v", err)
 		return nil
 	}
 
-	log.Infof("Discord connector is running !")
+	a.Logger().Infof("Connector is running !")
 
 	return goBot
 }
@@ -132,6 +133,14 @@ func MessageSearch() {
 		amqp.PublishPbWithRoutingKey(msg, "ThreadSearchResponse")
 		//		amqp.PublishPb(msg)
 	})
+}
+
+func (a *DiscordConnector) GetIdentity() string {
+	return a.nickname
+}
+
+func (a *DiscordConnector) GetProtocol() string {
+	return "discord"
 }
 
 func Replier() {

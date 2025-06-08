@@ -6,7 +6,7 @@ import (
 
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/amqp"
-	"github.com/jamesread/japella/internal/nanoservice"
+	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	"strconv"
@@ -16,68 +16,90 @@ import (
 	"os/signal"
 
 	"time"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type TelegramConnector struct {
-	nanoservice.Nanoservice
+	nickname string
 	utils.LogComponent
+
+	connector.BaseConnector
 }
 
-func (c TelegramConnector) Start() {
-	c.SetPrefix("Telegram")
-	c.Logger().Infof("Telegram connector started")
+func (c *TelegramConnector) GetIdentity() string {
+	return c.nickname
+}
 
-	cfg := runtimeconfig.Get()
+func (c *TelegramConnector) GetProtocol() string {
+	return "telegram"
+}
 
-	c.startBot(cfg.Connectors.Telegram.BotToken)
+func (c *TelegramConnector) StartWithConfig(rawconfig any) {
+	config, _ := rawconfig.(*runtimeconfig.TelegramConfig)
 
-	for {
-		time.Sleep(1 * time.Second)
+	if config == nil || config.Token == "" {
+		c.Logger().Errorf("Telegram bot token is not set in configuration")
+		return
 	}
+
+	c.StartWithToken(config.Token)
+}
+
+func (c *TelegramConnector) StartWithToken(token string) {
+	c.SetPrefix("Telegram-new")
+	c.Logger().Infof("japella-bot-telegram")
+
+	c.startBot(token)
 }
 
 var bot *tgbotapi.Bot
 
-func (c TelegramConnector) startBot(botToken string) {
+func (c *TelegramConnector) startBot(botToken string) {
 	c.Logger().Infof("botToken: %v", botToken)
-
-	var err error
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
-
-	if err != nil {
-		c.Logger().Panic(err)
-	}
 
 	opts := []tgbotapi.Option{
 		tgbotapi.WithDefaultHandler(c.messageHandler),
 	}
 
+	var err error
+
 	bot, err = tgbotapi.New(botToken, opts...)
 
-	go c.Replier()
+	if err != nil {
+		log.Errorf("Error creating bot: %v", err)
+	}
+
+	if runtimeconfig.Get().Amqp.Enabled {
+		go c.Replier()
+	}
 
 	me, _ := bot.GetMe(ctx)
+	c.nickname = me.Username
 
 	c.Logger().Infof("Telegram getMe(): %+v", me)
 
-	bot.Start(ctx)
+	go bot.Start(ctx)
 }
 
 func (c TelegramConnector) messageHandler(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Update) {
 	c.Logger().Infof("Telegram - update: %+v", update)
 
-	if update.Message != nil { // If we got a message
-		c.Logger().Infof("Telegram - message recevied from:%v content:%v", update.Message.From, update.Message.Text)
+	if runtimeconfig.Get().Amqp.Enabled {
+		if update.Message != nil { // If we got a message
+			c.Logger().Infof("Telegram - message recevied from:%v content:%v", update.Message.From, update.Message.Text)
 
-		amqp.PublishPb(&msgs.IncomingMessage{
-			Author:    update.Message.From.Username,
-			Content:   update.Message.Text,
-			Channel:   strconv.FormatInt(update.Message.Chat.ID, 10),
-			Protocol:  "telegram",
-			Timestamp: time.Now().Unix(),
-		})
+			amqp.PublishPb(&msgs.IncomingMessage{
+				Author:    update.Message.From.Username,
+				Content:   update.Message.Text,
+				Channel:   strconv.FormatInt(update.Message.Chat.ID, 10),
+				Protocol:  "telegram",
+				Timestamp: time.Now().Unix(),
+			})
+		}
 	}
 }
 

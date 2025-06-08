@@ -19,25 +19,21 @@
 		<header>
 			<img src = "logo.png" class = "logo" />
 			<h1>Japella</h1>
+			<nav>
+				<ul role = "menubar">
+				</ul>
+			</nav>
 		</header>
 
 		<main>
-			<section>
-				<fieldset>
-					<label>Status:</label>
-					<div id = "status" />
-				</fieldset>
 
-				<fieldset>
-					<label>Nanoservices:</label>
-					<div id = "nanoservices"></label>
-				</fieldset>
-			</section>
+			<slot id = "app-status"></slot>
 
 			<slot id = "post-box"></slot>
 
 			<slot id = "calendar"></slot>
 
+			<slot id = "canned-posts"></slot>
 		</main>
 
 		<footer>

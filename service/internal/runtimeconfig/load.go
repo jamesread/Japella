@@ -6,40 +6,20 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
+	"github.com/goccy/go-yaml"
+	"github.com/goccy/go-yaml/ast"
 
 	"sync"
+
+	"errors"
+	"fmt"
+	"github.com/jamesread/golure/pkg/dirs"
 )
 
 var cfg *CommonConfig
 
-func findFile(filename string) string {
-	paths := []string{
-		"../",
-		"/config/",
-	}
-
-	for _, path := range paths {
-		absPath, err := filepath.Abs(filepath.Join(path, filename))
-
-		if err != nil {
-			log.Warnf("Failed to get the absolute path for %v / %v", path, filename)
-		}
-
-		if _, err := os.Stat(absPath); err == nil {
-			log.Infof("Config found %v at %v", filename, absPath)
-
-			return absPath
-		} else {
-			log.Infof("Didn't find %v at %v", filename, absPath)
-		}
-	}
-
-	return filename
-}
-
 func readFile(filename string) []byte {
-	filename = findFile(filename)
+	filename = filepath.Join(getConfigPath(), filename)
 
 	handle, err := os.Open(filename)
 
@@ -58,14 +38,15 @@ func readFile(filename string) []byte {
 
 var cfgGetLock sync.RWMutex
 
-func getConfigFilename() string {
-	configFilename := os.Getenv("CONFIG_FILE")
-
-	if configFilename == "" {
-		configFilename = "config.yaml"
+func getConfigPath() string {
+	paths := []string{
+		"~/.config/japella/",
+		"../",
 	}
 
-	return configFilename
+	selected, _ := dirs.GetFirstExistingDirectory("config", paths)
+
+	return selected
 }
 
 func Get() *CommonConfig {
@@ -73,12 +54,8 @@ func Get() *CommonConfig {
 
 	if cfg == nil {
 		cfg = &CommonConfig{}
-		cfg.Amqp = &AmqpConfig{}
-		cfg.Connectors = &ConnectorConfig{}
-		cfg.Connectors.Discord = &DiscordConfig{}
-		cfg.Connectors.Telegram = &TelegramConfig{}
 
-		loadConfig(getConfigFilename())
+		loadConfig()
 	}
 
 	cfgGetLock.Unlock()
@@ -86,20 +63,75 @@ func Get() *CommonConfig {
 	return cfg
 }
 
-func loadConfig(filename string) *CommonConfig {
-	log.WithFields(log.Fields{
-		"file": filename,
-	}).Infof("Config loading started")
+func (w *ConnectorConfigWrapper) UnmarshalYAML(node ast.Node) error {
+	var typeHolder struct {
+		Type    string
+		Enabled bool
+		Config  ast.Node
+	}
 
-	err := yaml.UnmarshalStrict(readFile(filename), &cfg)
+	if err := yaml.NodeToValue(node, &typeHolder); err != nil {
+		log.Errorf("could not unmarshal connector type: %v", err)
+		return err
+	}
+
+	log.Infof("Connector type: %v", typeHolder.Type)
+
+	w.ConnectorType = typeHolder.Type
+	w.Enabled = typeHolder.Enabled
+
+	switch typeHolder.Type {
+	case "discord":
+		var v DiscordConfig
+
+		if err := yaml.NodeToValue(typeHolder.Config, &v, yaml.Strict()); err != nil {
+			return err
+		}
+
+		w.ConnectorConfig = &v
+	case "telegram":
+		var v TelegramConfig
+
+		if err := yaml.NodeToValue(typeHolder.Config, &v, yaml.Strict()); err != nil {
+			return err
+		}
+
+		w.ConnectorConfig = &v
+	case "whatsapp":
+		var v WhatsAppConfig
+
+		if err := yaml.NodeToValue(typeHolder.Config, &v, yaml.Strict()); err != nil {
+			return err
+		}
+
+		w.ConnectorConfig = &v
+	case "mastodon":
+		var v MastodonConfig
+
+		if err := yaml.NodeToValue(typeHolder.Config, &v, yaml.Strict()); err != nil {
+			return err
+		}
+
+		w.ConnectorConfig = &v
+	default:
+		return errors.New(fmt.Sprintf("unknown connector type :%v", typeHolder.Type))
+	}
+
+	return nil
+}
+
+func loadConfig() *CommonConfig {
+	log.Infof("Config loading started")
+
+	cfg = &CommonConfig{}
+
+	err := yaml.UnmarshalWithOptions(readFile("config.yaml"), cfg, yaml.Strict())
 
 	if err != nil {
 		log.Fatalf("could not load common config! %v", err)
 	}
 
-	log.WithFields(log.Fields{
-		"file": filename,
-	}).Infof("Config loading complete")
+	log.Infof("Config loading complete")
 
 	return cfg
 }

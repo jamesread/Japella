@@ -2,11 +2,6 @@ package main
 
 import (
 	"github.com/jamesread/japella/internal/buildinfo"
-	"github.com/jamesread/japella/internal/bots/dblogger"
-	"github.com/jamesread/japella/internal/bots/exec"
-	"github.com/jamesread/japella/internal/connector/discord"
-	"github.com/jamesread/japella/internal/connector/mastodon"
-	"github.com/jamesread/japella/internal/connector/telegram"
 	"github.com/jamesread/japella/internal/httpserver"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
@@ -15,8 +10,8 @@ import (
 )
 
 var (
-	serviceRegistry = make(map[string]nanoservice.Nanoservice)
-	Version = "dev"
+	serviceRegistry = make(map[string]*nanoservice.Nanoservice)
+	Version         = "dev"
 )
 
 func main() {
@@ -26,7 +21,12 @@ func main() {
 	})
 
 	log.SetOutput(os.Stdout)
-	log.SetLevel(log.InfoLevel)
+
+	if os.Getenv("JAPELLA_DEBUG") == "true" {
+		log.SetLevel(log.DebugLevel)
+	} else {
+		log.SetLevel(log.InfoLevel)
+	}
 
 	log.Infof("japella startup")
 	log.WithFields(log.Fields{
@@ -52,11 +52,12 @@ func main() {
 }
 
 func initServiceRegistry() {
-	serviceRegistry["telegram"] = telegram.TelegramConnector{}
-	serviceRegistry["discord"] = discord.DiscordConnector{}
-	serviceRegistry["mastodon"] = mastodon.MastodonConnector{}
-	serviceRegistry["exec"] = exec.Exec{}
-	serviceRegistry["dblogger"] = dblogger.DbLogger{}
+	/*
+	   serviceRegistry["discord"] = discord.DiscordConnector{}
+	   serviceRegistry["mastodon"] = mastodon.MastodonConnector{}
+	   serviceRegistry["exec"] = exec.Exec{}
+	   serviceRegistry["dblogger"] = dblogger.DbLogger{}
+	*/
 }
 
 func startNanoservices() {
@@ -78,7 +79,7 @@ func startNanoservices() {
 }
 
 func startService(serviceName string) {
-	service, ok := serviceRegistry[serviceName]
+	_, ok := serviceRegistry[serviceName]
 
 	if !ok {
 		log.WithFields(log.Fields{
@@ -91,5 +92,5 @@ func startService(serviceName string) {
 		}).Infof("Starting service")
 	}
 
-	go service.Start()
+	//go service.Start()
 }

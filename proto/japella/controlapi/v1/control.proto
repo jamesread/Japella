@@ -28,8 +28,37 @@ message GetPostingServicesResponse {
 
 message PostingService {
 	string id = 1;
-	string name = 2;
+	string protocol = 2;
 	string identity = 3;
+}
+
+message GetCannedPostsRequest {
+}
+
+message GetCannedPostsResponse {
+	repeated CannedPost posts = 1;
+}
+
+message CannedPost {
+	string id = 1;
+	string content = 2;
+	string created_at = 3;
+}
+
+message CreateCannedPostRequest {
+	string content = 1;
+}
+
+message CreateCannedPostResponse {
+	string message = 1;
+}
+
+message DeleteCannedPostRequest {
+	string id = 1;
+}
+
+message DeleteCannedPostResponse {
+	string message = 1;
 }
 
 service JapellaControlApiService {
@@ -38,4 +67,10 @@ service JapellaControlApiService {
 	rpc SubmitPost(SubmitPostRequest) returns (SubmitPostResponse) {}
 
 	rpc GetPostingServices(GetPostingServicesRequest) returns (GetPostingServicesResponse) {}
+
+	rpc GetCannedPosts(GetCannedPostsRequest) returns (GetCannedPostsResponse) {}
+
+	rpc CreateCannedPost(CreateCannedPostRequest) returns (CreateCannedPostResponse) {}
+
+	rpc DeleteCannedPost(DeleteCannedPostRequest) returns (DeleteCannedPostResponse) {}
 }

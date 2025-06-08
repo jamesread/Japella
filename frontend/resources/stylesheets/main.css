@@ -19,13 +19,17 @@ main {
 	flex-grow: 1;
 }
 
-footer {
-	padding: 1em;
+.notification {
+	padding: 0.75em;
+	border-radius: 0.25em;
+	margin-bottom: 1em;
+	position: fixed;
+	top: 1em;
+	left: 1em;
+	z-index: 1000;
+	cursor: pointer;
 }
 
-
-footer span {
-	background-color: white;
-	border-radius: .5em;
-	padding: .5em;
+.notification span {
+	display: block;
 }

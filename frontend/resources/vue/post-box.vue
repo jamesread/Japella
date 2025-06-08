@@ -1,8 +1,10 @@
 <script setup>
 	import { ref, onMounted } from 'vue';
+	import RadioGroup from './radio-group.vue';
 
 	const clientReady = ref(false);
 	const items = ref([]);
+	const availablePostModes = ref(['live', 'canned']);
 
 	const waitForClient = () => {
 	  return new Promise((resolve) => {
@@ -28,7 +30,12 @@
 </script>
 
 <script>
+	import { ref } from 'vue';
+
+	const postMode = ref('live');
+
 	import { SubmitPostRequestSchema } from './../javascript/gen/japella/controlapi/v1/control_pb'
+	import Notification from './../javascript/notification.js'
 
 	function submitPost() {
 		const post = document.getElementById('post').value;
@@ -38,9 +45,10 @@
 			submit.innerText = "Submitting...";
 			submit.disabled = true;
 
- // Use `create(SubmitPostRequestSchema)` to create a new message.
+			 // Use `create(SubmitPostRequestSchema)` to create a new message.
 			let req = {
 				content: post,
+				postingService: document.getElementById('posting-service').value,
 				service: document.getElementById('posting-service').value
 			}
 
@@ -51,7 +59,8 @@
 					submit.innerText = "Post";
 					submit.disabled = false;
 
-					console.log(res);
+					let n = new Notification("good", "Post Submitted", "Your post has been submitted successfully.")
+					n.show()
 				})
 				.catch((error) => {
 					alert("Error posting message: " + error);
@@ -71,27 +80,36 @@ fieldset {
 </style>
 
 <template>
-	<section>
-		<form @submit.prevent="submitPost">
-			<h2>Post</h2>
+	<section class = "post-box">
+		<h2>Post</h2>
+		<p>Post a message to a service.</p>
 
-			<fieldset>
+		<form @submit.prevent="submitPost" id = "submit-post">
+			<label>Type</label>
+			<RadioGroup name = "post-mode" v-model = "postMode" :availablePostModes = "availablePostModes" />
+
+			<label>Posting Service</label>
+			<div v-if = "postMode == 'canned'">
+				<p>Canned posts just get saved.</p>
+			</div>
+			<div v-else>
+
 				<div v-if="clientReady">
 					<select name = "posting-service" id = "posting-service">
-							<option v-for = "ps in items" :key = "ps" value = "{{ ps.name }}">{{ ps.name }}</option>
+						<option v-for = "ps in items" :key = "ps" :value = "ps.id">{{ ps.protocol }}: {{ ps.identity }}</option>
 					</select>
 				</div>
 				<div v-else>
 					<p>Loading posting services...</p>
 				</div>
-			</fieldset>
+			</div>
+
+			<label>Message</label>
+			<textarea id = "post" rows = "8" cols = "80"></textarea>
 
 			<fieldset>
-				<label>Message</label>
-				<textarea id = "post" rows = "8" cols = "80"></textarea>
+				<button id = "submit" type = "submit">Post</button>
 			</fieldset>
-
-			<button id = "submit" type = "submit">Post</button>
 		</form>
 	</section>
 </template>

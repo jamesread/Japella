@@ -1,18 +1,20 @@
 package runtimeconfig
 
 type CommonConfig struct {
-	ConfigVersion int
+	ConfigVersion int `yaml:"configVersion"`
 
-	Amqp       *AmqpConfig
-	Connectors *ConnectorConfig
-	Database   *DatabaseConfig
+	Amqp       AmqpConfig
+	Connectors []*ConnectorConfigWrapper
+	Database   DatabaseConfig
 }
 
-type ConnectorConfig struct {
-	Discord  *DiscordConfig
-	Telegram *TelegramConfig
-	Mastodon *MastodonConfig
-	WhatsApp *WhatsAppConfig
+type ConnectorConfig interface {
+}
+
+type ConnectorConfigWrapper struct {
+	ConnectorConfig ConnectorConfig
+	ConnectorType   string
+	Enabled         bool
 }
 
 type DiscordConfig struct {
@@ -22,10 +24,11 @@ type DiscordConfig struct {
 }
 
 type TelegramConfig struct {
-	BotToken string
+	Token string
 }
 
 type AmqpConfig struct {
+	Enabled  bool
 	Host     string
 	User     string
 	Pass     string
@@ -34,6 +37,7 @@ type AmqpConfig struct {
 }
 
 type DatabaseConfig struct {
+	Enabled  bool
 	Host     string
 	User     string
 	Password string
@@ -41,16 +45,18 @@ type DatabaseConfig struct {
 }
 
 type MastodonConfig struct {
-	Register bool
-	AppId    string
-	ClientId string
-	Website  string
+	Register     bool
+	AppId        string
+	ClientId     string
+	ClientSecret string
+	Website      string
+	Token        string
 
 	Inert bool
 }
 
 type WhatsAppConfig struct {
-	AccessToken string
-	PhoneNumberID string
+	AccessToken       string
+	PhoneNumberID     string
 	BusinessAccountID string
 }

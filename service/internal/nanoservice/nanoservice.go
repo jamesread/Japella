@@ -10,7 +10,7 @@ type Nanoservice interface {
 }
 
 func GetNanoservices() []string {
-	var ret[] string
+	var ret []string
 
 	services := strings.Split(os.Getenv("JAPELLA_NANOSERVICES"), ",")
 

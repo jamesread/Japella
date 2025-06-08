@@ -9,19 +9,19 @@
 	"license": "ISC",
 	"description": "",
 	"dependencies": {
-		"@buf/japella_japella.connectrpc_query-es": "^2.0.1-20250309213621-b12e7e3f90a6.1",
-		"@vitejs/plugin-vue": "^5.2.1",
+		"@iconify/vue": "^5.0.0",
+		"@vitejs/plugin-vue": "^5.2.4",
 		"@vue/tsconfig": "^0.7.0",
-		"vue": "^3.5.13"
+		"iconify-icon": "^3.0.0",
+		"vue": "^3.5.16"
 	},
 	"devDependencies": {
-		"@bufbuild/buf": "^1.50.0",
-		"@bufbuild/protobuf": "^2.2.3",
-		"@bufbuild/protoc-gen-es": "^2.2.3",
+		"@bufbuild/buf": "^1.54.0",
+		"@bufbuild/protobuf": "^2.5.2",
+		"@bufbuild/protoc-gen-es": "^2.5.2",
 		"@connectrpc/connect": "^2.0.2",
 		"@connectrpc/connect-web": "^2.0.2",
-		"parcel": "^2.13.3",
 		"process": "^0.11.10",
-		"vite": "^6.2.1"
+		"vite": "^6.3.5"
 	}
 }

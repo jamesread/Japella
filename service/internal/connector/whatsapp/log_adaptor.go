@@ -1,8 +1,8 @@
 package whatsapp
 
 import (
-	walog "go.mau.fi/whatsmeow/util/log"
 	"github.com/sirupsen/logrus"
+	walog "go.mau.fi/whatsmeow/util/log"
 )
 
 type WaLogAdaptor struct {
@@ -24,7 +24,6 @@ func (a WaLogAdaptor) Errorf(msg string, args ...any) {
 func (a WaLogAdaptor) Infof(msg string, args ...any) {
 	a.Logger.Infof(msg, args...)
 }
-
 
 func (a WaLogAdaptor) Sub(module string) walog.Logger {
 	a.Logger.Infof("sub: " + module)

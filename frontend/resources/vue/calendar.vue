@@ -1,5 +1,5 @@
 <template>
-	<section>
+	<section class = "calendar">
 		<h2>Calendar</h2>
 
 		<div class = "day-container">
