@@ -40,6 +40,7 @@ var cfgGetLock sync.RWMutex
 
 func getConfigPath() string {
 	paths := []string{
+		"/config/",
 		"~/.config/japella/",
 		"../",
 	}
