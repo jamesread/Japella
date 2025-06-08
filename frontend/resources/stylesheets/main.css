@@ -33,3 +33,10 @@ main {
 .notification span {
 	display: block;
 }
+
+
+@media (max-width: 600px) {
+	.grid-wide {
+		grid-column: 1 / span 2;
+	}
+}

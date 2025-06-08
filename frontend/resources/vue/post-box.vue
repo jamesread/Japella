@@ -104,8 +104,9 @@ fieldset {
 				</div>
 			</div>
 
-			<label>Message</label>
-			<textarea id = "post" rows = "8" cols = "80"></textarea>
+
+			<label class = "grid-wide">Message</label>
+			<textarea id = "post" rows = "8" cols = "80" class = "grid-wide"></textarea>
 
 			<fieldset>
 				<button id = "submit" type = "submit">Post</button>
