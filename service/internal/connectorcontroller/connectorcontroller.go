@@ -6,6 +6,8 @@ import (
 	"github.com/jamesread/japella/internal/connector/discord"
 	"github.com/jamesread/japella/internal/connector/mastodon"
 	"github.com/jamesread/japella/internal/connector/telegram"
+	"github.com/jamesread/japella/internal/connector/x"
+	"github.com/jamesread/japella/internal/connector/bluesky"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 )
@@ -67,8 +69,12 @@ func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig
 		cc.setupConnector(&discord.DiscordConnector{}, wrapper.ConnectorConfig)
 	case "mastodon":
 		cc.setupConnector(&mastodon.MastodonConnector{}, wrapper.ConnectorConfig)
+	case "x":
+		cc.setupConnector(&x.XConnector{}, wrapper.ConnectorConfig)
+	case "bluesky":
+		cc.setupConnector(&bluesky.BlueskyConnector{}, wrapper.ConnectorConfig)
 	default:
-		log.Errorf("Unknown controller URL: " + wrapper.ConnectorType)
+		log.Errorf("Unknown controller type: " + wrapper.ConnectorType)
 	}
 }
 

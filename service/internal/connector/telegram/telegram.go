@@ -80,6 +80,7 @@ func (c *TelegramConnector) startBot(botToken string) {
 	me, _ := bot.GetMe(ctx)
 	c.nickname = me.Username
 
+	c.SetPrefix("Telegram-" + c.nickname)
 	c.Logger().Infof("Telegram getMe(): %+v", me)
 
 	go bot.Start(ctx)

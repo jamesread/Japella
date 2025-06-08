@@ -11,8 +11,6 @@ import (
 
 	"sync"
 
-	"errors"
-	"fmt"
 	"github.com/jamesread/golure/pkg/dirs"
 )
 
@@ -114,8 +112,26 @@ func (w *ConnectorConfigWrapper) UnmarshalYAML(node ast.Node) error {
 		}
 
 		w.ConnectorConfig = &v
+
+	case "x":
+		var v XConfig
+		if err := yaml.NodeToValue(typeHolder.Config, &v, yaml.Strict()); err != nil {
+			return err
+		}
+
+		w.ConnectorConfig = &v
+	case "bluesky":
+		var v BlueskyConfig
+
+		if err := yaml.NodeToValue(typeHolder.Config, &v, yaml.Strict()); err != nil {
+			return err
+		}
+
+		w.ConnectorConfig = &v
 	default:
-		return errors.New(fmt.Sprintf("unknown connector type :%v", typeHolder.Type))
+		log.Warnf("Connector type is unknown: %v", typeHolder.Type)
+
+		return nil
 	}
 
 	return nil

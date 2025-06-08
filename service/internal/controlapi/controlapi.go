@@ -116,9 +116,14 @@ func marshalPostingServices(cc *connectorcontroller.ConnectionController) []*con
 	services := make([]*controlv1.PostingService, 0)
 
 	for id, svc := range cc.GetServices() {
+		if _, ok := svc.(connector.ConnectorWithWall); !ok {
+			continue
+		}
+
 		srv := &controlv1.PostingService{
 			Id:       id,
 			Identity: svc.GetIdentity(),
+			Icon:    svc.GetIcon(),
 			Protocol: svc.GetProtocol(),
 		}
 

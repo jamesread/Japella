@@ -30,6 +30,7 @@ message PostingService {
 	string id = 1;
 	string protocol = 2;
 	string identity = 3;
+	string icon = 4;
 }
 
 message GetCannedPostsRequest {

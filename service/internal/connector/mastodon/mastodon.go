@@ -160,3 +160,7 @@ func Post(toot *mastodon.Toot) {
 
 	// log.Errorf("Error: %s", err)
 }
+
+func (adaptor *MastodonConnector) GetIcon() string {
+	return "mdi:mastodon"
+}

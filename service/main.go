@@ -5,12 +5,13 @@ import (
 	"github.com/jamesread/japella/internal/httpserver"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/jamesread/japella/internal/bots/exec"
 	log "github.com/sirupsen/logrus"
 	"os"
 )
 
 var (
-	serviceRegistry = make(map[string]*nanoservice.Nanoservice)
+	serviceRegistry = make(map[string]nanoservice.Nanoservice)
 	Version         = "dev"
 )
 
@@ -58,6 +59,7 @@ func initServiceRegistry() {
 	   serviceRegistry["exec"] = exec.Exec{}
 	   serviceRegistry["dblogger"] = dblogger.DbLogger{}
 	*/
+	serviceRegistry["exec"] = &exec.Exec{}
 }
 
 func startNanoservices() {
@@ -79,7 +81,7 @@ func startNanoservices() {
 }
 
 func startService(serviceName string) {
-	_, ok := serviceRegistry[serviceName]
+	service, ok := serviceRegistry[serviceName]
 
 	if !ok {
 		log.WithFields(log.Fields{
@@ -92,5 +94,5 @@ func startService(serviceName string) {
 		}).Infof("Starting service")
 	}
 
-	//go service.Start()
+	go service.Start()
 }

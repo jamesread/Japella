@@ -6,15 +6,28 @@ type CommonConfig struct {
 	Amqp       AmqpConfig
 	Connectors []*ConnectorConfigWrapper
 	Database   DatabaseConfig
+	Nanoservices []NanoserviceConfig
 }
 
 type ConnectorConfig interface {
+}
+
+type NanoserviceConfig struct {
+	Name        string
 }
 
 type ConnectorConfigWrapper struct {
 	ConnectorConfig ConnectorConfig
 	ConnectorType   string
 	Enabled         bool
+}
+
+type BlueskyConfig struct {
+}
+
+type XConfig struct {
+	APIKey string
+	APISecret string
 }
 
 type DiscordConfig struct {
