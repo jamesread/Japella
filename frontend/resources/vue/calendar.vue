@@ -2,9 +2,13 @@
 	<section class = "calendar">
 		<h2>Calendar</h2>
 
+		<p>This page shows a calendar for the current month.</p>
+
 		<div class = "day-container">
 			<div class = "day" v-for = "d in getCalendarDates()" :key = "d">
-				{{ formatDate(d) }}
+				<button @click = "showNotification(d)">
+					<small>{{ formatDate(d) }}</small>
+				</button>
 			</div>
 		</div>
 	</section>
@@ -12,7 +16,15 @@
 
 <script setup>
 	import { ref } from 'vue';
+	import Notification from '../javascript/notification.js';
 
+	function showNotification(date) {
+		let formattedDate = formatDate(date);
+		let notification = new Notification('good', ',Calendar Date', `You clicked on ${formattedDate}`);
+
+		notification.show();
+		console.log('Notification shown for date:', formattedDate);
+	}
 
 	function ordinalSuffix(n) {
 		let suffix = ['th', 'st', 'nd', 'rd']
@@ -22,9 +34,10 @@
 
 	function formatDate(d) {
 		const day = d.getDate()
+		const dayName = d.toLocaleString('default', { weekday: 'short' })
 		const month = d.toLocaleString('default', { month: 'long' })
 
-		return `${ordinalSuffix(day)} ${month}`
+		return `${dayName} ${ordinalSuffix(day)}`
 	}
 
 	function getCalendarDates() {
@@ -56,10 +69,17 @@
 		display: grid;
 		grid-template-rows: repeat(5, auto);
 		grid-template-columns: repeat(7, auto);
-		gap: 4px;
+		gap: 0;
+		/** grid border collapse */
+		border-collapse: collapse;
+		box-sizing: border-box;
+
+
 	}
 
 	.day {
-		border: 1px solid #efefef;
+		outline: 1px solid #666;
+		padding: 8px;
+		min-height: 120px;
 	}
 </style>

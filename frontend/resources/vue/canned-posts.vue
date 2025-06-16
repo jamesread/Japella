@@ -47,7 +47,7 @@
 						</td>
 
 						<td>
-							<button @click = "deleteCannedPost(p.id)">
+							<button @click = "deleteCannedPost(p.id)" class = "bad">
 								<Icon icon="material-symbols:delete" />
 							</button>
 						</td>

@@ -12,6 +12,7 @@ import (
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 
 	"github.com/shogo82148/go-sql-proxy"
 
@@ -36,7 +37,7 @@ func (db *DB) UpdateSocialAccountIdentity(id string, identity string) error {
 	return err
 }
 
-func (dbi *DB) ReconnectDatabase(db runtimeconfig.DatabaseConfig) {
+func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) {
 	hooker = &proxy.HooksContext{
 		Open: func(_ context.Context, _ interface{}, conn *proxy.Conn) error {
 			log.Println("SQL Open")
@@ -57,16 +58,16 @@ func (dbi *DB) ReconnectDatabase(db runtimeconfig.DatabaseConfig) {
 		hooker,
 	))
 
-	if !db.Enabled {
+	if !dbconfig.Enabled {
 		log.Warnf("Database is not enabled in configuration, skipping connection")
 		return
 	}
 
-	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", db.User, db.Password, db.Host, db.Database)
+	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", dbconfig.User, dbconfig.Password, dbconfig.Host, dbconfig.Database)
 
 	var err error
 
-	dbi.conn, err = sql.Open("mysql-logged", url)
+	db.conn, err = sql.Open("mysql-logged", url)
 
 	if err != nil {
 		log.Warnf("Failed to connect to database: %v", err)
@@ -130,7 +131,7 @@ func (db *DB) SelectCannedPosts() map[string]*CannedPost {
 		return cannedPosts
 	}
 
-	sql := "SELECT id FROM canned_posts"
+	sql := "SELECT id, content FROM canned_posts"
 	rows, err := db.conn.Query(sql)
 
 	if err != nil {
@@ -141,7 +142,7 @@ func (db *DB) SelectCannedPosts() map[string]*CannedPost {
 	defer rows.Close()
 
 	for rows.Next() {
-		var id string
+		var id, content string
 
 		if err := rows.Scan(&id); err != nil {
 			log.Errorf("Error scanning canned post: %v", err)
@@ -150,6 +151,7 @@ func (db *DB) SelectCannedPosts() map[string]*CannedPost {
 
 		cannedPosts[id] = &CannedPost{
 			Id: id,
+			Content: content,
 		}
 	}
 
@@ -164,11 +166,8 @@ func (db *DB) CreateCannedPost(content string) error {
 	sql := "INSERT INTO canned_posts (content) VALUES (?)"
 
 	_, err := db.conn.Exec(sql, content)
-	if err != nil {
-		return fmt.Errorf("error inserting canned post: %v", err)
-	}
 
-	return nil
+	return err
 }
 
 func (db *DB) DeleteCannedPost(id string) error {
@@ -178,11 +177,7 @@ func (db *DB) DeleteCannedPost(id string) error {
 
 	_, err := db.conn.Exec(sql, id)
 
-	if err != nil {
-		log.Errorf("Error deleting canned post: %v", err)
-	}
-
-	return nil
+	return err
 }
 
 func (db *DB) RegisterAccount(connector string, oauthToken string) error {
@@ -214,4 +209,53 @@ func (db *DB) DeleteSocialAccount(id string) error {
 	}
 
 	return nil
+}
+
+func (db *DB) CreatePost(postStatus *controlv1.PostStatus, socialAccountId string) error {
+	if db.conn == nil {
+		return fmt.Errorf("database connection is not established")
+	}
+
+	sql := "INSERT INTO posts (id, social_account, status, created) VALUES (?, ?, ?, now())"
+	_, err := db.conn.Exec(sql, postStatus.Id, socialAccountId, postStatus.Success)
+
+	if err != nil {
+		log.Errorf("Error inserting post: %v", err)
+		return fmt.Errorf("error inserting post: %v", err)
+	}
+
+	return err
+}
+
+func (db *DB) SelectPosts() ([]*controlv1.PostStatus, error) {
+	if db.conn == nil {
+		return nil, fmt.Errorf("database connection is not established")
+	}
+
+	sql := "SELECT id, social_account, status, created FROM posts"
+	rows, err := db.conn.Query(sql)
+
+	if err != nil {
+		log.Errorf("Error querying posts: %v", err)
+		return nil, fmt.Errorf("error querying posts: %v", err)
+	}
+
+	defer rows.Close()
+
+	var posts []*controlv1.PostStatus
+
+	for rows.Next() {
+		var post controlv1.PostStatus
+		var socialAccountId string
+
+		if err := rows.Scan(&post.Id, &socialAccountId, &post.Success, &post.Created); err != nil {
+			log.Errorf("Error scanning post: %v", err)
+			continue
+		}
+
+		post.SocialAccountId = socialAccountId
+		posts = append(posts, &post)
+	}
+
+	return posts, nil
 }

@@ -126,6 +126,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 		postStatus := &controlv1.PostStatus{
 			Success:   false,
+			SocialAccountId: accountId,
 		}
 
 		res.Posts = append(res.Posts, postStatus)
@@ -156,10 +157,13 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 			postStatus.PostUrl = postResult.URL
 			postStatus.Success = true
+
 		} else {
 			log.Warnf("Posting service does not support wall posting: %s", postingService.GetProtocol())
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("posting service does not support wall posting: %s", postingService.GetProtocol()))
 		}
+
+		s.db.CreatePost(postStatus, socialAccount.Id)
 	}
 
 	return connect.NewResponse(res), nil
@@ -198,23 +202,36 @@ func (s *ControlApi) GetSocialAccounts(ctx context.Context, req *connect.Request
 func (s *ControlApi) CreateCannedPost(ctx context.Context, req *connect.Request[controlv1.CreateCannedPostRequest]) (*connect.Response[controlv1.CreateCannedPostResponse], error) {
 	log.Infof("Creating canned post: %+v", req.Msg)
 
-	s.db.CreateCannedPost(req.Msg.Content)
+	err := s.db.CreateCannedPost(req.Msg.Content)
 
-	res := connect.NewResponse(&controlv1.CreateCannedPostResponse{
-		Message: "OK",
-	})
+	if err != nil {
+		log.Errorf("Error creating canned post: %v", err)
 
-	return res, nil
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create canned post: %w", err))
+	} else {
+		log.Infof("Canned post created successfully")
+
+		res := connect.NewResponse(&controlv1.CreateCannedPostResponse{
+			Message: "OK",
+		})
+
+		return res, nil
+	}
 }
 
 func (s *ControlApi) DeleteCannedPost(ctx context.Context, req *connect.Request[controlv1.DeleteCannedPostRequest]) (*connect.Response[controlv1.DeleteCannedPostResponse], error) {
-	s.db.DeleteCannedPost(req.Msg.Id)
+	err := s.db.DeleteCannedPost(req.Msg.Id)
 
-	res := connect.NewResponse(&controlv1.DeleteCannedPostResponse{
-		Message: "OK",
-	})
+	if err != nil {
+		log.Errorf("Error deleting canned post: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete canned post: %w", err))
+	} else {
+		res := connect.NewResponse(&controlv1.DeleteCannedPostResponse{
+			Message: "OK",
+		})
 
-	return res, nil
+		return res, nil
+	}
 }
 
 func (s *ControlApi) GetConnectors(ctx context.Context, req *connect.Request[controlv1.GetConnectorsRequest]) (*connect.Response[controlv1.GetConnectorsResponse], error) {
@@ -298,7 +315,7 @@ func (c *ControlApi) registerAccount(connector string, accessToken string) {
 	if err != nil {
 		log.Errorf("Error registering account: %v", err)
 	} else {
-		log.Infof("Account registered successfully with connector: %s", accessToken)
+		log.Infof("Account registered successfully with connector: %s", connector)
 	}
 }
 
@@ -403,6 +420,31 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 		StandardResponse: &controlv1.StandardResponse{
 			Success: true,
 		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[controlv1.GetTimelineRequest]) (*connect.Response[controlv1.GetTimelineResponse], error) {
+	posts, err := s.db.SelectPosts()
+
+	if err != nil {
+		log.Errorf("Error selecting posts: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve posts: %w", err))
+	}
+
+	timeline := make([]*controlv1.PostStatus, 0, len(posts))
+
+	for _, post := range posts {
+		timeline = append(timeline, &controlv1.PostStatus{
+			SocialAccountId: post.SocialAccountId,
+			Success:         post.Success,
+			PostUrl:         post.PostUrl,
+		})
+	}
+
+	res := connect.NewResponse(&controlv1.GetTimelineResponse{
+		Posts: timeline,
 	})
 
 	return res, nil

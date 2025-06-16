@@ -148,7 +148,5 @@ func NewHttpClientAndGetReq(url string, token string) (*http.Client, *http.Reque
 		Transport: NewLoggingTransport(nil),
 	}
 
-	req.Header.Set("Authorization", "Bearer "+token)
-
 	return client, req, nil
 }

@@ -6,6 +6,8 @@
 		</p>
 	</section>
 
+	<Timeline />
+
 	<AppStatus />
 
 	<PostBox />
@@ -20,6 +22,7 @@
 </template>
 
 <script setup>
+	import Timeline from './timeline.vue'
 	import AppStatus from './app-status.vue'
 	import PostBox from './post-box.vue'
 	import Calendar from './calendar.vue'

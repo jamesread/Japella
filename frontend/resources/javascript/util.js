@@ -5,11 +5,12 @@ export	function waitForClient() {
     const interval = setInterval(() => {
       if (window.client) {
         clearInterval(interval)
-        resolve()
+        clearTimeout(timeout)
+        resolve(window.client)
       }
     }, 50)
 
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       clearInterval(interval)
       reject(new Error('Client not found within timeout period'))
     }, TIMEOUT_MS)

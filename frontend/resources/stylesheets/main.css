@@ -1,9 +1,6 @@
 @import 'femtocrank/style.css';
 @import 'femtocrank/dark.css';
 
-h2 {
-}
-
 section.small {
 	width: 60%;
 	max-width: 720px;
@@ -14,10 +11,6 @@ section.small {
 	padding: 0.75em;
 	border-radius: 0.25em;
 	margin-bottom: 1em;
-	position: fixed;
-	top: 1em;
-	right: 1em;
-	z-index: 1000;
 	cursor: pointer;
 }
 
@@ -34,6 +27,23 @@ section.small {
 
 .inline-notification:last-child {
 	margin-bottom: 0;
+}
+
+.gs2 {
+	grid-column: 1 / span 2;
+}
+
+#notification-list {
+	position: fixed;
+	right: 0;
+	top: 0;
+	z-index: 1000;
+	width: 300px;
+	padding: 1em;
+}
+
+input:disabled {
+	cursor: not-allowed !important;
 }
 
 input[type="checkbox"] {

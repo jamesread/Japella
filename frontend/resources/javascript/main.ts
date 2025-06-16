@@ -33,10 +33,11 @@ function submitPost (post) {
 export function main(): void {
 	createApp(App).mount('#app')
 
+	createSectionLink('Timeline', 'timeline')
 	createSectionLink('Social Accounts', 'social-accounts')
 	createSectionLink('Canned Posts', 'canned-posts')
 	createSectionLink('Post', 'post-box')
-//	createSectionLink('Calendar', 'calendar')
+	createSectionLink('Calendar', 'calendar')
 //	createSectionLink('Status', 'status')
 	loadNavSection()
 

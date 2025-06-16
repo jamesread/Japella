@@ -4,10 +4,7 @@
 		<p>Post a message to a service.</p>
 
 		<form @submit.prevent="submitPost" id = "submit-post">
-			<label>Type</label>
-			<RadioGroup name = "post-mode" v-model = "postMode" :availablePostModes = "availablePostModes" />
-
-			<span class = "fake-label">Social account</span>
+			<span class = "fake-label">Social accounts:</span>
 			<div v-if = "postMode == 'canned'">
 				<p>Canned posts just get saved.</p>
 			</div>
@@ -36,8 +33,7 @@
 			</div>
 
 
-			<label class = "grid-wide">Message</label>
-			<textarea id = "post" rows = "8" cols = "80" class = "grid-wide"></textarea>
+			<textarea id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!"></textarea>
 
 			<fieldset>
 				<button id = "submit" type = "submit">Post</button>
@@ -54,7 +50,20 @@
 
 	const clientReady = ref(false);
 	const items = ref([]);
-	const availablePostModes = ref(['live', 'canned', 'scheduled']);
+	const availablePostModes = ref([
+		{
+			"title": "Live",
+			"disabled": false,
+		},
+		{
+			"title": "Canned",
+			"disabled": true,
+		},
+		{
+			"title": "Scheduled",
+			"disabled": true,
+		}
+	]);
 
 	const waitForClient = () => {
 	  return new Promise((resolve) => {
@@ -128,17 +137,18 @@
 				submit.innerText = "Post";
 				submit.disabled = false;
 
-				let status = ""
+				for (let x of res.posts) {
+					let status = ""
 
-				if (res.success) {
-					status = "good"
-				} else {
-					status = "bad"
+					if (res.success) {
+						status = "good"
+					} else {
+						status = "bad"
+					}
+
+					let n = new Notification(status, "Post Submitted", "Your post has been submitted successfully.", res.postUrl)
+					n.show()
 				}
-
-				let n = new Notification(status, "Post Submitted", "Your post has been submitted successfully.", res.postUrl)
-
-				n.show()
 			})
 			.catch((error) => {
 				alert("Error posting message: " + error);

@@ -11,7 +11,6 @@ message SubmitPostRequest {
 
 message SubmitPostResponse {
 	repeated PostStatus posts = 1;
-	string post_url = 2;
 }
 
 message PostStatus {
@@ -19,6 +18,7 @@ message PostStatus {
 	string social_account_id = 2;
 	string post_url = 3;
 	bool success = 4;
+	string created = 5;
 }
 
 message GetStatusRequest {}
@@ -119,6 +119,13 @@ message StandardResponse {
 	string redirect_url = 3;
 }
 
+message GetTimelineRequest {
+}
+
+message GetTimelineResponse {
+	repeated PostStatus posts = 1;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -139,4 +146,6 @@ service JapellaControlApiService {
 	rpc GetConnectors(GetConnectorsRequest) returns (GetConnectorsResponse) {}
 
 	rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse) {}
+
+	rpc GetTimeline(GetTimelineRequest) returns (GetTimelineResponse) {}
 }

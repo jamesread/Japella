@@ -47,7 +47,6 @@
 				console.log('OAuth response:', res);
 
 				window.location.href = res.url;
-				fetchServices(); // Refresh the list after connecting
 			})
 			.catch((error) => {
 				console.error('Error connecting to service:', error);

@@ -63,6 +63,9 @@ const (
 	// JapellaControlApiServiceStartOAuthProcedure is the fully-qualified name of the
 	// JapellaControlApiService's StartOAuth RPC.
 	JapellaControlApiServiceStartOAuthProcedure = "/japella.controlapi.v1.JapellaControlApiService/StartOAuth"
+	// JapellaControlApiServiceGetTimelineProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetTimeline RPC.
+	JapellaControlApiServiceGetTimelineProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetTimeline"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -78,6 +81,7 @@ type JapellaControlApiServiceClient interface {
 	RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error)
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
+	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -152,6 +156,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("StartOAuth")),
 			connect.WithClientOptions(opts...),
 		),
+		getTimeline: connect.NewClient[v1.GetTimelineRequest, v1.GetTimelineResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetTimelineProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -167,6 +177,7 @@ type japellaControlApiServiceClient struct {
 	refreshSocialAccount *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
 	getConnectors        *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
 	startOAuth           *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
+	getTimeline          *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -219,6 +230,11 @@ func (c *japellaControlApiServiceClient) StartOAuth(ctx context.Context, req *co
 	return c.startOAuth.CallUnary(ctx, req)
 }
 
+// GetTimeline calls japella.controlapi.v1.JapellaControlApiService.GetTimeline.
+func (c *japellaControlApiServiceClient) GetTimeline(ctx context.Context, req *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error) {
+	return c.getTimeline.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -232,6 +248,7 @@ type JapellaControlApiServiceHandler interface {
 	RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error)
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
+	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -301,6 +318,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("StartOAuth")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetTimelineHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetTimelineProcedure,
+		svc.GetTimeline,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -323,6 +346,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetConnectorsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceStartOAuthProcedure:
 			japellaControlApiServiceStartOAuthHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetTimelineProcedure:
+			japellaControlApiServiceGetTimelineHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -370,4 +395,8 @@ func (UnimplementedJapellaControlApiServiceHandler) GetConnectors(context.Contex
 
 func (UnimplementedJapellaControlApiServiceHandler) StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.StartOAuth is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetTimeline is not implemented"))
 }

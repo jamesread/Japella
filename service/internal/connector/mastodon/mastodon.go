@@ -79,10 +79,6 @@ func (c *MastodonConnector) Start() {
 	if c.config.Register {
 		c.register()
 	}
-
-	if runtimeconfig.Get().Amqp.Enabled {
-		go amqpReplier()
-	}
 }
 
 func amqpReplier() {

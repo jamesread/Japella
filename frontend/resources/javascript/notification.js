@@ -4,6 +4,15 @@ export default class Notification {
     this.title = title;
     this.message = message;
     this.url = url;
+
+    this.notificationList = document.getElementById('notification-list');
+
+    if (!this.notificationList) {
+      this.notificationList = document.createElement('div');
+      this.notificationList.setAttribute('id', 'notification-list');
+    }
+
+    document.body.appendChild(this.notificationList);
   }
 
   show() {
@@ -33,7 +42,7 @@ export default class Notification {
     notification.appendChild(titleElement);
     notification.appendChild(messageElement);
 
-    document.body.appendChild(notification);
+    this.notificationList.appendChild(notification);
 
     setTimeout(() => {
       notification.remove();

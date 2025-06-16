@@ -102,7 +102,7 @@
 
 		return await window.client.getSocialAccounts()
 			.then((ret) => {
-				ret.accounts.sort((a, b) => a.id.localeCompare(b.id))
+				ret.accounts.sort((a, b) => Number(a.id) - Number(b.id))
 
 				accounts.value = ret.accounts || []
 			})
