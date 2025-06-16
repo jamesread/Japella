@@ -1,22 +1,13 @@
-header img {
-	width: 2em;
-	padding: 0.5em;
+@import 'femtocrank/style.css';
+@import 'femtocrank/dark.css';
+
+h2 {
 }
 
-header {
-	place-items: center;
-	gap: 1em;
-	padding: 0;
-}
-
-body {
-	display: flex;
-	flex-direction: column;
-	min-height: 100vh;
-}
-
-main {
-	flex-grow: 1;
+section.small {
+	width: 60%;
+	max-width: 720px;
+	margin: auto;
 }
 
 .notification {
@@ -25,7 +16,7 @@ main {
 	margin-bottom: 1em;
 	position: fixed;
 	top: 1em;
-	left: 1em;
+	right: 1em;
 	z-index: 1000;
 	cursor: pointer;
 }
@@ -34,15 +25,19 @@ main {
 	display: block;
 }
 
-.check-list label {
-	background-color: #f0f0f0;
-	padding: 0.5em;
-	margin-right: 0.5em;
-	cursor: pointer;
+.notification a {
+	color: black;
+	display: block;
+	margin-top: 1em;
+	font-weight: bold;
 }
 
-.check-list label:hover {
-	background-color: #e0e0e0;
+.inline-notification:last-child {
+	margin-bottom: 0;
+}
+
+input[type="checkbox"] {
+	display: none;
 }
 
 @media (max-width: 600px) {

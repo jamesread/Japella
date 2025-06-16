@@ -9,11 +9,11 @@ type BlueskyConnector struct {
 	connector.ConnectorWithWall
 }
 
-func (b *BlueskyConnector) StartWithConfig(config any) {
+func (b *BlueskyConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
 }
 
 func (b *BlueskyConnector) GetIdentity() string {
-	return "?"
+	return "untitled-account"
 }
 
 func (b *BlueskyConnector) GetProtocol() string {
@@ -26,4 +26,8 @@ func (b *BlueskyConnector) PostToWall(message string) error {
 
 func (b *BlueskyConnector) GetIcon() string {
 	return "bi:bluesky"
+}
+
+func (b *BlueskyConnector) OnRefresh(socialAccount *connector.SocialAccount) error {
+	return nil
 }

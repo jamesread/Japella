@@ -1,8 +1,9 @@
 export default class Notification {
-  constructor(cssClass, title, message) {
+  constructor(cssClass, title, message, url) {
     this.cssClass = cssClass || 'info';
     this.title = title;
     this.message = message;
+    this.url = url;
   }
 
   show() {
@@ -14,6 +15,14 @@ export default class Notification {
 
     const messageElement = document.createElement('span');
     messageElement.textContent = this.message;
+
+    if (this.url) {
+      const linkElement = document.createElement('a');
+      linkElement.href = this.url;
+      linkElement.innerText = 'Link';
+      linkElement.target = '_blank';
+      messageElement.appendChild(linkElement);
+    }
 
     notification.appendChild(titleElement);
     notification.appendChild(messageElement);

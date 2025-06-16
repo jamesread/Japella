@@ -31,9 +31,10 @@ func allowCors(h http.Handler) http.Handler {
 func Start() {
 	mux := http.NewServeMux()
 
-	apipath, apihandler := controlapi.GetNewHandler()
+	apipath, apihandler, srv := controlapi.GetNewHandler()
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", apihandler))
+	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
 	mux.Handle("/", http.StripPrefix("/", dashboard.GetNewHandler()))
 
 	endpoint := "0.0.0.0:8080"

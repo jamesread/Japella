@@ -3,9 +3,9 @@ package runtimeconfig
 type CommonConfig struct {
 	ConfigVersion int `yaml:"configVersion"`
 
-	Amqp       AmqpConfig
-	Connectors []*ConnectorConfigWrapper
-	Database   DatabaseConfig
+	Amqp         AmqpConfig
+	Connectors   []*ConnectorConfigWrapper
+	Database     DatabaseConfig
 	Nanoservices []NanoserviceConfig
 }
 
@@ -13,7 +13,7 @@ type ConnectorConfig interface {
 }
 
 type NanoserviceConfig struct {
-	Name        string
+	Name string
 }
 
 type ConnectorConfigWrapper struct {
@@ -26,8 +26,8 @@ type BlueskyConfig struct {
 }
 
 type XConfig struct {
-	APIKey string
-	APISecret string
+	ClientID     string
+	ClientSecret string
 }
 
 type DiscordConfig struct {
@@ -58,12 +58,11 @@ type DatabaseConfig struct {
 }
 
 type MastodonConfig struct {
-	Register     bool
-	AppId        string
+	Register bool
+	//	AppId        string
 	ClientId     string
 	ClientSecret string
 	Website      string
-	Token        string
 
 	Inert bool
 }

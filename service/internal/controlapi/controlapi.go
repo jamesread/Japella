@@ -1,13 +1,12 @@
 package controlapi
 
 import (
-	"connectrpc.com/connect"
-	connectcors "connectrpc.com/cors"
 	"context"
-	"database/sql"
 	"fmt"
 
-	_ "github.com/go-sql-driver/mysql"
+	"connectrpc.com/connect"
+	connectcors "connectrpc.com/cors"
+	"golang.org/x/oauth2"
 
 	"net/http"
 
@@ -18,85 +17,71 @@ import (
 	buildinfo "github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connectorcontroller"
+	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
+	"os"
+
+	"github.com/google/uuid"
 )
 
 type ControlApi struct {
-	dbconn *sql.DB
+	db *db.DB
+
+	oauth2states map[string]*oauth2State
 
 	cc *connectorcontroller.ConnectionController
+
+	socialaccounts map[string]*connector.SocialAccount
+}
+
+type oauth2State struct {
+	config    *oauth2.Config
+	connector connector.OAuth2Connector
+	verifier  string
 }
 
 func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
-	if runtimeconfig.Get().Database.Enabled {
-		s.reconnectDatabase(cfg.Database)
-	}
+	s.db = &db.DB{}
+	s.db.ReconnectDatabase(cfg.Database)
 
-	s.cc = connectorcontroller.New()
+	s.oauth2states = make(map[string]*oauth2State)
+	s.cc = connectorcontroller.New(s.db)
 
 	log.Infof("ControlApi started with s: %+v", s)
+
+	s.loadSocialAccounts()
 }
 
-func (s *ControlApi) reconnectDatabase(db runtimeconfig.DatabaseConfig) {
-	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", db.User, db.Password, db.Host, db.Database)
+func (s *ControlApi) loadSocialAccounts() {
+	s.socialaccounts = make(map[string]*connector.SocialAccount)
 
-	var err error
-
-	s.dbconn, err = sql.Open("mysql", url)
-
-	if err != nil {
-		log.Warnf("Failed to connect to database: %v", err)
+	for _, account := range s.db.SelectSocialAccounts() {
+		s.socialaccounts[account.Id] = &connector.SocialAccount{
+			Id:         account.Id,
+			Connector:  account.Connector,
+			Identity:   account.Identity,
+			OAuthToken: account.OAuthToken,
+		}
 	}
 }
 
 func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[controlv1.GetCannedPostsRequest]) (*connect.Response[controlv1.GetCannedPostsResponse], error) {
-	if s.dbconn == nil {
-		log.Warnf("Database connection is not established, cannot fetch canned posts")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database connection is not established"))
-	}
+	cannedPosts := s.db.SelectCannedPosts()
 
-	sql := "SELECT id, content, created FROM canned_posts ORDER BY created DESC"
-	rows, err := s.dbconn.Query(sql)
+	ret := make([]*controlv1.CannedPost, 0, len(cannedPosts))
 
-	if err != nil {
-		log.Errorf("Error querying canned posts: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to query canned posts: %w", err))
-	}
-
-	defer rows.Close()
-
-	var posts []*controlv1.CannedPost
-
-	for rows.Next() {
-		var id, content, created string
-
-		if err := rows.Scan(&id, &content, &created); err != nil {
-			log.Errorf("Error scanning canned post: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to scan canned post: %w", err))
-		}
-		posts = append(posts, &controlv1.CannedPost{
-			Id:        id,
-			Content:   content,
-			CreatedAt: created,
+	for _, post := range cannedPosts {
+		ret = append(ret, &controlv1.CannedPost{
+			Id:      post.Id,
+			Content: post.Content,
 		})
 	}
-	if err := rows.Err(); err != nil {
-		log.Errorf("Error iterating over canned posts: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("error iterating over canned posts: %w", err))
-	}
-
-	// If no posts found, return an empty response
-	if len(posts) == 0 {
-		log.Warnf("No canned posts found in the database")
-	}
-
-	// Create response with canned GetCannedPosts
-	// posts, if any
 
 	res := connect.NewResponse(&controlv1.GetCannedPostsResponse{
-		Posts: posts,
+		Posts: ret,
 	})
 
 	return res, nil
@@ -112,45 +97,66 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 	return res, nil
 }
 
-func marshalPostingServices(cc *connectorcontroller.ConnectionController) []*controlv1.PostingService {
-	services := make([]*controlv1.PostingService, 0)
+func (s *ControlApi) marshalSocialAccounts() []*controlv1.SocialAccount {
+	accounts := make([]*controlv1.SocialAccount, 0)
 
-	for id, svc := range cc.GetServices() {
-		if _, ok := svc.(connector.ConnectorWithWall); !ok {
-			continue
-		}
+	for account := range s.socialaccounts {
+		socialAccount := s.socialaccounts[account]
 
-		srv := &controlv1.PostingService{
-			Id:       id,
-			Identity: svc.GetIdentity(),
-			Icon:    svc.GetIcon(),
-			Protocol: svc.GetProtocol(),
-		}
+		connectorService := s.cc.Get(socialAccount.Connector)
 
-		services = append(services, srv)
+		accounts = append(accounts, &controlv1.SocialAccount{
+			Id:        socialAccount.Id,
+			Connector: socialAccount.Connector,
+			Identity:  socialAccount.Identity,
+			Icon:      connectorService.GetIcon(),
+		})
 	}
 
-	return services
+	return accounts
 }
 
 func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[controlv1.SubmitPostRequest]) (*connect.Response[controlv1.SubmitPostResponse], error) {
-	res := connect.NewResponse(&controlv1.SubmitPostResponse{})
+	res := &controlv1.SubmitPostResponse{}
 
-	log.Infof("Received post request: %+v %+v %+v", req.Msg.Content, req.Msg.PostingService, s)
+	log.Infof("Received post request for social accounts: %+v", req.Msg.SocialAccounts)
 
-	postingService := s.cc.Get(req.Msg.PostingService)
+	for _, accountId := range req.Msg.SocialAccounts {
+		log.Infof("Processing post for account: %s", accountId)
 
-	// If postingService implements connector.ConnectorWithWall, we can post to the wall
-	if wallService, ok := postingService.(connector.ConnectorWithWall); ok {
-		err := wallService.PostToWall(req.Msg.Content)
+		socialAccount := s.socialaccounts[accountId]
 
-		if err != nil {
-			log.Errorf("Error posting to wall: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to post to wall: %w", err))
+		if socialAccount == nil {
+			log.Errorf("Social account not found: %s", accountId)
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %s", accountId))
+		}
+
+		postingService := s.cc.Get(socialAccount.Connector)
+
+		if postingService == nil {
+			log.Errorf("Posting service not found for connector: %s", socialAccount.Connector)
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("posting service not found for connector: %s", socialAccount.Connector))
+		}
+
+		if wallService, ok := postingService.(connector.ConnectorWithWall); ok {
+			log.Infof("Posting to wall service wit account id: %v with is of connection proto: %v", accountId, wallService.GetProtocol())
+
+			postResult := wallService.PostToWall(socialAccount, req.Msg.Content)
+
+			if postResult.Err != nil {
+				log.Errorf("Error posting to wall: %v", postResult.Err)
+				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to post to wall: %w", postResult.Err))
+			}
+
+			res.PostUrl = postResult.URL
+			res.Success = true
+		} else {
+			log.Warnf("Posting service does not support wall posting: %s", postingService.GetProtocol())
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("posting service does not support wall posting: %s", postingService.GetProtocol()))
 		}
 	}
 
-	return res, nil
+	return connect.NewResponse(res), nil
 }
 
 func withCors(h http.Handler) http.Handler {
@@ -164,18 +170,20 @@ func withCors(h http.Handler) http.Handler {
 	return middleware.Handler(h)
 }
 
-func GetNewHandler() (string, http.Handler) {
+func GetNewHandler() (string, http.Handler, *ControlApi) {
 	server := &ControlApi{}
 	server.Start(runtimeconfig.Get())
 
 	path, handler := controlv1connect.NewJapellaControlApiServiceHandler(server)
 
-	return path, withCors(handler)
+	return path, withCors(handler), server
 }
 
-func (s *ControlApi) GetPostingServices(ctx context.Context, req *connect.Request[controlv1.GetPostingServicesRequest]) (*connect.Response[controlv1.GetPostingServicesResponse], error) {
-	res := connect.NewResponse(&controlv1.GetPostingServicesResponse{
-		Services: marshalPostingServices(s.cc),
+func (s *ControlApi) GetSocialAccounts(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountsRequest]) (*connect.Response[controlv1.GetSocialAccountsResponse], error) {
+	s.loadSocialAccounts()
+
+	res := connect.NewResponse(&controlv1.GetSocialAccountsResponse{
+		Accounts: s.marshalSocialAccounts(),
 	})
 
 	return res, nil
@@ -184,21 +192,7 @@ func (s *ControlApi) GetPostingServices(ctx context.Context, req *connect.Reques
 func (s *ControlApi) CreateCannedPost(ctx context.Context, req *connect.Request[controlv1.CreateCannedPostRequest]) (*connect.Response[controlv1.CreateCannedPostResponse], error) {
 	log.Infof("Creating canned post: %+v", req.Msg)
 
-	sql := "INSERT INTO canned_posts (content) VALUES (?)"
-
-	if s.dbconn == nil {
-		log.Warnf("Database connection is not established, cannot create canned post")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database connection is not established"))
-	}
-
-	_, err := s.dbconn.Exec(sql, req.Msg.Content)
-
-	if err != nil {
-		log.Errorf("Error inserting canned post: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to insert canned post: %w", err))
-	}
-
-	log.Infof("Canned post created successfully: %s", req.Msg.Content)
+	s.db.CreateCannedPost(req.Msg.Content)
 
 	res := connect.NewResponse(&controlv1.CreateCannedPostResponse{
 		Message: "OK",
@@ -208,26 +202,201 @@ func (s *ControlApi) CreateCannedPost(ctx context.Context, req *connect.Request[
 }
 
 func (s *ControlApi) DeleteCannedPost(ctx context.Context, req *connect.Request[controlv1.DeleteCannedPostRequest]) (*connect.Response[controlv1.DeleteCannedPostResponse], error) {
-	log.Infof("Deleting canned post with ID: %s", req.Msg.Id)
-
-	sql := "DELETE FROM canned_posts WHERE id = ?"
-
-	if s.dbconn == nil {
-		log.Warnf("Database connection is not established, cannot delete canned post")
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("database connection is not established"))
-	}
-
-	_, err := s.dbconn.Exec(sql, req.Msg.Id)
-
-	if err != nil {
-		log.Errorf("Error deleting canned post: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete canned post: %w", err))
-	}
-
-	log.Infof("Canned post deleted successfully with ID: %s", req.Msg.Id)
+	s.db.DeleteCannedPost(req.Msg.Id)
 
 	res := connect.NewResponse(&controlv1.DeleteCannedPostResponse{
 		Message: "OK",
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) GetConnectors(ctx context.Context, req *connect.Request[controlv1.GetConnectorsRequest]) (*connect.Response[controlv1.GetConnectorsResponse], error) {
+	log.Infof("Fetching connectors")
+
+	res := connect.NewResponse(&controlv1.GetConnectorsResponse{
+		Connectors: marshalConnectors(s.cc, req.Msg.OnlyWantOauth),
+	})
+
+	return res, nil
+}
+
+func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOauth bool) []*controlv1.Connector {
+	services := make([]*controlv1.Connector, 0)
+
+	for id, svc := range cc.GetServices() {
+		_, isOAuth := svc.(connector.OAuth2Connector)
+
+		if !isOAuth && onlyWantOauth {
+			log.Infof("Skipping connector %s as it does not support OAuth", id)
+			continue
+		}
+
+		srv := &controlv1.Connector{
+			Id:       id,
+			Name:     svc.GetProtocol(),
+			Icon:     svc.GetIcon(),
+			HasOauth: isOAuth,
+		}
+
+		services = append(services, srv)
+	}
+
+	log.Infof("Marshalled connectors: %+v", len(services))
+
+	return services
+}
+
+func (s *ControlApi) StartOAuth(ctx context.Context, req *connect.Request[controlv1.StartOAuthRequest]) (*connect.Response[controlv1.StartOAuthResponse], error) {
+	log.Infof("Starting OAuth flow for connector: %s", req.Msg.ConnectorId)
+
+	svc := s.cc.Get(req.Msg.ConnectorId)
+
+	if svc == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector not found: %s", req.Msg.ConnectorId))
+	}
+
+	oauthConnector, ok := svc.(connector.OAuth2Connector)
+
+	if !ok {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("connector does not support OAuth: %s", req.Msg.ConnectorId))
+	}
+
+	verifier := oauth2.GenerateVerifier()
+
+	cfg := oauthConnector.GetOAuth2Config()
+
+	stateKey := uuid.New().String()
+
+	url := cfg.AuthCodeURL(stateKey, oauth2.S256ChallengeOption(verifier))
+
+	s.oauth2states[stateKey] = &oauth2State{
+		config:    cfg,
+		connector: oauthConnector,
+		verifier:  verifier,
+	}
+
+	log.Infof("OAuth flow started for connector: %s, config: %+v", req.Msg.ConnectorId, cfg)
+	log.Infof("OAuth URL: %s", url)
+
+	res := connect.NewResponse(&controlv1.StartOAuthResponse{
+		Url: url,
+	})
+
+	return res, nil
+}
+
+func (c *ControlApi) registerAccount(connector string, accessToken string) {
+	err := c.db.RegisterAccount(connector, accessToken)
+
+	if err != nil {
+		log.Errorf("Error registering account: %v", err)
+	} else {
+		log.Infof("Account registered successfully with connector: %s", accessToken)
+	}
+}
+
+func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Request) {
+	log.Infof("Received OAuth2 callback with URL: %s", r.URL.String())
+
+	errText := r.URL.Query().Get("error")
+
+	if errText != "" {
+		redirect(w, fmt.Sprintf("OAuth2 error: %v", errText), "bad")
+		return
+	}
+
+	stateKey := r.URL.Query().Get("state")
+	code := r.URL.Query().Get("code")
+
+	state := s.oauth2states[stateKey]
+
+	if state == nil {
+		redirect(w, fmt.Sprintf("state not found: %v", stateKey), "bad")
+		return
+	}
+
+	client := &http.Client{
+		Transport: utils.NewLoggingTransport(nil),
+	}
+
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
+
+	token, err := state.config.Exchange(ctx, code, oauth2.VerifierOption(state.verifier))
+
+	if err != nil {
+		log.Errorf("Error exchanging OAuth2 code: %v", err)
+		redirect(w, "error exchanging OAuth2 code", "bad")
+		return
+	}
+
+	log.Infof("Received token on exchange: %+v", token)
+
+	log.Infof("State connector: %+v", state)
+
+	s.registerAccount(state.connector.GetProtocol(), token.AccessToken)
+
+	log.Infof("OAuth2 access token: %s", token.AccessToken)
+
+	redirect(w, "Account registered successfully", "good")
+}
+
+func redirect(w http.ResponseWriter, message string, msgType string) {
+	inDev := os.Getenv("JAPELLA_VITE") == "true"
+
+	server := "http://localhost:8080"
+
+	if inDev {
+		server = "http://localhost:5173"
+	}
+
+	url := fmt.Sprintf("%v/?notification=%v&type=%v", server, message, msgType)
+
+	w.Header().Set("Location", url)
+	w.Write([]byte(fmt.Sprintf("<html><body><h1>Redirecting...</h1><p>%s</p><a href = \"%v\">click here</a></body></html>", message, url)))
+
+	log.Infof("Redirecting with message: %v", message)
+}
+
+func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Request[controlv1.DeleteSocialAccountRequest]) (*connect.Response[controlv1.DeleteSocialAccountResponse], error) {
+	log.Infof("Deleting social account with ID: %s", req.Msg.Id)
+
+	s.db.DeleteSocialAccount(req.Msg.Id)
+	delete(s.socialaccounts, req.Msg.Id)
+
+	res := connect.NewResponse(&controlv1.DeleteSocialAccountResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "OK",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Request[controlv1.RefreshSocialAccountRequest]) (*connect.Response[controlv1.RefreshSocialAccountResponse], error) {
+	log.Infof("Refreshing social account with ID: %s", req.Msg.Id)
+
+	socialAccount := s.socialaccounts[req.Msg.Id]
+
+	if socialAccount == nil {
+		log.Errorf("Social account not found: %s", req.Msg.Id)
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %s", req.Msg.Id))
+	}
+
+	connectorService := s.cc.Get(socialAccount.Connector)
+
+	if connectorService == nil {
+		log.Errorf("Connector service not found for connector: %s", socialAccount.Connector)
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector service not found for connector: %s", socialAccount.Connector))
+	}
+
+	connectorService.OnRefresh(socialAccount)
+
+	res := connect.NewResponse(&controlv1.RefreshSocialAccountResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+		},
 	})
 
 	return res, nil

@@ -1,9 +1,9 @@
 package support
 
 import (
-//	pb "github.com/jamesread/japella/gen/protobuf"
+	//	pb "github.com/jamesread/japella/gen/protobuf"
 	"github.com/jamesread/japella/internal/botbase"
-//	log "github.com/sirupsen/logrus"
+	// log "github.com/sirupsen/logrus"
 )
 
 type SupportBot struct {
@@ -14,11 +14,11 @@ func main() {
 	bot := &SupportBot{}
 	bot.Setup()
 	/*
-	bot.RegisterBangCommand("threadsearch", bot.searchForThreads)
+		bot.RegisterBangCommand("threadsearch", bot.searchForThreads)
 
-	go botbase.Consume(handleThreadSearchResponse)
+		go botbase.Consume(handleThreadSearchResponse)
 
-	bot.ConsumeBangCommands().Wait()
+		bot.ConsumeBangCommands().Wait()
 	*/
 }
 

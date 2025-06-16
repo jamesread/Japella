@@ -35,8 +35,12 @@ func (c *TelegramConnector) GetProtocol() string {
 	return "telegram"
 }
 
-func (c *TelegramConnector) StartWithConfig(rawconfig any) {
-	config, _ := rawconfig.(*runtimeconfig.TelegramConfig)
+func (c *TelegramConnector) GetIcon() string {
+	return "telegram"
+}
+
+func (c *TelegramConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
+	config, _ := startup.Config.(*runtimeconfig.TelegramConfig)
 
 	if config == nil || config.Token == "" {
 		c.Logger().Errorf("Telegram bot token is not set in configuration")

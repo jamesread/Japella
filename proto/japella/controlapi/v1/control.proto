@@ -6,10 +6,13 @@ option go_package = "github.com/jamesread/japella/gen/japella/controlapi/v1;cont
 
 message SubmitPostRequest {
 	string content = 1;
-	string posting_service = 2;
+	repeated string social_accounts = 2;
 }
 
-message SubmitPostResponse {}
+message SubmitPostResponse {
+	bool success = 1;
+	string post_url = 2;
+}
 
 message GetStatusRequest {}
 
@@ -17,20 +20,6 @@ message GetStatusResponse {
 	string status = 1;
 	repeated string nanoservices = 2;
 	string version = 3;
-}
-
-message GetPostingServicesRequest {
-}
-
-message GetPostingServicesResponse {
-	repeated PostingService services = 1;
-}
-
-message PostingService {
-	string id = 1;
-	string protocol = 2;
-	string identity = 3;
-	string icon = 4;
 }
 
 message GetCannedPostsRequest {
@@ -62,16 +51,85 @@ message DeleteCannedPostResponse {
 	string message = 1;
 }
 
+message GetSocialAccountsRequest {
+}
+
+message GetSocialAccountsResponse {
+	repeated SocialAccount accounts = 1;
+}
+
+message SocialAccount {
+	string id = 1;
+	string identity = 2;
+	bool has_wall = 3;
+	bool has_channels = 4;
+	string connector = 5;
+	string icon = 6;
+}
+
+message GetConnectorsRequest {
+	bool only_want_oauth = 1;
+}
+
+message GetConnectorsResponse {
+	repeated Connector connectors = 1;
+}
+
+message Connector {
+	string id = 1;
+	string name = 2;
+	string icon = 3;
+	bool has_oauth = 4;
+}
+
+message StartOAuthRequest {
+	string connector_id = 1;
+}
+
+message StartOAuthResponse {
+	string url = 1;
+}
+
+message DeleteSocialAccountRequest {
+	string id = 1;
+}
+
+message DeleteSocialAccountResponse {
+	StandardResponse standard_response = 1;
+}
+
+message RefreshSocialAccountRequest {
+	string id = 1;
+}
+
+message RefreshSocialAccountResponse {
+	StandardResponse standard_response = 1;
+}
+
+message StandardResponse {
+	bool success = 1;
+	string message = 2;
+	string redirect_url = 3;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
 	rpc SubmitPost(SubmitPostRequest) returns (SubmitPostResponse) {}
-
-	rpc GetPostingServices(GetPostingServicesRequest) returns (GetPostingServicesResponse) {}
 
 	rpc GetCannedPosts(GetCannedPostsRequest) returns (GetCannedPostsResponse) {}
 
 	rpc CreateCannedPost(CreateCannedPostRequest) returns (CreateCannedPostResponse) {}
 
 	rpc DeleteCannedPost(DeleteCannedPostRequest) returns (DeleteCannedPostResponse) {}
+
+	rpc GetSocialAccounts(GetSocialAccountsRequest) returns (GetSocialAccountsResponse) {}
+
+	rpc DeleteSocialAccount(DeleteSocialAccountRequest) returns (DeleteSocialAccountResponse) {}
+
+	rpc RefreshSocialAccount(RefreshSocialAccountRequest) returns (RefreshSocialAccountResponse) {}
+
+	rpc GetConnectors(GetConnectorsRequest) returns (GetConnectorsResponse) {}
+
+	rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse) {}
 }
