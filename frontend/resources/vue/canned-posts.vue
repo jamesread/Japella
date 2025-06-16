@@ -7,11 +7,11 @@
 				<p>This page shows a list of social accounts that can be used in the chat.</p>
 			</div>
 			<div role = "toolbar">
-				<button @click = "refreshPosts" :disabled = "!clientReady">
+				<button @click = "refreshPosts" :disabled = "!clientReady" class = "neutral">
 					<Icon icon="material-symbols:refresh" />
 				</button>
 
-				<button>
+				<button class = "neutral" disabled>
 					<Icon icon="material-symbols:add-rounded" />
 				</button>
 			</div>

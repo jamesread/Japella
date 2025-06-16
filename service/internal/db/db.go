@@ -1,261 +1,154 @@
 package db
 
 import (
-	"database/sql"
-	"database/sql/driver"
-
-	"context"
-	"errors"
-
-	mysql "github.com/go-sql-driver/mysql"
+	"gorm.io/gorm"
+	"gorm.io/driver/mysql"
 
 	"fmt"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/jamesread/japella/internal/runtimeconfig"
-	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
-
-	"github.com/shogo82148/go-sql-proxy"
 
 	log "github.com/sirupsen/logrus"
 )
 
-var hooker *proxy.HooksContext
-
 type DB struct {
-	conn *sql.DB
-}
-
-func (db *DB) UpdateSocialAccountIdentity(id string, identity string) error {
-	query := "UPDATE accounts SET identity = ? WHERE id = ?"
-	_, err := db.conn.Exec(query, identity, id)
-
-	if err != nil {
-		log.Errorf("Error updating social account identity: %v", err)
-		return fmt.Errorf("error updating social account identity: %w", err)
-	}
-
-	return err
+	conn *gorm.DB
 }
 
 func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) {
-	hooker = &proxy.HooksContext{
-		Open: func(_ context.Context, _ interface{}, conn *proxy.Conn) error {
-			log.Println("SQL Open")
-			return nil
-		},
-		Exec: func(_ context.Context, _ interface{}, stmt *proxy.Stmt, args []driver.NamedValue, result driver.Result) error {
-			log.Printf("SQL Exec: %s; args = %+v\n", stmt.QueryString, args)
-			return nil
-		},
-		Query: func(_ context.Context, _ interface{}, stmt *proxy.Stmt, args []driver.NamedValue, rows driver.Rows) error {
-			log.Printf("SQL Query: %s; args = %+v\n", stmt.QueryString, args)
-			return nil
-		},
+	if db.conn != nil {
+		log.Warn("Database connection already exists, skipping reconnection")
+		return
 	}
-
-	sql.Register("mysql-logged", proxy.NewProxyContext(
-		&mysql.MySQLDriver{},
-		hooker,
-	))
 
 	if !dbconfig.Enabled {
 		log.Warnf("Database is not enabled in configuration, skipping connection")
 		return
 	}
 
-	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", dbconfig.User, dbconfig.Password, dbconfig.Host, dbconfig.Database)
+	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", dbconfig.User, dbconfig.Password, dbconfig.Host, dbconfig.Database)
 
 	var err error
 
-	db.conn, err = sql.Open("mysql-logged", url)
+	db.conn, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 
 	if err != nil {
 		log.Warnf("Failed to connect to database: %v", err)
 	}
+
+	db.Migrate()
 }
 
-type SocialAccount struct {
-	Id         string
-	Connector  string
-	Identity   string
-	OAuthToken string
-}
-
-func (db *DB) SelectSocialAccounts() map[string]*SocialAccount {
-	socialaccounts := make(map[string]*SocialAccount)
-
+func (db *DB) Migrate() {
 	if db.conn == nil {
-		log.Warnf("Database connection is not established, cannot load social accounts")
-		return socialaccounts
+		log.Warn("Database connection is not established, cannot perform migration")
+		return
 	}
 
-	sql := "SELECT id, connector, oauthToken, identity FROM accounts"
-	rows, err := db.conn.Query(sql)
+	err := db.conn.AutoMigrate(
+		&SocialAccount{},
+		&CannedPost{},
+		&Post{},
+	)
 
 	if err != nil {
-		log.Errorf("Error querying social accounts: %v", err)
-		return socialaccounts
+		log.Errorf("Error during database migration: %v", err)
+		return
 	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var id, connectorName, oauthToken, identity string
-
-		if err := rows.Scan(&id, &connectorName, &oauthToken, &identity); err != nil {
-			log.Errorf("Error scanning social account: %v", err)
-			continue
-		}
-
-		socialaccounts[id] = &SocialAccount{
-			Id:         id,
-			Connector:  connectorName,
-			Identity:   identity,
-			OAuthToken: oauthToken,
-		}
-	}
-
-	return socialaccounts
 }
 
-type CannedPost struct {
-	Id      string
-	Content string
+func (db *DB) UpdateSocialAccountIdentity(id uint32, identity string) error {
+	db.conn.Model(&SocialAccount{}).Where("id = ?", id).Update("identity", identity)
+
+	return nil
 }
 
-func (db *DB) SelectCannedPosts() map[string]*CannedPost {
-	cannedPosts := make(map[string]*CannedPost)
+func (db *DB) SelectSocialAccounts(onlyActive bool) []*SocialAccount {
+	ret := make([]*SocialAccount, 0)
 
-	if db.conn == nil {
-		log.Warnf("Database connection is not established, cannot load canned posts")
-		return cannedPosts
+	if onlyActive {
+		log.Infof("Selecting only active social accounts")
+		db.conn.Where("active = ?", 1).Find(&ret)
+	} else {
+		db.conn.Find(&ret)
 	}
 
-	sql := "SELECT id, content FROM canned_posts"
-	rows, err := db.conn.Query(sql)
+	return ret
+}
 
-	if err != nil {
-		log.Errorf("Error querying canned posts: %v", err)
-		return cannedPosts
-	}
+func (db *DB) SelectCannedPosts() []*CannedPost {
+	ret := make([]*CannedPost, 0)
 
-	defer rows.Close()
+	db.conn.Find(&ret)
 
-	for rows.Next() {
-		var id, content string
-
-		if err := rows.Scan(&id, &content); err != nil {
-			log.Errorf("Error scanning canned post: %v", err)
-			continue
-		}
-
-		cannedPosts[id] = &CannedPost{
-			Id: id,
-			Content: content,
-		}
-	}
-
-	return cannedPosts
+	return ret
 }
 
 func (db *DB) CreateCannedPost(content string) error {
-	if db.conn == nil {
-		return fmt.Errorf("database connection is not established")
+	post := &CannedPost{
+		Content: content,
 	}
 
-	sql := "INSERT INTO canned_posts (content) VALUES (?)"
+	db.conn.Create(post)
 
-	_, err := db.conn.Exec(sql, content)
-
-	return err
+	return nil
 }
 
-func (db *DB) DeleteCannedPost(id string) error {
+func (db *DB) DeleteCannedPost(id uint32) error {
 	log.Infof("Deleting canned post with ID: %s", id)
 
-	sql := "DELETE FROM canned_posts WHERE id = ?"
+	db.conn.Delete(&CannedPost{}, id)
 
-	_, err := db.conn.Exec(sql, id)
-
-	return err
+	return nil
 }
 
 func (db *DB) RegisterAccount(connector string, oauthToken string) error {
-	if db.conn == nil {
-		return errors.New("database connection is not established")
-	}
-
-	sql := "INSERT INTO accounts (connector, identity, oauthToken) VALUES (?, ?, ?)"
-	_, err := db.conn.Exec(sql, connector, "?", oauthToken)
-
-	if err != nil {
-		return fmt.Errorf("error inserting social account: %v", err)
-	}
+	db.conn.Create(&SocialAccount{
+		Connector:  connector,
+		Identity:   "?",
+		OAuthToken: oauthToken,
+	})
 
 	return nil
 }
 
-func (db *DB) DeleteSocialAccount(id string) error {
-	if db.conn == nil {
-		return fmt.Errorf("database connection is not established")
-	}
+func (db *DB) DeleteSocialAccount(id uint32) error {
+	res := db.conn.Delete(&SocialAccount{}, id)
 
-	sql := "DELETE FROM accounts WHERE id = ?"
-	_, err := db.conn.Exec(sql, id)
+	return res.Error
+}
 
-	if err != nil {
-		log.Errorf("Error deleting social account: %v", err)
-		return fmt.Errorf("error deleting social account: %v", err)
-	}
+func (db *DB) CreatePost(post *Post) error {
+	db.conn.Create(post)
 
 	return nil
 }
 
-func (db *DB) CreatePost(postStatus *controlv1.PostStatus, socialAccountId string) error {
-	if db.conn == nil {
-		return fmt.Errorf("database connection is not established")
-	}
+func (db *DB) SelectPosts() ([]*Post, error) {
+	ret := make([]*Post, 0)
 
-	sql := "INSERT INTO posts (id, social_account, status, created) VALUES (?, ?, ?, now())"
-	_, err := db.conn.Exec(sql, postStatus.Id, socialAccountId, postStatus.Success)
+	db.conn.Preload("SocialAccount").Order("id DESC").Find(&ret)
 
-	if err != nil {
-		log.Errorf("Error inserting post: %v", err)
-		return fmt.Errorf("error inserting post: %v", err)
-	}
-
-	return err
+	return ret, nil
 }
 
-func (db *DB) SelectPosts() ([]*controlv1.PostStatus, error) {
-	if db.conn == nil {
-		return nil, fmt.Errorf("database connection is not established")
+func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {
+	var account SocialAccount
+
+	result := db.conn.First(&account, id)
+
+	if result.Error != nil {
+		return nil, result.Error
 	}
 
-	sql := "SELECT id, social_account, status, created FROM posts"
-	rows, err := db.conn.Query(sql)
+	return &account, nil
+}
 
-	if err != nil {
-		log.Errorf("Error querying posts: %v", err)
-		return nil, fmt.Errorf("error querying posts: %v", err)
+func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
+	result := db.conn.Model(&SocialAccount{}).Where("id = ?", id).Update("active", active)
+
+	if result.Error != nil {
+		return result.Error
 	}
 
-	defer rows.Close()
-
-	var posts []*controlv1.PostStatus
-
-	for rows.Next() {
-		var post controlv1.PostStatus
-		var socialAccountId string
-
-		if err := rows.Scan(&post.Id, &socialAccountId, &post.Success, &post.Created); err != nil {
-			log.Errorf("Error scanning post: %v", err)
-			continue
-		}
-
-		post.SocialAccountId = socialAccountId
-		posts = append(posts, &post)
-	}
-
-	return posts, nil
+	return nil
 }

@@ -1,14 +1,25 @@
 <template>
 	<section class="timeline">
-		<h2>Timeline</h2>
-		<p>This shows the latest posts from your social accounts.</p>
+		<div class = "flex-row">
+			<div class="fg1">
+				<h2>Timeline</h2>
+				<p>This shows the latest posts from your social accounts.</p>
+			</div>
 
-		<table v-if="timeline.length">
+			<div role="toolbar">
+				<button @click="refreshTimeline" :disabled="!clientReady" class = "neutral">
+					<Icon icon="material-symbols:refresh" />
+				</button>
+			</div>
+		</div>
+
+		<table v-if="timeline.length" class = "data-table">
 			<thead>
 				<tr>
-					<th>Title</th>
+					<th>Social Account</th>
 					<th>Content</th>
 					<th>Date</th>
+					<th>URL</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -16,9 +27,13 @@
 					<td colspan="3">Loading timeline...</td>
 				</tr>
 				<tr v-else v-for="post in timeline" :key="post.id">
-					<td>{{ post.title }}</td>
+					<td>
+						<Icon :icon="post.socialAccountIcon" />
+						{{ post.socialAccountIdentity }}
+					</td>
 					<td>{{ post.content }}</td>
-					<td>{{ post.date }}</td>
+					<td>{{ post.created }}</td>
+					<td><a :href = "post.postUrl">link</a></td>
 				</tr>
 			</tbody>
 		</table>
@@ -34,19 +49,19 @@
 	import { ref, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
 	import InlineNotification from './inline-notification.vue';
+	import { Icon } from '@iconify/vue';
 
 	const timeline = ref([]);
 	const clientReady = ref(false);
 
 	async function getTimeline() {
 		if (!window.client) {
-			console.error("Client is not ready.")
 			return [];
 		}
 
 		return await window.client.getTimeline()
 			.then((ret) => {
-				return ret.timeline;
+				return ret.posts || [];
 			})
 			.catch((error) => {
 				console.error('Error fetching timeline:', error);
@@ -54,10 +69,16 @@
 			});
 	}
 
+	function refreshTimeline() {
+		getTimeline().then((posts) => {
+			timeline.value = posts;
+		});
+	}
+
 	onMounted(async () => {
 		await waitForClient();
 		clientReady.value = true;
 
-		timeline.value = await getTimeline();
+		refreshTimeline();
 	});
 </script>

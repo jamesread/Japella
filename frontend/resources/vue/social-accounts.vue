@@ -7,7 +7,7 @@
 				<p>This page shows a list of social accounts that can be used in the chat.</p>
 			</div>
 			<div role = "toolbar">
-				<button @click = "refreshAccounts" :disabled = "!clientReady">
+				<button @click = "refreshAccounts()" :disabled = "!clientReady">
 					<Icon icon="material-symbols:refresh" />
 				</button>
 
@@ -45,6 +45,17 @@
 							<td>
 								<button @click="refreshAccount(account.id)" class="good">
 									<Icon icon="material-symbols:refresh" />
+								</button>
+
+								&nbsp;
+
+								<button @click="setAccountActive(account.id, true)" class="good" v-if="!account.active">
+									Enable
+									<Icon icon="material-symbols:toggle-on" />
+								</button>
+								<button @click="setAccountActive(account.id, false)" class="warning" v-else>
+									Disable
+									<Icon icon="material-symbols:toggle-off" />
 								</button>
 
 								&nbsp;
@@ -98,8 +109,6 @@
 	}
 
 	async function refreshAccounts() {
-		console.log('Refreshing social accounts...')
-
 		return await window.client.getSocialAccounts()
 			.then((ret) => {
 				ret.accounts.sort((a, b) => Number(a.id) - Number(b.id))
@@ -110,6 +119,17 @@
 				errorMessage.value = "Failed to fetch social accounts: " + error.message
 				console.error('Error fetching social accounts:', error)
 				return []
+			})
+	}
+
+	function setAccountActive(accountId, active) {
+		window.client.setSocialAccountActive({ "id": accountId, "active": active })
+			.then(() => {
+				refreshAccounts()
+			})
+			.catch((error) => {
+				errorMessage.value = "Failed to set social account active state: " + error.message
+				console.error('Error setting social account active state:', error)
 			})
 	}
 

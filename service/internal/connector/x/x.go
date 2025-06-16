@@ -91,7 +91,7 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 
 	utils.ClientDoJson(client, req, tweetResult)
 
-	res.URL = "https://x.com/status/" + tweetResult.Data.ID
+	res.URL = "https://x.com/user/status/" + tweetResult.Data.ID
 
 	return res
 }

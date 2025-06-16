@@ -6,7 +6,7 @@
 
 		<div class = "day-container">
 			<div class = "day" v-for = "d in getCalendarDates()" :key = "d">
-				<button @click = "showNotification(d)">
+				<button @click = "showNotification(d)" class = "neutral">
 					<small>{{ formatDate(d) }}</small>
 				</button>
 			</div>

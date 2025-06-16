@@ -82,7 +82,7 @@
 	  await waitForClient();
 	  clientReady.value = true;
 
-	  const ret = await window.client.getSocialAccounts();
+	  const ret = await window.client.getSocialAccounts({"onlyActive": true});
 
 	  items.value = ret.accounts
 	});
@@ -98,14 +98,14 @@
 	import { SubmitPostRequestSchema } from './../javascript/gen/japella/controlapi/v1/control_pb'
 	import Notification from './../javascript/notification.js'
 
-	function getPostingServices() {
+	function getSelectedPostingServices() {
 		const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
 
 		let ret = [];
 
 		for (let x of boxes) {
 			if (x.checked) {
-				ret.push(x.id);
+				ret.push(Number(x.value));
 			}
 		}
 
@@ -127,7 +127,7 @@
 		 // Use `create(SubmitPostRequestSchema)` to create a new message.
 		let req = {
 			content: post,
-			socialAccounts: getPostingServices(),
+			socialAccounts: getSelectedPostingServices(),
 		}
 
 		console.log(req)

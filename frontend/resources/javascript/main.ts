@@ -33,12 +33,16 @@ function submitPost (post) {
 export function main(): void {
 	createApp(App).mount('#app')
 
-	createSectionLink('Timeline', 'timeline')
-	createSectionLink('Social Accounts', 'social-accounts')
-	createSectionLink('Canned Posts', 'canned-posts')
 	createSectionLink('Post', 'post-box')
+	createSectionHeader('Schedule')
+	createSectionLink('Timeline', 'timeline')
+	createSectionLink('Canned Posts', 'canned-posts')
 	createSectionLink('Calendar', 'calendar')
-//	createSectionLink('Status', 'status')
+	createSectionHeader('Connections')
+	createSectionLink('Social Accounts', 'social-accounts')
+	createSectionHeader('System')
+	createSectionLink('Status', 'status')
+	createSectionLink('Settings', 'settings')
 	loadNavSection()
 
 	createApiClient()
@@ -57,6 +61,15 @@ function loadNavSection(): void {
 	}
 }
 
+function createSectionHeader(name: string): HTMLHeadingElement {
+	const header = document.createElement('h2');
+	header.innerText = name;
+
+	document.getElementById('nav-section-links').appendChild(header);
+
+	return header;
+}
+
 function createSectionLink(name: string, sectionClass: string): HTMLAnchorElement {
 	const link = document.createElement('a');
 	link.innerText = name;
@@ -67,17 +80,17 @@ function createSectionLink(name: string, sectionClass: string): HTMLAnchorElemen
 	const li = document.createElement('li');
 	li.appendChild(link);
 
-	document.getElementsByTagName('nav')[0].querySelector('ul').appendChild(li);
+	document.getElementById('nav-section-links').appendChild(li);
 
 	return link;
 }
 
 function showNavSection(sectionClass: string): void {
-	document.getElementsByTagName('nav')[0].querySelector('ul').querySelectorAll('a').forEach((a) => {
+	document.getElementById('nav-section-links').querySelectorAll('a').forEach((a) => {
 			a.classList.remove('active')
 	});
 
-	const link = document.querySelector('nav a[href="#' + sectionClass + '"]');
+	const link = document.querySelector('a[href="#' + sectionClass + '"]');
 
 	if (link) {
 		link.classList.add('active')

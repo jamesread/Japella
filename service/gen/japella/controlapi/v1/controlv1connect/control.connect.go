@@ -66,6 +66,9 @@ const (
 	// JapellaControlApiServiceGetTimelineProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetTimeline RPC.
 	JapellaControlApiServiceGetTimelineProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetTimeline"
+	// JapellaControlApiServiceSetSocialAccountActiveProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetSocialAccountActive RPC.
+	JapellaControlApiServiceSetSocialAccountActiveProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetSocialAccountActive"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -82,6 +85,7 @@ type JapellaControlApiServiceClient interface {
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
+	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -162,22 +166,29 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
 			connect.WithClientOptions(opts...),
 		),
+		setSocialAccountActive: connect.NewClient[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetSocialAccountActiveProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountActive")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // japellaControlApiServiceClient implements JapellaControlApiServiceClient.
 type japellaControlApiServiceClient struct {
-	getStatus            *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	submitPost           *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
-	getCannedPosts       *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
-	createCannedPost     *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
-	deleteCannedPost     *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
-	getSocialAccounts    *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
-	deleteSocialAccount  *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
-	refreshSocialAccount *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
-	getConnectors        *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
-	startOAuth           *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
-	getTimeline          *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
+	getStatus              *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	submitPost             *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
+	getCannedPosts         *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
+	createCannedPost       *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
+	deleteCannedPost       *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
+	getSocialAccounts      *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
+	deleteSocialAccount    *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
+	refreshSocialAccount   *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
+	getConnectors          *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
+	startOAuth             *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
+	getTimeline            *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
+	setSocialAccountActive *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -235,6 +246,12 @@ func (c *japellaControlApiServiceClient) GetTimeline(ctx context.Context, req *c
 	return c.getTimeline.CallUnary(ctx, req)
 }
 
+// SetSocialAccountActive calls
+// japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive.
+func (c *japellaControlApiServiceClient) SetSocialAccountActive(ctx context.Context, req *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error) {
+	return c.setSocialAccountActive.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -249,6 +266,7 @@ type JapellaControlApiServiceHandler interface {
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
+	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -324,6 +342,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceSetSocialAccountActiveHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetSocialAccountActiveProcedure,
+		svc.SetSocialAccountActive,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountActive")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -348,6 +372,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceStartOAuthHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetTimelineProcedure:
 			japellaControlApiServiceGetTimelineHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetSocialAccountActiveProcedure:
+			japellaControlApiServiceSetSocialAccountActiveHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -399,4 +425,8 @@ func (UnimplementedJapellaControlApiServiceHandler) StartOAuth(context.Context, 
 
 func (UnimplementedJapellaControlApiServiceHandler) GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetTimeline is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive is not implemented"))
 }

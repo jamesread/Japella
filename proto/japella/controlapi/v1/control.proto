@@ -6,7 +6,7 @@ option go_package = "github.com/jamesread/japella/gen/japella/controlapi/v1;cont
 
 message SubmitPostRequest {
 	string content = 1;
-	repeated string social_accounts = 2;
+	repeated uint32 social_accounts = 2;
 }
 
 message SubmitPostResponse {
@@ -14,13 +14,14 @@ message SubmitPostResponse {
 }
 
 message PostStatus {
-	string id = 1;
-	string social_account_id = 2;
+	uint32 id = 1;
+	uint32 social_account_id = 2;
 	string post_url = 3;
 	bool success = 4;
 	string created = 5;
 	string social_account_icon = 6;
 	string social_account_identity = 7;
+	string content = 8;
 }
 
 message GetStatusRequest {}
@@ -39,7 +40,7 @@ message GetCannedPostsResponse {
 }
 
 message CannedPost {
-	string id = 1;
+	uint32 id = 1;
 	string content = 2;
 	string created_at = 3;
 }
@@ -53,7 +54,7 @@ message CreateCannedPostResponse {
 }
 
 message DeleteCannedPostRequest {
-	string id = 1;
+	uint32 id = 1;
 }
 
 message DeleteCannedPostResponse {
@@ -61,6 +62,7 @@ message DeleteCannedPostResponse {
 }
 
 message GetSocialAccountsRequest {
+	bool only_active = 1;
 }
 
 message GetSocialAccountsResponse {
@@ -68,12 +70,13 @@ message GetSocialAccountsResponse {
 }
 
 message SocialAccount {
-	string id = 1;
+	uint32 id = 1;
 	string identity = 2;
 	bool has_wall = 3;
 	bool has_channels = 4;
 	string connector = 5;
 	string icon = 6;
+	bool active = 7;
 }
 
 message GetConnectorsRequest {
@@ -85,7 +88,6 @@ message GetConnectorsResponse {
 }
 
 message Connector {
-	string id = 1;
 	string name = 2;
 	string icon = 3;
 	bool has_oauth = 4;
@@ -100,7 +102,7 @@ message StartOAuthResponse {
 }
 
 message DeleteSocialAccountRequest {
-	string id = 1;
+	uint32 id = 1;
 }
 
 message DeleteSocialAccountResponse {
@@ -108,7 +110,7 @@ message DeleteSocialAccountResponse {
 }
 
 message RefreshSocialAccountRequest {
-	string id = 1;
+	uint32 id = 1;
 }
 
 message RefreshSocialAccountResponse {
@@ -126,6 +128,15 @@ message GetTimelineRequest {
 
 message GetTimelineResponse {
 	repeated PostStatus posts = 1;
+}
+
+message SetSocialAccountActiveRequest {
+	uint32 id = 1;
+	bool active = 2;
+}
+
+message SetSocialAccountActiveResponse {
+	StandardResponse standard_response = 1;
 }
 
 service JapellaControlApiService {
@@ -150,4 +161,6 @@ service JapellaControlApiService {
 	rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse) {}
 
 	rpc GetTimeline(GetTimelineRequest) returns (GetTimelineResponse) {}
+
+	rpc SetSocialAccountActive(SetSocialAccountActiveRequest) returns (SetSocialAccountActiveResponse) {}
 }

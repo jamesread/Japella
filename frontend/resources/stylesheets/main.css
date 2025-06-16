@@ -33,6 +33,23 @@ section.small {
 	grid-column: 1 / span 2;
 }
 
+#nav-section-links h2 {
+	color: #bbb;
+	margin-left: .5em;
+	margin-bottom: 0.5em;
+}
+
+#nav-section-links a:hover {
+	color: white;
+	background-color: #1d345c;
+}
+
+#nav-section-links a.active {
+	text-decoration: underline;
+	color: white;
+	background-color: #1d345c;
+}
+
 #notification-list {
 	position: fixed;
 	right: 0;
@@ -42,12 +59,36 @@ section.small {
 	padding: 1em;
 }
 
+.user-info {
+	padding: .5em;
+}
+
+table.data-table tr:hover td {
+	background-color: #1d345c;
+	color: white;
+}
+
 input:disabled {
 	cursor: not-allowed !important;
 }
 
 input[type="checkbox"] {
 	display: none;
+}
+
+button.neutral {
+	background-color: transparent;
+	color: white;
+	border: #666 solid 1px;
+}
+
+button.neutral:hover {
+	background-color: #666;
+	color: white;
+}
+
+aside {
+	background-color: black;
 }
 
 @media (max-width: 600px) {

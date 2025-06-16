@@ -5,7 +5,7 @@
 		<p>This page shows a list of OAuth services that can be connected to Japella.</p>
 
 		<div v-for="service in services" :key="service.id">
-			<button @click="connectService(service.id)" class = "good" type = "submit">
+			<button @click="connectService(service.name)" class = "good" type = "submit">
 				<Icon :icon="service.icon" />
 
 				Login with {{ service.name }}

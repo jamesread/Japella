@@ -23,7 +23,7 @@ type ConnectorWithWall interface {
 }
 
 type SocialAccount struct {
-	Id         string
+	Id         uint32
 	Connector  string
 	Identity   string
 	OAuthToken string

@@ -33,8 +33,6 @@ type ControlApi struct {
 	oauth2states map[string]*oauth2State
 
 	cc *connectorcontroller.ConnectionController
-
-	socialaccounts map[string]*connector.SocialAccount
 }
 
 type oauth2State struct {
@@ -51,21 +49,6 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 	s.cc = connectorcontroller.New(s.db)
 
 	log.Infof("ControlApi started with s: %+v", s)
-
-	s.loadSocialAccounts()
-}
-
-func (s *ControlApi) loadSocialAccounts() {
-	s.socialaccounts = make(map[string]*connector.SocialAccount)
-
-	for _, account := range s.db.SelectSocialAccounts() {
-		s.socialaccounts[account.Id] = &connector.SocialAccount{
-			Id:         account.Id,
-			Connector:  account.Connector,
-			Identity:   account.Identity,
-			OAuthToken: account.OAuthToken,
-		}
-	}
 }
 
 func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[controlv1.GetCannedPostsRequest]) (*connect.Response[controlv1.GetCannedPostsResponse], error) {
@@ -75,8 +58,9 @@ func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[co
 
 	for _, post := range cannedPosts {
 		ret = append(ret, &controlv1.CannedPost{
-			Id:      post.Id,
+			Id:      post.ID,
 			Content: post.Content,
+			CreatedAt: post.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
 
@@ -97,19 +81,18 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 	return res, nil
 }
 
-func (s *ControlApi) marshalSocialAccounts() []*controlv1.SocialAccount {
+func (s *ControlApi) marshalSocialAccounts(onlyActive bool) []*controlv1.SocialAccount {
 	accounts := make([]*controlv1.SocialAccount, 0)
 
-	for account := range s.socialaccounts {
-		socialAccount := s.socialaccounts[account]
-
+	for _, socialAccount := range s.db.SelectSocialAccounts(onlyActive) {
 		connectorService := s.cc.Get(socialAccount.Connector)
 
 		accounts = append(accounts, &controlv1.SocialAccount{
-			Id:        socialAccount.Id,
+			Id:        socialAccount.ID,
 			Connector: socialAccount.Connector,
 			Identity:  socialAccount.Identity,
 			Icon:      connectorService.GetIcon(),
+			Active:    socialAccount.Active,
 		})
 	}
 
@@ -127,50 +110,63 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		postStatus := &controlv1.PostStatus{
 			Success:   false,
 			SocialAccountId: accountId,
+			Content:  req.Msg.Content,
 		}
+
+		socialAccount, _ := s.db.GetSocialAccount(accountId)
+
+		s.tryPostStatus(req.Msg.Content, socialAccount, postStatus)
+
+		s.db.CreatePost(&db.Post{
+			SocialAccountID: socialAccount.ID,
+			Content:         req.Msg.Content,
+			Status:         postStatus.Success,
+			PostURL:         postStatus.PostUrl,
+		})
 
 		res.Posts = append(res.Posts, postStatus)
-
-		socialAccount := s.socialaccounts[accountId]
-
-
-		if socialAccount == nil {
-			log.Errorf("Social account not found: %s", accountId)
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %s", accountId))
-		}
-
-		postingService := s.cc.Get(socialAccount.Connector)
-
-		if postingService == nil {
-			log.Errorf("Posting service not found for connector: %s", socialAccount.Connector)
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("posting service not found for connector: %s", socialAccount.Connector))
-		}
-
-		postStatus.SocialAccountIcon = postingService.GetIcon()
-		postStatus.SocialAccountIdentity = socialAccount.Identity
-
-		if wallService, ok := postingService.(connector.ConnectorWithWall); ok {
-			log.Infof("Posting to wall service wit account id: %v with is of connection proto: %v", accountId, wallService.GetProtocol())
-
-			postResult := wallService.PostToWall(socialAccount, req.Msg.Content)
-
-			if postResult.Err != nil {
-				log.Errorf("Error posting to wall: %v", postResult.Err)
-				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to post to wall: %w", postResult.Err))
-			}
-
-			postStatus.PostUrl = postResult.URL
-			postStatus.Success = true
-
-		} else {
-			log.Warnf("Posting service does not support wall posting: %s", postingService.GetProtocol())
-			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("posting service does not support wall posting: %s", postingService.GetProtocol()))
-		}
-
-		s.db.CreatePost(postStatus, socialAccount.Id)
 	}
 
 	return connect.NewResponse(res), nil
+}
+
+func (s *ControlApi) tryPostStatus(content string, socialAccount *db.SocialAccount, postStatus *controlv1.PostStatus) {
+	postingService := s.cc.Get(socialAccount.Connector)
+
+	if postingService == nil {
+		log.Errorf("Posting service not found for connector: %s", socialAccount.Connector)
+		return
+	}
+
+	postStatus.SocialAccountIcon = postingService.GetIcon()
+	postStatus.SocialAccountIdentity = socialAccount.Identity
+
+	if wallService, ok := postingService.(connector.ConnectorWithWall); ok {
+		log.Infof("Posting to wall service wit account id: %v with is of connection proto: %v", socialAccount.ID, wallService.GetProtocol())
+
+		postResult := wallService.PostToWall(toConnectorSA(socialAccount), content)
+
+		if postResult.Err != nil {
+			log.Errorf("Error posting to wall: %v", postResult.Err)
+			return
+		}
+
+		postStatus.PostUrl = postResult.URL
+		postStatus.Success = true
+
+	} else {
+		log.Warnf("Posting service does not support wall posting: %s", postingService.GetProtocol())
+		return
+	}
+}
+
+func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
+	return &connector.SocialAccount{
+		Id:         socialAccount.ID,
+		Connector:  socialAccount.Connector,
+		Identity:   socialAccount.Identity,
+		OAuthToken: socialAccount.OAuthToken,
+	}
 }
 
 func withCors(h http.Handler) http.Handler {
@@ -194,10 +190,8 @@ func GetNewHandler() (string, http.Handler, *ControlApi) {
 }
 
 func (s *ControlApi) GetSocialAccounts(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountsRequest]) (*connect.Response[controlv1.GetSocialAccountsResponse], error) {
-	s.loadSocialAccounts()
-
 	res := connect.NewResponse(&controlv1.GetSocialAccountsResponse{
-		Accounts: s.marshalSocialAccounts(),
+		Accounts: s.marshalSocialAccounts(req.Msg.OnlyActive),
 	})
 
 	return res, nil
@@ -260,7 +254,6 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 		}
 
 		srv := &controlv1.Connector{
-			Id:       id,
 			Name:     svc.GetProtocol(),
 			Icon:     svc.GetIcon(),
 			HasOauth: isOAuth,
@@ -389,7 +382,6 @@ func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Reque
 	log.Infof("Deleting social account with ID: %s", req.Msg.Id)
 
 	err := s.db.DeleteSocialAccount(req.Msg.Id)
-	delete(s.socialaccounts, req.Msg.Id)
 
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete social account: %w", err))
@@ -408,7 +400,7 @@ func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Reque
 func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Request[controlv1.RefreshSocialAccountRequest]) (*connect.Response[controlv1.RefreshSocialAccountResponse], error) {
 	log.Infof("Refreshing social account with ID: %s", req.Msg.Id)
 
-	socialAccount := s.socialaccounts[req.Msg.Id]
+	socialAccount, _ := s.db.GetSocialAccount(req.Msg.Id)
 
 	if socialAccount == nil {
 		log.Errorf("Social account not found: %s", req.Msg.Id)
@@ -422,7 +414,7 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector service not found for connector: %s", socialAccount.Connector))
 	}
 
-	connectorService.OnRefresh(socialAccount)
+	connectorService.OnRefresh(toConnectorSA(socialAccount))
 
 	res := connect.NewResponse(&controlv1.RefreshSocialAccountResponse{
 		StandardResponse: &controlv1.StandardResponse{
@@ -443,16 +435,44 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 
 	timeline := make([]*controlv1.PostStatus, 0, len(posts))
 
+
 	for _, post := range posts {
+		sa := s.cc.Get(post.SocialAccount.Connector)
+
 		timeline = append(timeline, &controlv1.PostStatus{
-			SocialAccountId: post.SocialAccountId,
-			Success:         post.Success,
-			PostUrl:         post.PostUrl,
+			Id:             post.ID,
+			Created:      post.CreatedAt.Format("2006-01-02 15:04:05"),
+			SocialAccountId: post.SocialAccountID,
+			SocialAccountIcon: sa.GetIcon(),
+			SocialAccountIdentity: post.SocialAccount.Identity,
+			Content:         post.Content,
+			Success:         post.Status,
+			PostUrl:         post.PostURL,
 		})
 	}
 
 	res := connect.NewResponse(&controlv1.GetTimelineResponse{
 		Posts: timeline,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) SetSocialAccountActive(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountActiveRequest]) (*connect.Response[controlv1.SetSocialAccountActiveResponse], error) {
+	log.Infof("Setting social account active state for ID: %v to %v", req.Msg.Id, req.Msg.Active)
+
+	err := s.db.SetSocialAccountActive(req.Msg.Id, req.Msg.Active)
+
+	if err != nil {
+		log.Errorf("Error setting social account active state: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set social account active state: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.SetSocialAccountActiveResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "OK",
+		},
 	})
 
 	return res, nil
