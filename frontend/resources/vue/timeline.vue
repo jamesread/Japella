@@ -53,4 +53,11 @@
 				return [];
 			});
 	}
+
+	onMounted(async () => {
+		await waitForClient();
+		clientReady.value = true;
+
+		timeline.value = await getTimeline();
+	});
 </script>
