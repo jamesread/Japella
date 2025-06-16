@@ -1,4 +1,4 @@
-package controlapi
+package api
 
 import (
 	"context"
@@ -105,7 +105,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 	log.Infof("Received post request for social accounts: %+v", req.Msg.SocialAccounts)
 
 	for _, accountId := range req.Msg.SocialAccounts {
-		log.Infof("Processing post for account: %s", accountId)
+		log.Infof("Processing post for account: %v", accountId)
 
 		postStatus := &controlv1.PostStatus{
 			Success:   false,

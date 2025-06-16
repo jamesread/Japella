@@ -5,7 +5,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 	"net/http"
 
-	"github.com/jamesread/japella/internal/controlapi"
+	"github.com/jamesread/japella/internal/layers/api"
 	"github.com/jamesread/japella/internal/httpserver/frontend"
 	log "github.com/sirupsen/logrus"
 )
@@ -31,7 +31,7 @@ func allowCors(h http.Handler) http.Handler {
 func Start() {
 	mux := http.NewServeMux()
 
-	apipath, apihandler, srv := controlapi.GetNewHandler()
+	apipath, apihandler, srv := api.GetNewHandler()
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", apihandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
