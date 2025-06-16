@@ -57,7 +57,7 @@ func (dbi *DB) ReconnectDatabase(db runtimeconfig.DatabaseConfig) {
 		hooker,
 	))
 
-	if !runtimeconfig.Get().Database.Enabled {
+	if !db.Enabled {
 		log.Warnf("Database is not enabled in configuration, skipping connection")
 		return
 	}

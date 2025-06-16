@@ -16,9 +16,15 @@ export default class Notification {
     const messageElement = document.createElement('span');
     messageElement.textContent = this.message;
 
-    if (this.url) {
+    let validUrl = false;
+
+    try {
+      validUrl = new URL(this.url).toString()
+    } catch (e) { }
+
+    if (validUrl) {
       const linkElement = document.createElement('a');
-      linkElement.href = this.url;
+      linkElement.href = validUrl;
       linkElement.innerText = 'Link';
       linkElement.target = '_blank';
       messageElement.appendChild(linkElement);

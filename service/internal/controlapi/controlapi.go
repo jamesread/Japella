@@ -124,6 +124,12 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 	for _, accountId := range req.Msg.SocialAccounts {
 		log.Infof("Processing post for account: %s", accountId)
 
+		postStatus := &controlv1.PostStatus{
+			Success:   false,
+		}
+
+		res.Posts = append(res.Posts, postStatus)
+
 		socialAccount := s.socialaccounts[accountId]
 
 		if socialAccount == nil {
@@ -148,8 +154,8 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to post to wall: %w", postResult.Err))
 			}
 
-			res.PostUrl = postResult.URL
-			res.Success = true
+			postStatus.PostUrl = postResult.URL
+			postStatus.Success = true
 		} else {
 			log.Warnf("Posting service does not support wall posting: %s", postingService.GetProtocol())
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("posting service does not support wall posting: %s", postingService.GetProtocol()))
