@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file japella/controlapi/v1/control.proto.
  */
 export const file_japella_controlapi_v1_control: GenFile = /*@__PURE__*/
-  fileDesc("CiNqYXBlbGxhL2NvbnRyb2xhcGkvdjEvY29udHJvbC5wcm90bxIVamFwZWxsYS5jb250cm9sYXBpLnYxIj0KEVN1Ym1pdFBvc3RSZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkSFwoPcG9zdGluZ19zZXJ2aWNlGAIgASgJIhQKElN1Ym1pdFBvc3RSZXNwb25zZSISChBHZXRTdGF0dXNSZXF1ZXN0IkoKEUdldFN0YXR1c1Jlc3BvbnNlEg4KBnN0YXR1cxgBIAEoCRIUCgxuYW5vc2VydmljZXMYAiADKAkSDwoHdmVyc2lvbhgDIAEoCSIbChlHZXRQb3N0aW5nU2VydmljZXNSZXF1ZXN0IlUKGkdldFBvc3RpbmdTZXJ2aWNlc1Jlc3BvbnNlEjcKCHNlcnZpY2VzGAEgAygLMiUuamFwZWxsYS5jb250cm9sYXBpLnYxLlBvc3RpbmdTZXJ2aWNlIk4KDlBvc3RpbmdTZXJ2aWNlEgoKAmlkGAEgASgJEhAKCHByb3RvY29sGAIgASgJEhAKCGlkZW50aXR5GAMgASgJEgwKBGljb24YBCABKAkiFwoVR2V0Q2FubmVkUG9zdHNSZXF1ZXN0IkoKFkdldENhbm5lZFBvc3RzUmVzcG9uc2USMAoFcG9zdHMYASADKAsyIS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ2FubmVkUG9zdCI9CgpDYW5uZWRQb3N0EgoKAmlkGAEgASgJEg8KB2NvbnRlbnQYAiABKAkSEgoKY3JlYXRlZF9hdBgDIAEoCSIqChdDcmVhdGVDYW5uZWRQb3N0UmVxdWVzdBIPCgdjb250ZW50GAEgASgJIisKGENyZWF0ZUNhbm5lZFBvc3RSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIiUKF0RlbGV0ZUNhbm5lZFBvc3RSZXF1ZXN0EgoKAmlkGAEgASgJIisKGERlbGV0ZUNhbm5lZFBvc3RSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJMr0FChhKYXBlbGxhQ29udHJvbEFwaVNlcnZpY2USYAoJR2V0U3RhdHVzEicuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFN0YXR1c1JlcXVlc3QaKC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0U3RhdHVzUmVzcG9uc2UiABJjCgpTdWJtaXRQb3N0EiguamFwZWxsYS5jb250cm9sYXBpLnYxLlN1Ym1pdFBvc3RSZXF1ZXN0GikuamFwZWxsYS5jb250cm9sYXBpLnYxLlN1Ym1pdFBvc3RSZXNwb25zZSIAEnsKEkdldFBvc3RpbmdTZXJ2aWNlcxIwLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRQb3N0aW5nU2VydmljZXNSZXF1ZXN0GjEuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFBvc3RpbmdTZXJ2aWNlc1Jlc3BvbnNlIgASbwoOR2V0Q2FubmVkUG9zdHMSLC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q2FubmVkUG9zdHNSZXF1ZXN0Gi0uamFwZWxsYS5jb250cm9sYXBpLnYxLkdldENhbm5lZFBvc3RzUmVzcG9uc2UiABJ1ChBDcmVhdGVDYW5uZWRQb3N0Ei4uamFwZWxsYS5jb250cm9sYXBpLnYxLkNyZWF0ZUNhbm5lZFBvc3RSZXF1ZXN0Gi8uamFwZWxsYS5jb250cm9sYXBpLnYxLkNyZWF0ZUNhbm5lZFBvc3RSZXNwb25zZSIAEnUKEERlbGV0ZUNhbm5lZFBvc3QSLi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlQ2FubmVkUG9zdFJlcXVlc3QaLy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlQ2FubmVkUG9zdFJlc3BvbnNlIgBCQlpAZ2l0aHViLmNvbS9qYW1lc3JlYWQvamFwZWxsYS9nZW4vamFwZWxsYS9jb250cm9sYXBpL3YxO2NvbnRyb2x2MWIGcHJvdG8z");
+  fileDesc("CiNqYXBlbGxhL2NvbnRyb2xhcGkvdjEvY29udHJvbC5wcm90bxIVamFwZWxsYS5jb250cm9sYXBpLnYxIj0KEVN1Ym1pdFBvc3RSZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkSFwoPc29jaWFsX2FjY291bnRzGAIgAygNIkYKElN1Ym1pdFBvc3RSZXNwb25zZRIwCgVwb3N0cxgBIAMoCzIhLmphcGVsbGEuY29udHJvbGFwaS52MS5Qb3N0U3RhdHVzIrYBCgpQb3N0U3RhdHVzEgoKAmlkGAEgASgNEhkKEXNvY2lhbF9hY2NvdW50X2lkGAIgASgNEhAKCHBvc3RfdXJsGAMgASgJEg8KB3N1Y2Nlc3MYBCABKAgSDwoHY3JlYXRlZBgFIAEoCRIbChNzb2NpYWxfYWNjb3VudF9pY29uGAYgASgJEh8KF3NvY2lhbF9hY2NvdW50X2lkZW50aXR5GAcgASgJEg8KB2NvbnRlbnQYCCABKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCJKChFHZXRTdGF0dXNSZXNwb25zZRIOCgZzdGF0dXMYASABKAkSFAoMbmFub3NlcnZpY2VzGAIgAygJEg8KB3ZlcnNpb24YAyABKAkiFwoVR2V0Q2FubmVkUG9zdHNSZXF1ZXN0IkoKFkdldENhbm5lZFBvc3RzUmVzcG9uc2USMAoFcG9zdHMYASADKAsyIS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ2FubmVkUG9zdCI9CgpDYW5uZWRQb3N0EgoKAmlkGAEgASgNEg8KB2NvbnRlbnQYAiABKAkSEgoKY3JlYXRlZF9hdBgDIAEoCSIqChdDcmVhdGVDYW5uZWRQb3N0UmVxdWVzdBIPCgdjb250ZW50GAEgASgJIisKGENyZWF0ZUNhbm5lZFBvc3RSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIiUKF0RlbGV0ZUNhbm5lZFBvc3RSZXF1ZXN0EgoKAmlkGAEgASgNIisKGERlbGV0ZUNhbm5lZFBvc3RSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIi8KGEdldFNvY2lhbEFjY291bnRzUmVxdWVzdBITCgtvbmx5X2FjdGl2ZRgBIAEoCCJTChlHZXRTb2NpYWxBY2NvdW50c1Jlc3BvbnNlEjYKCGFjY291bnRzGAEgAygLMiQuamFwZWxsYS5jb250cm9sYXBpLnYxLlNvY2lhbEFjY291bnQihgEKDVNvY2lhbEFjY291bnQSCgoCaWQYASABKA0SEAoIaWRlbnRpdHkYAiABKAkSEAoIaGFzX3dhbGwYAyABKAgSFAoMaGFzX2NoYW5uZWxzGAQgASgIEhEKCWNvbm5lY3RvchgFIAEoCRIMCgRpY29uGAYgASgJEg4KBmFjdGl2ZRgHIAEoCCIvChRHZXRDb25uZWN0b3JzUmVxdWVzdBIXCg9vbmx5X3dhbnRfb2F1dGgYASABKAgiTQoVR2V0Q29ubmVjdG9yc1Jlc3BvbnNlEjQKCmNvbm5lY3RvcnMYASADKAsyIC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ29ubmVjdG9yIjoKCUNvbm5lY3RvchIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSEQoJaGFzX29hdXRoGAQgASgIIikKEVN0YXJ0T0F1dGhSZXF1ZXN0EhQKDGNvbm5lY3Rvcl9pZBgBIAEoCSIhChJTdGFydE9BdXRoUmVzcG9uc2USCwoDdXJsGAEgASgJIigKGkRlbGV0ZVNvY2lhbEFjY291bnRSZXF1ZXN0EgoKAmlkGAEgASgNImEKG0RlbGV0ZVNvY2lhbEFjY291bnRSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlIikKG1JlZnJlc2hTb2NpYWxBY2NvdW50UmVxdWVzdBIKCgJpZBgBIAEoDSJiChxSZWZyZXNoU29jaWFsQWNjb3VudFJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2UiSgoQU3RhbmRhcmRSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSFAoMcmVkaXJlY3RfdXJsGAMgASgJIhQKEkdldFRpbWVsaW5lUmVxdWVzdCJHChNHZXRUaW1lbGluZVJlc3BvbnNlEjAKBXBvc3RzGAEgAygLMiEuamFwZWxsYS5jb250cm9sYXBpLnYxLlBvc3RTdGF0dXMiOwodU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlcXVlc3QSCgoCaWQYASABKA0SDgoGYWN0aXZlGAIgASgIImQKHlNldFNvY2lhbEFjY291bnRBY3RpdmVSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlMoMLChhKYXBlbGxhQ29udHJvbEFwaVNlcnZpY2USYAoJR2V0U3RhdHVzEicuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFN0YXR1c1JlcXVlc3QaKC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0U3RhdHVzUmVzcG9uc2UiABJjCgpTdWJtaXRQb3N0EiguamFwZWxsYS5jb250cm9sYXBpLnYxLlN1Ym1pdFBvc3RSZXF1ZXN0GikuamFwZWxsYS5jb250cm9sYXBpLnYxLlN1Ym1pdFBvc3RSZXNwb25zZSIAEm8KDkdldENhbm5lZFBvc3RzEiwuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldENhbm5lZFBvc3RzUmVxdWVzdBotLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDYW5uZWRQb3N0c1Jlc3BvbnNlIgASdQoQQ3JlYXRlQ2FubmVkUG9zdBIuLmphcGVsbGEuY29udHJvbGFwaS52MS5DcmVhdGVDYW5uZWRQb3N0UmVxdWVzdBovLmphcGVsbGEuY29udHJvbGFwaS52MS5DcmVhdGVDYW5uZWRQb3N0UmVzcG9uc2UiABJ1ChBEZWxldGVDYW5uZWRQb3N0Ei4uamFwZWxsYS5jb250cm9sYXBpLnYxLkRlbGV0ZUNhbm5lZFBvc3RSZXF1ZXN0Gi8uamFwZWxsYS5jb250cm9sYXBpLnYxLkRlbGV0ZUNhbm5lZFBvc3RSZXNwb25zZSIAEngKEUdldFNvY2lhbEFjY291bnRzEi8uamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFNvY2lhbEFjY291bnRzUmVxdWVzdBowLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTb2NpYWxBY2NvdW50c1Jlc3BvbnNlIgASfgoTRGVsZXRlU29jaWFsQWNjb3VudBIxLmphcGVsbGEuY29udHJvbGFwaS52MS5EZWxldGVTb2NpYWxBY2NvdW50UmVxdWVzdBoyLmphcGVsbGEuY29udHJvbGFwaS52MS5EZWxldGVTb2NpYWxBY2NvdW50UmVzcG9uc2UiABKBAQoUUmVmcmVzaFNvY2lhbEFjY291bnQSMi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuUmVmcmVzaFNvY2lhbEFjY291bnRSZXF1ZXN0GjMuamFwZWxsYS5jb250cm9sYXBpLnYxLlJlZnJlc2hTb2NpYWxBY2NvdW50UmVzcG9uc2UiABJsCg1HZXRDb25uZWN0b3JzEisuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldENvbm5lY3RvcnNSZXF1ZXN0GiwuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldENvbm5lY3RvcnNSZXNwb25zZSIAEmMKClN0YXJ0T0F1dGgSKC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhcnRPQXV0aFJlcXVlc3QaKS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhcnRPQXV0aFJlc3BvbnNlIgASZgoLR2V0VGltZWxpbmUSKS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0VGltZWxpbmVSZXF1ZXN0GiouamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFRpbWVsaW5lUmVzcG9uc2UiABKHAQoWU2V0U29jaWFsQWNjb3VudEFjdGl2ZRI0LmphcGVsbGEuY29udHJvbGFwaS52MS5TZXRTb2NpYWxBY2NvdW50QWN0aXZlUmVxdWVzdBo1LmphcGVsbGEuY29udHJvbGFwaS52MS5TZXRTb2NpYWxBY2NvdW50QWN0aXZlUmVzcG9uc2UiAEJCWkBnaXRodWIuY29tL2phbWVzcmVhZC9qYXBlbGxhL2dlbi9qYXBlbGxhL2NvbnRyb2xhcGkvdjE7Y29udHJvbHYxYgZwcm90bzM");
 
 /**
  * @generated from message japella.controlapi.v1.SubmitPostRequest
@@ -22,9 +22,9 @@ export type SubmitPostRequest = Message<"japella.controlapi.v1.SubmitPostRequest
   content: string;
 
   /**
-   * @generated from field: string posting_service = 2;
+   * @generated from field: repeated uint32 social_accounts = 2;
    */
-  postingService: string;
+  socialAccounts: number[];
 };
 
 /**
@@ -38,6 +38,10 @@ export const SubmitPostRequestSchema: GenMessage<SubmitPostRequest> = /*@__PURE_
  * @generated from message japella.controlapi.v1.SubmitPostResponse
  */
 export type SubmitPostResponse = Message<"japella.controlapi.v1.SubmitPostResponse"> & {
+  /**
+   * @generated from field: repeated japella.controlapi.v1.PostStatus posts = 1;
+   */
+  posts: PostStatus[];
 };
 
 /**
@@ -46,6 +50,58 @@ export type SubmitPostResponse = Message<"japella.controlapi.v1.SubmitPostRespon
  */
 export const SubmitPostResponseSchema: GenMessage<SubmitPostResponse> = /*@__PURE__*/
   messageDesc(file_japella_controlapi_v1_control, 1);
+
+/**
+ * @generated from message japella.controlapi.v1.PostStatus
+ */
+export type PostStatus = Message<"japella.controlapi.v1.PostStatus"> & {
+  /**
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+
+  /**
+   * @generated from field: uint32 social_account_id = 2;
+   */
+  socialAccountId: number;
+
+  /**
+   * @generated from field: string post_url = 3;
+   */
+  postUrl: string;
+
+  /**
+   * @generated from field: bool success = 4;
+   */
+  success: boolean;
+
+  /**
+   * @generated from field: string created = 5;
+   */
+  created: string;
+
+  /**
+   * @generated from field: string social_account_icon = 6;
+   */
+  socialAccountIcon: string;
+
+  /**
+   * @generated from field: string social_account_identity = 7;
+   */
+  socialAccountIdentity: string;
+
+  /**
+   * @generated from field: string content = 8;
+   */
+  content: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.PostStatus.
+ * Use `create(PostStatusSchema)` to create a new message.
+ */
+export const PostStatusSchema: GenMessage<PostStatus> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 2);
 
 /**
  * @generated from message japella.controlapi.v1.GetStatusRequest
@@ -58,7 +114,7 @@ export type GetStatusRequest = Message<"japella.controlapi.v1.GetStatusRequest">
  * Use `create(GetStatusRequestSchema)` to create a new message.
  */
 export const GetStatusRequestSchema: GenMessage<GetStatusRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 2);
+  messageDesc(file_japella_controlapi_v1_control, 3);
 
 /**
  * @generated from message japella.controlapi.v1.GetStatusResponse
@@ -85,69 +141,7 @@ export type GetStatusResponse = Message<"japella.controlapi.v1.GetStatusResponse
  * Use `create(GetStatusResponseSchema)` to create a new message.
  */
 export const GetStatusResponseSchema: GenMessage<GetStatusResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 3);
-
-/**
- * @generated from message japella.controlapi.v1.GetPostingServicesRequest
- */
-export type GetPostingServicesRequest = Message<"japella.controlapi.v1.GetPostingServicesRequest"> & {
-};
-
-/**
- * Describes the message japella.controlapi.v1.GetPostingServicesRequest.
- * Use `create(GetPostingServicesRequestSchema)` to create a new message.
- */
-export const GetPostingServicesRequestSchema: GenMessage<GetPostingServicesRequest> = /*@__PURE__*/
   messageDesc(file_japella_controlapi_v1_control, 4);
-
-/**
- * @generated from message japella.controlapi.v1.GetPostingServicesResponse
- */
-export type GetPostingServicesResponse = Message<"japella.controlapi.v1.GetPostingServicesResponse"> & {
-  /**
-   * @generated from field: repeated japella.controlapi.v1.PostingService services = 1;
-   */
-  services: PostingService[];
-};
-
-/**
- * Describes the message japella.controlapi.v1.GetPostingServicesResponse.
- * Use `create(GetPostingServicesResponseSchema)` to create a new message.
- */
-export const GetPostingServicesResponseSchema: GenMessage<GetPostingServicesResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 5);
-
-/**
- * @generated from message japella.controlapi.v1.PostingService
- */
-export type PostingService = Message<"japella.controlapi.v1.PostingService"> & {
-  /**
-   * @generated from field: string id = 1;
-   */
-  id: string;
-
-  /**
-   * @generated from field: string protocol = 2;
-   */
-  protocol: string;
-
-  /**
-   * @generated from field: string identity = 3;
-   */
-  identity: string;
-
-  /**
-   * @generated from field: string icon = 4;
-   */
-  icon: string;
-};
-
-/**
- * Describes the message japella.controlapi.v1.PostingService.
- * Use `create(PostingServiceSchema)` to create a new message.
- */
-export const PostingServiceSchema: GenMessage<PostingService> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 6);
 
 /**
  * @generated from message japella.controlapi.v1.GetCannedPostsRequest
@@ -160,7 +154,7 @@ export type GetCannedPostsRequest = Message<"japella.controlapi.v1.GetCannedPost
  * Use `create(GetCannedPostsRequestSchema)` to create a new message.
  */
 export const GetCannedPostsRequestSchema: GenMessage<GetCannedPostsRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 7);
+  messageDesc(file_japella_controlapi_v1_control, 5);
 
 /**
  * @generated from message japella.controlapi.v1.GetCannedPostsResponse
@@ -177,16 +171,16 @@ export type GetCannedPostsResponse = Message<"japella.controlapi.v1.GetCannedPos
  * Use `create(GetCannedPostsResponseSchema)` to create a new message.
  */
 export const GetCannedPostsResponseSchema: GenMessage<GetCannedPostsResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 8);
+  messageDesc(file_japella_controlapi_v1_control, 6);
 
 /**
  * @generated from message japella.controlapi.v1.CannedPost
  */
 export type CannedPost = Message<"japella.controlapi.v1.CannedPost"> & {
   /**
-   * @generated from field: string id = 1;
+   * @generated from field: uint32 id = 1;
    */
-  id: string;
+  id: number;
 
   /**
    * @generated from field: string content = 2;
@@ -204,7 +198,7 @@ export type CannedPost = Message<"japella.controlapi.v1.CannedPost"> & {
  * Use `create(CannedPostSchema)` to create a new message.
  */
 export const CannedPostSchema: GenMessage<CannedPost> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 9);
+  messageDesc(file_japella_controlapi_v1_control, 7);
 
 /**
  * @generated from message japella.controlapi.v1.CreateCannedPostRequest
@@ -221,7 +215,7 @@ export type CreateCannedPostRequest = Message<"japella.controlapi.v1.CreateCanne
  * Use `create(CreateCannedPostRequestSchema)` to create a new message.
  */
 export const CreateCannedPostRequestSchema: GenMessage<CreateCannedPostRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 10);
+  messageDesc(file_japella_controlapi_v1_control, 8);
 
 /**
  * @generated from message japella.controlapi.v1.CreateCannedPostResponse
@@ -238,16 +232,16 @@ export type CreateCannedPostResponse = Message<"japella.controlapi.v1.CreateCann
  * Use `create(CreateCannedPostResponseSchema)` to create a new message.
  */
 export const CreateCannedPostResponseSchema: GenMessage<CreateCannedPostResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 11);
+  messageDesc(file_japella_controlapi_v1_control, 9);
 
 /**
  * @generated from message japella.controlapi.v1.DeleteCannedPostRequest
  */
 export type DeleteCannedPostRequest = Message<"japella.controlapi.v1.DeleteCannedPostRequest"> & {
   /**
-   * @generated from field: string id = 1;
+   * @generated from field: uint32 id = 1;
    */
-  id: string;
+  id: number;
 };
 
 /**
@@ -255,7 +249,7 @@ export type DeleteCannedPostRequest = Message<"japella.controlapi.v1.DeleteCanne
  * Use `create(DeleteCannedPostRequestSchema)` to create a new message.
  */
 export const DeleteCannedPostRequestSchema: GenMessage<DeleteCannedPostRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 12);
+  messageDesc(file_japella_controlapi_v1_control, 10);
 
 /**
  * @generated from message japella.controlapi.v1.DeleteCannedPostResponse
@@ -272,7 +266,347 @@ export type DeleteCannedPostResponse = Message<"japella.controlapi.v1.DeleteCann
  * Use `create(DeleteCannedPostResponseSchema)` to create a new message.
  */
 export const DeleteCannedPostResponseSchema: GenMessage<DeleteCannedPostResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 11);
+
+/**
+ * @generated from message japella.controlapi.v1.GetSocialAccountsRequest
+ */
+export type GetSocialAccountsRequest = Message<"japella.controlapi.v1.GetSocialAccountsRequest"> & {
+  /**
+   * @generated from field: bool only_active = 1;
+   */
+  onlyActive: boolean;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetSocialAccountsRequest.
+ * Use `create(GetSocialAccountsRequestSchema)` to create a new message.
+ */
+export const GetSocialAccountsRequestSchema: GenMessage<GetSocialAccountsRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 12);
+
+/**
+ * @generated from message japella.controlapi.v1.GetSocialAccountsResponse
+ */
+export type GetSocialAccountsResponse = Message<"japella.controlapi.v1.GetSocialAccountsResponse"> & {
+  /**
+   * @generated from field: repeated japella.controlapi.v1.SocialAccount accounts = 1;
+   */
+  accounts: SocialAccount[];
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetSocialAccountsResponse.
+ * Use `create(GetSocialAccountsResponseSchema)` to create a new message.
+ */
+export const GetSocialAccountsResponseSchema: GenMessage<GetSocialAccountsResponse> = /*@__PURE__*/
   messageDesc(file_japella_controlapi_v1_control, 13);
+
+/**
+ * @generated from message japella.controlapi.v1.SocialAccount
+ */
+export type SocialAccount = Message<"japella.controlapi.v1.SocialAccount"> & {
+  /**
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+
+  /**
+   * @generated from field: string identity = 2;
+   */
+  identity: string;
+
+  /**
+   * @generated from field: bool has_wall = 3;
+   */
+  hasWall: boolean;
+
+  /**
+   * @generated from field: bool has_channels = 4;
+   */
+  hasChannels: boolean;
+
+  /**
+   * @generated from field: string connector = 5;
+   */
+  connector: string;
+
+  /**
+   * @generated from field: string icon = 6;
+   */
+  icon: string;
+
+  /**
+   * @generated from field: bool active = 7;
+   */
+  active: boolean;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.SocialAccount.
+ * Use `create(SocialAccountSchema)` to create a new message.
+ */
+export const SocialAccountSchema: GenMessage<SocialAccount> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 14);
+
+/**
+ * @generated from message japella.controlapi.v1.GetConnectorsRequest
+ */
+export type GetConnectorsRequest = Message<"japella.controlapi.v1.GetConnectorsRequest"> & {
+  /**
+   * @generated from field: bool only_want_oauth = 1;
+   */
+  onlyWantOauth: boolean;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetConnectorsRequest.
+ * Use `create(GetConnectorsRequestSchema)` to create a new message.
+ */
+export const GetConnectorsRequestSchema: GenMessage<GetConnectorsRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 15);
+
+/**
+ * @generated from message japella.controlapi.v1.GetConnectorsResponse
+ */
+export type GetConnectorsResponse = Message<"japella.controlapi.v1.GetConnectorsResponse"> & {
+  /**
+   * @generated from field: repeated japella.controlapi.v1.Connector connectors = 1;
+   */
+  connectors: Connector[];
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetConnectorsResponse.
+ * Use `create(GetConnectorsResponseSchema)` to create a new message.
+ */
+export const GetConnectorsResponseSchema: GenMessage<GetConnectorsResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 16);
+
+/**
+ * @generated from message japella.controlapi.v1.Connector
+ */
+export type Connector = Message<"japella.controlapi.v1.Connector"> & {
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+
+  /**
+   * @generated from field: string icon = 3;
+   */
+  icon: string;
+
+  /**
+   * @generated from field: bool has_oauth = 4;
+   */
+  hasOauth: boolean;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.Connector.
+ * Use `create(ConnectorSchema)` to create a new message.
+ */
+export const ConnectorSchema: GenMessage<Connector> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 17);
+
+/**
+ * @generated from message japella.controlapi.v1.StartOAuthRequest
+ */
+export type StartOAuthRequest = Message<"japella.controlapi.v1.StartOAuthRequest"> & {
+  /**
+   * @generated from field: string connector_id = 1;
+   */
+  connectorId: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.StartOAuthRequest.
+ * Use `create(StartOAuthRequestSchema)` to create a new message.
+ */
+export const StartOAuthRequestSchema: GenMessage<StartOAuthRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 18);
+
+/**
+ * @generated from message japella.controlapi.v1.StartOAuthResponse
+ */
+export type StartOAuthResponse = Message<"japella.controlapi.v1.StartOAuthResponse"> & {
+  /**
+   * @generated from field: string url = 1;
+   */
+  url: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.StartOAuthResponse.
+ * Use `create(StartOAuthResponseSchema)` to create a new message.
+ */
+export const StartOAuthResponseSchema: GenMessage<StartOAuthResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 19);
+
+/**
+ * @generated from message japella.controlapi.v1.DeleteSocialAccountRequest
+ */
+export type DeleteSocialAccountRequest = Message<"japella.controlapi.v1.DeleteSocialAccountRequest"> & {
+  /**
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.DeleteSocialAccountRequest.
+ * Use `create(DeleteSocialAccountRequestSchema)` to create a new message.
+ */
+export const DeleteSocialAccountRequestSchema: GenMessage<DeleteSocialAccountRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 20);
+
+/**
+ * @generated from message japella.controlapi.v1.DeleteSocialAccountResponse
+ */
+export type DeleteSocialAccountResponse = Message<"japella.controlapi.v1.DeleteSocialAccountResponse"> & {
+  /**
+   * @generated from field: japella.controlapi.v1.StandardResponse standard_response = 1;
+   */
+  standardResponse?: StandardResponse;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.DeleteSocialAccountResponse.
+ * Use `create(DeleteSocialAccountResponseSchema)` to create a new message.
+ */
+export const DeleteSocialAccountResponseSchema: GenMessage<DeleteSocialAccountResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 21);
+
+/**
+ * @generated from message japella.controlapi.v1.RefreshSocialAccountRequest
+ */
+export type RefreshSocialAccountRequest = Message<"japella.controlapi.v1.RefreshSocialAccountRequest"> & {
+  /**
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.RefreshSocialAccountRequest.
+ * Use `create(RefreshSocialAccountRequestSchema)` to create a new message.
+ */
+export const RefreshSocialAccountRequestSchema: GenMessage<RefreshSocialAccountRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 22);
+
+/**
+ * @generated from message japella.controlapi.v1.RefreshSocialAccountResponse
+ */
+export type RefreshSocialAccountResponse = Message<"japella.controlapi.v1.RefreshSocialAccountResponse"> & {
+  /**
+   * @generated from field: japella.controlapi.v1.StandardResponse standard_response = 1;
+   */
+  standardResponse?: StandardResponse;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.RefreshSocialAccountResponse.
+ * Use `create(RefreshSocialAccountResponseSchema)` to create a new message.
+ */
+export const RefreshSocialAccountResponseSchema: GenMessage<RefreshSocialAccountResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 23);
+
+/**
+ * @generated from message japella.controlapi.v1.StandardResponse
+ */
+export type StandardResponse = Message<"japella.controlapi.v1.StandardResponse"> & {
+  /**
+   * @generated from field: bool success = 1;
+   */
+  success: boolean;
+
+  /**
+   * @generated from field: string message = 2;
+   */
+  message: string;
+
+  /**
+   * @generated from field: string redirect_url = 3;
+   */
+  redirectUrl: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.StandardResponse.
+ * Use `create(StandardResponseSchema)` to create a new message.
+ */
+export const StandardResponseSchema: GenMessage<StandardResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 24);
+
+/**
+ * @generated from message japella.controlapi.v1.GetTimelineRequest
+ */
+export type GetTimelineRequest = Message<"japella.controlapi.v1.GetTimelineRequest"> & {
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetTimelineRequest.
+ * Use `create(GetTimelineRequestSchema)` to create a new message.
+ */
+export const GetTimelineRequestSchema: GenMessage<GetTimelineRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 25);
+
+/**
+ * @generated from message japella.controlapi.v1.GetTimelineResponse
+ */
+export type GetTimelineResponse = Message<"japella.controlapi.v1.GetTimelineResponse"> & {
+  /**
+   * @generated from field: repeated japella.controlapi.v1.PostStatus posts = 1;
+   */
+  posts: PostStatus[];
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetTimelineResponse.
+ * Use `create(GetTimelineResponseSchema)` to create a new message.
+ */
+export const GetTimelineResponseSchema: GenMessage<GetTimelineResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 26);
+
+/**
+ * @generated from message japella.controlapi.v1.SetSocialAccountActiveRequest
+ */
+export type SetSocialAccountActiveRequest = Message<"japella.controlapi.v1.SetSocialAccountActiveRequest"> & {
+  /**
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+
+  /**
+   * @generated from field: bool active = 2;
+   */
+  active: boolean;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.SetSocialAccountActiveRequest.
+ * Use `create(SetSocialAccountActiveRequestSchema)` to create a new message.
+ */
+export const SetSocialAccountActiveRequestSchema: GenMessage<SetSocialAccountActiveRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 27);
+
+/**
+ * @generated from message japella.controlapi.v1.SetSocialAccountActiveResponse
+ */
+export type SetSocialAccountActiveResponse = Message<"japella.controlapi.v1.SetSocialAccountActiveResponse"> & {
+  /**
+   * @generated from field: japella.controlapi.v1.StandardResponse standard_response = 1;
+   */
+  standardResponse?: StandardResponse;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.SetSocialAccountActiveResponse.
+ * Use `create(SetSocialAccountActiveResponseSchema)` to create a new message.
+ */
+export const SetSocialAccountActiveResponseSchema: GenMessage<SetSocialAccountActiveResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 28);
 
 /**
  * @generated from service japella.controlapi.v1.JapellaControlApiService
@@ -293,14 +627,6 @@ export const JapellaControlApiService: GenService<{
     methodKind: "unary";
     input: typeof SubmitPostRequestSchema;
     output: typeof SubmitPostResponseSchema;
-  },
-  /**
-   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.GetPostingServices
-   */
-  getPostingServices: {
-    methodKind: "unary";
-    input: typeof GetPostingServicesRequestSchema;
-    output: typeof GetPostingServicesResponseSchema;
   },
   /**
    * @generated from rpc japella.controlapi.v1.JapellaControlApiService.GetCannedPosts
@@ -325,6 +651,62 @@ export const JapellaControlApiService: GenService<{
     methodKind: "unary";
     input: typeof DeleteCannedPostRequestSchema;
     output: typeof DeleteCannedPostResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts
+   */
+  getSocialAccounts: {
+    methodKind: "unary";
+    input: typeof GetSocialAccountsRequestSchema;
+    output: typeof GetSocialAccountsResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount
+   */
+  deleteSocialAccount: {
+    methodKind: "unary";
+    input: typeof DeleteSocialAccountRequestSchema;
+    output: typeof DeleteSocialAccountResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount
+   */
+  refreshSocialAccount: {
+    methodKind: "unary";
+    input: typeof RefreshSocialAccountRequestSchema;
+    output: typeof RefreshSocialAccountResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.GetConnectors
+   */
+  getConnectors: {
+    methodKind: "unary";
+    input: typeof GetConnectorsRequestSchema;
+    output: typeof GetConnectorsResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.StartOAuth
+   */
+  startOAuth: {
+    methodKind: "unary";
+    input: typeof StartOAuthRequestSchema;
+    output: typeof StartOAuthResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.GetTimeline
+   */
+  getTimeline: {
+    methodKind: "unary";
+    input: typeof GetTimelineRequestSchema;
+    output: typeof GetTimelineResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive
+   */
+  setSocialAccountActive: {
+    methodKind: "unary";
+    input: typeof SetSocialAccountActiveRequestSchema;
+    output: typeof SetSocialAccountActiveResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_japella_controlapi_v1_control, 0);

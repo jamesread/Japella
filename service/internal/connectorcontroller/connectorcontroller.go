@@ -1,24 +1,26 @@
 package connectorcontroller
 
 import (
-	"github.com/google/uuid"
 	"github.com/jamesread/japella/internal/connector"
+	"github.com/jamesread/japella/internal/connector/bluesky"
 	"github.com/jamesread/japella/internal/connector/discord"
 	"github.com/jamesread/japella/internal/connector/mastodon"
 	"github.com/jamesread/japella/internal/connector/telegram"
 	"github.com/jamesread/japella/internal/connector/x"
-	"github.com/jamesread/japella/internal/connector/bluesky"
+	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 )
 
 type ConnectionController struct {
 	controllers map[string]connector.BaseConnector
+	db          *db.DB
 }
 
-func New() *ConnectionController {
+func New(dbc *db.DB) *ConnectionController {
 	cc := &ConnectionController{
 		controllers: map[string]connector.BaseConnector{},
+		db:          dbc,
 	}
 
 	for _, wrapper := range runtimeconfig.Get().Connectors {
@@ -79,12 +81,15 @@ func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig
 }
 
 func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config any) {
-	go c.StartWithConfig(config)
+	startupConfiguration := &connector.ControllerStartupConfiguration{
+		Config: config,
+		DB:     cc.db,
+	}
 
-	controllerID := uuid.New().String()
+	go c.StartWithConfig(startupConfiguration)
 
-	log.Infof("Setting up connector %v with id %v", c.GetProtocol(), controllerID)
-	cc.RegisterController(controllerID, c)
+	log.Infof("Setting up connector: %v", c.GetProtocol())
+	cc.RegisterController(c.GetProtocol(), c)
 }
 
 func (cc *ConnectionController) RegisterController(name string, controller connector.BaseConnector) {

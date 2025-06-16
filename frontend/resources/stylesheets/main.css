@@ -1,32 +1,16 @@
-header img {
-	width: 2em;
-	padding: 0.5em;
-}
+@import 'femtocrank/style.css';
+@import 'femtocrank/dark.css';
 
-header {
-	place-items: center;
-	gap: 1em;
-	padding: 0;
-}
-
-body {
-	display: flex;
-	flex-direction: column;
-	min-height: 100vh;
-}
-
-main {
-	flex-grow: 1;
+section.small {
+	width: 60%;
+	max-width: 720px;
+	margin: auto;
 }
 
 .notification {
 	padding: 0.75em;
 	border-radius: 0.25em;
 	margin-bottom: 1em;
-	position: fixed;
-	top: 1em;
-	left: 1em;
-	z-index: 1000;
 	cursor: pointer;
 }
 
@@ -34,15 +18,77 @@ main {
 	display: block;
 }
 
-.check-list label {
-	background-color: #f0f0f0;
-	padding: 0.5em;
-	margin-right: 0.5em;
-	cursor: pointer;
+.notification a {
+	color: black;
+	display: block;
+	margin-top: 1em;
+	font-weight: bold;
 }
 
-.check-list label:hover {
-	background-color: #e0e0e0;
+.inline-notification:last-child {
+	margin-bottom: 0;
+}
+
+.gs2 {
+	grid-column: 1 / span 2;
+}
+
+#nav-section-links h2 {
+	color: #bbb;
+	margin-left: .5em;
+	margin-bottom: 0.5em;
+}
+
+#nav-section-links a:hover {
+	color: white;
+	background-color: #1d345c;
+}
+
+#nav-section-links a.active {
+	text-decoration: underline;
+	color: white;
+	background-color: #1d345c;
+}
+
+#notification-list {
+	position: fixed;
+	right: 0;
+	top: 0;
+	z-index: 1000;
+	width: 300px;
+	padding: 1em;
+}
+
+.user-info {
+	padding: .5em;
+}
+
+table.data-table tr:hover td {
+	background-color: #1d345c;
+	color: white;
+}
+
+input:disabled {
+	cursor: not-allowed !important;
+}
+
+input[type="checkbox"] {
+	display: none;
+}
+
+button.neutral {
+	background-color: transparent;
+	color: white;
+	border: #666 solid 1px;
+}
+
+button.neutral:hover {
+	background-color: #666;
+	color: white;
+}
+
+aside {
+	background-color: black;
 }
 
 @media (max-width: 600px) {

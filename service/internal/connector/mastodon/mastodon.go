@@ -1,166 +1,181 @@
 package mastodon
 
 import (
-	"context"
-	"fmt"
-
-	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
-	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/connector"
+	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
-	"github.com/mattn/go-mastodon"
 	log "github.com/sirupsen/logrus"
-	"net/url"
+
+	"golang.org/x/oauth2"
 )
 
-var client *mastodon.Client
-
 type MastodonConnector struct {
-	token     string
-	libconfig *mastodon.Config
-	config    *runtimeconfig.MastodonConfig
+	token  string
+	db     *db.DB
+	config *runtimeconfig.MastodonConfig
 
 	connector.ConnectorWithWall
+	connector.OAuth2Connector
+
 	utils.LogComponent
 }
 
-func (adaptor *MastodonConnector) GetIdentity() string {
+type Toot struct {
+	Status string `json:"status"`
+}
+
+type Status struct {
+	ID  string `json:"id"`
+	URI string `json:"uri"`
+}
+
+func (c *MastodonConnector) GetIdentity() string {
 	return "mastodon-user"
 }
 
-func (adaptor *MastodonConnector) GetProtocol() string {
+func (c *MastodonConnector) GetProtocol() string {
 	return "mastodon"
 }
 
-func (adaptor *MastodonConnector) StartWithURL(url *url.URL) {
-	/*
-		adaptor.config = runtimeconfig.Get().Connectors.Mastodon
+func (c *MastodonConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
+	c.db = startup.DB
 
-		adaptor.config.ClientID := url.Query().Get("clientId")
-		adaptor.config.ClientSecret := url.Query().Get("clientSecret")
-		adaptor.config.Register := url.Query().Get("register") == "true"
-	*/
+	config, _ := startup.Config.(*runtimeconfig.MastodonConfig)
 
-	adaptor.Start()
+	c.config = config
+	c.Start()
 }
 
-func (adaptor *MastodonConnector) StartWithConfig(rawconfig any) {
-	config, _ := rawconfig.(*runtimeconfig.MastodonConfig)
-
-	adaptor.config = config
-	adaptor.Start()
-}
-
-func (adaptor *MastodonConnector) register() {
+func (c *MastodonConnector) register() {
+	/**
 	app, err := mastodon.RegisterApp(context.Background(), &mastodon.AppConfig{
 		Server:     "https://mastodon.social",
 		ClientName: "japella",
 		Scopes:     "read write follow",
-		Website:    adaptor.config.Website,
+		Website:    c.config.Website,
+		RedirectURIs: "http://localhost:8080/oauth2callback",
 	})
 
 	if err != nil {
 		log.Errorf("Error: %s", err)
 	}
 
-	adaptor.Logger().Infof("client-id: %v", app.ClientID)
-	adaptor.Logger().Infof("client-secret: %v", app.ClientSecret)
-	adaptor.Logger().Infof("AuthURL: %v", app.AuthURI)
+	c.Logger().Infof("client-id: %v", app.ClientID)
+	c.Logger().Infof("client-secret: %v", app.ClientSecret)
+	c.Logger().Infof("AuthURL: %v", app.AuthURI)
+	*/
 
-	fmt.Println("!!! Please type your token below:")
-	fmt.Scanln(&adaptor.token)
+	//	fmt.Println("!!! Please type your token below:")
+	//	fmt.Scanln(&c.token)
 
-	adaptor.Logger().Infof("Token: %s", adaptor.token)
+	c.Logger().Infof("Token: %s", c.token)
+}
 
-	adaptor.libconfig = &mastodon.Config{
-		Server:       "https://mastodon.social",
-		ClientID:     app.ClientID,
-		ClientSecret: app.ClientSecret,
-		AccessToken:  adaptor.token,
+func (c *MastodonConnector) Start() {
+	c.SetPrefix("Mastodon")
+	c.Logger().Infof("Mastodon connector started")
+
+	if c.config.Register {
+		c.register()
 	}
 }
 
-func (adaptor *MastodonConnector) Start() {
-	adaptor.SetPrefix("Mastodon")
-	adaptor.Logger().Infof("Mastodon connector started")
+func amqpReplier() {
+	/*
+		amqp.ConsumeForever("mastodon-OutgoingMessage", func(d amqp.Delivery) {
+			reply := msgs.OutgoingMessage{}
 
-	if adaptor.config.Register {
-		adaptor.register()
-	} else {
-		adaptor.libconfig = &mastodon.Config{
-			Server:       "https://mastodon.social",
-			ClientID:     adaptor.config.ClientId,
-			ClientSecret: adaptor.config.ClientSecret,
-			AccessToken:  adaptor.config.Token,
-		}
-		adaptor.token = adaptor.config.Token
+			amqp.Decode(d.Message.Body, &reply)
+
+			toot := &mastodon.Toot{
+				Status:     reply.Content,
+				Visibility: "public",
+			}
+
+			Post(toot)
+		})
+	*/
+}
+
+func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, content string) *connector.PostResult {
+	res := &connector.PostResult{}
+
+	log.Infof("Posting to wall: %s", content)
+
+	if c.config.Inert {
+		res.URL = "https://mastodon.social/@jamesread/1234567890" // Dummy URL for inert mode
+		return res
 	}
 
-	log.Infof("libconfig: %+v", adaptor.libconfig)
+	toot := &Toot{
+		Status: content,
+	}
 
-	client = mastodon.NewClient(adaptor.libconfig)
-
-	err := client.AuthenticateToken(context.Background(), adaptor.token, "urn:ietf:wg:oauth:2.0:oob")
+	client, req, err := utils.NewHttpClientAndGetReqWithJson("https://mastodon.social/api/v1/statuses", socialAccount.OAuthToken, toot)
 
 	if err != nil {
-		adaptor.Logger().Errorf("Error: %s", err)
+		res.Err = err
+		return res
 	}
 
-	account, err := client.GetAccountCurrentUser(context.Background())
+	postResult := &Status{}
+
+	err = utils.ClientDoJson(client, req, postResult)
 
 	if err != nil {
-		adaptor.Logger().Errorf("Error: %s", err)
+		res.Err = err
+		return res
 	}
 
-	log.Infof("Account: %v", account)
+	res.URL = postResult.URI
 
-	if runtimeconfig.Get().Amqp.Enabled {
-		go Replier()
-	}
+	return res
 }
 
-func Replier() {
-	amqp.ConsumeForever("mastodon-OutgoingMessage", func(d amqp.Delivery) {
-		reply := msgs.OutgoingMessage{}
-
-		amqp.Decode(d.Message.Body, &reply)
-
-		toot := &mastodon.Toot{
-			Status:     reply.Content,
-			Visibility: "public",
-		}
-
-		Post(toot)
-	})
-}
-
-func (adaptor *MastodonConnector) PostToWall(content string) error {
-	toot := &mastodon.Toot{
-		Status:     content,
-		Visibility: "public",
-	}
-
-	log.Infof("Posting to wallx: %s", content)
-
-	_, err := client.PostStatus(context.Background(), toot)
-
-	if err != nil {
-		log.Errorf("Error posting to wall: %v", err)
-		return fmt.Errorf("failed to post to wall: %w", err)
-	}
-
-	return nil
-}
-
-func Post(toot *mastodon.Toot) {
-	log.Infof("Post: %v", toot)
-
-	//	post, err := c.PostStatus(context.Background(), toot)
-
-	// log.Errorf("Error: %s", err)
-}
-
-func (adaptor *MastodonConnector) GetIcon() string {
+func (c *MastodonConnector) GetIcon() string {
 	return "mdi:mastodon"
+}
+
+func (c *MastodonConnector) GetOAuth2Config() *oauth2.Config {
+	ep := oauth2.Endpoint{
+		AuthURL:  "https://mastodon.social/oauth/authorize",
+		TokenURL: "https://mastodon.social/oauth/token",
+	}
+
+	config := &oauth2.Config{
+		ClientID:     c.config.ClientId,
+		ClientSecret: c.config.ClientSecret,
+		RedirectURL:  "http://localhost:8080/oauth2callback",
+		Scopes:       []string{"read", "write", "follow"},
+		Endpoint:     ep,
+	}
+
+	return config
+}
+
+type VerifyCredentialsResponse struct {
+	Username string `json:"username"`
+}
+
+func (c *MastodonConnector) whoami(socialAccount *connector.SocialAccount) {
+	client, req, err := utils.NewHttpClientAndGetReq("https://mastodon.social/api/v1/accounts/verify_credentials", socialAccount.OAuthToken)
+
+	if err != nil {
+		log.Errorf("Error creating request: %v", err)
+		return
+	}
+
+	data := &VerifyCredentialsResponse{}
+
+	utils.ClientDoJson(client, req, &data)
+
+	log.Infof("Whoami response: %+v", data)
+
+	c.db.UpdateSocialAccountIdentity(socialAccount.Id, data.Username)
+}
+
+func (c *MastodonConnector) OnRefresh(socialAccount *connector.SocialAccount) error {
+	c.whoami(socialAccount)
+	return nil
 }

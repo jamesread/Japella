@@ -1,11 +1,11 @@
 package main
 
 import (
+	"github.com/jamesread/japella/internal/bots/exec"
 	"github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/httpserver"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
-	"github.com/jamesread/japella/internal/bots/exec"
 	log "github.com/sirupsen/logrus"
 	"os"
 )

@@ -4,14 +4,14 @@
 			<div class = "fg1">
 				<h2>Canned Posts</h2>
 
-				<p>This page shows a list of canned posts that can be used in the chat.</p>
+				<p>This page shows a list of social accounts that can be used in the chat.</p>
 			</div>
 			<div role = "toolbar">
-				<button @click = "refreshPosts" :disabled = "!clientReady">
+				<button @click = "refreshPosts" :disabled = "!clientReady" class = "neutral">
 					<Icon icon="material-symbols:refresh" />
 				</button>
 
-				<button>
+				<button class = "neutral" disabled>
 					<Icon icon="material-symbols:add-rounded" />
 				</button>
 			</div>
@@ -22,7 +22,7 @@
 		</div>
 		<div v-else>
 			<div v-if = "posts.length === 0" class = "empty">
-				<p class = "inline-notification note">No canned posts available.</p>
+				<p class = "inline-notification note">No posts available.</p>
 			</div>
 			<div v-else class = "empty">
 				<table>
@@ -47,7 +47,7 @@
 						</td>
 
 						<td>
-							<button @click = "deleteCannedPost(p.id)">
+							<button @click = "deleteCannedPost(p.id)" class = "bad">
 								<Icon icon="material-symbols:delete" />
 							</button>
 						</td>
@@ -62,6 +62,7 @@
 <script setup>
 	import { Icon } from '@iconify/vue';
 	import { ref, onMounted } from 'vue';
+	import { waitForClient } from '../javascript/util';
 
 	const posts = ref([])
 	const clientReady = ref(false)
@@ -92,21 +93,10 @@
 				return ret.posts
 			})
 			.catch((error) => {
-				errorMessage.value = "Failed to fetch canned posts: " + error.message
-				console.error('Error fetching canned posts:', error)
+				errorMessage.value = "Failed to fetch social accounts: " + error.message
+				console.error('Error fetching social accounts:', error)
 				return []
 			})
-	}
-
-	function waitForClient() {
-	  return new Promise((resolve) => {
-		const interval = setInterval(() => {
-		  if (window.client) {
-			clearInterval(interval)
-			resolve()
-		  }
-		}, 50)
-	  })
 	}
 
 	function refreshPosts() {

@@ -6,7 +6,6 @@
 
 		<title>Japella</title>
 
-		<link rel = "stylesheet" type = "text/css" href = "resources/stylesheets/BrightAndSimpleTheme/style.css" />
 		<link rel = "stylesheet" type = "text/css" href = "resources/stylesheets/main.css" />
 
 		<link rel = "shortcut icon" href = "logo.png" />
@@ -17,29 +16,33 @@
 
 	<body>
 		<header>
-			<img src = "logo.png" class = "logo" />
-			<h1>Japella</h1>
-			<nav>
-				<ul role = "menubar">
-				</ul>
-			</nav>
+			<div class = "logo-and-title fg1">
+				<img src = "logo.png" class = "logo" />
+				<h1>Japella</h1>
+			</div>
+
+			<div class = "user-info">
+				<span id = "user-name">guest</span>
+			</div>
 		</header>
 
-		<main>
+		<div id = "layout">
+			<aside class = "shown stuck">
+					<ul id = "nav-section-links">
+					</ul>
+			</aside>
 
-			<slot id = "app-status"></slot>
+			<div id = "content">
+				<main>
+					<div id = "app" />
+				</main>
 
-			<slot id = "post-box"></slot>
-
-			<slot id = "calendar"></slot>
-
-			<slot id = "canned-posts"></slot>
-		</main>
-
-		<footer>
-			<span><a href = "https://github.com/jamesread/Japella">Japella on GitHub</a></span>
-			<span id = "currentVersion"></span>
-		</footer>
+				<footer>
+					<span><a href = "https://github.com/jamesread/Japella">Japella on GitHub</a></span>
+					<span id = "currentVersion"></span>
+				</footer>
+			</div>
+		</div>
 
 		<script type = "module">
 			import { main } from "./resources/javascript/main.ts";

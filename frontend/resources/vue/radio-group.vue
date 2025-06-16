@@ -1,11 +1,9 @@
 <template>
 	<div class = "radio-group">
-		<span v-for = "mode in availablePostModes" :key = "mode">
-			<label for = "'mode-' + mode">
-				<input type = "radio" id = "'mode-' + mode" name = "'mode-' + mode" v-model = "mdlValue" value = "{{ mode }}" />
-				{{ mode }}
-			</label>
-		</span>
+		<label v-for = "mode in availablePostModes" :key = "mode" :disabled = "mode.disabled">
+			<input type = "radio" name = "'mode-' + mode" v-model = "mdlValue" value = "{{ mode.title }}" disabled = "{{ mode.disabled }}" />
+			{{ mode.title }}
+		</label>
 	</div>
 </template>
 

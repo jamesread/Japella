@@ -4,10 +4,9 @@ import { createConnectTransport } from "@connectrpc/connect-web"
 import { JapellaControlApiService } from './gen/japella/controlapi/v1/control_pb'
 
 import { createApp } from 'vue';
-import Calendar from '../vue/calendar.vue';
-import PostBox from '../vue/post-box.vue';
-import CannedPosts from '../vue/canned-posts.vue';
-import AppStatus from '../vue/app-status.vue';
+import App from '../vue/app.vue';
+
+import Notification from './notification.js';
 
 function setupPostBox () {
   document.getElementById('submit-post').addEventListener('click', () => {
@@ -32,44 +31,76 @@ function submitPost (post) {
 }
 
 export function main(): void {
-	createApp(PostBox).mount('#post-box')
-	createApp(Calendar).mount('#calendar')
-	createApp(CannedPosts).mount('#canned-posts')
-	createApp(AppStatus).mount('#app-status')
+	createApp(App).mount('#app')
 
-	createSectionLink('Canned Posts', 'canned-posts').click()
 	createSectionLink('Post', 'post-box')
+	createSectionHeader('Schedule')
+	createSectionLink('Timeline', 'timeline')
+	createSectionLink('Canned Posts', 'canned-posts')
 	createSectionLink('Calendar', 'calendar')
+	createSectionHeader('Connections')
+	createSectionLink('Social Accounts', 'social-accounts')
+	createSectionHeader('System')
 	createSectionLink('Status', 'status')
+	createSectionLink('Settings', 'settings')
+	loadNavSection()
 
 	createApiClient()
 	setupApi()
+
+	displayNotifications()
+}
+
+function loadNavSection(): void {
+	const currentSection = window.location.hash.substring(1);
+
+	if (currentSection === '') {
+		showNavSection('welcome');
+	} else {
+		showNavSection(currentSection);
+	}
+}
+
+function createSectionHeader(name: string): HTMLHeadingElement {
+	const header = document.createElement('h2');
+	header.innerText = name;
+
+	document.getElementById('nav-section-links').appendChild(header);
+
+	return header;
 }
 
 function createSectionLink(name: string, sectionClass: string): HTMLAnchorElement {
 	const link = document.createElement('a');
 	link.innerText = name;
+	link.href = '#' + sectionClass;
 
-	link.onclick = () => {
-		document.getElementsByTagName('nav')[0].querySelector('ul').querySelectorAll('a').forEach((a) => {
-			a.classList.remove('active')
-		});
-
-		for (const section of document.querySelectorAll('section')) {
-			const shown = section.classList.contains(sectionClass)
-
-			section.hidden = !shown
-		}
-
-		link.classList.add('active')
-	}
+	link.onclick = () => showNavSection(sectionClass);
 
 	const li = document.createElement('li');
 	li.appendChild(link);
 
-	document.getElementsByTagName('nav')[0].querySelector('ul').appendChild(li);
+	document.getElementById('nav-section-links').appendChild(li);
 
 	return link;
+}
+
+function showNavSection(sectionClass: string): void {
+	document.getElementById('nav-section-links').querySelectorAll('a').forEach((a) => {
+			a.classList.remove('active')
+	});
+
+	const link = document.querySelector('a[href="#' + sectionClass + '"]');
+
+	if (link) {
+		link.classList.add('active')
+	}
+
+	for (const section of document.querySelectorAll('section')) {
+		const shown = section.classList.contains(sectionClass)
+
+		section.hidden = !shown
+	}
 }
 
 function createApiClient(): void {
@@ -97,4 +128,26 @@ async function setupApi(): void {
 
 	document.getElementById('currentVersion').innerText = 'Version: ' + status.version;
 
+}
+
+function getSearchParams(): URLSearchParams {
+	const params = new URLSearchParams(window.location.search);
+
+	return params;
+}
+
+function displayNotifications(): void {
+	let params = getSearchParams();
+	if (params.has('notification')) {
+		let type = params.get('type') || 'info';
+		let title = params.get('title') || 'Notification';
+		let message = params.get('notification');
+
+		let n = new Notification(type, title, message);
+		n.show();
+
+		// Clear the notification from the URL
+		params.delete('notification');
+		window.history.replaceState({}, '', window.location.pathname + '?' + params.toString());
+	}
 }
