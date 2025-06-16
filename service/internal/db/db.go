@@ -144,7 +144,7 @@ func (db *DB) SelectCannedPosts() map[string]*CannedPost {
 	for rows.Next() {
 		var id, content string
 
-		if err := rows.Scan(&id); err != nil {
+		if err := rows.Scan(&id, &content); err != nil {
 			log.Errorf("Error scanning canned post: %v", err)
 			continue
 		}

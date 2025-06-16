@@ -146,7 +146,7 @@
 						status = "bad"
 					}
 
-					let n = new Notification(status, "Post Submitted", "Your post has been submitted successfully.", res.postUrl)
+					let n = new Notification(status, "Posted to" + x.socialAccountIcon, "Post complete.", x.postUrl)
 					n.show()
 				}
 			})

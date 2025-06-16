@@ -19,6 +19,8 @@ message PostStatus {
 	string post_url = 3;
 	bool success = 4;
 	string created = 5;
+	string social_account_icon = 6;
+	string social_account_identity = 7;
 }
 
 message GetStatusRequest {}

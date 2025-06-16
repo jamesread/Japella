@@ -133,6 +133,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 		socialAccount := s.socialaccounts[accountId]
 
+
 		if socialAccount == nil {
 			log.Errorf("Social account not found: %s", accountId)
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %s", accountId))
@@ -144,6 +145,9 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			log.Errorf("Posting service not found for connector: %s", socialAccount.Connector)
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("posting service not found for connector: %s", socialAccount.Connector))
 		}
+
+		postStatus.SocialAccountIcon = postingService.GetIcon()
+		postStatus.SocialAccountIdentity = socialAccount.Identity
 
 		if wallService, ok := postingService.(connector.ConnectorWithWall); ok {
 			log.Infof("Posting to wall service wit account id: %v with is of connection proto: %v", accountId, wallService.GetProtocol())
@@ -384,17 +388,21 @@ func redirect(w http.ResponseWriter, message string, msgType string) {
 func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Request[controlv1.DeleteSocialAccountRequest]) (*connect.Response[controlv1.DeleteSocialAccountResponse], error) {
 	log.Infof("Deleting social account with ID: %s", req.Msg.Id)
 
-	s.db.DeleteSocialAccount(req.Msg.Id)
+	err := s.db.DeleteSocialAccount(req.Msg.Id)
 	delete(s.socialaccounts, req.Msg.Id)
 
-	res := connect.NewResponse(&controlv1.DeleteSocialAccountResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "OK",
-		},
-	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete social account: %w", err))
+	} else {
+		res := connect.NewResponse(&controlv1.DeleteSocialAccountResponse{
+			StandardResponse: &controlv1.StandardResponse{
+				Success: true,
+				Message: "OK",
+			},
+		})
 
-	return res, nil
+		return res, nil
+	}
 }
 
 func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Request[controlv1.RefreshSocialAccountRequest]) (*connect.Response[controlv1.RefreshSocialAccountResponse], error) {
