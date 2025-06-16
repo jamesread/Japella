@@ -1,14 +1,9 @@
-package dashboard
+package frontend
 
 import (
 	"net/http"
-	//	"net/http/httputil"
-	//	"net/url"
 	"github.com/jamesread/golure/pkg/dirs"
 )
-
-type Dashboard struct {
-}
 
 func findWebuiDir() string {
 	directoriesToSearch := []string{

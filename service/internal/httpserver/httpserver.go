@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/jamesread/japella/internal/controlapi"
-	"github.com/jamesread/japella/internal/dashboard"
+	"github.com/jamesread/japella/internal/httpserver/frontend"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -35,7 +35,7 @@ func Start() {
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", apihandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
-	mux.Handle("/", http.StripPrefix("/", dashboard.GetNewHandler()))
+	mux.Handle("/", http.StripPrefix("/", frontend.GetNewHandler()))
 
 	endpoint := "0.0.0.0:8080"
 
