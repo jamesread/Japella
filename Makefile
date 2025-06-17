@@ -11,7 +11,6 @@ frontend:
 
 docs:
 	$(MAKE) -wC docs
-	./docs/node_modules/.bin/antora antora-playbook.yml
 
 
 .PHONY: default proto service frontend docs

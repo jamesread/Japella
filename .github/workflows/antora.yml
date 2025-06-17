@@ -29,11 +29,8 @@ jobs:
         node-version: '20'
         cache-dependency-path: docs/package-lock.json
 
-    - name: Install deps
-      run: cd docs && make
-
     - name: Generate Site
-      run: make docs
+      run: cd docs && make ci
 
     - name: Upload Artifacts
       uses: actions/upload-pages-artifact@v3
