@@ -20,11 +20,6 @@ func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) {
 		return
 	}
 
-	if !dbconfig.Enabled {
-		log.Warnf("Database is not enabled in configuration, skipping connection")
-		return
-	}
-
 	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", dbconfig.User, dbconfig.Password, dbconfig.Host, dbconfig.Database)
 
 	var err error
@@ -33,6 +28,7 @@ func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) {
 
 	if err != nil {
 		log.Warnf("Failed to connect to database: %v", err)
+		return
 	}
 
 	db.Migrate()

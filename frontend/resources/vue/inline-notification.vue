@@ -1,6 +1,6 @@
 <template>
 	<div :class = "'inline-notification ' + type">
-		<p v-if="message">{{ message }}</p>
+		<span v-if="message">{{ message }}</span>
 	</div>
 </template>
 

@@ -4,14 +4,19 @@
 
 		<p>This page shows a list of OAuth services that can be connected to Japella.</p>
 
-		<div v-for="service in services" :key="service.id">
-			<button @click="connectService(service.name)" class = "good" type = "submit">
-				<Icon :icon="service.icon" />
+		<div v-if="services.length === 0">
+			<p class="inline-notification note">No OAuth services available.</p>
+		</div>
+		<div v-else>
+			<div v-for="service in services" :key="service.id">
+				<button @click="connectService(service.name)" class = "good" type = "submit">
+					<Icon :icon="service.icon" />
 
-				Login with {{ service.name }}
-			</button>
-			<br />
-			<br />
+					Login with {{ service.name }}
+				</button>
+				<br />
+				<br />
+			</div>
 		</div>
 
 		<p>If you don't see the service you want, it probably needs initial setup in the settings.</p>

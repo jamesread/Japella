@@ -7,12 +7,8 @@
 				<p>This page shows a list of social accounts that can be used in the chat.</p>
 			</div>
 			<div role = "toolbar">
-				<button @click = "refreshAccounts()" :disabled = "!clientReady">
+				<button @click = "refreshAccounts()" :disabled = "!clientReady" class = "neutral">
 					<Icon icon="material-symbols:refresh" />
-				</button>
-
-				<button>
-					<Icon icon="material-symbols:add-rounded" />
 				</button>
 			</div>
 		</div>
@@ -22,7 +18,7 @@
 		</div>
 		<div v-else>
 			<div v-if = "accounts.length === 0" class = "empty">
-				<p class = "inline-notification note">No social accounts available.</p>
+				<p class = "inline-notification note">No social accounts connected yet.</p>
 			</div>
 			<div v-else class = "empty">
 				<table>
