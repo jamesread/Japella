@@ -40,8 +40,6 @@
 		// sort connectors by name
 		res.connectors.sort((a, b) => a.name.localeCompare(b.name));
 
-		console.log('Fetched services:', res);
-
 		services.value = res.connectors
 	}
 

@@ -101,7 +101,6 @@
 
 	function refreshPosts() {
 		getCannedPosts().then((fetchedPosts) => {
-			console.log('Refreshing posts:', fetchedPosts)
 			posts.value = fetchedPosts
 		})
 	}

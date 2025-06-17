@@ -4,7 +4,8 @@ import { createConnectTransport } from "@connectrpc/connect-web"
 import { JapellaControlApiService } from './gen/japella/controlapi/v1/control_pb'
 
 import { createApp } from 'vue';
-import App from '../vue/app.vue';
+import { createI18n, useI18n } from 'vue-i18n';
+import App from '../vue/App.vue';
 
 import Notification from './notification.js';
 
@@ -31,18 +32,38 @@ function submitPost (post) {
 }
 
 export function main(): void {
-	createApp(App).mount('#app')
+	fetch('http://localhost:8080/lang')
+		.then(response => response.json())
+		.then(ret => {
+			const i18n = createI18n({
+				legacy: false,
+				locale: ret.acceptLanguages[0],
+				fallbackLocale: 'en',
+				messages: ret.messages,
+				postTranslation: (translated) => {
+					const params = new URLSearchParams(window.location.search);
 
-	createSectionLink('Post', 'post-box')
-	createSectionHeader('Schedule')
-	createSectionLink('Timeline', 'timeline')
-	createSectionLink('Canned Posts', 'canned-posts')
-	createSectionLink('Calendar', 'calendar')
-	createSectionHeader('Connections')
-	createSectionLink('Social Accounts', 'social-accounts')
-	createSectionHeader('System')
-	createSectionLink('Status', 'status')
-	createSectionLink('Settings', 'settings')
+					if (params.has('debug-i18n')) {
+						return '___'
+					} else {
+						return translated;
+					}
+				}
+			})
+
+			createTheApp(i18n);
+		})
+		.catch(error => {
+			console.error('Error loading language file:', error);
+		});
+}
+
+function createTheApp(i18n: any): void {
+	const app = createApp(App)
+
+	app.use(i18n)
+	app.mount('#app')
+
 	loadNavSection()
 
 	createApiClient()
@@ -70,20 +91,6 @@ function createSectionHeader(name: string): HTMLHeadingElement {
 	return header;
 }
 
-function createSectionLink(name: string, sectionClass: string): HTMLAnchorElement {
-	const link = document.createElement('a');
-	link.innerText = name;
-	link.href = '#' + sectionClass;
-
-	link.onclick = () => showNavSection(sectionClass);
-
-	const li = document.createElement('li');
-	li.appendChild(link);
-
-	document.getElementById('nav-section-links').appendChild(li);
-
-	return link;
-}
 
 function showNavSection(sectionClass: string): void {
 	document.getElementById('nav-section-links').querySelectorAll('a').forEach((a) => {

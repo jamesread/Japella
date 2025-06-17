@@ -1,0 +1,11 @@
+{
+	"_comments": "Google Translated, mostly to test UTF8 encoding works!",
+	"schemaVersion": 1,
+	"translations": {
+		"welcome": "ジャペラへようこそ！",
+		"welcome.gettingstarted": "まず、最初の投稿を作成します。",
+		"nav.post": "役職",
+		"nav.timeline": "タイムライン",
+		"nav.settings": "設定"
+	}
+}

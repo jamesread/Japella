@@ -48,7 +48,6 @@
 <script setup>
 	import { ref, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
-	import InlineNotification from './inline-notification.vue';
 	import { Icon } from '@iconify/vue';
 
 	const timeline = ref([]);

@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/jamesread/japella/internal/layers/api"
+	"github.com/jamesread/japella/internal/httpserver/i18n"
 	"github.com/jamesread/japella/internal/httpserver/frontend"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,6 +36,7 @@ func Start() {
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", apihandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
+	mux.Handle("/lang", http.HandlerFunc(i18n.Handle))
 	mux.Handle("/", http.StripPrefix("/", frontend.GetNewHandler()))
 
 	endpoint := "0.0.0.0:8080"

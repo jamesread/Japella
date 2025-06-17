@@ -1,0 +1,10 @@
+{
+	"schemaVersion": 1,
+	"translations": {
+		"welcome": "Benvenuto in Japella!",
+		"welcome.gettingstarted": "Per iniziare, crea il tuo primo post.",
+		"nav.post": "Inviare",
+		"nav.timeline": "Cronologia",
+		"nav.settings": "Impostazioni"
+	}
+}

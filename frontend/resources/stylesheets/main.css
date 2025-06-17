@@ -91,6 +91,12 @@ aside {
 	background-color: black;
 }
 
+#app {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+}
+
 @media (max-width: 600px) {
 	.grid-wide {
 		grid-column: 1 / span 2;

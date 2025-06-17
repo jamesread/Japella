@@ -12,7 +12,6 @@
 
 <script setup>
 	import { ref, onMounted } from 'vue'
-	import Stat from './stat.vue'
 
 	const health = ref(null)
 	const nanoservices = ref(null)
@@ -20,8 +19,6 @@
 
 	onMounted(() => {
 		window.addEventListener('status-updated', (st) => {
-			console.log("status-udpated", st.detail)
-
 			health.value.setValue(st.detail.status)
 			nanoservices.value.setValue(st.detail.nanoservices.join(', '))
 		})

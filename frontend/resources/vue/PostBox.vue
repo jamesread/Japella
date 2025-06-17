@@ -1,10 +1,10 @@
 <template>
 	<section class = "post-box small">
-		<h2>Post</h2>
-		<p>Post a message to a service.</p>
+		<h2>{{ t('section.postbox.title') }}</h2>
+		<p>{{ t('section.postbox.intro') }}</p>
 
 		<form @submit.prevent="submitPost" id = "submit-post">
-			<span class = "fake-label">Social accounts:</span>
+			<span class = "fake-label">{{ t('section.postbox.socialaccounts') }}</span>
 			<div v-if = "postMode == 'canned'">
 				<p>Canned posts just get saved.</p>
 			</div>
@@ -36,16 +36,17 @@
 			<textarea id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!"></textarea>
 
 			<fieldset>
-				<button id = "submit" type = "submit">Post</button>
+				<button id = "submit" type = "submit">{{ t('section.postbox.submit') }}</button>
 			</fieldset>
 		</form>
 	</section>
 </template>
 
 <script setup>
+	import { useI18n } from 'vue-i18n'
+	const { t } = useI18n()
+
 	import { ref, onMounted } from 'vue';
-	import RadioGroup from './radio-group.vue';
-	import InlineNotification from './inline-notification.vue';
 	import { Icon } from '@iconify/vue';
 
 	const clientReady = ref(false);
