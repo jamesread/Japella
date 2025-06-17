@@ -2,7 +2,6 @@
 @import 'femtocrank/dark.css';
 
 section.small {
-	width: 60%;
 	max-width: 720px;
 	margin: auto;
 }
