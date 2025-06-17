@@ -1,5 +1,7 @@
-ci:
+build:
+	npx antora generate antora-playbook.yml
+
+ci: build
 	npm ci
 
-build:
-	npx antora build
+.PHONY: build ci

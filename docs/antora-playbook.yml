@@ -5,13 +5,14 @@ site:
   robots: allow
 content:
   sources:
-    - url: .
-      start_path: docs
+    - url: ../
+      start_path: docs/
+
 ui:
   bundle:
     url: https://gitlab.com/antora/antora-ui-default/-/jobs/artifacts/HEAD/raw/build/ui-bundle.zip?job=bundle-stable
     snapshot: true
-  supplemental_files: ./docs/theme-supplemental/
+  supplemental_files: ./theme-supplemental/
 antora:
   extensions:
     - '@antora/lunr-extension'
