@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"connectrpc.com/authn"
 	"connectrpc.com/connect"
 	connectcors "connectrpc.com/cors"
 	"golang.org/x/oauth2"
@@ -18,6 +19,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connectorcontroller"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/layers/auth"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
@@ -28,7 +30,7 @@ import (
 )
 
 type ControlApi struct {
-	db *db.DB
+	DB *db.DB
 
 	oauth2states map[string]*oauth2State
 
@@ -42,17 +44,17 @@ type oauth2State struct {
 }
 
 func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
-	s.db = &db.DB{}
-	s.db.ReconnectDatabase(cfg.Database)
+	s.DB = &db.DB{}
+	s.DB.ReconnectDatabase(cfg.Database)
 
 	s.oauth2states = make(map[string]*oauth2State)
-	s.cc = connectorcontroller.New(s.db)
+	s.cc = connectorcontroller.New(s.DB)
 
 	log.Infof("ControlApi started with s: %+v", s)
 }
 
 func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[controlv1.GetCannedPostsRequest]) (*connect.Response[controlv1.GetCannedPostsResponse], error) {
-	cannedPosts := s.db.SelectCannedPosts()
+	cannedPosts := s.DB.SelectCannedPosts()
 
 	ret := make([]*controlv1.CannedPost, 0, len(cannedPosts))
 
@@ -71,6 +73,16 @@ func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[co
 	return res, nil
 }
 
+func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *auth.AuthenticatedUser {
+	v := authn.GetInfo(ctx)
+
+	if v == nil {
+		return nil
+	} else {
+		return v.(*auth.AuthenticatedUser)
+	}
+}
+
 func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[controlv1.GetStatusRequest]) (*connect.Response[controlv1.GetStatusResponse], error) {
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
 		Status:       "OK!",
@@ -78,13 +90,15 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		Version:      buildinfo.Version,
 	})
 
+	log.Infof("Status context: %+v", s.getAuthenticatedUser(ctx))
+
 	return res, nil
 }
 
 func (s *ControlApi) marshalSocialAccounts(onlyActive bool) []*controlv1.SocialAccount {
 	accounts := make([]*controlv1.SocialAccount, 0)
 
-	for _, socialAccount := range s.db.SelectSocialAccounts(onlyActive) {
+	for _, socialAccount := range s.DB.SelectSocialAccounts(onlyActive) {
 		connectorService := s.cc.Get(socialAccount.Connector)
 
 		accounts = append(accounts, &controlv1.SocialAccount{
@@ -113,11 +127,11 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			Content:  req.Msg.Content,
 		}
 
-		socialAccount, _ := s.db.GetSocialAccount(accountId)
+		socialAccount, _ := s.DB.GetSocialAccount(accountId)
 
 		s.tryPostStatus(req.Msg.Content, socialAccount, postStatus)
 
-		s.db.CreatePost(&db.Post{
+		s.DB.CreatePost(&db.Post{
 			SocialAccountID: socialAccount.ID,
 			Content:         req.Msg.Content,
 			Status:         postStatus.Success,
@@ -200,7 +214,7 @@ func (s *ControlApi) GetSocialAccounts(ctx context.Context, req *connect.Request
 func (s *ControlApi) CreateCannedPost(ctx context.Context, req *connect.Request[controlv1.CreateCannedPostRequest]) (*connect.Response[controlv1.CreateCannedPostResponse], error) {
 	log.Infof("Creating canned post: %+v", req.Msg)
 
-	err := s.db.CreateCannedPost(req.Msg.Content)
+	err := s.DB.CreateCannedPost(req.Msg.Content)
 
 	if err != nil {
 		log.Errorf("Error creating canned post: %v", err)
@@ -218,7 +232,7 @@ func (s *ControlApi) CreateCannedPost(ctx context.Context, req *connect.Request[
 }
 
 func (s *ControlApi) DeleteCannedPost(ctx context.Context, req *connect.Request[controlv1.DeleteCannedPostRequest]) (*connect.Response[controlv1.DeleteCannedPostResponse], error) {
-	err := s.db.DeleteCannedPost(req.Msg.Id)
+	err := s.DB.DeleteCannedPost(req.Msg.Id)
 
 	if err != nil {
 		log.Errorf("Error deleting canned post: %v", err)
@@ -306,8 +320,8 @@ func (s *ControlApi) StartOAuth(ctx context.Context, req *connect.Request[contro
 	return res, nil
 }
 
-func (c *ControlApi) registerAccount(connector string, accessToken string) {
-	err := c.db.RegisterAccount(connector, accessToken)
+func (s *ControlApi) registerAccount(connector string, accessToken string) {
+	err := s.DB.RegisterAccount(connector, accessToken)
 
 	if err != nil {
 		log.Errorf("Error registering account: %v", err)
@@ -381,7 +395,7 @@ func redirect(w http.ResponseWriter, message string, msgType string) {
 func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Request[controlv1.DeleteSocialAccountRequest]) (*connect.Response[controlv1.DeleteSocialAccountResponse], error) {
 	log.Infof("Deleting social account with ID: %s", req.Msg.Id)
 
-	err := s.db.DeleteSocialAccount(req.Msg.Id)
+	err := s.DB.DeleteSocialAccount(req.Msg.Id)
 
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete social account: %w", err))
@@ -400,7 +414,7 @@ func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Reque
 func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Request[controlv1.RefreshSocialAccountRequest]) (*connect.Response[controlv1.RefreshSocialAccountResponse], error) {
 	log.Infof("Refreshing social account with ID: %s", req.Msg.Id)
 
-	socialAccount, _ := s.db.GetSocialAccount(req.Msg.Id)
+	socialAccount, _ := s.DB.GetSocialAccount(req.Msg.Id)
 
 	if socialAccount == nil {
 		log.Errorf("Social account not found: %s", req.Msg.Id)
@@ -426,7 +440,7 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 }
 
 func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[controlv1.GetTimelineRequest]) (*connect.Response[controlv1.GetTimelineResponse], error) {
-	posts, err := s.db.SelectPosts()
+	posts, err := s.DB.SelectPosts()
 
 	if err != nil {
 		log.Errorf("Error selecting posts: %v", err)
@@ -461,7 +475,7 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 func (s *ControlApi) SetSocialAccountActive(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountActiveRequest]) (*connect.Response[controlv1.SetSocialAccountActiveResponse], error) {
 	log.Infof("Setting social account active state for ID: %v to %v", req.Msg.Id, req.Msg.Active)
 
-	err := s.db.SetSocialAccountActive(req.Msg.Id, req.Msg.Active)
+	err := s.DB.SetSocialAccountActive(req.Msg.Id, req.Msg.Active)
 
 	if err != nil {
 		log.Errorf("Error setting social account active state: %v", err)

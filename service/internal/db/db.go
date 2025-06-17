@@ -44,6 +44,10 @@ func (db *DB) Migrate() {
 		&SocialAccount{},
 		&CannedPost{},
 		&Post{},
+		&UserAccount{},
+		&UserGroup{},
+		&UserGroupMembership{},
+		&ApiKey{},
 	)
 
 	if err != nil {
@@ -147,4 +151,19 @@ func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
 	}
 
 	return nil
+}
+
+func (db *DB) GetUserByApiKey(apiKey string) *ApiKey {
+	ret := &ApiKey {
+		Key: apiKey,
+	}
+
+	result := db.conn.Preload("UserAccount").First(&ret)
+
+	if result.Error != nil || result.RowsAffected == 0 {
+		log.Warnf("No user found for API key: %s", apiKey)
+		return nil
+	}
+
+	return ret
 }
