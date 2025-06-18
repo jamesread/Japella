@@ -48,6 +48,7 @@ func (db *DB) Migrate() {
 		&UserGroup{},
 		&UserGroupMembership{},
 		&ApiKey{},
+		&Session{},
 	)
 
 	if err != nil {
@@ -154,11 +155,9 @@ func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
 }
 
 func (db *DB) GetUserByApiKey(apiKey string) *ApiKey {
-	ret := &ApiKey {
-		Key: apiKey,
-	}
+	ret := &ApiKey{}
 
-	result := db.conn.Preload("UserAccount").First(&ret)
+	result := db.conn.Preload("UserAccount").Where("key_value = ?", apiKey).Limit(1).Find(ret)
 
 	if result.Error != nil || result.RowsAffected == 0 {
 		log.Warnf("No user found for API key: %s", apiKey)
@@ -166,4 +165,91 @@ func (db *DB) GetUserByApiKey(apiKey string) *ApiKey {
 	}
 
 	return ret
+}
+
+func (db *DB) GetUserByUsername(username string) *UserAccount {
+	ret := &UserAccount{}
+
+	result := db.conn.Where("username = ?", username).Limit(1).Find(ret)
+
+	if result.Error != nil || ret.Username == "" {
+		log.Warnf("No user found for username: %s", username)
+		return nil
+	}
+
+	return ret
+}
+
+func (db *DB) CreateUserAccount(username, passwordHash string) (*UserAccount, error) {
+	user := &UserAccount{
+		Username:     username,
+		PasswordHash: passwordHash,
+	}
+
+	result := db.conn.Create(user)
+
+	if result.Error != nil {
+		log.Errorf("Failed to create user account: %v", result.Error)
+		return nil, result.Error
+	}
+
+	return user, nil
+}
+
+func (db *DB) CreateApiKey(user *UserAccount, keyValue string) (*ApiKey, error) {
+	apiKey := &ApiKey{
+		KeyValue:      keyValue,
+		UserAccountID: user.ID,
+		UserAccount:   *user,
+	}
+
+	result := db.conn.Create(apiKey)
+
+	if result.Error != nil {
+		log.Errorf("Failed to create API key: %v", result.Error)
+		return nil, result.Error
+	}
+
+	return apiKey, nil
+}
+
+func (db *DB) HasAnyUsers() bool {
+	var count int64
+	result := db.conn.Model(&UserAccount{}).Count(&count)
+
+	if result.Error != nil {
+		log.Errorf("Failed to count users: %v", result.Error)
+		return false
+	}
+
+	return count > 0
+}
+
+func (db *DB) CreateSession(sessionID string, uid uint32) error {
+	session := &Session{
+		UserAccountID: uid,
+		SID:     sessionID,
+	}
+
+	result := db.conn.Create(session)
+
+	if result.Error != nil {
+		log.Errorf("Failed to create session: %v", result.Error)
+		return result.Error
+	}
+
+	return nil
+}
+
+func (db *DB) GetSessionByID(sessionID string) *Session {
+	session := &Session{}
+
+	result := db.conn.Preload("UserAccount").Where("sid = ?", sessionID).First(session)
+
+	if result.Error != nil {
+		log.Warnf("No session found for ID: %s", sessionID)
+		return nil
+	}
+
+	return session
 }

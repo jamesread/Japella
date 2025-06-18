@@ -8,6 +8,8 @@ import (
 
 	"github.com/jamesread/japella/internal/db"
 
+	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
+
 	"connectrpc.com/authn"
 )
 
@@ -20,16 +22,28 @@ type AuthLayer struct {
 	AuthChain []AuthFunc
 }
 
+var allowList = map[string]bool{
+	controlv1.JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure: true,
+	controlv1.JapellaControlApiServiceGetStatusProcedure: true,
+}
+
 type AuthFunc func(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error)
 
 func (al *AuthLayer) Handle(ctx context.Context, req *http.Request) (any, error) {
 	log.Infof("Handling auth request: %s %s", req.Method, req.URL.Path)
 
-	for _, authFunc := range al.AuthChain {
-		user, err := authFunc(ctx, al.DB, req)
+	procedureName, _ := authn.InferProcedure(req.URL)
 
-		if err == nil && user != nil {
-			return user, nil
+	if allowList[procedureName] {
+		log.Infof("Allowing unauthenticated access to %s", procedureName)
+		return nil, nil
+	} else {
+		for _, authFunc := range al.AuthChain {
+			user, err := authFunc(ctx, al.DB, req)
+
+			if err == nil && user != nil {
+				return user, nil
+			}
 		}
 	}
 
@@ -49,6 +63,7 @@ func CheckAuthAllowAll(ctx context.Context, db *db.DB, req *http.Request) (*Auth
 
 func DefaultAuthLayer(db *db.DB) *AuthLayer {
 	authChain := []AuthFunc{
+		CheckAuthSessionCookie,
 		CheckAuthApiKey,
 		CheckAuthTrustedHeader,
 	}

@@ -47,10 +47,27 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 	s.DB = &db.DB{}
 	s.DB.ReconnectDatabase(cfg.Database)
 
+	s.initAdminUser()
+
 	s.oauth2states = make(map[string]*oauth2State)
 	s.cc = connectorcontroller.New(s.DB)
 
 	log.Infof("ControlApi started with s: %+v", s)
+}
+
+func (s *ControlApi) initAdminUser() {
+	if !s.DB.HasAnyUsers() {
+		log.Warn("No users found in the database, creating default admin user")
+
+		passwordHash, err := utils.HashPassword("admin")
+
+		if err != nil {
+			log.Errorf("Error hashing default password: %v", err)
+			return
+		}
+
+		s.DB.CreateUserAccount("admin", passwordHash)
+	}
 }
 
 func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[controlv1.GetCannedPostsRequest]) (*connect.Response[controlv1.GetCannedPostsResponse], error) {
@@ -88,9 +105,8 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		Status:       "OK!",
 		Nanoservices: nanoservice.GetNanoservices(),
 		Version:      buildinfo.Version,
+		Username:     s.getAuthenticatedUser(ctx).Username,
 	})
-
-	log.Infof("Status context: %+v", s.getAuthenticatedUser(ctx))
 
 	return res, nil
 }
@@ -184,12 +200,16 @@ func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
 }
 
 func withCors(h http.Handler) http.Handler {
-	middleware := cors.New(cors.Options{
+	opts := cors.Options{
 		AllowedOrigins: []string{"*"},
 		AllowedMethods: connectcors.AllowedMethods(),
 		AllowedHeaders: connectcors.AllowedHeaders(),
 		ExposedHeaders: connectcors.ExposedHeaders(),
-	})
+	}
+
+	opts.ExposedHeaders = append(opts.ExposedHeaders, "Set-Cookie")
+
+	middleware := cors.New(opts)
 
 	return middleware.Handler(h)
 }
@@ -488,6 +508,59 @@ func (s *ControlApi) SetSocialAccountActive(ctx context.Context, req *connect.Re
 			Message: "OK",
 		},
 	})
+
+	return res, nil
+}
+
+func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *connect.Request[controlv1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[controlv1.LoginWithUsernameAndPasswordResponse], error) {
+	log.Infof("Login with username and password for user: %s", req.Msg.Username)
+
+	user := s.DB.GetUserByUsername(req.Msg.Username)
+
+	if user == nil {
+		log.Warnf("User not found: %s", req.Msg.Username)
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found: %s", req.Msg.Username))
+	}
+
+	if user.PasswordHash == "" {
+		log.Warnf("User has no password set: %s", req.Msg.Username)
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("user has no password set: %s", req.Msg.Username))
+	}
+
+	res := connect.NewResponse(&controlv1.LoginWithUsernameAndPasswordResponse{})
+
+	match, err := utils.VerifyPassword(user.PasswordHash, req.Msg.Password)
+
+	if err != nil || !match {
+		res.Msg.StandardResponse = &controlv1.StandardResponse{
+			Success: false,
+			Message: "Invalid username or password",
+		}
+
+		return res, nil
+	} else {
+		res.Msg.StandardResponse = &controlv1.StandardResponse{
+			Success: true,
+			Message: "Login successful",
+		}
+		res.Msg.Username = user.Username
+	}
+
+
+	sid := uuid.New().String()
+	log.Infof("Creating session for user: %s with session ID: %s", user.Username, sid)
+
+	// Create a session in the database
+	err = s.DB.CreateSession(sid, user.ID)
+
+	if err != nil {
+		log.Errorf("Error creating session: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create session: %w", err))
+	}
+
+	c := http.Cookie{ Name: "japella-sid", Value: sid, HttpOnly: true, SameSite: http.SameSiteStrictMode }
+	log.Infof("Setting session cookie: %v", c.String())
+	res.Header().Add("Set-Cookie", c.String())
 
 	return res, nil
 }

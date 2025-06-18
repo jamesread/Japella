@@ -9,28 +9,6 @@ import App from '../vue/App.vue';
 
 import Notification from './notification.js';
 
-function setupPostBox () {
-  document.getElementById('submit-post').addEventListener('click', () => {
-    submitPost(document.getElementById('post-box').value)
-  })
-}
-
-function submitPost (post) {
-  window.fetch('/api/sendPost', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      post: post
-    })
-  }).then(response => {
-    if (response.ok) {
-      document.getElementById('result').value = ''
-    }
-  })
-}
-
 export function main(): void {
 	fetch('http://localhost:8080/lang')
 		.then(response => response.json())
@@ -67,7 +45,7 @@ function createTheApp(i18n: any): void {
 	loadNavSection()
 
 	createApiClient()
-	setupApi()
+	//setupApi()
 
 	displayNotifications()
 }
@@ -82,18 +60,14 @@ function loadNavSection(): void {
 	}
 }
 
-function createSectionHeader(name: string): HTMLHeadingElement {
-	const header = document.createElement('h2');
-	header.innerText = name;
-
-	document.getElementById('nav-section-links').appendChild(header);
-
-	return header;
-}
-
-
 function showNavSection(sectionClass: string): void {
-	document.getElementById('nav-section-links').querySelectorAll('a').forEach((a) => {
+	let navLinks = document.getElementById('nav-section-links');
+
+	if (!navLinks) {
+		return;
+	}
+
+	navLinks.querySelectorAll('a').forEach((a) => {
 			a.classList.remove('active')
 	});
 
@@ -122,11 +96,9 @@ function createApiClient(): void {
 	})
 
 	window.client = createClient(JapellaControlApiService, window.transport)
-
-//	setupPostBox()
 }
 
-async function setupApi(): void {
+async function onLogin(): void {
 	const status = await window.client.getStatus();
 
 	window.dispatchEvent(new CustomEvent('status-updated', {

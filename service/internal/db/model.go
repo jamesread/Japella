@@ -56,7 +56,7 @@ type UserAccount struct {
 
 	ID       uint32 `gorm:"primarykey"`
 	Username string `gorm:"uniqueIndex"`
-
+	PasswordHash string
 }
 
 type UserGroup struct {
@@ -74,7 +74,15 @@ type ApiKey struct {
 	Model
 
 	ID uint32 `gorm:"primarykey"`
-	Key string `gorm:"uniqueIndex"`
+	KeyValue string `gorm:"uniqueIndex"` // Key keyword in SQL
 	UserAccountID uint32
 	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+}
+
+type Session struct {
+	Model
+
+	UserAccountID uint32
+	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	SID string `gorm:"uniqueIndex"` // Session ID
 }

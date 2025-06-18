@@ -30,6 +30,7 @@ message GetStatusResponse {
 	string status = 1;
 	repeated string nanoservices = 2;
 	string version = 3;
+	string username = 5;
 }
 
 message GetCannedPostsRequest {
@@ -139,6 +140,17 @@ message SetSocialAccountActiveResponse {
 	StandardResponse standard_response = 1;
 }
 
+message LoginWithUsernameAndPasswordRequest {
+	string username = 1;
+	string password = 2;
+}
+
+message LoginWithUsernameAndPasswordResponse {
+	StandardResponse standard_response = 1;
+	string username = 2;
+	string token = 3;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -163,4 +175,6 @@ service JapellaControlApiService {
 	rpc GetTimeline(GetTimelineRequest) returns (GetTimelineResponse) {}
 
 	rpc SetSocialAccountActive(SetSocialAccountActiveRequest) returns (SetSocialAccountActiveResponse) {}
+
+	rpc LoginWithUsernameAndPassword(LoginWithUsernameAndPasswordRequest) returns (LoginWithUsernameAndPasswordResponse) {}
 }

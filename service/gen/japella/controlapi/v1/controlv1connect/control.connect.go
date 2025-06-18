@@ -69,6 +69,9 @@ const (
 	// JapellaControlApiServiceSetSocialAccountActiveProcedure is the fully-qualified name of the
 	// JapellaControlApiService's SetSocialAccountActive RPC.
 	JapellaControlApiServiceSetSocialAccountActiveProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetSocialAccountActive"
+	// JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure is the fully-qualified name of the
+	// JapellaControlApiService's LoginWithUsernameAndPassword RPC.
+	JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure = "/japella.controlapi.v1.JapellaControlApiService/LoginWithUsernameAndPassword"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -86,6 +89,7 @@ type JapellaControlApiServiceClient interface {
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
 	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
+	LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -172,23 +176,30 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountActive")),
 			connect.WithClientOptions(opts...),
 		),
+		loginWithUsernameAndPassword: connect.NewClient[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("LoginWithUsernameAndPassword")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // japellaControlApiServiceClient implements JapellaControlApiServiceClient.
 type japellaControlApiServiceClient struct {
-	getStatus              *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	submitPost             *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
-	getCannedPosts         *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
-	createCannedPost       *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
-	deleteCannedPost       *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
-	getSocialAccounts      *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
-	deleteSocialAccount    *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
-	refreshSocialAccount   *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
-	getConnectors          *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
-	startOAuth             *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
-	getTimeline            *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
-	setSocialAccountActive *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
+	getStatus                    *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	submitPost                   *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
+	getCannedPosts               *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
+	createCannedPost             *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
+	deleteCannedPost             *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
+	getSocialAccounts            *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
+	deleteSocialAccount          *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
+	refreshSocialAccount         *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
+	getConnectors                *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
+	startOAuth                   *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
+	getTimeline                  *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
+	setSocialAccountActive       *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
+	loginWithUsernameAndPassword *connect.Client[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -252,6 +263,12 @@ func (c *japellaControlApiServiceClient) SetSocialAccountActive(ctx context.Cont
 	return c.setSocialAccountActive.CallUnary(ctx, req)
 }
 
+// LoginWithUsernameAndPassword calls
+// japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword.
+func (c *japellaControlApiServiceClient) LoginWithUsernameAndPassword(ctx context.Context, req *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error) {
+	return c.loginWithUsernameAndPassword.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -267,6 +284,7 @@ type JapellaControlApiServiceHandler interface {
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
 	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
+	LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -348,6 +366,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountActive")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceLoginWithUsernameAndPasswordHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure,
+		svc.LoginWithUsernameAndPassword,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("LoginWithUsernameAndPassword")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -374,6 +398,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetTimelineHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceSetSocialAccountActiveProcedure:
 			japellaControlApiServiceSetSocialAccountActiveHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure:
+			japellaControlApiServiceLoginWithUsernameAndPasswordHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -429,4 +455,8 @@ func (UnimplementedJapellaControlApiServiceHandler) GetTimeline(context.Context,
 
 func (UnimplementedJapellaControlApiServiceHandler) SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword is not implemented"))
 }
