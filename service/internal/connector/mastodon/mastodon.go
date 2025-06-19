@@ -146,7 +146,7 @@ func (c *MastodonConnector) GetOAuth2Config() *oauth2.Config {
 	config := &oauth2.Config{
 		ClientID:     c.config.ClientId,
 		ClientSecret: c.config.ClientSecret,
-		RedirectURL:  "http://localhost:8080/oauth2callback",
+		RedirectURL:  c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
 		Scopes:       []string{"read", "write", "follow"},
 		Endpoint:     ep,
 	}
@@ -158,8 +158,8 @@ type VerifyCredentialsResponse struct {
 	Username string `json:"username"`
 }
 
-func (c *MastodonConnector) whoami(socialAccount *connector.SocialAccount) {
-	client, req, err := utils.NewHttpClientAndGetReq("https://mastodon.social/api/v1/accounts/verify_credentials", socialAccount.OAuthToken)
+func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
+	client, req, err := utils.NewHttpClientAndGetReq("https://mastodon.social/api/v1/accounts/verify_credentials", socialAccount.OAuth2Token)
 
 	if err != nil {
 		log.Errorf("Error creating request: %v", err)
@@ -172,10 +172,10 @@ func (c *MastodonConnector) whoami(socialAccount *connector.SocialAccount) {
 
 	log.Infof("Whoami response: %+v", data)
 
-	c.db.UpdateSocialAccountIdentity(socialAccount.Id, data.Username)
+	c.db.UpdateSocialAccountIdentity(socialAccount.ID, data.Username)
 }
 
-func (c *MastodonConnector) OnRefresh(socialAccount *connector.SocialAccount) error {
+func (c *MastodonConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 	c.whoami(socialAccount)
 	return nil
 }

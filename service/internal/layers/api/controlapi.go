@@ -19,7 +19,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connectorcontroller"
 	"github.com/jamesread/japella/internal/db"
-	"github.com/jamesread/japella/internal/layers/auth"
+	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
@@ -52,7 +52,7 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 	s.oauth2states = make(map[string]*oauth2State)
 	s.cc = connectorcontroller.New(s.DB)
 
-	log.Infof("ControlApi started with s: %+v", s)
+	log.Infof("ControlAPI started")
 }
 
 func (s *ControlApi) initAdminUser() {
@@ -90,22 +90,32 @@ func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[co
 	return res, nil
 }
 
-func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *auth.AuthenticatedUser {
+func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *authentication.AuthenticatedUser {
 	v := authn.GetInfo(ctx)
 
 	if v == nil {
 		return nil
 	} else {
-		return v.(*auth.AuthenticatedUser)
+		return v.(*authentication.AuthenticatedUser)
 	}
 }
 
 func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[controlv1.GetStatusRequest]) (*connect.Response[controlv1.GetStatusResponse], error) {
+	var user *authentication.AuthenticatedUser
+	username := ""
+
+	if user = s.getAuthenticatedUser(ctx); user != nil {
+		username = user.Username
+	}
+
+	log.Infof("GetStatus called by user: %s", username)
+
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
 		Status:       "OK!",
 		Nanoservices: nanoservice.GetNanoservices(),
 		Version:      buildinfo.Version,
-		Username:     s.getAuthenticatedUser(ctx).Username,
+		Username:     username,
+		IsLoggedIn:   user != nil,
 	})
 
 	return res, nil
@@ -195,7 +205,7 @@ func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
 		Id:         socialAccount.ID,
 		Connector:  socialAccount.Connector,
 		Identity:   socialAccount.Identity,
-		OAuthToken: socialAccount.OAuthToken,
+		OAuthToken: socialAccount.OAuth2Token,
 	}
 }
 
@@ -340,16 +350,6 @@ func (s *ControlApi) StartOAuth(ctx context.Context, req *connect.Request[contro
 	return res, nil
 }
 
-func (s *ControlApi) registerAccount(connector string, accessToken string) {
-	err := s.DB.RegisterAccount(connector, accessToken)
-
-	if err != nil {
-		log.Errorf("Error registering account: %v", err)
-	} else {
-		log.Infof("Account registered successfully with connector: %s", connector)
-	}
-}
-
 func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	log.Infof("Received OAuth2 callback with URL: %s", r.URL.String())
 
@@ -388,15 +388,23 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 
 	log.Infof("State connector: %+v", state)
 
-	s.registerAccount(state.connector.GetProtocol(), token.AccessToken)
+	err = s.DB.RegisterAccount(&db.SocialAccount{
+		Connector:  state.connector.GetProtocol(),
+		OAuth2Token:  token.AccessToken,
+		OAuth2TokenExpiry: token.Expiry,
+		OAuth2RefreshToken: token.RefreshToken,
+	})
 
-	log.Infof("OAuth2 access token: %s", token.AccessToken)
-
-	redirect(w, "Account registered successfully", "good")
+	if err != nil {
+		log.Errorf("Error registering account: %v", err)
+		redirect(w, fmt.Sprintf("Error registering account: %v", err), "bad")
+	} else {
+		redirect(w, fmt.Sprintf("Successfully registered account for connector: %s", state.connector.GetProtocol()), "good")
+	}
 }
 
 func redirect(w http.ResponseWriter, message string, msgType string) {
-	inDev := os.Getenv("JAPELLA_VITE") == "true"
+	inDev := os.Getenv("JAPELLA_DEV_REDIRECT_VITE") == "true"
 
 	server := "http://localhost:8080"
 
@@ -448,7 +456,7 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector service not found for connector: %s", socialAccount.Connector))
 	}
 
-	connectorService.OnRefresh(toConnectorSA(socialAccount))
+	connectorService.OnRefresh(socialAccount);
 
 	res := connect.NewResponse(&controlv1.RefreshSocialAccountResponse{
 		StandardResponse: &controlv1.StandardResponse{
@@ -471,14 +479,20 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 
 
 	for _, post := range posts {
-		sa := s.cc.Get(post.SocialAccount.Connector)
+		socialAccountIcon := "mdi:question-mark-circle"
+		socialAccountIdentity := "Unknown"
+
+		if post.SocialAccount != nil {
+			socialAccountIcon = s.cc.Get(post.SocialAccount.Connector).GetIcon()
+			socialAccountIdentity = post.SocialAccount.Identity
+		}
 
 		timeline = append(timeline, &controlv1.PostStatus{
 			Id:             post.ID,
 			Created:      post.CreatedAt.Format("2006-01-02 15:04:05"),
 			SocialAccountId: post.SocialAccountID,
-			SocialAccountIcon: sa.GetIcon(),
-			SocialAccountIdentity: post.SocialAccount.Identity,
+			SocialAccountIcon: socialAccountIcon,
+			SocialAccountIdentity: socialAccountIdentity,
 			Content:         post.Content,
 			Success:         post.Status,
 			PostUrl:         post.PostURL,
@@ -558,9 +572,118 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create session: %w", err))
 	}
 
-	c := http.Cookie{ Name: "japella-sid", Value: sid, HttpOnly: true, SameSite: http.SameSiteStrictMode }
+	c := http.Cookie{
+		Name: "japella-sid",
+		Value: sid,
+		HttpOnly: true,
+		Path: "/",
+		SameSite: http.SameSiteStrictMode,
+	}
+
+	if os.Getenv("JAPELLA_SECURE_COOKIES") == "false" {
+		c.Secure = false
+	} else {
+		c.Secure = true
+	}
+
 	log.Infof("Setting session cookie: %v", c.String())
 	res.Header().Add("Set-Cookie", c.String())
+
+	return res, nil
+}
+
+func (s *ControlApi) GetUsers(ctx context.Context, req *connect.Request[controlv1.GetUsersRequest]) (*connect.Response[controlv1.GetUsersResponse], error) {
+	log.Infof("Fetching users")
+
+	users, err := s.DB.SelectUsers()
+
+	if err != nil {
+		log.Errorf("Error selecting users: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve users: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.GetUsersResponse{
+		Users: make([]*controlv1.UserAccount, 0, len(users)),
+	})
+
+	for _, user := range users {
+		res.Msg.Users = append(res.Msg.Users, &controlv1.UserAccount{
+			Id:       user.ID,
+			Username: user.Username,
+			CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+		})
+	}
+
+	return res, nil
+}
+
+func (s *ControlApi) GetApiKeys(ctx context.Context, req *connect.Request[controlv1.GetApiKeysRequest]) (*connect.Response[controlv1.GetApiKeysResponse], error) {
+	log.Infof("Fetching API keys")
+
+	apiKeys, err := s.DB.SelectAPIKeys()
+
+	if err != nil {
+		log.Errorf("Error selecting API keys: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve API keys: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.GetApiKeysResponse{
+		Keys: make([]*controlv1.ApiKey, 0, len(apiKeys)),
+	})
+
+	for _, key := range apiKeys {
+		res.Msg.Keys = append(res.Msg.Keys, &controlv1.ApiKey{
+			Id:        key.ID,
+			KeyValue:  key.KeyValue,
+			CreatedAt: key.CreatedAt.Format("2006-01-02 15:04:05"),
+			UserId:    key.UserAccountID,
+			Username:  key.UserAccount.Username,
+		})
+	}
+
+	return res, nil
+}
+
+func (s *ControlApi) GetCvars(ctx context.Context, req *connect.Request[controlv1.GetCvarsRequest]) (*connect.Response[controlv1.GetCvarsResponse], error) {
+	log.Infof("Fetching CVars")
+
+	cvars, err := s.DB.SelectCvars()
+
+	if err != nil {
+		log.Errorf("Error selecting CVars: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve CVars: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.GetCvarsResponse{
+		CvarCategories: make(map[string]*controlv1.CvarCategory),
+	})
+
+	for _, cvar := range cvars {
+		if cvar.Category == "" {
+			cvar.Category = "Uncategorized"
+		}
+
+		category, exists := res.Msg.CvarCategories[cvar.Category]
+
+		if !exists {
+			category = &controlv1.CvarCategory{
+				Cvars: make([]*controlv1.Cvar, 0),
+			}
+
+			category.Name = cvar.Category
+
+			res.Msg.CvarCategories[cvar.Category] = category
+		}
+
+		category.Cvars = append(category.Cvars, &controlv1.Cvar{
+			KeyName:      cvar.KeyName,
+			ValueString:     cvar.ValueString,
+			ValueInt:    cvar.ValueInt,
+			Description: cvar.Description,
+			Type:		 cvar.Type,
+			Title:        cvar.Title,
+		})
+	}
 
 	return res, nil
 }

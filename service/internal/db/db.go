@@ -49,12 +49,15 @@ func (db *DB) Migrate() {
 		&UserGroupMembership{},
 		&ApiKey{},
 		&Session{},
+		&Cvar{},
 	)
 
 	if err != nil {
 		log.Errorf("Error during database migration: %v", err)
 		return
 	}
+
+	db.InsertCvarsIfNotExists()
 }
 
 func (db *DB) UpdateSocialAccountIdentity(id uint32, identity string) error {
@@ -102,14 +105,10 @@ func (db *DB) DeleteCannedPost(id uint32) error {
 	return nil
 }
 
-func (db *DB) RegisterAccount(connector string, oauthToken string) error {
-	db.conn.Create(&SocialAccount{
-		Connector:  connector,
-		Identity:   "?",
-		OAuthToken: oauthToken,
-	})
+func (db *DB) RegisterAccount(socialAccount *SocialAccount) (error) {
+	res := db.conn.Create(socialAccount)
 
-	return nil
+	return res.Error
 }
 
 func (db *DB) DeleteSocialAccount(id uint32) error {
@@ -244,7 +243,7 @@ func (db *DB) CreateSession(sessionID string, uid uint32) error {
 func (db *DB) GetSessionByID(sessionID string) *Session {
 	session := &Session{}
 
-	result := db.conn.Preload("UserAccount").Where("sid = ?", sessionID).First(session)
+	result := db.conn.Preload("UserAccount").Where("s_id = ?", sessionID).First(session)
 
 	if result.Error != nil {
 		log.Warnf("No session found for ID: %s", sessionID)
@@ -252,4 +251,73 @@ func (db *DB) GetSessionByID(sessionID string) *Session {
 	}
 
 	return session
+}
+
+func (db *DB) SelectUsers() ([]*UserAccount, error) {
+	ret := make([]*UserAccount, 0)
+
+	result := db.conn.Find(&ret)
+
+	if result.Error != nil {
+		log.Errorf("Failed to select users: %v", result.Error)
+		return nil, result.Error
+	}
+
+	return ret, nil
+}
+
+func (db *DB) SelectAPIKeys() ([]*ApiKey, error) {
+	ret := make([]*ApiKey, 0)
+
+	result := db.conn.Preload("UserAccount").Find(&ret)
+
+	if result.Error != nil {
+		log.Errorf("Failed to select API keys: %v", result.Error)
+		return nil, result.Error
+	}
+
+	return ret, nil
+}
+
+func (db *DB) SelectCvars() ([]*Cvar, error) {
+	ret := make([]*Cvar, 0)
+
+	result := db.conn.Find(&ret)
+
+	if result.Error != nil {
+		log.Errorf("Failed to select cvars: %v", result.Error)
+		return nil, result.Error
+	}
+
+	return ret, nil
+}
+
+func (db *DB) GetCvarString(key string) (string) {
+	var cvar Cvar
+
+	result := db.conn.Where("key_name = ?", key).First(&cvar)
+
+	if result.Error != nil {
+		log.Errorf("Failed to get cvar %s: %v", key, result.Error)
+		return ""
+	}
+
+	return cvar.ValueString
+}
+
+func (db *DB) GetCvarBool(key string) (bool) {
+	var cvar Cvar
+
+	result := db.conn.Where("key_name = ?", key).First(&cvar)
+
+	if result.Error != nil {
+		log.Errorf("Failed to get cvar %s: %v", key, result.Error)
+		return false
+	}
+
+	if cvar.ValueInt == 1 {
+		return true
+	}
+
+	return false;
 }

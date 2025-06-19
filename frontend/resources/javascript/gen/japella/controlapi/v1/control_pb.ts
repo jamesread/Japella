@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file japella/controlapi/v1/control.proto.
  */
 export const file_japella_controlapi_v1_control: GenFile = /*@__PURE__*/
-  fileDesc("CiNqYXBlbGxhL2NvbnRyb2xhcGkvdjEvY29udHJvbC5wcm90bxIVamFwZWxsYS5jb250cm9sYXBpLnYxIj0KEVN1Ym1pdFBvc3RSZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkSFwoPc29jaWFsX2FjY291bnRzGAIgAygNIkYKElN1Ym1pdFBvc3RSZXNwb25zZRIwCgVwb3N0cxgBIAMoCzIhLmphcGVsbGEuY29udHJvbGFwaS52MS5Qb3N0U3RhdHVzIrYBCgpQb3N0U3RhdHVzEgoKAmlkGAEgASgNEhkKEXNvY2lhbF9hY2NvdW50X2lkGAIgASgNEhAKCHBvc3RfdXJsGAMgASgJEg8KB3N1Y2Nlc3MYBCABKAgSDwoHY3JlYXRlZBgFIAEoCRIbChNzb2NpYWxfYWNjb3VudF9pY29uGAYgASgJEh8KF3NvY2lhbF9hY2NvdW50X2lkZW50aXR5GAcgASgJEg8KB2NvbnRlbnQYCCABKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCJcChFHZXRTdGF0dXNSZXNwb25zZRIOCgZzdGF0dXMYASABKAkSFAoMbmFub3NlcnZpY2VzGAIgAygJEg8KB3ZlcnNpb24YAyABKAkSEAoIdXNlcm5hbWUYBSABKAkiFwoVR2V0Q2FubmVkUG9zdHNSZXF1ZXN0IkoKFkdldENhbm5lZFBvc3RzUmVzcG9uc2USMAoFcG9zdHMYASADKAsyIS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ2FubmVkUG9zdCI9CgpDYW5uZWRQb3N0EgoKAmlkGAEgASgNEg8KB2NvbnRlbnQYAiABKAkSEgoKY3JlYXRlZF9hdBgDIAEoCSIqChdDcmVhdGVDYW5uZWRQb3N0UmVxdWVzdBIPCgdjb250ZW50GAEgASgJIisKGENyZWF0ZUNhbm5lZFBvc3RSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIiUKF0RlbGV0ZUNhbm5lZFBvc3RSZXF1ZXN0EgoKAmlkGAEgASgNIisKGERlbGV0ZUNhbm5lZFBvc3RSZXNwb25zZRIPCgdtZXNzYWdlGAEgASgJIi8KGEdldFNvY2lhbEFjY291bnRzUmVxdWVzdBITCgtvbmx5X2FjdGl2ZRgBIAEoCCJTChlHZXRTb2NpYWxBY2NvdW50c1Jlc3BvbnNlEjYKCGFjY291bnRzGAEgAygLMiQuamFwZWxsYS5jb250cm9sYXBpLnYxLlNvY2lhbEFjY291bnQihgEKDVNvY2lhbEFjY291bnQSCgoCaWQYASABKA0SEAoIaWRlbnRpdHkYAiABKAkSEAoIaGFzX3dhbGwYAyABKAgSFAoMaGFzX2NoYW5uZWxzGAQgASgIEhEKCWNvbm5lY3RvchgFIAEoCRIMCgRpY29uGAYgASgJEg4KBmFjdGl2ZRgHIAEoCCIvChRHZXRDb25uZWN0b3JzUmVxdWVzdBIXCg9vbmx5X3dhbnRfb2F1dGgYASABKAgiTQoVR2V0Q29ubmVjdG9yc1Jlc3BvbnNlEjQKCmNvbm5lY3RvcnMYASADKAsyIC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ29ubmVjdG9yIjoKCUNvbm5lY3RvchIMCgRuYW1lGAIgASgJEgwKBGljb24YAyABKAkSEQoJaGFzX29hdXRoGAQgASgIIikKEVN0YXJ0T0F1dGhSZXF1ZXN0EhQKDGNvbm5lY3Rvcl9pZBgBIAEoCSIhChJTdGFydE9BdXRoUmVzcG9uc2USCwoDdXJsGAEgASgJIigKGkRlbGV0ZVNvY2lhbEFjY291bnRSZXF1ZXN0EgoKAmlkGAEgASgNImEKG0RlbGV0ZVNvY2lhbEFjY291bnRSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlIikKG1JlZnJlc2hTb2NpYWxBY2NvdW50UmVxdWVzdBIKCgJpZBgBIAEoDSJiChxSZWZyZXNoU29jaWFsQWNjb3VudFJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2UiSgoQU3RhbmRhcmRSZXNwb25zZRIPCgdzdWNjZXNzGAEgASgIEg8KB21lc3NhZ2UYAiABKAkSFAoMcmVkaXJlY3RfdXJsGAMgASgJIhQKEkdldFRpbWVsaW5lUmVxdWVzdCJHChNHZXRUaW1lbGluZVJlc3BvbnNlEjAKBXBvc3RzGAEgAygLMiEuamFwZWxsYS5jb250cm9sYXBpLnYxLlBvc3RTdGF0dXMiOwodU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlcXVlc3QSCgoCaWQYASABKA0SDgoGYWN0aXZlGAIgASgIImQKHlNldFNvY2lhbEFjY291bnRBY3RpdmVSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlIkkKI0xvZ2luV2l0aFVzZXJuYW1lQW5kUGFzc3dvcmRSZXF1ZXN0EhAKCHVzZXJuYW1lGAEgASgJEhAKCHBhc3N3b3JkGAIgASgJIosBCiRMb2dpbldpdGhVc2VybmFtZUFuZFBhc3N3b3JkUmVzcG9uc2USQgoRc3RhbmRhcmRfcmVzcG9uc2UYASABKAsyJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhbmRhcmRSZXNwb25zZRIQCgh1c2VybmFtZRgCIAEoCRINCgV0b2tlbhgDIAEoCTKfDAoYSmFwZWxsYUNvbnRyb2xBcGlTZXJ2aWNlEmAKCUdldFN0YXR1cxInLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTdGF0dXNSZXF1ZXN0GiguamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgASYwoKU3VibWl0UG9zdBIoLmphcGVsbGEuY29udHJvbGFwaS52MS5TdWJtaXRQb3N0UmVxdWVzdBopLmphcGVsbGEuY29udHJvbGFwaS52MS5TdWJtaXRQb3N0UmVzcG9uc2UiABJvCg5HZXRDYW5uZWRQb3N0cxIsLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDYW5uZWRQb3N0c1JlcXVlc3QaLS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q2FubmVkUG9zdHNSZXNwb25zZSIAEnUKEENyZWF0ZUNhbm5lZFBvc3QSLi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3JlYXRlQ2FubmVkUG9zdFJlcXVlc3QaLy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3JlYXRlQ2FubmVkUG9zdFJlc3BvbnNlIgASdQoQRGVsZXRlQ2FubmVkUG9zdBIuLmphcGVsbGEuY29udHJvbGFwaS52MS5EZWxldGVDYW5uZWRQb3N0UmVxdWVzdBovLmphcGVsbGEuY29udHJvbGFwaS52MS5EZWxldGVDYW5uZWRQb3N0UmVzcG9uc2UiABJ4ChFHZXRTb2NpYWxBY2NvdW50cxIvLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTb2NpYWxBY2NvdW50c1JlcXVlc3QaMC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0U29jaWFsQWNjb3VudHNSZXNwb25zZSIAEn4KE0RlbGV0ZVNvY2lhbEFjY291bnQSMS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlU29jaWFsQWNjb3VudFJlcXVlc3QaMi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlU29jaWFsQWNjb3VudFJlc3BvbnNlIgASgQEKFFJlZnJlc2hTb2NpYWxBY2NvdW50EjIuamFwZWxsYS5jb250cm9sYXBpLnYxLlJlZnJlc2hTb2NpYWxBY2NvdW50UmVxdWVzdBozLmphcGVsbGEuY29udHJvbGFwaS52MS5SZWZyZXNoU29jaWFsQWNjb3VudFJlc3BvbnNlIgASbAoNR2V0Q29ubmVjdG9ycxIrLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDb25uZWN0b3JzUmVxdWVzdBosLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDb25uZWN0b3JzUmVzcG9uc2UiABJjCgpTdGFydE9BdXRoEiguamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YXJ0T0F1dGhSZXF1ZXN0GikuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YXJ0T0F1dGhSZXNwb25zZSIAEmYKC0dldFRpbWVsaW5lEikuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFRpbWVsaW5lUmVxdWVzdBoqLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRUaW1lbGluZVJlc3BvbnNlIgAShwEKFlNldFNvY2lhbEFjY291bnRBY3RpdmUSNC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlcXVlc3QaNS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlc3BvbnNlIgASmQEKHExvZ2luV2l0aFVzZXJuYW1lQW5kUGFzc3dvcmQSOi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlcXVlc3QaOy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlc3BvbnNlIgBCQlpAZ2l0aHViLmNvbS9qYW1lc3JlYWQvamFwZWxsYS9nZW4vamFwZWxsYS9jb250cm9sYXBpL3YxO2NvbnRyb2x2MWIGcHJvdG8z");
+  fileDesc("CiNqYXBlbGxhL2NvbnRyb2xhcGkvdjEvY29udHJvbC5wcm90bxIVamFwZWxsYS5jb250cm9sYXBpLnYxIj0KEVN1Ym1pdFBvc3RSZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkSFwoPc29jaWFsX2FjY291bnRzGAIgAygNIkYKElN1Ym1pdFBvc3RSZXNwb25zZRIwCgVwb3N0cxgBIAMoCzIhLmphcGVsbGEuY29udHJvbGFwaS52MS5Qb3N0U3RhdHVzIrYBCgpQb3N0U3RhdHVzEgoKAmlkGAEgASgNEhkKEXNvY2lhbF9hY2NvdW50X2lkGAIgASgNEhAKCHBvc3RfdXJsGAMgASgJEg8KB3N1Y2Nlc3MYBCABKAgSDwoHY3JlYXRlZBgFIAEoCRIbChNzb2NpYWxfYWNjb3VudF9pY29uGAYgASgJEh8KF3NvY2lhbF9hY2NvdW50X2lkZW50aXR5GAcgASgJEg8KB2NvbnRlbnQYCCABKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCJyChFHZXRTdGF0dXNSZXNwb25zZRIOCgZzdGF0dXMYASABKAkSFAoMbmFub3NlcnZpY2VzGAIgAygJEg8KB3ZlcnNpb24YAyABKAkSEAoIdXNlcm5hbWUYBSABKAkSFAoMaXNfbG9nZ2VkX2luGAYgASgIIhcKFUdldENhbm5lZFBvc3RzUmVxdWVzdCJKChZHZXRDYW5uZWRQb3N0c1Jlc3BvbnNlEjAKBXBvc3RzGAEgAygLMiEuamFwZWxsYS5jb250cm9sYXBpLnYxLkNhbm5lZFBvc3QiPQoKQ2FubmVkUG9zdBIKCgJpZBgBIAEoDRIPCgdjb250ZW50GAIgASgJEhIKCmNyZWF0ZWRfYXQYAyABKAkiKgoXQ3JlYXRlQ2FubmVkUG9zdFJlcXVlc3QSDwoHY29udGVudBgBIAEoCSIrChhDcmVhdGVDYW5uZWRQb3N0UmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSIlChdEZWxldGVDYW5uZWRQb3N0UmVxdWVzdBIKCgJpZBgBIAEoDSIrChhEZWxldGVDYW5uZWRQb3N0UmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSIvChhHZXRTb2NpYWxBY2NvdW50c1JlcXVlc3QSEwoLb25seV9hY3RpdmUYASABKAgiUwoZR2V0U29jaWFsQWNjb3VudHNSZXNwb25zZRI2CghhY2NvdW50cxgBIAMoCzIkLmphcGVsbGEuY29udHJvbGFwaS52MS5Tb2NpYWxBY2NvdW50IoYBCg1Tb2NpYWxBY2NvdW50EgoKAmlkGAEgASgNEhAKCGlkZW50aXR5GAIgASgJEhAKCGhhc193YWxsGAMgASgIEhQKDGhhc19jaGFubmVscxgEIAEoCBIRCgljb25uZWN0b3IYBSABKAkSDAoEaWNvbhgGIAEoCRIOCgZhY3RpdmUYByABKAgiLwoUR2V0Q29ubmVjdG9yc1JlcXVlc3QSFwoPb25seV93YW50X29hdXRoGAEgASgIIk0KFUdldENvbm5lY3RvcnNSZXNwb25zZRI0Cgpjb25uZWN0b3JzGAEgAygLMiAuamFwZWxsYS5jb250cm9sYXBpLnYxLkNvbm5lY3RvciI6CglDb25uZWN0b3ISDAoEbmFtZRgCIAEoCRIMCgRpY29uGAMgASgJEhEKCWhhc19vYXV0aBgEIAEoCCIpChFTdGFydE9BdXRoUmVxdWVzdBIUCgxjb25uZWN0b3JfaWQYASABKAkiIQoSU3RhcnRPQXV0aFJlc3BvbnNlEgsKA3VybBgBIAEoCSIoChpEZWxldGVTb2NpYWxBY2NvdW50UmVxdWVzdBIKCgJpZBgBIAEoDSJhChtEZWxldGVTb2NpYWxBY2NvdW50UmVzcG9uc2USQgoRc3RhbmRhcmRfcmVzcG9uc2UYASABKAsyJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhbmRhcmRSZXNwb25zZSIpChtSZWZyZXNoU29jaWFsQWNjb3VudFJlcXVlc3QSCgoCaWQYASABKA0iYgocUmVmcmVzaFNvY2lhbEFjY291bnRSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlIkoKEFN0YW5kYXJkUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCBIPCgdtZXNzYWdlGAIgASgJEhQKDHJlZGlyZWN0X3VybBgDIAEoCSIUChJHZXRUaW1lbGluZVJlcXVlc3QiRwoTR2V0VGltZWxpbmVSZXNwb25zZRIwCgVwb3N0cxgBIAMoCzIhLmphcGVsbGEuY29udHJvbGFwaS52MS5Qb3N0U3RhdHVzIjsKHVNldFNvY2lhbEFjY291bnRBY3RpdmVSZXF1ZXN0EgoKAmlkGAEgASgNEg4KBmFjdGl2ZRgCIAEoCCJkCh5TZXRTb2NpYWxBY2NvdW50QWN0aXZlUmVzcG9uc2USQgoRc3RhbmRhcmRfcmVzcG9uc2UYASABKAsyJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhbmRhcmRSZXNwb25zZSJJCiNMb2dpbldpdGhVc2VybmFtZUFuZFBhc3N3b3JkUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCSKLAQokTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2USEAoIdXNlcm5hbWUYAiABKAkSDQoFdG9rZW4YAyABKAkiEQoPR2V0VXNlcnNSZXF1ZXN0IkUKEEdldFVzZXJzUmVzcG9uc2USMQoFdXNlcnMYASADKAsyIi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuVXNlckFjY291bnQiPwoLVXNlckFjY291bnQSCgoCaWQYASABKA0SEAoIdXNlcm5hbWUYAiABKAkSEgoKY3JlYXRlZF9hdBgDIAEoCSITChFHZXRBcGlLZXlzUmVxdWVzdCJBChJHZXRBcGlLZXlzUmVzcG9uc2USKwoEa2V5cxgBIAMoCzIdLmphcGVsbGEuY29udHJvbGFwaS52MS5BcGlLZXkiXgoGQXBpS2V5EgoKAmlkGAEgASgNEhEKCWtleV92YWx1ZRgCIAEoCRISCgpjcmVhdGVkX2F0GAMgASgJEg8KB3VzZXJfaWQYBCABKA0SEAoIdXNlcm5hbWUYBSABKAkiEQoPR2V0Q3ZhcnNSZXF1ZXN0IsQBChBHZXRDdmFyc1Jlc3BvbnNlElQKD2N2YXJfY2F0ZWdvcmllcxgBIAMoCzI7LmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDdmFyc1Jlc3BvbnNlLkN2YXJDYXRlZ29yaWVzRW50cnkaWgoTQ3ZhckNhdGVnb3JpZXNFbnRyeRILCgNrZXkYASABKAkSMgoFdmFsdWUYAiABKAsyIy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3ZhckNhdGVnb3J5OgI4ASJICgxDdmFyQ2F0ZWdvcnkSKgoFY3ZhcnMYASADKAsyGy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3ZhchIMCgRuYW1lGAIgASgJIp0BCgRDdmFyEhAKCGtleV9uYW1lGAEgASgJEhQKDHZhbHVlX3N0cmluZxgCIAEoCRIRCgl2YWx1ZV9pbnQYAyABKAUSEwoLZGVzY3JpcHRpb24YBCABKAkSFAoMaXNfcmVhZF9vbmx5GAUgASgIEhIKCm1heF9sZW5ndGgYBiABKA0SDAoEdHlwZRgHIAEoCRINCgV0aXRsZRgIIAEoCTLCDgoYSmFwZWxsYUNvbnRyb2xBcGlTZXJ2aWNlEmAKCUdldFN0YXR1cxInLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTdGF0dXNSZXF1ZXN0GiguamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgASYwoKU3VibWl0UG9zdBIoLmphcGVsbGEuY29udHJvbGFwaS52MS5TdWJtaXRQb3N0UmVxdWVzdBopLmphcGVsbGEuY29udHJvbGFwaS52MS5TdWJtaXRQb3N0UmVzcG9uc2UiABJvCg5HZXRDYW5uZWRQb3N0cxIsLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDYW5uZWRQb3N0c1JlcXVlc3QaLS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q2FubmVkUG9zdHNSZXNwb25zZSIAEnUKEENyZWF0ZUNhbm5lZFBvc3QSLi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3JlYXRlQ2FubmVkUG9zdFJlcXVlc3QaLy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3JlYXRlQ2FubmVkUG9zdFJlc3BvbnNlIgASdQoQRGVsZXRlQ2FubmVkUG9zdBIuLmphcGVsbGEuY29udHJvbGFwaS52MS5EZWxldGVDYW5uZWRQb3N0UmVxdWVzdBovLmphcGVsbGEuY29udHJvbGFwaS52MS5EZWxldGVDYW5uZWRQb3N0UmVzcG9uc2UiABJ4ChFHZXRTb2NpYWxBY2NvdW50cxIvLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTb2NpYWxBY2NvdW50c1JlcXVlc3QaMC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0U29jaWFsQWNjb3VudHNSZXNwb25zZSIAEn4KE0RlbGV0ZVNvY2lhbEFjY291bnQSMS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlU29jaWFsQWNjb3VudFJlcXVlc3QaMi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlU29jaWFsQWNjb3VudFJlc3BvbnNlIgASgQEKFFJlZnJlc2hTb2NpYWxBY2NvdW50EjIuamFwZWxsYS5jb250cm9sYXBpLnYxLlJlZnJlc2hTb2NpYWxBY2NvdW50UmVxdWVzdBozLmphcGVsbGEuY29udHJvbGFwaS52MS5SZWZyZXNoU29jaWFsQWNjb3VudFJlc3BvbnNlIgASbAoNR2V0Q29ubmVjdG9ycxIrLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDb25uZWN0b3JzUmVxdWVzdBosLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDb25uZWN0b3JzUmVzcG9uc2UiABJjCgpTdGFydE9BdXRoEiguamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YXJ0T0F1dGhSZXF1ZXN0GikuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YXJ0T0F1dGhSZXNwb25zZSIAEmYKC0dldFRpbWVsaW5lEikuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFRpbWVsaW5lUmVxdWVzdBoqLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRUaW1lbGluZVJlc3BvbnNlIgAShwEKFlNldFNvY2lhbEFjY291bnRBY3RpdmUSNC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlcXVlc3QaNS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlc3BvbnNlIgASmQEKHExvZ2luV2l0aFVzZXJuYW1lQW5kUGFzc3dvcmQSOi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlcXVlc3QaOy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlc3BvbnNlIgASXQoIR2V0VXNlcnMSJi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0VXNlcnNSZXF1ZXN0GicuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFVzZXJzUmVzcG9uc2UiABJjCgpHZXRBcGlLZXlzEiguamFwZWxsYS5jb250cm9sYXBpLnYxLkdldEFwaUtleXNSZXF1ZXN0GikuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldEFwaUtleXNSZXNwb25zZSIAEl0KCEdldEN2YXJzEiYuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldEN2YXJzUmVxdWVzdBonLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDdmFyc1Jlc3BvbnNlIgBCQlpAZ2l0aHViLmNvbS9qYW1lc3JlYWQvamFwZWxsYS9nZW4vamFwZWxsYS9jb250cm9sYXBpL3YxO2NvbnRyb2x2MWIGcHJvdG8z");
 
 /**
  * @generated from message japella.controlapi.v1.SubmitPostRequest
@@ -139,6 +139,11 @@ export type GetStatusResponse = Message<"japella.controlapi.v1.GetStatusResponse
    * @generated from field: string username = 5;
    */
   username: string;
+
+  /**
+   * @generated from field: bool is_logged_in = 6;
+   */
+  isLoggedIn: boolean;
 };
 
 /**
@@ -663,6 +668,234 @@ export const LoginWithUsernameAndPasswordResponseSchema: GenMessage<LoginWithUse
   messageDesc(file_japella_controlapi_v1_control, 30);
 
 /**
+ * @generated from message japella.controlapi.v1.GetUsersRequest
+ */
+export type GetUsersRequest = Message<"japella.controlapi.v1.GetUsersRequest"> & {
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetUsersRequest.
+ * Use `create(GetUsersRequestSchema)` to create a new message.
+ */
+export const GetUsersRequestSchema: GenMessage<GetUsersRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 31);
+
+/**
+ * @generated from message japella.controlapi.v1.GetUsersResponse
+ */
+export type GetUsersResponse = Message<"japella.controlapi.v1.GetUsersResponse"> & {
+  /**
+   * @generated from field: repeated japella.controlapi.v1.UserAccount users = 1;
+   */
+  users: UserAccount[];
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetUsersResponse.
+ * Use `create(GetUsersResponseSchema)` to create a new message.
+ */
+export const GetUsersResponseSchema: GenMessage<GetUsersResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 32);
+
+/**
+ * @generated from message japella.controlapi.v1.UserAccount
+ */
+export type UserAccount = Message<"japella.controlapi.v1.UserAccount"> & {
+  /**
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+
+  /**
+   * @generated from field: string username = 2;
+   */
+  username: string;
+
+  /**
+   * @generated from field: string created_at = 3;
+   */
+  createdAt: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.UserAccount.
+ * Use `create(UserAccountSchema)` to create a new message.
+ */
+export const UserAccountSchema: GenMessage<UserAccount> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 33);
+
+/**
+ * @generated from message japella.controlapi.v1.GetApiKeysRequest
+ */
+export type GetApiKeysRequest = Message<"japella.controlapi.v1.GetApiKeysRequest"> & {
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetApiKeysRequest.
+ * Use `create(GetApiKeysRequestSchema)` to create a new message.
+ */
+export const GetApiKeysRequestSchema: GenMessage<GetApiKeysRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 34);
+
+/**
+ * @generated from message japella.controlapi.v1.GetApiKeysResponse
+ */
+export type GetApiKeysResponse = Message<"japella.controlapi.v1.GetApiKeysResponse"> & {
+  /**
+   * @generated from field: repeated japella.controlapi.v1.ApiKey keys = 1;
+   */
+  keys: ApiKey[];
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetApiKeysResponse.
+ * Use `create(GetApiKeysResponseSchema)` to create a new message.
+ */
+export const GetApiKeysResponseSchema: GenMessage<GetApiKeysResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 35);
+
+/**
+ * @generated from message japella.controlapi.v1.ApiKey
+ */
+export type ApiKey = Message<"japella.controlapi.v1.ApiKey"> & {
+  /**
+   * @generated from field: uint32 id = 1;
+   */
+  id: number;
+
+  /**
+   * @generated from field: string key_value = 2;
+   */
+  keyValue: string;
+
+  /**
+   * @generated from field: string created_at = 3;
+   */
+  createdAt: string;
+
+  /**
+   * @generated from field: uint32 user_id = 4;
+   */
+  userId: number;
+
+  /**
+   * @generated from field: string username = 5;
+   */
+  username: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.ApiKey.
+ * Use `create(ApiKeySchema)` to create a new message.
+ */
+export const ApiKeySchema: GenMessage<ApiKey> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 36);
+
+/**
+ * @generated from message japella.controlapi.v1.GetCvarsRequest
+ */
+export type GetCvarsRequest = Message<"japella.controlapi.v1.GetCvarsRequest"> & {
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetCvarsRequest.
+ * Use `create(GetCvarsRequestSchema)` to create a new message.
+ */
+export const GetCvarsRequestSchema: GenMessage<GetCvarsRequest> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 37);
+
+/**
+ * @generated from message japella.controlapi.v1.GetCvarsResponse
+ */
+export type GetCvarsResponse = Message<"japella.controlapi.v1.GetCvarsResponse"> & {
+  /**
+   * @generated from field: map<string, japella.controlapi.v1.CvarCategory> cvar_categories = 1;
+   */
+  cvarCategories: { [key: string]: CvarCategory };
+};
+
+/**
+ * Describes the message japella.controlapi.v1.GetCvarsResponse.
+ * Use `create(GetCvarsResponseSchema)` to create a new message.
+ */
+export const GetCvarsResponseSchema: GenMessage<GetCvarsResponse> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 38);
+
+/**
+ * @generated from message japella.controlapi.v1.CvarCategory
+ */
+export type CvarCategory = Message<"japella.controlapi.v1.CvarCategory"> & {
+  /**
+   * @generated from field: repeated japella.controlapi.v1.Cvar cvars = 1;
+   */
+  cvars: Cvar[];
+
+  /**
+   * @generated from field: string name = 2;
+   */
+  name: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.CvarCategory.
+ * Use `create(CvarCategorySchema)` to create a new message.
+ */
+export const CvarCategorySchema: GenMessage<CvarCategory> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 39);
+
+/**
+ * @generated from message japella.controlapi.v1.Cvar
+ */
+export type Cvar = Message<"japella.controlapi.v1.Cvar"> & {
+  /**
+   * @generated from field: string key_name = 1;
+   */
+  keyName: string;
+
+  /**
+   * @generated from field: string value_string = 2;
+   */
+  valueString: string;
+
+  /**
+   * @generated from field: int32 value_int = 3;
+   */
+  valueInt: number;
+
+  /**
+   * @generated from field: string description = 4;
+   */
+  description: string;
+
+  /**
+   * @generated from field: bool is_read_only = 5;
+   */
+  isReadOnly: boolean;
+
+  /**
+   * @generated from field: uint32 max_length = 6;
+   */
+  maxLength: number;
+
+  /**
+   * @generated from field: string type = 7;
+   */
+  type: string;
+
+  /**
+   * @generated from field: string title = 8;
+   */
+  title: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.Cvar.
+ * Use `create(CvarSchema)` to create a new message.
+ */
+export const CvarSchema: GenMessage<Cvar> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 40);
+
+/**
  * @generated from service japella.controlapi.v1.JapellaControlApiService
  */
 export const JapellaControlApiService: GenService<{
@@ -769,6 +1002,30 @@ export const JapellaControlApiService: GenService<{
     methodKind: "unary";
     input: typeof LoginWithUsernameAndPasswordRequestSchema;
     output: typeof LoginWithUsernameAndPasswordResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.GetUsers
+   */
+  getUsers: {
+    methodKind: "unary";
+    input: typeof GetUsersRequestSchema;
+    output: typeof GetUsersResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.GetApiKeys
+   */
+  getApiKeys: {
+    methodKind: "unary";
+    input: typeof GetApiKeysRequestSchema;
+    output: typeof GetApiKeysResponseSchema;
+  },
+  /**
+   * @generated from rpc japella.controlapi.v1.JapellaControlApiService.GetCvars
+   */
+  getCvars: {
+    methodKind: "unary";
+    input: typeof GetCvarsRequestSchema;
+    output: typeof GetCvarsResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_japella_controlapi_v1_control, 0);

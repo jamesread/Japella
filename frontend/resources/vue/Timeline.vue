@@ -28,8 +28,10 @@
 				</tr>
 				<tr v-else v-for="post in timeline" :key="post.id">
 					<td>
-						<Icon :icon="post.socialAccountIcon" />
-						{{ post.socialAccountIdentity }}
+						<span class="social-account">
+							<Icon :icon="post.socialAccountIcon" />
+							{{ post.socialAccountIdentity }}
+						</span>
 					</td>
 					<td>{{ post.content }}</td>
 					<td>{{ post.created }}</td>

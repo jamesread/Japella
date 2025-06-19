@@ -1,7 +1,6 @@
 package db;
 
 import (
-	"gorm.io/gorm"
 	"time"
 )
 
@@ -20,7 +19,6 @@ type Model struct {
 	ID        uint32 `gorm:"primarykey"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
-	DeletedAt gorm.DeletedAt `gorm:"index"`
 }
 
 type SocialAccount struct {
@@ -28,7 +26,9 @@ type SocialAccount struct {
 
 	Connector  string
 	Identity   string
-	OAuthToken string
+	OAuth2Token string
+	OAuth2TokenExpiry time.Time
+	OAuth2RefreshToken string
 	Active bool
 }
 
@@ -44,7 +44,7 @@ type Post struct {
 
 	ID uint32 `gorm:"primarykey"`
 	SocialAccountID uint32
-	SocialAccount SocialAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	SocialAccount *SocialAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
 	Status bool
 	Content string
 	PostURL string
@@ -76,13 +76,26 @@ type ApiKey struct {
 	ID uint32 `gorm:"primarykey"`
 	KeyValue string `gorm:"uniqueIndex"` // Key keyword in SQL
 	UserAccountID uint32
-	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
 }
 
 type Session struct {
 	Model
 
 	UserAccountID uint32
-	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:RESTRICT;"`
+	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
 	SID string `gorm:"uniqueIndex"` // Session ID
+}
+
+type Cvar struct {
+	Model
+
+	KeyName  string `gorm:"uniqueIndex"`
+	Title	   string `gorm:"type:varchar(100)"`
+	ValueString    string `gorm:"type:text"`
+	ValueInt int32 `gorm:"type:int"`
+	Description string `gorm:"type:text"`
+	DefaultValue string `gorm:"type:text"`
+	Category string `gorm:"type:text"`
+	Type string `gorm:"type:varchar(20)"`
 }

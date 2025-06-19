@@ -141,7 +141,7 @@
 				for (let x of res.posts) {
 					let status = ""
 
-					if (res.success) {
+					if (x.success) {
 						status = "good"
 					} else {
 						status = "bad"

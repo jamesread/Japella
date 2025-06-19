@@ -5,7 +5,7 @@ import (
 	"golang.org/x/net/http2/h2c"
 	"net/http"
 
-	"github.com/jamesread/japella/internal/layers/auth"
+	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/layers/api"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
 	"github.com/jamesread/japella/internal/httpserver/frontend"
@@ -53,8 +53,8 @@ func Start() {
 
 	apipath, apihandler, srv := api.GetNewHandler()
 
-	authLayer := auth.DefaultAuthLayer(srv.DB)
-	authenticatedApiHandler := authLayer.WrapHandler(apihandler)
+	authenticationLayer := authentication.DefaultAuthLayer(srv.DB)
+	authenticatedApiHandler := authenticationLayer.WrapHandler(apihandler)
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", authenticatedApiHandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))

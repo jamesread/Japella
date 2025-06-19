@@ -31,6 +31,8 @@ func main() {
 
 	log.Infof("japella startup")
 	log.WithFields(log.Fields{
+		"version": buildinfo.Version,
+		"buildDate": buildinfo.BuildDate,
 		"commit": buildinfo.Commit,
 	}).Infof("buildinfo")
 

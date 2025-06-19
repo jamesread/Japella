@@ -9,7 +9,7 @@ type BaseConnector interface {
 	GetIdentity() string
 	GetProtocol() string
 	GetIcon() string
-	OnRefresh(socialAccount *SocialAccount) error
+	OnRefresh(socialAccount *db.SocialAccount) error
 }
 
 type ConnectorWithChannels interface {

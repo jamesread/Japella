@@ -1,4 +1,4 @@
-package auth
+package authentication
 
 import (
 	"context"
@@ -10,14 +10,22 @@ import (
 func CheckAuthSessionCookie(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error) {
 	cookie, err := req.Cookie("japella-sid")
 
-	log.Infof("Checking session cookie: %v", cookie)
+	log.Debugf("Checking session cookie: %v", cookie)
 
 	if err != nil {
 		return nil, nil // No session cookie found
 	}
 
+	if cookie.Value == "" {
+		return nil, nil
+	}
+
 	sessionID := cookie.Value
 	session := db.GetSessionByID(sessionID)
+
+	if session == nil {
+		return nil, nil // No session found for the given ID
+	}
 
 	return &AuthenticatedUser{Username: session.UserAccount.Username}, nil
 }

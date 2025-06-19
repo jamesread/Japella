@@ -2,6 +2,7 @@ package bluesky
 
 import (
 	"github.com/jamesread/japella/internal/connector"
+	"github.com/jamesread/japella/internal/db"
 )
 
 type BlueskyConnector struct {
@@ -28,6 +29,6 @@ func (b *BlueskyConnector) GetIcon() string {
 	return "bi:bluesky"
 }
 
-func (b *BlueskyConnector) OnRefresh(socialAccount *connector.SocialAccount) error {
+func (b *BlueskyConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 	return nil
 }

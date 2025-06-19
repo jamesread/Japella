@@ -1,6 +1,6 @@
 <template>
 	<section class = "social-accounts">
-		<div class = "flex-row">
+		<div class = "section-header">
 			<div class = "fg1">
 				<h2>Social Accounts</h2>
 
@@ -24,21 +24,19 @@
 				<table>
 					<thead>
 						<tr>
-							<th>ID</th>
-							<th>Connector</th>
-							<th>Identity</th>
-							<th class="small">Actions</th>
+							<th>Social Account</th>
+							<th class="small" style = "text-align: right">Actions</th>
 						</tr>
 					</thead>
 					<tbody>
 						<tr v-for="account in accounts" :key="account.id">
-							<td>{{ account.id }}</td>
 							<td>
-								<Icon :icon="account.icon" />
-								{{ account.connector }}
+								<span class = "social-account">
+									<Icon :icon="account.icon" />
+									{{ account.identity }}
+								</span>
 							</td>
-							<td>{{ account.identity }}</td>
-							<td>
+							<td align = "right">
 								<button @click="refreshAccount(account.id)" class="good">
 									<Icon icon="material-symbols:refresh" />
 								</button>
@@ -66,6 +64,8 @@
 			</div>
 		</div>
 	</section>
+
+	<OAuthServices />
 </template>
 
 <script setup>
