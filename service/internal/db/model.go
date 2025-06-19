@@ -55,7 +55,7 @@ type UserAccount struct {
 	Model
 
 	ID       uint32 `gorm:"primarykey"`
-	Username string `gorm:"uniqueIndex"`
+	Username string `gorm:"type:varchar(64),uniqueIndex"`
 	PasswordHash string
 }
 
@@ -63,18 +63,24 @@ type UserGroup struct {
 	Model
 
 	ID          uint32 `gorm:"primarykey"`
-	Name        string `gorm:"uniqueIndex"`
+	Name        string
 }
 
 type UserGroupMembership struct {
 	Model
+
+	UserAccountID uint32 `gorm:"uniqueIndex:idx_user_group_membership"`
+	UserAccount *UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+
+	UserGroupID   uint32 `gorm:"uniqueIndex:idx_user_group_membership"`
+	UserGroup *UserGroup `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
 }
 
 type ApiKey struct {
 	Model
 
 	ID uint32 `gorm:"primarykey"`
-	KeyValue string `gorm:"uniqueIndex"` // Key keyword in SQL
+	KeyValue string `gorm:"type:varchar(64);uniqueIndex"` // Key keyword in SQL
 	UserAccountID uint32
 	UserAccount *UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
 }
@@ -90,7 +96,7 @@ type Session struct {
 type Cvar struct {
 	Model
 
-	KeyName  string `gorm:"uniqueIndex;not null;size:100"`
+	KeyName  string `gorm:"type:varchar(64);uniqueIndex;not null"`
 	Title	   string `gorm:"type:varchar(100);not null"`
 	ValueString    string `gorm:"type:text"`
 	ValueInt int32 `gorm:"type:int"`

@@ -2,7 +2,6 @@ package db;
 
 import (
 	log "github.com/sirupsen/logrus"
-	"gorm.io/gorm"
 )
 
 var CvarKeys = struct {
@@ -35,10 +34,11 @@ var CvarList = []Cvar{
 
 func (db *DB) InsertCvarsIfNotExists() {
 	for _, cvar := range CvarList {
-		var existing Cvar
-		result := db.conn.Where("key_name = ?", cvar.KeyName).First(&existing)
+		var existing *Cvar
 
-		if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+		result := db.conn.Where("key_name = ?", cvar.KeyName).Limit(1).Find(&existing)
+
+		if result.Error != nil {
 			log.Errorf("Error checking for existing cvar: %v", result.Error)
 			continue
 		}
