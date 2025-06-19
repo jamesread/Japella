@@ -21,6 +21,7 @@
 		"section.login.title": "Login",
 		"section.login.description": "Please enter your username and password to login.",
 		"section.login.error": "Login failed. Please check your username and password.",
+		"section.login.login": "Login",
 		"section.login.forgot-password": "Forgot Password",
 		"section.login.create-account": "Create Account"
 	}
