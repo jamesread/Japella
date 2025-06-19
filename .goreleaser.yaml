@@ -40,6 +40,7 @@ dockers:
       - README.md
       - webui
       - var/config-skel/
+      - lang/
 
   - dockerfile: Dockerfile
     goarch: arm64
@@ -55,6 +56,7 @@ dockers:
       - README.md
       - webui
       - var/config-skel/
+      - lang/
 
 docker_manifests:
   - name_template: ghcr.io/jamesread/japella:{{.Version}}
