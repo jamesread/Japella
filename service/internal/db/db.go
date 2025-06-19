@@ -153,17 +153,16 @@ func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
 	return nil
 }
 
-func (db *DB) GetUserByApiKey(apiKey string) *ApiKey {
+func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 	ret := &ApiKey{}
 
 	result := db.conn.Preload("UserAccount").Where("key_value = ?", apiKey).Limit(1).Find(ret)
 
 	if result.Error != nil || result.RowsAffected == 0 {
-		log.Warnf("No user found for API key: %s", apiKey)
 		return nil
 	}
 
-	return ret
+	return ret.UserAccount
 }
 
 func (db *DB) GetUserByUsername(username string) *UserAccount {
@@ -199,7 +198,7 @@ func (db *DB) CreateApiKey(user *UserAccount, keyValue string) (*ApiKey, error) 
 	apiKey := &ApiKey{
 		KeyValue:      keyValue,
 		UserAccountID: user.ID,
-		UserAccount:   *user,
+		UserAccount:   user,
 	}
 
 	result := db.conn.Create(apiKey)
@@ -320,4 +319,81 @@ func (db *DB) GetCvarBool(key string) (bool) {
 	}
 
 	return false;
+}
+
+func (db *DB) GetCvarInt(key string) (int32) {
+	var cvar Cvar
+
+	result := db.conn.Where("key_name = ?", key).First(&cvar)
+
+	if result.Error != nil {
+		log.Errorf("Failed to get cvar %s: %v", key, result.Error)
+		return 0
+	}
+
+	return cvar.ValueInt
+}
+
+func (db *DB) SetCvarString(key, value string) error {
+	cvar := &Cvar{
+		KeyName: key,
+		ValueString: value,
+	}
+
+	result := db.conn.Where("key_name = ?", key).Assign(cvar).FirstOrCreate(cvar)
+
+	if result.Error != nil {
+		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
+		return result.Error
+	}
+
+	return nil
+}
+
+func (db *DB) SetCvarBool(key string, value bool) error {
+	cvar := &Cvar{
+		KeyName: key,
+		ValueInt: 0,
+	}
+
+	if value {
+		cvar.ValueInt = 1
+	}
+
+	result := db.conn.Where("key_name = ?", key).Assign(cvar).FirstOrCreate(cvar)
+
+	if result.Error != nil {
+		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
+		return result.Error
+	}
+
+	return nil
+}
+
+func (db *DB) SetCvarInt(key string, value int32) error {
+	cvar := &Cvar{
+		KeyName: key,
+		ValueInt: value,
+	}
+
+	result := db.conn.Where("key_name = ?", key).Assign(cvar).FirstOrCreate(cvar)
+
+	if result.Error != nil {
+		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
+		return result.Error
+	}
+
+	return nil
+}
+
+func (db *DB) SaveUserPreferences(preferences *UserPreferences) error {
+	result := db.conn.Save(preferences)
+
+	return result.Error
+}
+
+func (db *DB) RevokeApiKey(id uint32) error {
+	result := db.conn.Delete(&ApiKey{}, id)
+
+	return result.Error
 }

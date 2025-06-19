@@ -14,7 +14,7 @@ import (
 )
 
 type AuthenticatedUser struct {
-	Username string
+	User *db.UserAccount
 }
 
 type AuthLayer struct {
@@ -65,8 +65,8 @@ func (al *AuthLayer) WrapHandler(in http.Handler) http.Handler {
 	return authHandler
 }
 
-func CheckAuthAllowAll(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error) {
-	return &AuthenticatedUser{Username: "anonymous"}, nil
+func CheckAuthAllowAll(ctx context.Context, dbc *db.DB, req *http.Request) (*AuthenticatedUser, error) {
+	return &AuthenticatedUser{User: &db.UserAccount{ Username: "anonymous" }}, nil
 }
 
 func DefaultAuthLayer(db *db.DB) *AuthLayer {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/rs/cors"
 
+	"github.com/jamesread/golure/pkg/redact"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
 	buildinfo "github.com/jamesread/japella/internal/buildinfo"
@@ -101,11 +102,11 @@ func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *authentication.A
 }
 
 func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[controlv1.GetStatusRequest]) (*connect.Response[controlv1.GetStatusResponse], error) {
-	var user *authentication.AuthenticatedUser
+	var authenticatedUser *authentication.AuthenticatedUser
 	username := ""
 
-	if user = s.getAuthenticatedUser(ctx); user != nil {
-		username = user.Username
+	if authenticatedUser = s.getAuthenticatedUser(ctx); authenticatedUser != nil {
+		username = authenticatedUser.User.Username
 	}
 
 	log.Infof("GetStatus called by user: %s", username)
@@ -115,7 +116,7 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		Nanoservices: nanoservice.GetNanoservices(),
 		Version:      buildinfo.Version,
 		Username:     username,
-		IsLoggedIn:   user != nil,
+		IsLoggedIn:   authenticatedUser != nil,
 	})
 
 	return res, nil
@@ -634,7 +635,7 @@ func (s *ControlApi) GetApiKeys(ctx context.Context, req *connect.Request[contro
 	for _, key := range apiKeys {
 		res.Msg.Keys = append(res.Msg.Keys, &controlv1.ApiKey{
 			Id:        key.ID,
-			KeyValue:  key.KeyValue,
+			KeyValue:  redact.RedactString(key.KeyValue),
 			CreatedAt: key.CreatedAt.Format("2006-01-02 15:04:05"),
 			UserId:    key.UserAccountID,
 			Username:  key.UserAccount.Username,
@@ -684,6 +685,84 @@ func (s *ControlApi) GetCvars(ctx context.Context, req *connect.Request[controlv
 			Title:        cvar.Title,
 		})
 	}
+
+	return res, nil
+}
+
+func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Request[controlv1.SaveUserPreferencesRequest]) (*connect.Response[controlv1.SaveUserPreferencesResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"))
+	}
+
+	log.Infof("Saving user preferences for user: %s", authenticatedUser.User.Username)
+
+	err := s.DB.SaveUserPreferences(&db.UserPreferences{
+		UserAccountID: authenticatedUser.User.ID,
+		Language: req.Msg.Language,
+	})
+
+	if err != nil {
+		log.Errorf("Error saving user preferences: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to save user preferences: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.SaveUserPreferencesResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Preferences saved successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[controlv1.CreateApiKeyRequest]) (*connect.Response[controlv1.CreateApiKeyResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+
+	log.Infof("Creating API key for user: %s", authenticatedUser.User.Username)
+
+	newKeyValue := uuid.New().String()
+
+	apiKey, err := s.DB.CreateApiKey(authenticatedUser.User, newKeyValue)
+
+	if err != nil {
+		log.Errorf("Error creating API key: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create API key: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.CreateApiKeyResponse{
+		StandardResponse: &controlv1.StandardResponse {
+			Success: true,
+		},
+		NewKeyValue: newKeyValue,
+	})
+
+	if err != nil {
+		log.Errorf("Error creating API key: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create API key: %w", err))
+	}
+
+	log.Infof("API key created successfully: %s", apiKey.KeyValue)
+
+	return res, nil
+}
+
+func (s *ControlApi) RevokeApiKey(ctx context.Context, req *connect.Request[controlv1.RevokeApiKeyRequest]) (*connect.Response[controlv1.RevokeApiKeyResponse], error) {
+	err := s.DB.RevokeApiKey(req.Msg.Id)
+
+	if err != nil {
+		log.Errorf("Error revoking API key: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to revoke API key: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.RevokeApiKeyResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "API key revoked successfully",
+		},
+	})
 
 	return res, nil
 }

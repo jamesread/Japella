@@ -203,6 +203,31 @@ message Cvar {
 	string title = 8;
 }
 
+message SaveUserPreferencesRequest {
+	string language = 1;
+}
+
+message SaveUserPreferencesResponse {
+	StandardResponse standard_response = 1;
+	string username = 2;
+}
+
+message CreateApiKeyRequest {
+}
+
+message CreateApiKeyResponse {
+	StandardResponse standard_response = 1;
+	string new_key_value = 2;
+}
+
+message RevokeApiKeyRequest {
+	uint32 id = 1;
+}
+
+message RevokeApiKeyResponse {
+	StandardResponse standard_response = 1;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -235,4 +260,10 @@ service JapellaControlApiService {
 	rpc GetApiKeys(GetApiKeysRequest) returns (GetApiKeysResponse) {}
 
 	rpc GetCvars(GetCvarsRequest) returns (GetCvarsResponse) {}
+
+	rpc SaveUserPreferences(SaveUserPreferencesRequest) returns (SaveUserPreferencesResponse) {}
+
+	rpc CreateApiKey(CreateApiKeyRequest) returns (CreateApiKeyResponse) {}
+
+	rpc RevokeApiKey(RevokeApiKeyRequest) returns (RevokeApiKeyResponse) {}
 }

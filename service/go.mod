@@ -6,6 +6,7 @@ require (
 	connectrpc.com/authn v0.2.0
 	connectrpc.com/connect v1.18.1
 	connectrpc.com/cors v0.1.0
+	github.com/alexedwards/argon2id v1.0.0
 	github.com/bufbuild/buf v1.48.0
 	github.com/bwmarrin/discordgo v0.28.1
 	github.com/fzipp/gocyclo v0.6.0
@@ -16,7 +17,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.25.1
-	github.com/jamesread/golure v0.0.0-20250602094058-842cf536d370
+	github.com/jamesread/golure v0.0.0-20250619190948-fa38cbd93cc4
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/prometheus/client_golang v1.20.2
 	github.com/prometheus/common v0.55.0
@@ -48,7 +49,6 @@ require (
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/Microsoft/hcsshim v0.12.9 // indirect
-	github.com/alexedwards/argon2id v1.0.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/bufbuild/protocompile v0.14.1 // indirect
 	github.com/bufbuild/protoplugin v0.0.0-20240911180120-7bb73e41a54a // indirect

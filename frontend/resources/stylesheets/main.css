@@ -128,6 +128,20 @@ aside {
 	flex-grow: 1;
 }
 
+dialog {
+	background-color: #242424;
+	color: white;
+	border-radius: 0.5em;
+	border-color: white;
+	padding: 1em;
+	max-width: 600px;
+	margin: auto;
+}
+
+dialog::backdrop {
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
 @media (max-width: 600px) {
 	.grid-wide {
 		grid-column: 1 / span 2;

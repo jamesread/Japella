@@ -27,5 +27,5 @@ func CheckAuthSessionCookie(ctx context.Context, db *db.DB, req *http.Request) (
 		return nil, nil // No session found for the given ID
 	}
 
-	return &AuthenticatedUser{Username: session.UserAccount.Username}, nil
+	return &AuthenticatedUser{User: session.UserAccount}, nil
 }

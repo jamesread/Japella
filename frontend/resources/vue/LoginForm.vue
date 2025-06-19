@@ -5,7 +5,7 @@
 		<form @submit.prevent="login">
 			<input type="text" required placeholder = "Username" v-model = "username" />
 
-			<input type="password" required placeholder = "password" v-model = "password" />
+			<input type="password" required placeholder = "Password" v-model = "password" />
 
 			<button type="submit">Login</button>
 		</form>

@@ -76,26 +76,34 @@ type ApiKey struct {
 	ID uint32 `gorm:"primarykey"`
 	KeyValue string `gorm:"uniqueIndex"` // Key keyword in SQL
 	UserAccountID uint32
-	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	UserAccount *UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
 }
 
 type Session struct {
 	Model
 
 	UserAccountID uint32
-	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	UserAccount *UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
 	SID string `gorm:"uniqueIndex"` // Session ID
 }
 
 type Cvar struct {
 	Model
 
-	KeyName  string `gorm:"uniqueIndex"`
-	Title	   string `gorm:"type:varchar(100)"`
+	KeyName  string `gorm:"uniqueIndex;not null;size:100"`
+	Title	   string `gorm:"type:varchar(100);not null"`
 	ValueString    string `gorm:"type:text"`
 	ValueInt int32 `gorm:"type:int"`
 	Description string `gorm:"type:text"`
 	DefaultValue string `gorm:"type:text"`
 	Category string `gorm:"type:text"`
-	Type string `gorm:"type:varchar(20)"`
+	Type string `gorm:"type:varchar(20);not null"`
+}
+
+type UserPreferences struct {
+	Model
+
+	UserAccountID uint32 `gorm:"uniqueIndex"`
+	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	Language string `gorm:"type:varchar(10)"`
 }

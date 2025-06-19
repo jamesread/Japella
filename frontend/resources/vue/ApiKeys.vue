@@ -4,6 +4,8 @@
 	import { Icon } from '@iconify/vue';
 
 	const apiKeys = ref([]);
+	const newKeyDialog = ref(null);
+	const newKeyValue = ref('');
 
 	async function fetchApiKeys() {
 		await waitForClient();
@@ -15,7 +17,9 @@
 	async function revokeKey(keyId) {
 		if (confirm(`Are you sure you want to revoke the API key with ID ${keyId}?`)) {
 			try {
-				await window.client.revokeApiKey({ keyId });
+				await window.client.revokeApiKey({
+					id: keyId
+				});
 				alert('API key revoked successfully.');
 				fetchApiKeys(); // Refresh the API keys list
 			} catch (error) {
@@ -25,22 +29,52 @@
 		}
 	}
 
+	function showNewKeyDialog(keyValue) {
+		newKeyValue.value = keyValue;
+		newKeyDialog.value.showModal();
+	}
+
+	function createNewKey() {
+		window.client.createApiKey()
+			.then((res) => {
+				showNewKeyDialog(res.newKeyValue);
+				fetchApiKeys(); // Refresh the API keys list
+			})
+			.catch((error) => {
+				console.error('Error creating API key:', error);
+				alert('Failed to create API key.');
+			});
+	}
+
 	onMounted(() => {
 		fetchApiKeys();
 	});
 </script>
 
 <template>
+	<dialog ref = "newKeyDialog" class = "dialog">
+		<h2>Your new key</h2>
+		<p>Here is your new API key. Please copy it and store it securely, as you will not be able to see it again.</p>
+
+		<form action="#" method="dialog">
+			<input type="text" readonly class="key-input" :value="newKeyValue" />
+			<button type="submit" class="good">OK</button>
+		</form>
+	</dialog>
 	<section>
 		<div class = "section-header">
 			<div class = "fg1">
 				<h2>API Keys</h2>
 
-				<p>This page allows you to manage your API keys. You can revoke existing keys.</p>
+				<p>This page allows you to view active keys, revoke them, and create new keys. To use these keys you should use the Authorization header with the Bearer token.</p>
 			</div>
 			<div role = "toolbar">
 				<button @click="fetchApiKeys" class="neutral">
 					<Icon icon="material-symbols:refresh" />
+				</button>
+
+				<button @click="createNewKey" class="neutral">
+					<Icon icon="material-symbols:add" />
 				</button>
 			</div>
 		</div>
@@ -70,3 +104,17 @@
 		</table>
 	</section>
 </template>
+
+<style scoped>
+    form {
+		grid-template-columns: 1fr;
+	}
+
+	input {
+		text-align: center;
+	}
+
+	button {
+		place-self: start;
+	}
+</style>
