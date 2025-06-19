@@ -6,6 +6,38 @@ section.small {
 	margin: auto;
 }
 
+section p:last-child {
+	margin-bottom: 0;
+}
+
+.icon-and-text {
+	display: flex;
+	align-items: center;
+}
+.icon-and-text svg {
+	margin-right: .4em;
+	margin-left: .4em;
+}
+
+.social-account {
+	white-space: nowrap;
+	border-radius: 0.6em;
+	background-color: #242424;
+	font-weight: bold;
+	padding: 0.5em;
+	display: inline-flex;
+	align-items: center;
+	gap: .4em;
+	user-select: none;
+}
+
+.section-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-bottom: 1em;
+}
+
 .notification {
 	padding: 0.75em;
 	border-radius: 0.25em;

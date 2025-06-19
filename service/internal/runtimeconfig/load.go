@@ -16,9 +16,17 @@ import (
 
 var cfg *CommonConfig
 
-func readFile(filename string) []byte {
+func getConfigFilePath(filename string) string {
 	filename = filepath.Join(getConfigPath(), filename)
 
+	if _, err := os.Stat(filename); os.IsNotExist(err) {
+		log.Fatalf("Config file %s does not exist", filename)
+	}
+
+	return filename
+}
+
+func readFile(filename string) []byte {
 	handle, err := os.Open(filename)
 
 	if err != nil {
@@ -74,7 +82,7 @@ func (w *ConnectorConfigWrapper) UnmarshalYAML(node ast.Node) error {
 		return err
 	}
 
-	log.Infof("Connector type: %v", typeHolder.Type)
+	log.Infof("Handling connector type from config: %v", typeHolder.Type)
 
 	w.ConnectorType = typeHolder.Type
 	w.Enabled = typeHolder.Enabled
@@ -138,11 +146,15 @@ func (w *ConnectorConfigWrapper) UnmarshalYAML(node ast.Node) error {
 }
 
 func loadConfig() *CommonConfig {
-	log.Infof("Config loading started")
+	configFilename := getConfigFilePath("config.yaml")
+
+	log.WithFields(log.Fields{
+		"filename": configFilename,
+	}).Infof("Loading config file")
 
 	cfg = &CommonConfig{}
 
-	err := yaml.UnmarshalWithOptions(readFile("config.yaml"), cfg, yaml.Strict())
+	err := yaml.UnmarshalWithOptions(readFile(configFilename), cfg, yaml.Strict())
 
 	if err != nil {
 		log.Fatalf("could not load common config! %v", err)

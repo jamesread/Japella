@@ -10,7 +10,7 @@ import App from '../vue/App.vue';
 import Notification from './notification.js';
 
 export function main(): void {
-	fetch('http://localhost:8080/lang')
+	fetch('/lang')
 		.then(response => response.json())
 		.then(ret => {
 			const i18n = createI18n({
@@ -42,57 +42,16 @@ function createTheApp(i18n: any): void {
 	app.use(i18n)
 	app.mount('#app')
 
-	loadNavSection()
-
 	createApiClient()
 	//setupApi()
 
 	displayNotifications()
 }
 
-function loadNavSection(): void {
-	const currentSection = window.location.hash.substring(1);
-
-	if (currentSection === '') {
-		showNavSection('welcome');
-	} else {
-		showNavSection(currentSection);
-	}
-}
-
-function showNavSection(sectionClass: string): void {
-	let navLinks = document.getElementById('nav-section-links');
-
-	if (!navLinks) {
-		return;
-	}
-
-	navLinks.querySelectorAll('a').forEach((a) => {
-			a.classList.remove('active')
-	});
-
-	const link = document.querySelector('a[href="#' + sectionClass + '"]');
-
-	if (link) {
-		link.classList.add('active')
-	}
-
-	for (const section of document.querySelectorAll('section')) {
-		const shown = section.classList.contains(sectionClass)
-
-		section.hidden = !shown
-	}
-}
-
 function createApiClient(): void {
-	let baseUrl = '/api/'
-
-	if (window.location.hostname.includes('localhost')) {
-		baseUrl = 'http://localhost:8080/api/'
-	}
-
 	window.transport = createConnectTransport({
-		baseUrl: baseUrl,
+		baseUrl: '/api/',
+		credentials: 'include',
 	})
 
 	window.client = createClient(JapellaControlApiService, window.transport)

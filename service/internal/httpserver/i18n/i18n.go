@@ -3,13 +3,22 @@ package i18n
 import (
 	"github.com/jamesread/golure/pkg/dirs"
 	log "github.com/sirupsen/logrus"
-	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"encoding/json"
 )
+
+type LanguageFilev1 struct {
+	SchemaVersion int			   `json:"schemaVersion"`
+	Translations map[string]string `json:"translations"`
+}
+
+type CombinedLanguageContent struct {
+	AcceptLanguages []string `json:"acceptLanguages"`
+	Messages map[string]map[string]string `json:"messages"`
+}
 
 func getLanguageDir() string {
 	dirsToSearch := []string{
@@ -20,38 +29,6 @@ func getLanguageDir() string {
 	dir, _ := dirs.GetFirstExistingDirectory("lang", dirsToSearch)
 
 	return dir
-}
-
-func getLanguageFile(name string) (string, error) {
-	languageDir := getLanguageDir()
-
-	if languageDir == "" {
-		return "404.json", fmt.Errorf("no language directory found")
-	}
-
-	log.Infof("getLanguageFile: %v", name);
-
-	languageFilename, err := filepath.Abs(filepath.Join(languageDir, name + ".json"))
-
-	if err != nil {
-		return "", fmt.Errorf("error getting absolute path for language file: %v", err)
-	}
-
-	if _, err := os.Stat(languageFilename); os.IsNotExist(err) {
-		return "", fmt.Errorf("language file does not exist: %s", languageFilename)
-	}
-
-	return languageFilename, nil
-}
-
-type LanguageFilev1 struct {
-	SchemaVersion int			   `json:"schemaVersion"`
-	Translations map[string]string `json:"translations"`
-}
-
-type CombinedLanguageContent struct {
-	AcceptLanguages []string `json:"acceptLanguages"`
-	Messages map[string]map[string]string `json:"messages"`
 }
 
 func createCombineLanguageContent() *CombinedLanguageContent {
@@ -107,7 +84,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type, Accept-Language")
 	w.Header().Add("Content-Type", "application/json; charset=utf-8")
 
-	if !isLoaded || os.Getenv("LANGUAGE_CACHE") == "false" {
+	if !isLoaded || os.Getenv("JAPELLA_DEV_DISABLE_LANGUAGE_CACHE") == "true" {
 		combinedContent = createCombineLanguageContent()
 		isLoaded = true
 	}

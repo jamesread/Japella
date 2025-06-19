@@ -47,8 +47,8 @@ type WhoamiData struct {
 	Username  string `json:"username"`
 }
 
-func (x *XConnector) whoami(socialAccount *connector.SocialAccount) {
-	client, req, err := utils.NewHttpClientAndGetReq("https://api.x.com/2/users/me", socialAccount.OAuthToken)
+func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
+	client, req, err := utils.NewHttpClientAndGetReq("https://api.x.com/2/users/me", socialAccount.OAuth2Token)
 
 	if err != nil {
 		log.Errorf("Error creating request: %v", err)
@@ -58,7 +58,7 @@ func (x *XConnector) whoami(socialAccount *connector.SocialAccount) {
 	whoamiResult := &WhoamiResult{}
 	utils.ClientDoJson(client, req, whoamiResult)
 
-	x.db.UpdateSocialAccountIdentity(socialAccount.Id, whoamiResult.Data.Username)
+	x.db.UpdateSocialAccountIdentity(socialAccount.ID, whoamiResult.Data.Username)
 }
 
 type Tweet struct {
@@ -97,7 +97,7 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 }
 
 func (x *XConnector) GetIcon() string {
-	return "mdi:twitter"
+	return "bi:twitter-x"
 }
 
 func (x *XConnector) GetOAuth2Config() *oauth2.Config {
@@ -114,7 +114,7 @@ func (x *XConnector) GetOAuth2Config() *oauth2.Config {
 	return config
 }
 
-func (x *XConnector) OnRefresh(socialAccount *connector.SocialAccount) error {
+func (x *XConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 	log.Infof("OnRefresh called for XConnector with socialAccount: %+v", socialAccount)
 
 	x.whoami(socialAccount)

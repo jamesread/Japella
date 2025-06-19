@@ -4,7 +4,7 @@
 			<span v-if="link.type === 'title'" class="nav-title">
 				<h2>{{ link.name }}</h2>
 			</span>
-			<a v-else :href="'#' + link.sectionClass" @click.prevent="showNavSection(link.sectionClass)">
+			<a v-else :href="'#' + link.sectionName" @click.prevent="showNavSection(link.sectionName)">
 				{{ link.name }}
 			</a>
 		</li>
@@ -16,10 +16,12 @@
 	import { ref, onMounted } from 'vue';
 	const { t } = useI18n()
 
+	const emit = defineEmits(['section-change-request'])
+
 	const links = ref([
 		{
 			name: t("nav.post"),
-			sectionClass: "post-box",
+			sectionName: "postBox",
 			type: "link"
 		},
 		{
@@ -28,17 +30,17 @@
 		},
 		{
 			name: t('nav.timeline'),
-			sectionClass: 'timeline',
+			sectionName: 'timeline',
 			type: 'link'
 		},
 		{
 			name: t('nav.cannedPosts'),
-			sectionClass: 'canned-posts',
+			sectionName: 'cannedPosts',
 			type: 'link',
 		},
 		{
 			name: t('nav.calendar'),
-			sectionClass: "calendar",
+			sectionName: "calendar",
 			type: "link"
 		},
 		{
@@ -47,7 +49,7 @@
 		},
 		{
 			name: t('nav.socialaccounts'),
-			sectionClass: 'social-accounts',
+			sectionName: 'socialAccounts',
 			type: 'link',
 		},
 		{
@@ -56,38 +58,28 @@
 		},
 		{
 			name: t('nav.settings'),
-			sectionClass: 'settings',
+			sectionName: 'settings',
 			type: 'link',
 		},
 		{
 			name: t('nav.apikeys'),
-			sectionClass: 'settings-apikeys',
+			sectionName: 'settingsApiKeys',
 			type: 'link',
 		},
 		{
 			name: t('nav.users'),
-			sectionClass: 'settings-users',
+			sectionName: 'settingsUsers',
 			type: 'link',
 		},
 	]);
 
-	function showNavSection(sectionClass) {
-		document.getElementById('nav-section-links').querySelectorAll('a').forEach((a) => {
-				a.classList.remove('active')
-		});
-
-		const link = document.querySelector('a[href="#' + sectionClass + '"]');
-
-		if (link) {
-			link.classList.add('active')
-		}
-
-		for (const section of document.querySelectorAll('section')) {
-			const shown = section.classList.contains(sectionClass)
-
-			section.hidden = !shown
-		}
+	function showNavSection(sectionName) {
+		emit('section-change-request', sectionName);
 	}
+
+	defineExpose({
+		showNavSection
+	})
 </script>
 
 <style scoped>

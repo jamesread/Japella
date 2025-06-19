@@ -1,4 +1,4 @@
-package auth
+package authentication
 
 import (
 	"context"
@@ -30,21 +30,29 @@ var allowList = map[string]bool{
 type AuthFunc func(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error)
 
 func (al *AuthLayer) Handle(ctx context.Context, req *http.Request) (any, error) {
-	log.Infof("Handling auth request: %s %s", req.Method, req.URL.Path)
-
 	procedureName, _ := authn.InferProcedure(req.URL)
 
-	if allowList[procedureName] {
-		log.Infof("Allowing unauthenticated access to %s", procedureName)
-		return nil, nil
-	} else {
-		for _, authFunc := range al.AuthChain {
-			user, err := authFunc(ctx, al.DB, req)
+	var user *AuthenticatedUser
+	var err error
 
-			if err == nil && user != nil {
-				return user, nil
-			}
+	for _, authFunc := range al.AuthChain {
+		user, err = authFunc(ctx, al.DB, req)
+
+		if err == nil && user != nil {
+			return user, nil
 		}
+	}
+
+	if user == nil && allowList[procedureName] {
+		// We just log the unauthenticated access for allowed procedures as a helper
+		// for debugging and development really. Filtering out GET and OPTIONS logs
+		// as these are often used by browsers and other clients to check the API status.
+
+		if req.Method != http.MethodPost {
+			log.Debugf("Allowing unauthenticated access to %s", procedureName)
+		}
+
+		return nil, nil
 	}
 
 	return nil, authn.Errorf("Authentication Required")
@@ -68,7 +76,7 @@ func DefaultAuthLayer(db *db.DB) *AuthLayer {
 		CheckAuthTrustedHeader,
 	}
 
-	if os.Getenv("JAPELLA_DISABLE_AUTH") == "true" {
+	if os.Getenv("JAPELLA_DEV_DISABLE_AUTH") == "true" {
 		authChain = []AuthFunc{
 			CheckAuthAllowAll,
 		}
