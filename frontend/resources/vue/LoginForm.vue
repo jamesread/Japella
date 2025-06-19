@@ -46,9 +46,6 @@
 	const password = ref(null)
 
 	async function login() {
-		console.log('Login attempt:', username.value, password.value)
-
-
         try {
 			let res = await window.client.loginWithUsernameAndPassword({
 				"username": username.value,
