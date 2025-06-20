@@ -44,7 +44,7 @@ type Post struct {
 
 	ID uint32 `gorm:"primarykey"`
 	SocialAccountID uint32
-	SocialAccount *SocialAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	SocialAccount *SocialAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 	Status bool
 	Content string
 	PostURL string
@@ -55,7 +55,7 @@ type UserAccount struct {
 	Model
 
 	ID       uint32 `gorm:"primarykey"`
-	Username string `gorm:"type:varchar(64),uniqueIndex"`
+	Username string `gorm:"type:varchar(64);uniqueIndex"`
 	PasswordHash string
 }
 
@@ -70,10 +70,10 @@ type UserGroupMembership struct {
 	Model
 
 	UserAccountID uint32 `gorm:"uniqueIndex:idx_user_group_membership"`
-	UserAccount *UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	UserAccount *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 
 	UserGroupID   uint32 `gorm:"uniqueIndex:idx_user_group_membership"`
-	UserGroup *UserGroup `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	UserGroup *UserGroup `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 }
 
 type ApiKey struct {
@@ -82,14 +82,14 @@ type ApiKey struct {
 	ID uint32 `gorm:"primarykey"`
 	KeyValue string `gorm:"type:varchar(64);uniqueIndex"` // Key keyword in SQL
 	UserAccountID uint32
-	UserAccount *UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	UserAccount *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 }
 
 type Session struct {
 	Model
 
 	UserAccountID uint32
-	UserAccount *UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	UserAccount *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 	SID string `gorm:"uniqueIndex"` // Session ID
 }
 
@@ -110,6 +110,6 @@ type UserPreferences struct {
 	Model
 
 	UserAccountID uint32 `gorm:"uniqueIndex"`
-	UserAccount UserAccount `gorm:"constraint:OnUpdate:CASCADE,OnDelete:NO ACTION;"`
+	UserAccount UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 	Language string `gorm:"type:varchar(10)"`
 }
