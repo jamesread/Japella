@@ -90,6 +90,9 @@ const (
 	// JapellaControlApiServiceRevokeApiKeyProcedure is the fully-qualified name of the
 	// JapellaControlApiService's RevokeApiKey RPC.
 	JapellaControlApiServiceRevokeApiKeyProcedure = "/japella.controlapi.v1.JapellaControlApiService/RevokeApiKey"
+	// JapellaControlApiServiceSetCvarProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetCvar RPC.
+	JapellaControlApiServiceSetCvarProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetCvar"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -114,6 +117,7 @@ type JapellaControlApiServiceClient interface {
 	SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error)
 	CreateApiKey(context.Context, *connect.Request[v1.CreateApiKeyRequest]) (*connect.Response[v1.CreateApiKeyResponse], error)
 	RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error)
+	SetCvar(context.Context, *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -242,6 +246,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("RevokeApiKey")),
 			connect.WithClientOptions(opts...),
 		),
+		setCvar: connect.NewClient[v1.SetCvarRequest, v1.SetCvarResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetCvarProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetCvar")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -266,6 +276,7 @@ type japellaControlApiServiceClient struct {
 	saveUserPreferences          *connect.Client[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse]
 	createApiKey                 *connect.Client[v1.CreateApiKeyRequest, v1.CreateApiKeyResponse]
 	revokeApiKey                 *connect.Client[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse]
+	setCvar                      *connect.Client[v1.SetCvarRequest, v1.SetCvarResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -365,6 +376,11 @@ func (c *japellaControlApiServiceClient) RevokeApiKey(ctx context.Context, req *
 	return c.revokeApiKey.CallUnary(ctx, req)
 }
 
+// SetCvar calls japella.controlapi.v1.JapellaControlApiService.SetCvar.
+func (c *japellaControlApiServiceClient) SetCvar(ctx context.Context, req *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error) {
+	return c.setCvar.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -387,6 +403,7 @@ type JapellaControlApiServiceHandler interface {
 	SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error)
 	CreateApiKey(context.Context, *connect.Request[v1.CreateApiKeyRequest]) (*connect.Response[v1.CreateApiKeyResponse], error)
 	RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error)
+	SetCvar(context.Context, *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -510,6 +527,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("RevokeApiKey")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceSetCvarHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetCvarProcedure,
+		svc.SetCvar,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetCvar")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -550,6 +573,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceCreateApiKeyHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceRevokeApiKeyProcedure:
 			japellaControlApiServiceRevokeApiKeyHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetCvarProcedure:
+			japellaControlApiServiceSetCvarHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -633,4 +658,8 @@ func (UnimplementedJapellaControlApiServiceHandler) CreateApiKey(context.Context
 
 func (UnimplementedJapellaControlApiServiceHandler) RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RevokeApiKey is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetCvar(context.Context, *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetCvar is not implemented"))
 }
