@@ -228,6 +228,19 @@ message RevokeApiKeyResponse {
 	StandardResponse standard_response = 1;
 }
 
+message SetCvarRequest {
+	string key_name = 1;
+	string value_string = 2;
+	int32 value_int = 3;
+}
+
+message SetCvarResponse {
+	StandardResponse standard_response = 1;
+	string key_name = 2;
+	string value_string = 3;
+	int32 value_int = 4;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -266,4 +279,6 @@ service JapellaControlApiService {
 	rpc CreateApiKey(CreateApiKeyRequest) returns (CreateApiKeyResponse) {}
 
 	rpc RevokeApiKey(RevokeApiKeyRequest) returns (RevokeApiKeyResponse) {}
+
+	rpc SetCvar(SetCvarRequest) returns (SetCvarResponse) {}
 }

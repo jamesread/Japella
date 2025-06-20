@@ -646,13 +646,13 @@ func (s *ControlApi) GetApiKeys(ctx context.Context, req *connect.Request[contro
 }
 
 func (s *ControlApi) GetCvars(ctx context.Context, req *connect.Request[controlv1.GetCvarsRequest]) (*connect.Response[controlv1.GetCvarsResponse], error) {
-	log.Infof("Fetching CVars")
+	log.Infof("Fetching cvars")
 
 	cvars, err := s.DB.SelectCvars()
 
 	if err != nil {
-		log.Errorf("Error selecting CVars: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve CVars: %w", err))
+		log.Errorf("Error selecting cvars: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve cvars: %w", err))
 	}
 
 	res := connect.NewResponse(&controlv1.GetCvarsResponse{
@@ -761,6 +761,43 @@ func (s *ControlApi) RevokeApiKey(ctx context.Context, req *connect.Request[cont
 		StandardResponse: &controlv1.StandardResponse{
 			Success: true,
 			Message: "API key revoked successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) SetCvar(ctx context.Context, req *connect.Request[controlv1.SetCvarRequest]) (*connect.Response[controlv1.SetCvarResponse], error) {
+	cvar := s.DB.GetCvar(req.Msg.KeyName)
+
+	if cvar == nil {
+		log.Warnf("cvar not found: %s", req.Msg.KeyName)
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("cvar not found: %s", req.Msg.KeyName))
+	}
+
+	var err error
+
+	switch (cvar.Type) {
+	case "password":
+		fallthrough
+	case "text":
+		log.Infof("Setting cvar %s to string value: %s", cvar.KeyName, req.Msg.ValueString)
+		err = s.DB.SetCvarString(cvar.KeyName, req.Msg.ValueString)
+	case "int":
+		err = s.DB.SetCvarInt(cvar.KeyName, req.Msg.ValueInt)
+	default:
+		err = fmt.Errorf("unsupported cvar type: %s", cvar.Type)
+	}
+
+	if err != nil {
+		log.Errorf("Error setting cvar: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set cvar: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.SetCvarResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "cvar set successfully",
 		},
 	})
 

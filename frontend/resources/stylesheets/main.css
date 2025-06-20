@@ -142,6 +142,11 @@ dialog::backdrop {
 	background-color: rgba(0, 0, 0, 0.5);
 }
 
+input:invalid {
+	outline: 2px solid red;
+	background-color: salmon;
+}
+
 @media (max-width: 600px) {
 	.grid-wide {
 		grid-column: 1 / span 2;

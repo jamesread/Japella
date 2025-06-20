@@ -3,11 +3,11 @@
 		<h2>{{ t('section.login.title') }}</h2>
 		<p>{{ t('section.login.description') }}</p>
 		<form @submit.prevent="login">
-			<input type="text" required placeholder = "Username" v-model = "username" />
+			<input type="text" placeholder = "Username" v-model = "username" />
 
-			<input type="password" required placeholder = "Password" v-model = "password" />
+			<input type="password" placeholder = "Password" v-model = "password" />
 
-			<button type="submit">Login</button>
+			<button type="submit">{{ t('section.login.login') }}</button>
 		</form>
 
 		<br />
@@ -46,18 +46,19 @@
 	const password = ref(null)
 
 	async function login() {
-		console.log('Login attempt:', username.value, password.value)
+        try {
+			let res = await window.client.loginWithUsernameAndPassword({
+				"username": username.value,
+				"password": password.value
+			})
 
-		let res = await window.client.loginWithUsernameAndPassword({
-			"username": username.value,
-			"password": password.value
-		})
-
-		if (res.standardResponse.success) {
-			console.log('Login successful:', res)
-			emit('login-success', res)
-		} else {
-			console.error('Login failed:', res)
+			if (res.standardResponse.success) {
+				console.log('Login successful:', res)
+				emit('login-success', res)
+			} else {
+				alert(t('section.login.error') + ': ' + res.standardResponse.errorMessage)
+			}
+		} catch (error) {
 			alert(t('section.login.error'))
 		}
 	}

@@ -291,6 +291,18 @@ func (db *DB) SelectCvars() ([]*Cvar, error) {
 	return ret, nil
 }
 
+func (db *DB) GetCvar(key string) (*Cvar) {
+	var cvar *Cvar
+
+	result := db.conn.Where("key_name = ?", key).Limit(1).Find(&cvar)
+
+	if result.RowsAffected == 0 {
+		return nil
+	}
+
+	return cvar
+}
+
 func (db *DB) GetCvarString(key string) (string) {
 	var cvar Cvar
 
@@ -335,12 +347,7 @@ func (db *DB) GetCvarInt(key string) (int32) {
 }
 
 func (db *DB) SetCvarString(key, value string) error {
-	cvar := &Cvar{
-		KeyName: key,
-		ValueString: value,
-	}
-
-	result := db.conn.Where("key_name = ?", key).Assign(cvar).FirstOrCreate(cvar)
+	result := db.conn.Where("key_name = ?", key).Table("cvars").Update("value_string", value);
 
 	if result.Error != nil {
 		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
@@ -351,32 +358,19 @@ func (db *DB) SetCvarString(key, value string) error {
 }
 
 func (db *DB) SetCvarBool(key string, value bool) error {
-	cvar := &Cvar{
-		KeyName: key,
-		ValueInt: 0,
-	}
+	var intValue int32
 
 	if value {
-		cvar.ValueInt = 1
+		intValue = 1
+	} else {
+		intValue = 0
 	}
 
-	result := db.conn.Where("key_name = ?", key).Assign(cvar).FirstOrCreate(cvar)
-
-	if result.Error != nil {
-		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
-		return result.Error
-	}
-
-	return nil
+	return db.SetCvarInt(key, intValue)
 }
 
 func (db *DB) SetCvarInt(key string, value int32) error {
-	cvar := &Cvar{
-		KeyName: key,
-		ValueInt: value,
-	}
-
-	result := db.conn.Where("key_name = ?", key).Assign(cvar).FirstOrCreate(cvar)
+	result := db.conn.Where("key_name = ?", key).Table("cvars").Update("value_int", value)
 
 	if result.Error != nil {
 		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
