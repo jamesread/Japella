@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file japella/controlapi/v1/control.proto.
  */
 export const file_japella_controlapi_v1_control: GenFile = /*@__PURE__*/
-  fileDesc("CiNqYXBlbGxhL2NvbnRyb2xhcGkvdjEvY29udHJvbC5wcm90bxIVamFwZWxsYS5jb250cm9sYXBpLnYxIj0KEVN1Ym1pdFBvc3RSZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkSFwoPc29jaWFsX2FjY291bnRzGAIgAygNIkYKElN1Ym1pdFBvc3RSZXNwb25zZRIwCgVwb3N0cxgBIAMoCzIhLmphcGVsbGEuY29udHJvbGFwaS52MS5Qb3N0U3RhdHVzIrYBCgpQb3N0U3RhdHVzEgoKAmlkGAEgASgNEhkKEXNvY2lhbF9hY2NvdW50X2lkGAIgASgNEhAKCHBvc3RfdXJsGAMgASgJEg8KB3N1Y2Nlc3MYBCABKAgSDwoHY3JlYXRlZBgFIAEoCRIbChNzb2NpYWxfYWNjb3VudF9pY29uGAYgASgJEh8KF3NvY2lhbF9hY2NvdW50X2lkZW50aXR5GAcgASgJEg8KB2NvbnRlbnQYCCABKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCJyChFHZXRTdGF0dXNSZXNwb25zZRIOCgZzdGF0dXMYASABKAkSFAoMbmFub3NlcnZpY2VzGAIgAygJEg8KB3ZlcnNpb24YAyABKAkSEAoIdXNlcm5hbWUYBSABKAkSFAoMaXNfbG9nZ2VkX2luGAYgASgIIhcKFUdldENhbm5lZFBvc3RzUmVxdWVzdCJKChZHZXRDYW5uZWRQb3N0c1Jlc3BvbnNlEjAKBXBvc3RzGAEgAygLMiEuamFwZWxsYS5jb250cm9sYXBpLnYxLkNhbm5lZFBvc3QiPQoKQ2FubmVkUG9zdBIKCgJpZBgBIAEoDRIPCgdjb250ZW50GAIgASgJEhIKCmNyZWF0ZWRfYXQYAyABKAkiKgoXQ3JlYXRlQ2FubmVkUG9zdFJlcXVlc3QSDwoHY29udGVudBgBIAEoCSIrChhDcmVhdGVDYW5uZWRQb3N0UmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSIlChdEZWxldGVDYW5uZWRQb3N0UmVxdWVzdBIKCgJpZBgBIAEoDSIrChhEZWxldGVDYW5uZWRQb3N0UmVzcG9uc2USDwoHbWVzc2FnZRgBIAEoCSIvChhHZXRTb2NpYWxBY2NvdW50c1JlcXVlc3QSEwoLb25seV9hY3RpdmUYASABKAgiUwoZR2V0U29jaWFsQWNjb3VudHNSZXNwb25zZRI2CghhY2NvdW50cxgBIAMoCzIkLmphcGVsbGEuY29udHJvbGFwaS52MS5Tb2NpYWxBY2NvdW50IoYBCg1Tb2NpYWxBY2NvdW50EgoKAmlkGAEgASgNEhAKCGlkZW50aXR5GAIgASgJEhAKCGhhc193YWxsGAMgASgIEhQKDGhhc19jaGFubmVscxgEIAEoCBIRCgljb25uZWN0b3IYBSABKAkSDAoEaWNvbhgGIAEoCRIOCgZhY3RpdmUYByABKAgiLwoUR2V0Q29ubmVjdG9yc1JlcXVlc3QSFwoPb25seV93YW50X29hdXRoGAEgASgIIk0KFUdldENvbm5lY3RvcnNSZXNwb25zZRI0Cgpjb25uZWN0b3JzGAEgAygLMiAuamFwZWxsYS5jb250cm9sYXBpLnYxLkNvbm5lY3RvciI6CglDb25uZWN0b3ISDAoEbmFtZRgCIAEoCRIMCgRpY29uGAMgASgJEhEKCWhhc19vYXV0aBgEIAEoCCIpChFTdGFydE9BdXRoUmVxdWVzdBIUCgxjb25uZWN0b3JfaWQYASABKAkiIQoSU3RhcnRPQXV0aFJlc3BvbnNlEgsKA3VybBgBIAEoCSIoChpEZWxldGVTb2NpYWxBY2NvdW50UmVxdWVzdBIKCgJpZBgBIAEoDSJhChtEZWxldGVTb2NpYWxBY2NvdW50UmVzcG9uc2USQgoRc3RhbmRhcmRfcmVzcG9uc2UYASABKAsyJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhbmRhcmRSZXNwb25zZSIpChtSZWZyZXNoU29jaWFsQWNjb3VudFJlcXVlc3QSCgoCaWQYASABKA0iYgocUmVmcmVzaFNvY2lhbEFjY291bnRSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlIkoKEFN0YW5kYXJkUmVzcG9uc2USDwoHc3VjY2VzcxgBIAEoCBIPCgdtZXNzYWdlGAIgASgJEhQKDHJlZGlyZWN0X3VybBgDIAEoCSIUChJHZXRUaW1lbGluZVJlcXVlc3QiRwoTR2V0VGltZWxpbmVSZXNwb25zZRIwCgVwb3N0cxgBIAMoCzIhLmphcGVsbGEuY29udHJvbGFwaS52MS5Qb3N0U3RhdHVzIjsKHVNldFNvY2lhbEFjY291bnRBY3RpdmVSZXF1ZXN0EgoKAmlkGAEgASgNEg4KBmFjdGl2ZRgCIAEoCCJkCh5TZXRTb2NpYWxBY2NvdW50QWN0aXZlUmVzcG9uc2USQgoRc3RhbmRhcmRfcmVzcG9uc2UYASABKAsyJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhbmRhcmRSZXNwb25zZSJJCiNMb2dpbldpdGhVc2VybmFtZUFuZFBhc3N3b3JkUmVxdWVzdBIQCgh1c2VybmFtZRgBIAEoCRIQCghwYXNzd29yZBgCIAEoCSKLAQokTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2USEAoIdXNlcm5hbWUYAiABKAkSDQoFdG9rZW4YAyABKAkiEQoPR2V0VXNlcnNSZXF1ZXN0IkUKEEdldFVzZXJzUmVzcG9uc2USMQoFdXNlcnMYASADKAsyIi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuVXNlckFjY291bnQiPwoLVXNlckFjY291bnQSCgoCaWQYASABKA0SEAoIdXNlcm5hbWUYAiABKAkSEgoKY3JlYXRlZF9hdBgDIAEoCSITChFHZXRBcGlLZXlzUmVxdWVzdCJBChJHZXRBcGlLZXlzUmVzcG9uc2USKwoEa2V5cxgBIAMoCzIdLmphcGVsbGEuY29udHJvbGFwaS52MS5BcGlLZXkiXgoGQXBpS2V5EgoKAmlkGAEgASgNEhEKCWtleV92YWx1ZRgCIAEoCRISCgpjcmVhdGVkX2F0GAMgASgJEg8KB3VzZXJfaWQYBCABKA0SEAoIdXNlcm5hbWUYBSABKAkiEQoPR2V0Q3ZhcnNSZXF1ZXN0IsQBChBHZXRDdmFyc1Jlc3BvbnNlElQKD2N2YXJfY2F0ZWdvcmllcxgBIAMoCzI7LmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDdmFyc1Jlc3BvbnNlLkN2YXJDYXRlZ29yaWVzRW50cnkaWgoTQ3ZhckNhdGVnb3JpZXNFbnRyeRILCgNrZXkYASABKAkSMgoFdmFsdWUYAiABKAsyIy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3ZhckNhdGVnb3J5OgI4ASJICgxDdmFyQ2F0ZWdvcnkSKgoFY3ZhcnMYASADKAsyGy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3ZhchIMCgRuYW1lGAIgASgJIp0BCgRDdmFyEhAKCGtleV9uYW1lGAEgASgJEhQKDHZhbHVlX3N0cmluZxgCIAEoCRIRCgl2YWx1ZV9pbnQYAyABKAUSEwoLZGVzY3JpcHRpb24YBCABKAkSFAoMaXNfcmVhZF9vbmx5GAUgASgIEhIKCm1heF9sZW5ndGgYBiABKA0SDAoEdHlwZRgHIAEoCRINCgV0aXRsZRgIIAEoCSIuChpTYXZlVXNlclByZWZlcmVuY2VzUmVxdWVzdBIQCghsYW5ndWFnZRgBIAEoCSJzChtTYXZlVXNlclByZWZlcmVuY2VzUmVzcG9uc2USQgoRc3RhbmRhcmRfcmVzcG9uc2UYASABKAsyJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhbmRhcmRSZXNwb25zZRIQCgh1c2VybmFtZRgCIAEoCSIVChNDcmVhdGVBcGlLZXlSZXF1ZXN0InEKFENyZWF0ZUFwaUtleVJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2USFQoNbmV3X2tleV92YWx1ZRgCIAEoCSIhChNSZXZva2VBcGlLZXlSZXF1ZXN0EgoKAmlkGAEgASgNIloKFFJldm9rZUFwaUtleVJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2UiSwoOU2V0Q3ZhclJlcXVlc3QSEAoIa2V5X25hbWUYASABKAkSFAoMdmFsdWVfc3RyaW5nGAIgASgJEhEKCXZhbHVlX2ludBgDIAEoBSKQAQoPU2V0Q3ZhclJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2USEAoIa2V5X25hbWUYAiABKAkSFAoMdmFsdWVfc3RyaW5nGAMgASgJEhEKCXZhbHVlX2ludBgEIAEoBTL0EQoYSmFwZWxsYUNvbnRyb2xBcGlTZXJ2aWNlEmAKCUdldFN0YXR1cxInLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTdGF0dXNSZXF1ZXN0GiguamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFN0YXR1c1Jlc3BvbnNlIgASYwoKU3VibWl0UG9zdBIoLmphcGVsbGEuY29udHJvbGFwaS52MS5TdWJtaXRQb3N0UmVxdWVzdBopLmphcGVsbGEuY29udHJvbGFwaS52MS5TdWJtaXRQb3N0UmVzcG9uc2UiABJvCg5HZXRDYW5uZWRQb3N0cxIsLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDYW5uZWRQb3N0c1JlcXVlc3QaLS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q2FubmVkUG9zdHNSZXNwb25zZSIAEnUKEENyZWF0ZUNhbm5lZFBvc3QSLi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3JlYXRlQ2FubmVkUG9zdFJlcXVlc3QaLy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3JlYXRlQ2FubmVkUG9zdFJlc3BvbnNlIgASdQoQRGVsZXRlQ2FubmVkUG9zdBIuLmphcGVsbGEuY29udHJvbGFwaS52MS5EZWxldGVDYW5uZWRQb3N0UmVxdWVzdBovLmphcGVsbGEuY29udHJvbGFwaS52MS5EZWxldGVDYW5uZWRQb3N0UmVzcG9uc2UiABJ4ChFHZXRTb2NpYWxBY2NvdW50cxIvLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTb2NpYWxBY2NvdW50c1JlcXVlc3QaMC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0U29jaWFsQWNjb3VudHNSZXNwb25zZSIAEn4KE0RlbGV0ZVNvY2lhbEFjY291bnQSMS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlU29jaWFsQWNjb3VudFJlcXVlc3QaMi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlU29jaWFsQWNjb3VudFJlc3BvbnNlIgASgQEKFFJlZnJlc2hTb2NpYWxBY2NvdW50EjIuamFwZWxsYS5jb250cm9sYXBpLnYxLlJlZnJlc2hTb2NpYWxBY2NvdW50UmVxdWVzdBozLmphcGVsbGEuY29udHJvbGFwaS52MS5SZWZyZXNoU29jaWFsQWNjb3VudFJlc3BvbnNlIgASbAoNR2V0Q29ubmVjdG9ycxIrLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDb25uZWN0b3JzUmVxdWVzdBosLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDb25uZWN0b3JzUmVzcG9uc2UiABJjCgpTdGFydE9BdXRoEiguamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YXJ0T0F1dGhSZXF1ZXN0GikuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YXJ0T0F1dGhSZXNwb25zZSIAEmYKC0dldFRpbWVsaW5lEikuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFRpbWVsaW5lUmVxdWVzdBoqLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRUaW1lbGluZVJlc3BvbnNlIgAShwEKFlNldFNvY2lhbEFjY291bnRBY3RpdmUSNC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlcXVlc3QaNS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlc3BvbnNlIgASmQEKHExvZ2luV2l0aFVzZXJuYW1lQW5kUGFzc3dvcmQSOi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlcXVlc3QaOy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlc3BvbnNlIgASXQoIR2V0VXNlcnMSJi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0VXNlcnNSZXF1ZXN0GicuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFVzZXJzUmVzcG9uc2UiABJjCgpHZXRBcGlLZXlzEiguamFwZWxsYS5jb250cm9sYXBpLnYxLkdldEFwaUtleXNSZXF1ZXN0GikuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldEFwaUtleXNSZXNwb25zZSIAEl0KCEdldEN2YXJzEiYuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldEN2YXJzUmVxdWVzdBonLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDdmFyc1Jlc3BvbnNlIgASfgoTU2F2ZVVzZXJQcmVmZXJlbmNlcxIxLmphcGVsbGEuY29udHJvbGFwaS52MS5TYXZlVXNlclByZWZlcmVuY2VzUmVxdWVzdBoyLmphcGVsbGEuY29udHJvbGFwaS52MS5TYXZlVXNlclByZWZlcmVuY2VzUmVzcG9uc2UiABJpCgxDcmVhdGVBcGlLZXkSKi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3JlYXRlQXBpS2V5UmVxdWVzdBorLmphcGVsbGEuY29udHJvbGFwaS52MS5DcmVhdGVBcGlLZXlSZXNwb25zZSIAEmkKDFJldm9rZUFwaUtleRIqLmphcGVsbGEuY29udHJvbGFwaS52MS5SZXZva2VBcGlLZXlSZXF1ZXN0GisuamFwZWxsYS5jb250cm9sYXBpLnYxLlJldm9rZUFwaUtleVJlc3BvbnNlIgASWgoHU2V0Q3ZhchIlLmphcGVsbGEuY29udHJvbGFwaS52MS5TZXRDdmFyUmVxdWVzdBomLmphcGVsbGEuY29udHJvbGFwaS52MS5TZXRDdmFyUmVzcG9uc2UiAEJCWkBnaXRodWIuY29tL2phbWVzcmVhZC9qYXBlbGxhL2dlbi9qYXBlbGxhL2NvbnRyb2xhcGkvdjE7Y29udHJvbHYxYgZwcm90bzM");
+  fileDesc("CiNqYXBlbGxhL2NvbnRyb2xhcGkvdjEvY29udHJvbC5wcm90bxIVamFwZWxsYS5jb250cm9sYXBpLnYxIj0KEVN1Ym1pdFBvc3RSZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkSFwoPc29jaWFsX2FjY291bnRzGAIgAygNIkYKElN1Ym1pdFBvc3RSZXNwb25zZRIwCgVwb3N0cxgBIAMoCzIhLmphcGVsbGEuY29udHJvbGFwaS52MS5Qb3N0U3RhdHVzIrYBCgpQb3N0U3RhdHVzEgoKAmlkGAEgASgNEhkKEXNvY2lhbF9hY2NvdW50X2lkGAIgASgNEhAKCHBvc3RfdXJsGAMgASgJEg8KB3N1Y2Nlc3MYBCABKAgSDwoHY3JlYXRlZBgFIAEoCRIbChNzb2NpYWxfYWNjb3VudF9pY29uGAYgASgJEh8KF3NvY2lhbF9hY2NvdW50X2lkZW50aXR5GAcgASgJEg8KB2NvbnRlbnQYCCABKAkiEgoQR2V0U3RhdHVzUmVxdWVzdCKxAQoRR2V0U3RhdHVzUmVzcG9uc2USDgoGc3RhdHVzGAEgASgJEhQKDG5hbm9zZXJ2aWNlcxgCIAMoCRIPCgd2ZXJzaW9uGAMgASgJEhAKCHVzZXJuYW1lGAUgASgJEhQKDGlzX2xvZ2dlZF9pbhgGIAEoCBI9Cg9zdGF0dXNfbWVzc2FnZXMYByADKAsyJC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhdHVzTWVzc2FnZSIuCg1TdGF0dXNNZXNzYWdlEg8KB21lc3NhZ2UYASABKAkSDAoEdHlwZRgCIAEoCSIXChVHZXRDYW5uZWRQb3N0c1JlcXVlc3QiSgoWR2V0Q2FubmVkUG9zdHNSZXNwb25zZRIwCgVwb3N0cxgBIAMoCzIhLmphcGVsbGEuY29udHJvbGFwaS52MS5DYW5uZWRQb3N0Ij0KCkNhbm5lZFBvc3QSCgoCaWQYASABKA0SDwoHY29udGVudBgCIAEoCRISCgpjcmVhdGVkX2F0GAMgASgJIioKF0NyZWF0ZUNhbm5lZFBvc3RSZXF1ZXN0Eg8KB2NvbnRlbnQYASABKAkiKwoYQ3JlYXRlQ2FubmVkUG9zdFJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiJQoXRGVsZXRlQ2FubmVkUG9zdFJlcXVlc3QSCgoCaWQYASABKA0iKwoYRGVsZXRlQ2FubmVkUG9zdFJlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkiLwoYR2V0U29jaWFsQWNjb3VudHNSZXF1ZXN0EhMKC29ubHlfYWN0aXZlGAEgASgIIlMKGUdldFNvY2lhbEFjY291bnRzUmVzcG9uc2USNgoIYWNjb3VudHMYASADKAsyJC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU29jaWFsQWNjb3VudCKGAQoNU29jaWFsQWNjb3VudBIKCgJpZBgBIAEoDRIQCghpZGVudGl0eRgCIAEoCRIQCghoYXNfd2FsbBgDIAEoCBIUCgxoYXNfY2hhbm5lbHMYBCABKAgSEQoJY29ubmVjdG9yGAUgASgJEgwKBGljb24YBiABKAkSDgoGYWN0aXZlGAcgASgIIi8KFEdldENvbm5lY3RvcnNSZXF1ZXN0EhcKD29ubHlfd2FudF9vYXV0aBgBIAEoCCJNChVHZXRDb25uZWN0b3JzUmVzcG9uc2USNAoKY29ubmVjdG9ycxgBIAMoCzIgLmphcGVsbGEuY29udHJvbGFwaS52MS5Db25uZWN0b3IiOgoJQ29ubmVjdG9yEgwKBG5hbWUYAiABKAkSDAoEaWNvbhgDIAEoCRIRCgloYXNfb2F1dGgYBCABKAgiKQoRU3RhcnRPQXV0aFJlcXVlc3QSFAoMY29ubmVjdG9yX2lkGAEgASgJIiEKElN0YXJ0T0F1dGhSZXNwb25zZRILCgN1cmwYASABKAkiKAoaRGVsZXRlU29jaWFsQWNjb3VudFJlcXVlc3QSCgoCaWQYASABKA0iYQobRGVsZXRlU29jaWFsQWNjb3VudFJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2UiKQobUmVmcmVzaFNvY2lhbEFjY291bnRSZXF1ZXN0EgoKAmlkGAEgASgNImIKHFJlZnJlc2hTb2NpYWxBY2NvdW50UmVzcG9uc2USQgoRc3RhbmRhcmRfcmVzcG9uc2UYASABKAsyJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3RhbmRhcmRSZXNwb25zZSJKChBTdGFuZGFyZFJlc3BvbnNlEg8KB3N1Y2Nlc3MYASABKAgSDwoHbWVzc2FnZRgCIAEoCRIUCgxyZWRpcmVjdF91cmwYAyABKAkiFAoSR2V0VGltZWxpbmVSZXF1ZXN0IkcKE0dldFRpbWVsaW5lUmVzcG9uc2USMAoFcG9zdHMYASADKAsyIS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuUG9zdFN0YXR1cyI7Ch1TZXRTb2NpYWxBY2NvdW50QWN0aXZlUmVxdWVzdBIKCgJpZBgBIAEoDRIOCgZhY3RpdmUYAiABKAgiZAoeU2V0U29jaWFsQWNjb3VudEFjdGl2ZVJlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2UiSQojTG9naW5XaXRoVXNlcm5hbWVBbmRQYXNzd29yZFJlcXVlc3QSEAoIdXNlcm5hbWUYASABKAkSEAoIcGFzc3dvcmQYAiABKAkiiwEKJExvZ2luV2l0aFVzZXJuYW1lQW5kUGFzc3dvcmRSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlEhAKCHVzZXJuYW1lGAIgASgJEg0KBXRva2VuGAMgASgJIhEKD0dldFVzZXJzUmVxdWVzdCJFChBHZXRVc2Vyc1Jlc3BvbnNlEjEKBXVzZXJzGAEgAygLMiIuamFwZWxsYS5jb250cm9sYXBpLnYxLlVzZXJBY2NvdW50Ij8KC1VzZXJBY2NvdW50EgoKAmlkGAEgASgNEhAKCHVzZXJuYW1lGAIgASgJEhIKCmNyZWF0ZWRfYXQYAyABKAkiEwoRR2V0QXBpS2V5c1JlcXVlc3QiQQoSR2V0QXBpS2V5c1Jlc3BvbnNlEisKBGtleXMYASADKAsyHS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQXBpS2V5Il4KBkFwaUtleRIKCgJpZBgBIAEoDRIRCglrZXlfdmFsdWUYAiABKAkSEgoKY3JlYXRlZF9hdBgDIAEoCRIPCgd1c2VyX2lkGAQgASgNEhAKCHVzZXJuYW1lGAUgASgJIhEKD0dldEN2YXJzUmVxdWVzdCLEAQoQR2V0Q3ZhcnNSZXNwb25zZRJUCg9jdmFyX2NhdGVnb3JpZXMYASADKAsyOy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q3ZhcnNSZXNwb25zZS5DdmFyQ2F0ZWdvcmllc0VudHJ5GloKE0N2YXJDYXRlZ29yaWVzRW50cnkSCwoDa2V5GAEgASgJEjIKBXZhbHVlGAIgASgLMiMuamFwZWxsYS5jb250cm9sYXBpLnYxLkN2YXJDYXRlZ29yeToCOAEiSAoMQ3ZhckNhdGVnb3J5EioKBWN2YXJzGAEgAygLMhsuamFwZWxsYS5jb250cm9sYXBpLnYxLkN2YXISDAoEbmFtZRgCIAEoCSKdAQoEQ3ZhchIQCghrZXlfbmFtZRgBIAEoCRIUCgx2YWx1ZV9zdHJpbmcYAiABKAkSEQoJdmFsdWVfaW50GAMgASgFEhMKC2Rlc2NyaXB0aW9uGAQgASgJEhQKDGlzX3JlYWRfb25seRgFIAEoCBISCgptYXhfbGVuZ3RoGAYgASgNEgwKBHR5cGUYByABKAkSDQoFdGl0bGUYCCABKAkiLgoaU2F2ZVVzZXJQcmVmZXJlbmNlc1JlcXVlc3QSEAoIbGFuZ3VhZ2UYASABKAkicwobU2F2ZVVzZXJQcmVmZXJlbmNlc1Jlc3BvbnNlEkIKEXN0YW5kYXJkX3Jlc3BvbnNlGAEgASgLMicuamFwZWxsYS5jb250cm9sYXBpLnYxLlN0YW5kYXJkUmVzcG9uc2USEAoIdXNlcm5hbWUYAiABKAkiFQoTQ3JlYXRlQXBpS2V5UmVxdWVzdCJxChRDcmVhdGVBcGlLZXlSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlEhUKDW5ld19rZXlfdmFsdWUYAiABKAkiIQoTUmV2b2tlQXBpS2V5UmVxdWVzdBIKCgJpZBgBIAEoDSJaChRSZXZva2VBcGlLZXlSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlIksKDlNldEN2YXJSZXF1ZXN0EhAKCGtleV9uYW1lGAEgASgJEhQKDHZhbHVlX3N0cmluZxgCIAEoCRIRCgl2YWx1ZV9pbnQYAyABKAUikAEKD1NldEN2YXJSZXNwb25zZRJCChFzdGFuZGFyZF9yZXNwb25zZRgBIAEoCzInLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFuZGFyZFJlc3BvbnNlEhAKCGtleV9uYW1lGAIgASgJEhQKDHZhbHVlX3N0cmluZxgDIAEoCRIRCgl2YWx1ZV9pbnQYBCABKAUy9BEKGEphcGVsbGFDb250cm9sQXBpU2VydmljZRJgCglHZXRTdGF0dXMSJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0U3RhdHVzUmVxdWVzdBooLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRTdGF0dXNSZXNwb25zZSIAEmMKClN1Ym1pdFBvc3QSKC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3VibWl0UG9zdFJlcXVlc3QaKS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU3VibWl0UG9zdFJlc3BvbnNlIgASbwoOR2V0Q2FubmVkUG9zdHMSLC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q2FubmVkUG9zdHNSZXF1ZXN0Gi0uamFwZWxsYS5jb250cm9sYXBpLnYxLkdldENhbm5lZFBvc3RzUmVzcG9uc2UiABJ1ChBDcmVhdGVDYW5uZWRQb3N0Ei4uamFwZWxsYS5jb250cm9sYXBpLnYxLkNyZWF0ZUNhbm5lZFBvc3RSZXF1ZXN0Gi8uamFwZWxsYS5jb250cm9sYXBpLnYxLkNyZWF0ZUNhbm5lZFBvc3RSZXNwb25zZSIAEnUKEERlbGV0ZUNhbm5lZFBvc3QSLi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlQ2FubmVkUG9zdFJlcXVlc3QaLy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuRGVsZXRlQ2FubmVkUG9zdFJlc3BvbnNlIgASeAoRR2V0U29jaWFsQWNjb3VudHMSLy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0U29jaWFsQWNjb3VudHNSZXF1ZXN0GjAuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFNvY2lhbEFjY291bnRzUmVzcG9uc2UiABJ+ChNEZWxldGVTb2NpYWxBY2NvdW50EjEuamFwZWxsYS5jb250cm9sYXBpLnYxLkRlbGV0ZVNvY2lhbEFjY291bnRSZXF1ZXN0GjIuamFwZWxsYS5jb250cm9sYXBpLnYxLkRlbGV0ZVNvY2lhbEFjY291bnRSZXNwb25zZSIAEoEBChRSZWZyZXNoU29jaWFsQWNjb3VudBIyLmphcGVsbGEuY29udHJvbGFwaS52MS5SZWZyZXNoU29jaWFsQWNjb3VudFJlcXVlc3QaMy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuUmVmcmVzaFNvY2lhbEFjY291bnRSZXNwb25zZSIAEmwKDUdldENvbm5lY3RvcnMSKy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q29ubmVjdG9yc1JlcXVlc3QaLC5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q29ubmVjdG9yc1Jlc3BvbnNlIgASYwoKU3RhcnRPQXV0aBIoLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFydE9BdXRoUmVxdWVzdBopLmphcGVsbGEuY29udHJvbGFwaS52MS5TdGFydE9BdXRoUmVzcG9uc2UiABJmCgtHZXRUaW1lbGluZRIpLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRUaW1lbGluZVJlcXVlc3QaKi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0VGltZWxpbmVSZXNwb25zZSIAEocBChZTZXRTb2NpYWxBY2NvdW50QWN0aXZlEjQuamFwZWxsYS5jb250cm9sYXBpLnYxLlNldFNvY2lhbEFjY291bnRBY3RpdmVSZXF1ZXN0GjUuamFwZWxsYS5jb250cm9sYXBpLnYxLlNldFNvY2lhbEFjY291bnRBY3RpdmVSZXNwb25zZSIAEpkBChxMb2dpbldpdGhVc2VybmFtZUFuZFBhc3N3b3JkEjouamFwZWxsYS5jb250cm9sYXBpLnYxLkxvZ2luV2l0aFVzZXJuYW1lQW5kUGFzc3dvcmRSZXF1ZXN0GjsuamFwZWxsYS5jb250cm9sYXBpLnYxLkxvZ2luV2l0aFVzZXJuYW1lQW5kUGFzc3dvcmRSZXNwb25zZSIAEl0KCEdldFVzZXJzEiYuamFwZWxsYS5jb250cm9sYXBpLnYxLkdldFVzZXJzUmVxdWVzdBonLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRVc2Vyc1Jlc3BvbnNlIgASYwoKR2V0QXBpS2V5cxIoLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRBcGlLZXlzUmVxdWVzdBopLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRBcGlLZXlzUmVzcG9uc2UiABJdCghHZXRDdmFycxImLmphcGVsbGEuY29udHJvbGFwaS52MS5HZXRDdmFyc1JlcXVlc3QaJy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuR2V0Q3ZhcnNSZXNwb25zZSIAEn4KE1NhdmVVc2VyUHJlZmVyZW5jZXMSMS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2F2ZVVzZXJQcmVmZXJlbmNlc1JlcXVlc3QaMi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2F2ZVVzZXJQcmVmZXJlbmNlc1Jlc3BvbnNlIgASaQoMQ3JlYXRlQXBpS2V5EiouamFwZWxsYS5jb250cm9sYXBpLnYxLkNyZWF0ZUFwaUtleVJlcXVlc3QaKy5qYXBlbGxhLmNvbnRyb2xhcGkudjEuQ3JlYXRlQXBpS2V5UmVzcG9uc2UiABJpCgxSZXZva2VBcGlLZXkSKi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuUmV2b2tlQXBpS2V5UmVxdWVzdBorLmphcGVsbGEuY29udHJvbGFwaS52MS5SZXZva2VBcGlLZXlSZXNwb25zZSIAEloKB1NldEN2YXISJS5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2V0Q3ZhclJlcXVlc3QaJi5qYXBlbGxhLmNvbnRyb2xhcGkudjEuU2V0Q3ZhclJlc3BvbnNlIgBCQlpAZ2l0aHViLmNvbS9qYW1lc3JlYWQvamFwZWxsYS9nZW4vamFwZWxsYS9jb250cm9sYXBpL3YxO2NvbnRyb2x2MWIGcHJvdG8z");
 
 /**
  * @generated from message japella.controlapi.v1.SubmitPostRequest
@@ -144,6 +144,11 @@ export type GetStatusResponse = Message<"japella.controlapi.v1.GetStatusResponse
    * @generated from field: bool is_logged_in = 6;
    */
   isLoggedIn: boolean;
+
+  /**
+   * @generated from field: repeated japella.controlapi.v1.StatusMessage status_messages = 7;
+   */
+  statusMessages: StatusMessage[];
 };
 
 /**
@@ -152,6 +157,28 @@ export type GetStatusResponse = Message<"japella.controlapi.v1.GetStatusResponse
  */
 export const GetStatusResponseSchema: GenMessage<GetStatusResponse> = /*@__PURE__*/
   messageDesc(file_japella_controlapi_v1_control, 4);
+
+/**
+ * @generated from message japella.controlapi.v1.StatusMessage
+ */
+export type StatusMessage = Message<"japella.controlapi.v1.StatusMessage"> & {
+  /**
+   * @generated from field: string message = 1;
+   */
+  message: string;
+
+  /**
+   * @generated from field: string type = 2;
+   */
+  type: string;
+};
+
+/**
+ * Describes the message japella.controlapi.v1.StatusMessage.
+ * Use `create(StatusMessageSchema)` to create a new message.
+ */
+export const StatusMessageSchema: GenMessage<StatusMessage> = /*@__PURE__*/
+  messageDesc(file_japella_controlapi_v1_control, 5);
 
 /**
  * @generated from message japella.controlapi.v1.GetCannedPostsRequest
@@ -164,7 +191,7 @@ export type GetCannedPostsRequest = Message<"japella.controlapi.v1.GetCannedPost
  * Use `create(GetCannedPostsRequestSchema)` to create a new message.
  */
 export const GetCannedPostsRequestSchema: GenMessage<GetCannedPostsRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 5);
+  messageDesc(file_japella_controlapi_v1_control, 6);
 
 /**
  * @generated from message japella.controlapi.v1.GetCannedPostsResponse
@@ -181,7 +208,7 @@ export type GetCannedPostsResponse = Message<"japella.controlapi.v1.GetCannedPos
  * Use `create(GetCannedPostsResponseSchema)` to create a new message.
  */
 export const GetCannedPostsResponseSchema: GenMessage<GetCannedPostsResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 6);
+  messageDesc(file_japella_controlapi_v1_control, 7);
 
 /**
  * @generated from message japella.controlapi.v1.CannedPost
@@ -208,7 +235,7 @@ export type CannedPost = Message<"japella.controlapi.v1.CannedPost"> & {
  * Use `create(CannedPostSchema)` to create a new message.
  */
 export const CannedPostSchema: GenMessage<CannedPost> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 7);
+  messageDesc(file_japella_controlapi_v1_control, 8);
 
 /**
  * @generated from message japella.controlapi.v1.CreateCannedPostRequest
@@ -225,7 +252,7 @@ export type CreateCannedPostRequest = Message<"japella.controlapi.v1.CreateCanne
  * Use `create(CreateCannedPostRequestSchema)` to create a new message.
  */
 export const CreateCannedPostRequestSchema: GenMessage<CreateCannedPostRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 8);
+  messageDesc(file_japella_controlapi_v1_control, 9);
 
 /**
  * @generated from message japella.controlapi.v1.CreateCannedPostResponse
@@ -242,7 +269,7 @@ export type CreateCannedPostResponse = Message<"japella.controlapi.v1.CreateCann
  * Use `create(CreateCannedPostResponseSchema)` to create a new message.
  */
 export const CreateCannedPostResponseSchema: GenMessage<CreateCannedPostResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 9);
+  messageDesc(file_japella_controlapi_v1_control, 10);
 
 /**
  * @generated from message japella.controlapi.v1.DeleteCannedPostRequest
@@ -259,7 +286,7 @@ export type DeleteCannedPostRequest = Message<"japella.controlapi.v1.DeleteCanne
  * Use `create(DeleteCannedPostRequestSchema)` to create a new message.
  */
 export const DeleteCannedPostRequestSchema: GenMessage<DeleteCannedPostRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 10);
+  messageDesc(file_japella_controlapi_v1_control, 11);
 
 /**
  * @generated from message japella.controlapi.v1.DeleteCannedPostResponse
@@ -276,7 +303,7 @@ export type DeleteCannedPostResponse = Message<"japella.controlapi.v1.DeleteCann
  * Use `create(DeleteCannedPostResponseSchema)` to create a new message.
  */
 export const DeleteCannedPostResponseSchema: GenMessage<DeleteCannedPostResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 11);
+  messageDesc(file_japella_controlapi_v1_control, 12);
 
 /**
  * @generated from message japella.controlapi.v1.GetSocialAccountsRequest
@@ -293,7 +320,7 @@ export type GetSocialAccountsRequest = Message<"japella.controlapi.v1.GetSocialA
  * Use `create(GetSocialAccountsRequestSchema)` to create a new message.
  */
 export const GetSocialAccountsRequestSchema: GenMessage<GetSocialAccountsRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 12);
+  messageDesc(file_japella_controlapi_v1_control, 13);
 
 /**
  * @generated from message japella.controlapi.v1.GetSocialAccountsResponse
@@ -310,7 +337,7 @@ export type GetSocialAccountsResponse = Message<"japella.controlapi.v1.GetSocial
  * Use `create(GetSocialAccountsResponseSchema)` to create a new message.
  */
 export const GetSocialAccountsResponseSchema: GenMessage<GetSocialAccountsResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 13);
+  messageDesc(file_japella_controlapi_v1_control, 14);
 
 /**
  * @generated from message japella.controlapi.v1.SocialAccount
@@ -357,7 +384,7 @@ export type SocialAccount = Message<"japella.controlapi.v1.SocialAccount"> & {
  * Use `create(SocialAccountSchema)` to create a new message.
  */
 export const SocialAccountSchema: GenMessage<SocialAccount> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 14);
+  messageDesc(file_japella_controlapi_v1_control, 15);
 
 /**
  * @generated from message japella.controlapi.v1.GetConnectorsRequest
@@ -374,7 +401,7 @@ export type GetConnectorsRequest = Message<"japella.controlapi.v1.GetConnectorsR
  * Use `create(GetConnectorsRequestSchema)` to create a new message.
  */
 export const GetConnectorsRequestSchema: GenMessage<GetConnectorsRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 15);
+  messageDesc(file_japella_controlapi_v1_control, 16);
 
 /**
  * @generated from message japella.controlapi.v1.GetConnectorsResponse
@@ -391,7 +418,7 @@ export type GetConnectorsResponse = Message<"japella.controlapi.v1.GetConnectors
  * Use `create(GetConnectorsResponseSchema)` to create a new message.
  */
 export const GetConnectorsResponseSchema: GenMessage<GetConnectorsResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 16);
+  messageDesc(file_japella_controlapi_v1_control, 17);
 
 /**
  * @generated from message japella.controlapi.v1.Connector
@@ -418,7 +445,7 @@ export type Connector = Message<"japella.controlapi.v1.Connector"> & {
  * Use `create(ConnectorSchema)` to create a new message.
  */
 export const ConnectorSchema: GenMessage<Connector> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 17);
+  messageDesc(file_japella_controlapi_v1_control, 18);
 
 /**
  * @generated from message japella.controlapi.v1.StartOAuthRequest
@@ -435,7 +462,7 @@ export type StartOAuthRequest = Message<"japella.controlapi.v1.StartOAuthRequest
  * Use `create(StartOAuthRequestSchema)` to create a new message.
  */
 export const StartOAuthRequestSchema: GenMessage<StartOAuthRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 18);
+  messageDesc(file_japella_controlapi_v1_control, 19);
 
 /**
  * @generated from message japella.controlapi.v1.StartOAuthResponse
@@ -452,7 +479,7 @@ export type StartOAuthResponse = Message<"japella.controlapi.v1.StartOAuthRespon
  * Use `create(StartOAuthResponseSchema)` to create a new message.
  */
 export const StartOAuthResponseSchema: GenMessage<StartOAuthResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 19);
+  messageDesc(file_japella_controlapi_v1_control, 20);
 
 /**
  * @generated from message japella.controlapi.v1.DeleteSocialAccountRequest
@@ -469,7 +496,7 @@ export type DeleteSocialAccountRequest = Message<"japella.controlapi.v1.DeleteSo
  * Use `create(DeleteSocialAccountRequestSchema)` to create a new message.
  */
 export const DeleteSocialAccountRequestSchema: GenMessage<DeleteSocialAccountRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 20);
+  messageDesc(file_japella_controlapi_v1_control, 21);
 
 /**
  * @generated from message japella.controlapi.v1.DeleteSocialAccountResponse
@@ -486,7 +513,7 @@ export type DeleteSocialAccountResponse = Message<"japella.controlapi.v1.DeleteS
  * Use `create(DeleteSocialAccountResponseSchema)` to create a new message.
  */
 export const DeleteSocialAccountResponseSchema: GenMessage<DeleteSocialAccountResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 21);
+  messageDesc(file_japella_controlapi_v1_control, 22);
 
 /**
  * @generated from message japella.controlapi.v1.RefreshSocialAccountRequest
@@ -503,7 +530,7 @@ export type RefreshSocialAccountRequest = Message<"japella.controlapi.v1.Refresh
  * Use `create(RefreshSocialAccountRequestSchema)` to create a new message.
  */
 export const RefreshSocialAccountRequestSchema: GenMessage<RefreshSocialAccountRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 22);
+  messageDesc(file_japella_controlapi_v1_control, 23);
 
 /**
  * @generated from message japella.controlapi.v1.RefreshSocialAccountResponse
@@ -520,7 +547,7 @@ export type RefreshSocialAccountResponse = Message<"japella.controlapi.v1.Refres
  * Use `create(RefreshSocialAccountResponseSchema)` to create a new message.
  */
 export const RefreshSocialAccountResponseSchema: GenMessage<RefreshSocialAccountResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 23);
+  messageDesc(file_japella_controlapi_v1_control, 24);
 
 /**
  * @generated from message japella.controlapi.v1.StandardResponse
@@ -547,7 +574,7 @@ export type StandardResponse = Message<"japella.controlapi.v1.StandardResponse">
  * Use `create(StandardResponseSchema)` to create a new message.
  */
 export const StandardResponseSchema: GenMessage<StandardResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 24);
+  messageDesc(file_japella_controlapi_v1_control, 25);
 
 /**
  * @generated from message japella.controlapi.v1.GetTimelineRequest
@@ -560,7 +587,7 @@ export type GetTimelineRequest = Message<"japella.controlapi.v1.GetTimelineReque
  * Use `create(GetTimelineRequestSchema)` to create a new message.
  */
 export const GetTimelineRequestSchema: GenMessage<GetTimelineRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 25);
+  messageDesc(file_japella_controlapi_v1_control, 26);
 
 /**
  * @generated from message japella.controlapi.v1.GetTimelineResponse
@@ -577,7 +604,7 @@ export type GetTimelineResponse = Message<"japella.controlapi.v1.GetTimelineResp
  * Use `create(GetTimelineResponseSchema)` to create a new message.
  */
 export const GetTimelineResponseSchema: GenMessage<GetTimelineResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 26);
+  messageDesc(file_japella_controlapi_v1_control, 27);
 
 /**
  * @generated from message japella.controlapi.v1.SetSocialAccountActiveRequest
@@ -599,7 +626,7 @@ export type SetSocialAccountActiveRequest = Message<"japella.controlapi.v1.SetSo
  * Use `create(SetSocialAccountActiveRequestSchema)` to create a new message.
  */
 export const SetSocialAccountActiveRequestSchema: GenMessage<SetSocialAccountActiveRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 27);
+  messageDesc(file_japella_controlapi_v1_control, 28);
 
 /**
  * @generated from message japella.controlapi.v1.SetSocialAccountActiveResponse
@@ -616,7 +643,7 @@ export type SetSocialAccountActiveResponse = Message<"japella.controlapi.v1.SetS
  * Use `create(SetSocialAccountActiveResponseSchema)` to create a new message.
  */
 export const SetSocialAccountActiveResponseSchema: GenMessage<SetSocialAccountActiveResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 28);
+  messageDesc(file_japella_controlapi_v1_control, 29);
 
 /**
  * @generated from message japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
@@ -638,7 +665,7 @@ export type LoginWithUsernameAndPasswordRequest = Message<"japella.controlapi.v1
  * Use `create(LoginWithUsernameAndPasswordRequestSchema)` to create a new message.
  */
 export const LoginWithUsernameAndPasswordRequestSchema: GenMessage<LoginWithUsernameAndPasswordRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 29);
+  messageDesc(file_japella_controlapi_v1_control, 30);
 
 /**
  * @generated from message japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
@@ -665,7 +692,7 @@ export type LoginWithUsernameAndPasswordResponse = Message<"japella.controlapi.v
  * Use `create(LoginWithUsernameAndPasswordResponseSchema)` to create a new message.
  */
 export const LoginWithUsernameAndPasswordResponseSchema: GenMessage<LoginWithUsernameAndPasswordResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 30);
+  messageDesc(file_japella_controlapi_v1_control, 31);
 
 /**
  * @generated from message japella.controlapi.v1.GetUsersRequest
@@ -678,7 +705,7 @@ export type GetUsersRequest = Message<"japella.controlapi.v1.GetUsersRequest"> &
  * Use `create(GetUsersRequestSchema)` to create a new message.
  */
 export const GetUsersRequestSchema: GenMessage<GetUsersRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 31);
+  messageDesc(file_japella_controlapi_v1_control, 32);
 
 /**
  * @generated from message japella.controlapi.v1.GetUsersResponse
@@ -695,7 +722,7 @@ export type GetUsersResponse = Message<"japella.controlapi.v1.GetUsersResponse">
  * Use `create(GetUsersResponseSchema)` to create a new message.
  */
 export const GetUsersResponseSchema: GenMessage<GetUsersResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 32);
+  messageDesc(file_japella_controlapi_v1_control, 33);
 
 /**
  * @generated from message japella.controlapi.v1.UserAccount
@@ -722,7 +749,7 @@ export type UserAccount = Message<"japella.controlapi.v1.UserAccount"> & {
  * Use `create(UserAccountSchema)` to create a new message.
  */
 export const UserAccountSchema: GenMessage<UserAccount> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 33);
+  messageDesc(file_japella_controlapi_v1_control, 34);
 
 /**
  * @generated from message japella.controlapi.v1.GetApiKeysRequest
@@ -735,7 +762,7 @@ export type GetApiKeysRequest = Message<"japella.controlapi.v1.GetApiKeysRequest
  * Use `create(GetApiKeysRequestSchema)` to create a new message.
  */
 export const GetApiKeysRequestSchema: GenMessage<GetApiKeysRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 34);
+  messageDesc(file_japella_controlapi_v1_control, 35);
 
 /**
  * @generated from message japella.controlapi.v1.GetApiKeysResponse
@@ -752,7 +779,7 @@ export type GetApiKeysResponse = Message<"japella.controlapi.v1.GetApiKeysRespon
  * Use `create(GetApiKeysResponseSchema)` to create a new message.
  */
 export const GetApiKeysResponseSchema: GenMessage<GetApiKeysResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 35);
+  messageDesc(file_japella_controlapi_v1_control, 36);
 
 /**
  * @generated from message japella.controlapi.v1.ApiKey
@@ -789,7 +816,7 @@ export type ApiKey = Message<"japella.controlapi.v1.ApiKey"> & {
  * Use `create(ApiKeySchema)` to create a new message.
  */
 export const ApiKeySchema: GenMessage<ApiKey> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 36);
+  messageDesc(file_japella_controlapi_v1_control, 37);
 
 /**
  * @generated from message japella.controlapi.v1.GetCvarsRequest
@@ -802,7 +829,7 @@ export type GetCvarsRequest = Message<"japella.controlapi.v1.GetCvarsRequest"> &
  * Use `create(GetCvarsRequestSchema)` to create a new message.
  */
 export const GetCvarsRequestSchema: GenMessage<GetCvarsRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 37);
+  messageDesc(file_japella_controlapi_v1_control, 38);
 
 /**
  * @generated from message japella.controlapi.v1.GetCvarsResponse
@@ -819,7 +846,7 @@ export type GetCvarsResponse = Message<"japella.controlapi.v1.GetCvarsResponse">
  * Use `create(GetCvarsResponseSchema)` to create a new message.
  */
 export const GetCvarsResponseSchema: GenMessage<GetCvarsResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 38);
+  messageDesc(file_japella_controlapi_v1_control, 39);
 
 /**
  * @generated from message japella.controlapi.v1.CvarCategory
@@ -841,7 +868,7 @@ export type CvarCategory = Message<"japella.controlapi.v1.CvarCategory"> & {
  * Use `create(CvarCategorySchema)` to create a new message.
  */
 export const CvarCategorySchema: GenMessage<CvarCategory> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 39);
+  messageDesc(file_japella_controlapi_v1_control, 40);
 
 /**
  * @generated from message japella.controlapi.v1.Cvar
@@ -893,7 +920,7 @@ export type Cvar = Message<"japella.controlapi.v1.Cvar"> & {
  * Use `create(CvarSchema)` to create a new message.
  */
 export const CvarSchema: GenMessage<Cvar> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 40);
+  messageDesc(file_japella_controlapi_v1_control, 41);
 
 /**
  * @generated from message japella.controlapi.v1.SaveUserPreferencesRequest
@@ -910,7 +937,7 @@ export type SaveUserPreferencesRequest = Message<"japella.controlapi.v1.SaveUser
  * Use `create(SaveUserPreferencesRequestSchema)` to create a new message.
  */
 export const SaveUserPreferencesRequestSchema: GenMessage<SaveUserPreferencesRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 41);
+  messageDesc(file_japella_controlapi_v1_control, 42);
 
 /**
  * @generated from message japella.controlapi.v1.SaveUserPreferencesResponse
@@ -932,7 +959,7 @@ export type SaveUserPreferencesResponse = Message<"japella.controlapi.v1.SaveUse
  * Use `create(SaveUserPreferencesResponseSchema)` to create a new message.
  */
 export const SaveUserPreferencesResponseSchema: GenMessage<SaveUserPreferencesResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 42);
+  messageDesc(file_japella_controlapi_v1_control, 43);
 
 /**
  * @generated from message japella.controlapi.v1.CreateApiKeyRequest
@@ -945,7 +972,7 @@ export type CreateApiKeyRequest = Message<"japella.controlapi.v1.CreateApiKeyReq
  * Use `create(CreateApiKeyRequestSchema)` to create a new message.
  */
 export const CreateApiKeyRequestSchema: GenMessage<CreateApiKeyRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 43);
+  messageDesc(file_japella_controlapi_v1_control, 44);
 
 /**
  * @generated from message japella.controlapi.v1.CreateApiKeyResponse
@@ -967,7 +994,7 @@ export type CreateApiKeyResponse = Message<"japella.controlapi.v1.CreateApiKeyRe
  * Use `create(CreateApiKeyResponseSchema)` to create a new message.
  */
 export const CreateApiKeyResponseSchema: GenMessage<CreateApiKeyResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 44);
+  messageDesc(file_japella_controlapi_v1_control, 45);
 
 /**
  * @generated from message japella.controlapi.v1.RevokeApiKeyRequest
@@ -984,7 +1011,7 @@ export type RevokeApiKeyRequest = Message<"japella.controlapi.v1.RevokeApiKeyReq
  * Use `create(RevokeApiKeyRequestSchema)` to create a new message.
  */
 export const RevokeApiKeyRequestSchema: GenMessage<RevokeApiKeyRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 45);
+  messageDesc(file_japella_controlapi_v1_control, 46);
 
 /**
  * @generated from message japella.controlapi.v1.RevokeApiKeyResponse
@@ -1001,7 +1028,7 @@ export type RevokeApiKeyResponse = Message<"japella.controlapi.v1.RevokeApiKeyRe
  * Use `create(RevokeApiKeyResponseSchema)` to create a new message.
  */
 export const RevokeApiKeyResponseSchema: GenMessage<RevokeApiKeyResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 46);
+  messageDesc(file_japella_controlapi_v1_control, 47);
 
 /**
  * @generated from message japella.controlapi.v1.SetCvarRequest
@@ -1028,7 +1055,7 @@ export type SetCvarRequest = Message<"japella.controlapi.v1.SetCvarRequest"> & {
  * Use `create(SetCvarRequestSchema)` to create a new message.
  */
 export const SetCvarRequestSchema: GenMessage<SetCvarRequest> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 47);
+  messageDesc(file_japella_controlapi_v1_control, 48);
 
 /**
  * @generated from message japella.controlapi.v1.SetCvarResponse
@@ -1060,7 +1087,7 @@ export type SetCvarResponse = Message<"japella.controlapi.v1.SetCvarResponse"> &
  * Use `create(SetCvarResponseSchema)` to create a new message.
  */
 export const SetCvarResponseSchema: GenMessage<SetCvarResponse> = /*@__PURE__*/
-  messageDesc(file_japella_controlapi_v1_control, 48);
+  messageDesc(file_japella_controlapi_v1_control, 49);
 
 /**
  * @generated from service japella.controlapi.v1.JapellaControlApiService

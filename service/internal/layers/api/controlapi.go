@@ -35,6 +35,8 @@ type ControlApi struct {
 
 	oauth2states map[string]*oauth2State
 
+	statusMessages []*controlv1.StatusMessage
+
 	cc *connectorcontroller.ConnectionController
 }
 
@@ -45,30 +47,26 @@ type oauth2State struct {
 }
 
 func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
-	s.DB = &db.DB{}
-	s.DB.ReconnectDatabase(cfg.Database)
+	s.statusMessages = make([]*controlv1.StatusMessage, 0)
 
-	s.initAdminUser()
+	s.DB = &db.DB{}
+	err := s.DB.ReconnectDatabase(cfg.Database)
+
+	if err != nil {
+		s.statusMessages = append(s.statusMessages, &controlv1.StatusMessage{
+			Message: fmt.Sprintf("Critical database error: %v", err),
+			Type:    "error",
+		})
+
+		log.Errorf("Database startup problem: %v", err)
+
+		return
+	}
 
 	s.oauth2states = make(map[string]*oauth2State)
 	s.cc = connectorcontroller.New(s.DB)
 
 	log.Infof("ControlAPI started")
-}
-
-func (s *ControlApi) initAdminUser() {
-	if !s.DB.HasAnyUsers() {
-		log.Warn("No users found in the database, creating default admin user")
-
-		passwordHash, err := utils.HashPassword("admin")
-
-		if err != nil {
-			log.Errorf("Error hashing default password: %v", err)
-			return
-		}
-
-		s.DB.CreateUserAccount("admin", passwordHash)
-	}
 }
 
 func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[controlv1.GetCannedPostsRequest]) (*connect.Response[controlv1.GetCannedPostsResponse], error) {
@@ -117,6 +115,7 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		Version:      buildinfo.Version,
 		Username:     username,
 		IsLoggedIn:   authenticatedUser != nil,
+		StatusMessages: s.statusMessages,
 	})
 
 	return res, nil

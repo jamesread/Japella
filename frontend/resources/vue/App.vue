@@ -26,13 +26,21 @@
 			</div>
 		</div>
 		<div id = "content" v-else>
-			<main v-if = "!isLoggedIn">
-				<LoginForm @login-success = "onLogin" />
-			</main>
-			<main v-else>
-				<KeepAlive>
-					<component :is = "currentSection" />
-				</KeepAlive>
+			<main>
+				<div v-if = "statusMessages.length > 0" class = "messages">
+					<div v-for = "message in statusMessages" :key = "message.id" :class = "message.type + ' notification'">
+						<strong>Server Message: </strong> {{ message.message }}
+					</div>
+				</div>
+
+				<div v-if = "!isLoggedIn">
+					<LoginForm @login-success = "onLogin" />
+				</div>
+				<div v-else>
+					<KeepAlive>
+						<component :is = "currentSection" />
+					</KeepAlive>
+				</div>
 			</main>
 			<footer>
 				<span><a href = "https://github.com/jamesread/Japella">Japella on GitHub</a></span>
@@ -59,6 +67,7 @@
 	const isLoggedIn = ref(false);
 	const currentVersion = ref('');
 	const username = ref('');
+	const statusMessages = ref([]);
 
 	import Welcome from './Welcome.vue';
 	import Timeline from './Timeline.vue';
@@ -100,6 +109,8 @@
 
 	async function getStatus() {
 		const st = await window.client.getStatus();
+
+        statusMessages.value = st.statusMessages || [];
 
 		if (st.isLoggedIn) {
 			onLogin(st)

@@ -32,6 +32,12 @@ message GetStatusResponse {
 	string version = 3;
 	string username = 5;
 	bool is_logged_in = 6;
+	repeated StatusMessage status_messages = 7;
+}
+
+message StatusMessage {
+	string message = 1;
+	string type = 2;
 }
 
 message GetCannedPostsRequest {

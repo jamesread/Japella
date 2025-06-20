@@ -16,7 +16,7 @@ type Model struct {
 	4 billion rows, but maybe JavaScript will have a better way of handling 64-bit
 	integers by then.
 	*/
-	ID        uint32 `gorm:"primarykey"`
+	ID        uint32 `gorm:"primaryKey"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

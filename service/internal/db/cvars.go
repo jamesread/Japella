@@ -1,6 +1,7 @@
 package db;
 
 import (
+	"gorm.io/gorm/clause"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -32,22 +33,15 @@ var CvarList = []Cvar{
 	{KeyName: CvarKeys.XClientSecret, Title: "X Client Secret", ValueString: "", Category: "X", Description: "Client secret for X OAuth", Type: "password"},
 }
 
-func (db *DB) InsertCvarsIfNotExists() {
+func (db *DB) InsertCvarsIfNotExists() error {
 	for _, cvar := range CvarList {
-		var existing *Cvar
+		res := db.conn.Clauses(clause.Insert{Modifier: "IGNORE"}).Create(&cvar)
 
-		result := db.conn.Where("key_name = ?", cvar.KeyName).Limit(1).Find(&existing)
-
-		if result.Error != nil {
-			log.Errorf("Error checking for existing cvar: %v", result.Error)
-			continue
-		}
-
-		if result.RowsAffected == 0 {
-			log.Infof("Inserting new cvar: %s", cvar.KeyName)
-			db.conn.Create(&cvar)
-		} else {
-			log.Infof("Cvar already exists: %s", cvar.KeyName)
+		if res.Error != nil {
+			log.Errorf("Error inserting cvar %s: %v", cvar.KeyName, res.Error)
+			return res.Error
 		}
 	}
+
+	return nil
 }

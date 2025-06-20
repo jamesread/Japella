@@ -6,6 +6,7 @@ import (
 
 	"fmt"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/jamesread/japella/internal/utils"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -14,10 +15,10 @@ type DB struct {
 	conn *gorm.DB
 }
 
-func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) {
+func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) error {
 	if db.conn != nil {
 		log.Warn("Database connection already exists, skipping reconnection")
-		return
+		return nil
 	}
 
 	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", dbconfig.User, dbconfig.Password, dbconfig.Host, dbconfig.Database)
@@ -25,20 +26,52 @@ func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) {
 	var err error
 
 	db.conn, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	db.conn = db.conn.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8 COLLATE=utf8")
+	db.conn = db.conn.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8 COLLATE=utf8_bin")
 
 	if err != nil {
 		log.Warnf("Failed to connect to database: %v", err)
-		return
+		return err
 	}
 
-	db.Migrate()
+	err = db.Migrate()
+
+	if err != nil {
+		log.Errorf("Failed to perform database migration: %v", err)
+		return err
+	}
+
+	err = db.initAdminUser()
+
+	if err != nil {
+		log.Errorf("Failed to initialize admin user: %v", err)
+		return err
+	}
+
+	return nil
 }
 
-func (db *DB) Migrate() {
+func (db *DB) initAdminUser() error {
+	if !db.HasAnyUsers() {
+		log.Warn("No users found in the database, creating default admin user")
+
+		passwordHash, err := utils.HashPassword("admin")
+
+		if err != nil {
+			log.Errorf("Error hashing default password: %v", err)
+			return err
+		}
+
+		db.CreateUserAccount("admin", passwordHash)
+	}
+
+	return nil
+}
+
+
+func (db *DB) Migrate() error {
 	if db.conn == nil {
 		log.Warn("Database connection is not established, cannot perform migration")
-		return
+		return fmt.Errorf("database connection is not established")
 	}
 
 	err := db.conn.AutoMigrate(
@@ -55,10 +88,12 @@ func (db *DB) Migrate() {
 
 	if err != nil {
 		log.Errorf("Error during database migration: %v", err)
-		return
+		return err
 	}
 
-	db.InsertCvarsIfNotExists()
+	err = db.InsertCvarsIfNotExists()
+
+	return err
 }
 
 func (db *DB) UpdateSocialAccountIdentity(id uint32, identity string) error {
@@ -348,7 +383,7 @@ func (db *DB) GetCvarInt(key string) (int32) {
 }
 
 func (db *DB) SetCvarString(key, value string) error {
-	result := db.conn.Where("key_name = ?", key).Table("cvars").Update("value_string", value);
+	result := db.conn.Model(&Cvar{}).Where("key_name = ?", key).Update("value_string", value);
 
 	if result.Error != nil {
 		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
@@ -371,7 +406,7 @@ func (db *DB) SetCvarBool(key string, value bool) error {
 }
 
 func (db *DB) SetCvarInt(key string, value int32) error {
-	result := db.conn.Where("key_name = ?", key).Table("cvars").Update("value_int", value)
+	result := db.conn.Model(&Cvar{}).Where("key_name = ?", key).Update("value_int", value)
 
 	if result.Error != nil {
 		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
