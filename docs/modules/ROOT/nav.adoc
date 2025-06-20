@@ -16,6 +16,6 @@
 ** xref:connectors/x.adoc[X]
 ** xref:connectors/mastodon.adoc[Mastodon]
 ** xref:connectors/bluesky.adoc[Bluesky]
-* xref:FAQ
-** xref:faq/postiz.doc[Postiz]
+* FAQ
+** xref:faq/postiz.adoc[Postiz]
 * xref:nanoservices/index.adoc[Nano Services]
