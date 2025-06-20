@@ -1,0 +1,45 @@
+= How does Japella compare to Postiz?
+
+== The history between Japella and Postiz
+
+link:https://postiz.com/[Postiz] describes itself as the "ultimate social media scheduling tool", and was announced on Reddit in 2024. It was, and still is a very impressive app, and it's great that it is also Open Source (AGPLv3 - same as Japella). It rightfully gained a lot of attention and praise as probably the first open source alternative to Buffer, Hootsuite, and similar services. Of the many people that noticed this project, James Read, the author of Japella, was one of them!
+
+James Read was a contributor to Postiz from approximately September 2024 until January 2025, and worked very closely with Nevo, the author of Postiz to help with some of the core infrastructure. Most of James' focus was on the docker containerization, supporting people on Discord, and helping people manage issues and pull requests. James also wrote a lot of the early documentation. Nevo wrote all the real code behind Postiz and made all the technology and architecture decisions.
+
+By comparison, Japella's repository technically existed first - but it was as an IRC bot, written back in 2011... in Java! James changed the code for his personal use only, and had code to support Telegram and Discord only.
+
+In Jan 2025, Nevo chose to adopt cryptocurrency. This is something that has helped the Postiz to continue to grow a lot, and it was done in a way that didn't technically cause any problems with the Open Source aspect of Postiz. However, James Read personally does not support cryptocurrency, and decided to leave the Postiz project on good terms with Nevo in early Jan 2025 because of this change.
+
+Nevo and James still chat from time to time, and James is still is impressed by Postiz, but he no longer wanted to be involved or use the app.
+
+== Japella vs Postiz
+
+James went back to building up Japella as he felt that there were some things that he wanted to do differently. Japella is not a fork of Postiz, and does not share any code with Postiz. Japella started being built up in March 2025 after James left Postiz, and is a completely new codebase in Go for the backend, and JavasCript+Vue for the frontend.
+
+=== Differences in project approach
+
+**Japella's difference from Postiz is simply to not involve any $ and less focus on AI.**
+
+This means that the Japella project will not engage in the cryptocurreny community, will not accept any donations (crypto or non-crypto), and the project itself will not run a SaaS service. James may choose to run a SaaS service in the future, but it will not be a premium version of the Japella project. These principles are a subset of the "No-Nonsense Open Source" principles that James Read has been including in his projects like Sicroc, OliveTin, StencilBox and others for quite a long time.
+
+The Japella project also has less of a focus on AI and at the time of writing does not any AI built-in to the tool. This is a conscious decision, as James thinks it's important the project works with AI (via an API, and MCP), but does not include AI as a core feature.
+
+To be very clear, James is not suggesting that Postiz is a bad project - and he really enjoyed working on it, but it's no longer a project that personally fits for him. Japella is a project that he is building for himself, and he hopes that others will find it useful too. James hopes that Postiz continues to grow and thrive - and choice in the Open Source community is a very good thing!
+
+|===
+| Feature | Postiz | Japella
+
+| License                                 | AGPL-3.0    | AGPL-3.0
+| Code base                               | Open Source | Open Source
+3+| **$$$**
+| Is considered free open source (FOSS)   | Yes         | Yes
+| Engages in the cryptocurrency community | Yes         | No
+| The project has a paid-for SaaS service | Yes         | No
+| The project accepts donations           | Yes         | No
+3+| **AI**
+| AI functionality used in the tool       | Yes, but optional. Part of the core value proposition | No
+| AI integration via API / MCP            | Yes         | Future
+| AI used in coding the tool              | PR review, and unknown elsewhere. | Tab completion, but not in prompt-based code generation. PR review only.
+3+| **Misc**
+| Dependencies for self-hosting           | Quite high  | Very low
+|===
