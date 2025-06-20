@@ -20,11 +20,12 @@ func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) {
 		return
 	}
 
-	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", dbconfig.User, dbconfig.Password, dbconfig.Host, dbconfig.Database)
+	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", dbconfig.User, dbconfig.Password, dbconfig.Host, dbconfig.Database)
 
 	var err error
 
 	db.conn, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	db.conn = db.conn.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8 COLLATE=utf8")
 
 	if err != nil {
 		log.Warnf("Failed to connect to database: %v", err)
