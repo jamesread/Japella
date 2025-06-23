@@ -1,7 +1,7 @@
 default: deps prod
 
 deps:
-	npm install
+	npm install --no-fund
 
 prod:
 	npx vite build --outDir ../webui/ --emptyOutDir
