@@ -154,7 +154,7 @@ func loadEnvVars(cfg *CommonConfig) {
 func loadEnvVar(variable *string, envVar string) {
 	value := os.Getenv(envVar)
 
-	if envVar != "" {
+	if value != "" {
 		log.Infof("Overriding config variable with environment variable: %s", envVar)
 		*variable = value
 	}
