@@ -2,7 +2,7 @@ build:
 	npx antora generate antora-playbook.yml
 
 deps:
-	npm ci
+	npm ci --no-fund
 
 ci: deps build
 
