@@ -11,8 +11,8 @@ LABEL org.opencontainers.image.version={{.Version}}
 
 COPY webui /usr/share/Japella/webui/
 COPY var/config-skel/ /config/
+copy var/app-skel/ /app/
 COPY japella /app/
-COPY lang/ /app/lang/
 
 RUN mkdir -p /config/exec/
 

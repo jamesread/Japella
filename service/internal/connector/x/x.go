@@ -24,10 +24,12 @@ type XConnector struct {
 	httpClient *http.Client
 }
 
-func (x *XConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
+func (x *XConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
 	x.db = startup.DB
 	x.config = startup.Config.(*runtimeconfig.XConfig)
 }
+
+func (x *XConnector) Start() {}
 
 func (x *XConnector) GetIdentity() string {
 	return "untitled-account"

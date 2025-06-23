@@ -2,7 +2,6 @@ package discord
 
 import (
 	"github.com/jamesread/japella/internal/connector"
-	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	"time"
 )
@@ -14,13 +13,15 @@ type DiscordConnector struct {
 	connector.BaseConnector
 }
 
-func (a *DiscordConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
-	config, _ := startup.Config.(*runtimeconfig.DiscordConfig)
+func (a *DiscordConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
+//	config, _ := startup.Config.(*runtimeconfig.DiscordConfig)
 
-	a.Start(config.Token)
+//	a.Start(config.Token)
 }
 
-func (a *DiscordConnector) Start(token string) {
+func (a *DiscordConnector) Start() {}
+
+func (a *DiscordConnector) StartWithToken(token string) {
 	a.SetPrefix("Discord")
 	a.Logger().Infof("Discord connector started")
 

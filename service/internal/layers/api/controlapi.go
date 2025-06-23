@@ -303,6 +303,12 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 			HasOauth: isOAuth,
 		}
 
+		cfgProvider, isConfigProvider := svc.(connector.ConfigProvider)
+
+		if isConfigProvider {
+			srv.Issues = cfgProvider.CheckConfiguration().Issues
+		}
+
 		services = append(services, srv)
 	}
 

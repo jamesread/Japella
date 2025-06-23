@@ -99,6 +99,7 @@ message Connector {
 	string name = 2;
 	string icon = 3;
 	bool has_oauth = 4;
+    repeated string issues = 5;
 }
 
 message StartOAuthRequest {

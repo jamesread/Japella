@@ -1,6 +1,6 @@
 <template>
 	<section class="timeline">
-		<div class = "flex-row">
+		<div class = "section-header">
 			<div class="fg1">
 				<h2>Timeline</h2>
 				<p>This shows the latest posts from your social accounts.</p>

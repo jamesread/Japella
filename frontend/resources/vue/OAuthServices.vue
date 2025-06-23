@@ -9,11 +9,28 @@
 		</div>
 		<div v-else>
 			<div v-for="service in services" :key="service.id">
-				<button @click="connectService(service.name)" class = "good" type = "submit">
-					<Icon :icon="service.icon" />
 
-					Login with {{ service.name }}
-				</button>
+				<h3>{{ service.name }}</h3>
+				<div v-if = "service.issues.length > 0">
+					<p class = "inline-notification error">There are issues with this service, please check the details below.</p>
+					<details>
+						<p class = "inline-notification note" v-for="issue in service.issues">
+							{{ issue }}
+						</p>
+						<summary>
+							{{ service.issues.length > 0 ? 'Open issues' : 'No issues' }}
+						</summary>
+					</details>
+
+				</div>
+				<div v-else>
+					<button @click="connectService(service.name)" :class = "service.issues.length == 0 ? 'good' : 'bad'" type = "submit">
+						<Icon :icon="service.icon" />
+
+						Login with {{ service.name }}
+					</button>
+
+				</div>
 				<br />
 				<br />
 			</div>

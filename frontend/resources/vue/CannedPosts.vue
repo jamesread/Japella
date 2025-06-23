@@ -11,7 +11,7 @@
 					<Icon icon="material-symbols:refresh" />
 				</button>
 
-				<button class = "neutral" disabled>
+				<button class = "neutral" :disabled = "!clientReady" @click = "createCannedPost">
 					<Icon icon="material-symbols:add-rounded" />
 				</button>
 			</div>
@@ -103,6 +103,25 @@
 		getCannedPosts().then((fetchedPosts) => {
 			posts.value = fetchedPosts
 		})
+	}
+
+	function createCannedPost() {
+		if (!window.client) {
+			errorMessage.value = "Client is not ready."
+			return
+		}
+
+		window.client.createCannedPost({
+			"content": "This is a new canned post."
+			})
+			.then(() => {
+				console.log('Created new canned post')
+				refreshPosts()
+			})
+			.catch((error) => {
+				errorMessage.value = "Failed to create canned post: " + error.message
+				console.error('Error creating canned post:', error)
+			})
 	}
 
 	onMounted(async () => {

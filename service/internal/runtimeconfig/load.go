@@ -112,15 +112,6 @@ func (w *ConnectorConfigWrapper) UnmarshalYAML(node ast.Node) error {
 		}
 
 		w.ConnectorConfig = &v
-	case "mastodon":
-		var v MastodonConfig
-
-		if err := yaml.NodeToValue(typeHolder.Config, &v, yaml.Strict()); err != nil {
-			return err
-		}
-
-		w.ConnectorConfig = &v
-
 	case "x":
 		var v XConfig
 		if err := yaml.NodeToValue(typeHolder.Config, &v, yaml.Strict()); err != nil {

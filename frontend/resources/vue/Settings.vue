@@ -12,7 +12,13 @@
 		<form>
 			<template v-for="cvar in category.cvars">
 				<label>{{ cvar.title }}: </label>
-					<input :type = "cvar.type" name = "" :id = "cvar.keyName" :placeholder = "cvar.keyName" :value = "cvar.valueString" @blur = "setCvar(cvar)" />
+				<!-- Use v-if to handle different input types -->
+					<template v-if = "cvar.type === 'text' || cvar.type === 'password'">
+						<input :type = "cvar.type" name = "" :id = "cvar.keyName" :placeholder = "cvar.keyName" :value = "cvar.valueString" @blur = "setCvar(cvar)" />
+					</template>
+					<template v-else-if = "cvar.type === 'bool'">
+						<input type = "checkbox" :id = "cvar.keyName" :checked = "cvar.valueInt === '1'" @change = "setCvar(cvar)" />
+					</template>
 				<span>{{ cvar.description }}</span>
 			</template>
 		</form>

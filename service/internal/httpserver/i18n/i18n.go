@@ -22,7 +22,7 @@ type CombinedLanguageContent struct {
 
 func getLanguageDir() string {
 	dirsToSearch := []string{
-		"../lang/",
+		"../var/app-skel/lang/",
 		"/app/lang/",
 	}
 

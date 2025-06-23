@@ -39,7 +39,7 @@ func (c *TelegramConnector) GetIcon() string {
 	return "telegram"
 }
 
-func (c *TelegramConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
+func (c *TelegramConnector) SetSTartupConfiguration(startup *connector.ControllerStartupConfiguration) {
 	config, _ := startup.Config.(*runtimeconfig.TelegramConfig)
 
 	if config == nil || config.Token == "" {

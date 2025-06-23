@@ -57,16 +57,6 @@ type DatabaseConfig struct {
 	Name     string
 }
 
-type MastodonConfig struct {
-	Register bool
-	//	AppId        string
-	ClientId     string
-	ClientSecret string
-	Website      string
-
-	Inert bool
-}
-
 type WhatsAppConfig struct {
 	AccessToken       string
 	PhoneNumberID     string

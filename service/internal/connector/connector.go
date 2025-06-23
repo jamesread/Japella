@@ -5,7 +5,8 @@ import (
 )
 
 type BaseConnector interface {
-	StartWithConfig(*ControllerStartupConfiguration)
+	SetStartupConfiguration(*ControllerStartupConfiguration)
+	Start()
 	GetIdentity() string
 	GetProtocol() string
 	GetIcon() string

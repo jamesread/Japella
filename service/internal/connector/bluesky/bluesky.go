@@ -10,8 +10,11 @@ type BlueskyConnector struct {
 	connector.ConnectorWithWall
 }
 
-func (b *BlueskyConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
+func (b *BlueskyConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
+
 }
+
+func (b *BlueskyConnector) Start() {}
 
 func (b *BlueskyConnector) GetIdentity() string {
 	return "untitled-account"

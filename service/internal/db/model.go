@@ -16,95 +16,95 @@ type Model struct {
 	4 billion rows, but maybe JavaScript will have a better way of handling 64-bit
 	integers by then.
 	*/
-	ID        uint32 `gorm:"primaryKey"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        uint32    `db:"id"`
+	CreatedAt time.Time `db:"created_at"`
+	UpdatedAt time.Time `db:"updated_at"`
 }
 
 type SocialAccount struct {
 	Model
 
-	Connector          string `gorm:"type:varchar(50);not null"`
-	Identity           string `gorm:"type:varchar(255);not null"`
-	OAuth2Token        string `gorm:"type:text"`
-	OAuth2TokenExpiry  time.Time
-	OAuth2RefreshToken string `gorm:"type:text"`
-	Active             bool   `gorm:"default:false;not null"`
+	Connector          string    `db:"connector"`
+	Identity           string    `db:"identity"`
+	OAuth2Token        string    `db:"oauth2_token"`
+	OAuth2TokenExpiry  time.Time `db:"oauth2_token_expiry"`
+	OAuth2RefreshToken string    `db:"oauth2_refresh_token"`
+	Active             bool      `db:"active"`
 }
 
 type CannedPost struct {
 	Model
 
-	Content string `gorm:"type:text;not null"`
+	Content string `db:"content"`
 }
 
 type Post struct {
 	Model
 
-	SocialAccountID uint32         `gorm:"not null"`
-	SocialAccount   *SocialAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
-	Status          bool           `gorm:"default:false;not null"`
-	Content         string         `gorm:"type:text;not null"`
-	PostURL         string         `gorm:"type:varchar(500)"`
-	RemoteID        string         `gorm:"type:varchar(255)"`
+	SocialAccountID uint32 `db:"social_account_id"`
+	SocialAccount   *SocialAccount
+	Status          bool   `db:"status"`
+	Content         string `db:"content"`
+	PostURL         string `db:"post_url"`
+	RemoteID        string `db:"remote_id"`
 }
 
 type UserAccount struct {
 	Model
 
-	Username     string `gorm:"type:varchar(64);uniqueIndex;not null"`
-	PasswordHash string `gorm:"type:varchar(255);not null"`
+	Username     string `db:"username"`
+	PasswordHash string `db:"password_hash"`
 }
 
 type UserGroup struct {
 	Model
 
-	Name string `gorm:"type:varchar(100);not null"`
+	Name string `db:"name"`
 }
 
 type UserGroupMembership struct {
 	Model
 
-	UserAccountID uint32       `gorm:"uniqueIndex:idx_user_group_membership;not null"`
-	UserAccount   *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	UserAccountID uint32 `db:"user_account_id"`
+	UserAccount   *UserAccount
 
-	UserGroupID uint32     `gorm:"uniqueIndex:idx_user_group_membership;not null"`
-	UserGroup   *UserGroup `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	UserGroupID uint32 `db:"user_group_id"`
+	UserGroup   *UserGroup
 }
 
 type ApiKey struct {
 	Model
 
-	KeyValue      string       `gorm:"type:varchar(64);uniqueIndex;not null"` // Key keyword in SQL
-	UserAccountID uint32       `gorm:"not null"`
-	UserAccount   *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	KeyValue      string `db:"key_value"` // Key keyword in SQL
+	UserAccountID uint32 `db:"user_account_id"`
+	UserAccount   *UserAccount
 }
 
 type Session struct {
 	Model
 
-	UserAccountID uint32       `gorm:"not null"`
-	UserAccount   *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
-	SID           string       `gorm:"uniqueIndex;type:varchar(255);not null"` // Session ID
+	UserAccountID uint32 `db:"user_account_id"`
+	UserAccount   *UserAccount
+	SID           string `db:"sid"` // Session ID
 }
 
 type Cvar struct {
 	Model
 
-	KeyName      string `gorm:"type:varchar(64);uniqueIndex;not null"`
-	Title        string `gorm:"type:varchar(100);not null"`
-	ValueString  string `gorm:"type:text"`
-	ValueInt     int32  `gorm:"type:int;default:0"`
-	Description  string `gorm:"type:text"`
-	DefaultValue string `gorm:"type:text"`
-	Category     string `gorm:"type:varchar(50)"`
-	Type         string `gorm:"type:varchar(20);not null"`
+	KeyName      string `db:"key_name"`
+	Title        string `db:"title"`
+	ValueString  string `db:"value_string"`
+	ValueInt     int32  `db:"value_int"`
+	Description  string `db:"description"`
+	DefaultValue string `db:"default_value"`
+	Category     string `db:"category"`
+	Type         string `db:"type"`
 }
 
 type UserPreferences struct {
 	Model
 
-	UserAccountID uint32      `gorm:"uniqueIndex;not null"`
-	UserAccount   UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
-	Language      string      `gorm:"type:varchar(10);default:'en'"`
+	UserAccountID uint32 `db:"user_account_id"`
+	UserAccount   UserAccount
+	Language      string `db:"language"`
 }

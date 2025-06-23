@@ -1,9 +1,9 @@
 package mastodon
 
 import (
+	"github.com/jamesread/golure/pkg/redact"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
-	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
 
@@ -13,10 +13,13 @@ import (
 type MastodonConnector struct {
 	token  string
 	db     *db.DB
-	config *runtimeconfig.MastodonConfig
+
+	doRegistration bool
+	isInert bool
 
 	connector.ConnectorWithWall
 	connector.OAuth2Connector
+	connector.ConfigProvider
 
 	utils.LogComponent
 }
@@ -30,6 +33,56 @@ type Status struct {
 	URI string `json:"uri"`
 }
 
+const CFG_MASTODON_CLIENT_ID = "mastodon.client_id"
+const CFG_MASTODON_CLIENT_SECRET = "mastodon.client_secret"
+const CFG_MASTODON_REGISTER = "mastodon.register"
+
+func (c *MastodonConnector) GetCvars() (map[string]*db.Cvar) {
+	return map[string]*db.Cvar{
+		CFG_MASTODON_CLIENT_ID: &db.Cvar{
+			KeyName:      CFG_MASTODON_CLIENT_ID,
+			DefaultValue: "",
+			Title:       "Mastodon Client ID",
+			Description: "https://docs.joinmastodon.org/client/token/",
+			Category:    "Mastodon",
+			Type:		 "text",
+		},
+		CFG_MASTODON_CLIENT_SECRET: &db.Cvar{
+			KeyName:      CFG_MASTODON_CLIENT_SECRET,
+			DefaultValue: "",
+			Title:       "Mastodon Client Secret",
+			Description: "https://docs.joinmastodon.org/client/token/",
+			Category:    "Mastodon",
+			Type:		 "password",
+		},
+		CFG_MASTODON_REGISTER: &db.Cvar{
+			KeyName:      CFG_MASTODON_REGISTER,
+			DefaultValue: "0",
+			Title:       "Mastodon app registration?",
+			Description: "Register a new Mastodon app on startup",
+			Category:    "Mastodon",
+			Type:        "bool",
+		},
+
+	}
+}
+
+func (c *MastodonConnector) CheckConfiguration() *connector.ConfigurationCheckResult {
+	res := &connector.ConfigurationCheckResult{
+		Issues: []string{},
+	}
+
+	if c.db.GetCvarString(CFG_MASTODON_CLIENT_ID) == "" {
+		res.AddIssue("Mastodon client ID is not configured")
+	}
+
+	if c.db.GetCvarString(CFG_MASTODON_CLIENT_SECRET) == "" {
+		res.AddIssue("Mastodon client secret is not configured")
+	}
+
+	return res
+}
+
 func (c *MastodonConnector) GetIdentity() string {
 	return "mastodon-user"
 }
@@ -38,13 +91,8 @@ func (c *MastodonConnector) GetProtocol() string {
 	return "mastodon"
 }
 
-func (c *MastodonConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
+func (c *MastodonConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
 	c.db = startup.DB
-
-	config, _ := startup.Config.(*runtimeconfig.MastodonConfig)
-
-	c.config = config
-	c.Start()
 }
 
 func (c *MastodonConnector) register() {
@@ -76,7 +124,7 @@ func (c *MastodonConnector) Start() {
 	c.SetPrefix("Mastodon")
 	c.Logger().Infof("Mastodon connector started")
 
-	if c.config.Register {
+	if c.doRegistration {
 		c.register()
 	}
 }
@@ -103,7 +151,7 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 
 	log.Infof("Posting to wall: %s", content)
 
-	if c.config.Inert {
+	if c.isInert {
 		res.URL = "https://mastodon.social/@jamesread/1234567890" // Dummy URL for inert mode
 		return res
 	}
@@ -138,14 +186,15 @@ func (c *MastodonConnector) GetIcon() string {
 }
 
 func (c *MastodonConnector) GetOAuth2Config() *oauth2.Config {
+	c.Logger().Infof("Getting OAuth2 config for Mastodon, client_id: %v", redact.RedactString(c.db.GetCvarString(CFG_MASTODON_CLIENT_ID)))
 	ep := oauth2.Endpoint{
 		AuthURL:  "https://mastodon.social/oauth/authorize",
 		TokenURL: "https://mastodon.social/oauth/token",
 	}
 
 	config := &oauth2.Config{
-		ClientID:     c.config.ClientId,
-		ClientSecret: c.config.ClientSecret,
+		ClientID:     c.db.GetCvarString(CFG_MASTODON_CLIENT_ID),
+		ClientSecret: c.db.GetCvarString(CFG_MASTODON_CLIENT_SECRET),
 		RedirectURL:  c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
 		Scopes:       []string{"read", "write", "follow"},
 		Endpoint:     ep,

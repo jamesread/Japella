@@ -86,7 +86,23 @@ func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config
 		DB:     cc.db,
 	}
 
-	go c.StartWithConfig(startupConfiguration)
+	go c.SetStartupConfiguration(startupConfiguration)
+
+	configProvider, ok := c.(connector.ConfigProvider)
+
+	if ok {
+		cvars := configProvider.GetCvars()
+
+		if cvars != nil {
+			for _, cvar := range cvars {
+				if err := cc.db.InsertCvarIfNotExists(cvar); err != nil {
+					log.Errorf("Error creating cvar %s: %v", cvar.KeyName, err)
+				}
+			}
+		}
+	}
+
+	c.Start()
 
 	log.Infof("Setting up connector: %v", c.GetProtocol())
 	cc.RegisterController(c.GetProtocol(), c)
