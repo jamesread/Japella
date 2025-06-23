@@ -1,15 +1,16 @@
-# Docker Compose
+= Docker Compose
 
 Docker compose is the recommended way to run Japella. It allows you to easily maintain your japella installation consistently across upgrades.
 
 You can use the following `docker-compose.yml` file to run Japella.
 
-## Create the docker-compose.yml file
+== Create the docker-compose.yml file
 
 Create this file in a location that is easy to remember.
 
-```yaml title="docker-compose.yml"
----
+[source,yaml]
+.`docker-compose.yml`
+----
 services:
   japella:
     container_name: japella
@@ -17,57 +18,58 @@ services:
     volumes:
       - japella-config:/config
     restart: unless-stopped
-    environment:
-      JAPELLA_NANOSERVICES: dashboard,telegram,exec
     ports:
       - "8080:8080"
 
-  rabbitmq:
-    container_name: rabbitmq
-    image: docker.io/rabbitmq
-    hostname: rabbitmq
-
-# The database in Japella 2 is entirely optional.
-#  mariadb:
-#    container_name: mariadb
-#    image: docker.io/mariadb
-#    environment:
-#      MARIADB_ROOT_PASSWORD: password
-#      MARIADB_DATABASE: japella
+  mariadb:
+    container_name: mariadb
+    image: docker.io/mariadb
+	volumes:
+	  - mariadb-data:/var/lib/mysql
+    environment:
+      MARIADB_ROOT_PASSWORD: password
+      MARIADB_DATABASE: japella
 
 volumes:
   japella-config:
     name: japella-config
     external: false
-```
 
-## docker compose up
+  mariadb-data:
+    name: mariadb-data
+	external: false
+----
+
+== docker compose up
 
 Open a terminal in the same directory as your new `docker-compose.yml` file and run the following command;
 
-```bash
+[source,console]
+----
 user@host: docker compose up -d
-```
+----
 
 If all goes well, the output should look like this;
 
-```bash
+[source,console]
+----
 user@host: docker compose up -d
 [+] Running 2/2
  ✔ Container rabbitmq  Running
  ✔ Container japella   Running
-```
+----
 
 If something has gone wrong, run `docker logs japella` to view the output.
 
-## Check the web interface
+== Check the web interface
 
+Open your web browser and navigate to `http://localhost:8080` or `http://<your-server-ip>:8080` to access the Japella web interface.
 
-
-## Check out the config file
+== Check out the config file
 
 Change into the directory that contains your japella-config volume like this;
 
-```bash
+[source,console]
+----
 user@host: cd "$(docker volume inspect japella-config --format '{{ .Mountpoint }}')"
-```
+----

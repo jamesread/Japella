@@ -2,8 +2,8 @@
 * xref:gettingStarted.adoc[Getting Started]
 * xref:installation/index.adoc[Installation]
 ** Linux Container
-*** xref:installation/standalone.adoc[Docker or Podman]
 *** xref:installation/docker-compose.adoc[Docker Compose]
+*** xref:installation/standalone.adoc[Docker or Podman]
 *** xref:installation/helm.adoc[Kubernetes with Helm]
 *** xref:installation/truenas-scale.adoc[TrueNAS SCALE]
 * xref:configuration/index.adoc[Configuration]
