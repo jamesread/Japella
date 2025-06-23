@@ -6,10 +6,23 @@ option go_package = "github.com/jamesread/japella/gen/japella/controlapi/v1;cont
 
 message SubmitPostRequest {
 	string content = 1;
-	string posting_service = 2;
+	repeated uint32 social_accounts = 2;
 }
 
-message SubmitPostResponse {}
+message SubmitPostResponse {
+	repeated PostStatus posts = 1;
+}
+
+message PostStatus {
+	uint32 id = 1;
+	uint32 social_account_id = 2;
+	string post_url = 3;
+	bool success = 4;
+	string created = 5;
+	string social_account_icon = 6;
+	string social_account_identity = 7;
+	string content = 8;
+}
 
 message GetStatusRequest {}
 
@@ -17,19 +30,14 @@ message GetStatusResponse {
 	string status = 1;
 	repeated string nanoservices = 2;
 	string version = 3;
+	string username = 5;
+	bool is_logged_in = 6;
+	repeated StatusMessage status_messages = 7;
 }
 
-message GetPostingServicesRequest {
-}
-
-message GetPostingServicesResponse {
-	repeated PostingService services = 1;
-}
-
-message PostingService {
-	string id = 1;
-	string protocol = 2;
-	string identity = 3;
+message StatusMessage {
+	string message = 1;
+	string type = 2;
 }
 
 message GetCannedPostsRequest {
@@ -40,7 +48,7 @@ message GetCannedPostsResponse {
 }
 
 message CannedPost {
-	string id = 1;
+	uint32 id = 1;
 	string content = 2;
 	string created_at = 3;
 }
@@ -54,11 +62,189 @@ message CreateCannedPostResponse {
 }
 
 message DeleteCannedPostRequest {
-	string id = 1;
+	uint32 id = 1;
 }
 
 message DeleteCannedPostResponse {
 	string message = 1;
+}
+
+message GetSocialAccountsRequest {
+	bool only_active = 1;
+}
+
+message GetSocialAccountsResponse {
+	repeated SocialAccount accounts = 1;
+}
+
+message SocialAccount {
+	uint32 id = 1;
+	string identity = 2;
+	bool has_wall = 3;
+	bool has_channels = 4;
+	string connector = 5;
+	string icon = 6;
+	bool active = 7;
+}
+
+message GetConnectorsRequest {
+	bool only_want_oauth = 1;
+}
+
+message GetConnectorsResponse {
+	repeated Connector connectors = 1;
+}
+
+message Connector {
+	string name = 2;
+	string icon = 3;
+	bool has_oauth = 4;
+}
+
+message StartOAuthRequest {
+	string connector_id = 1;
+}
+
+message StartOAuthResponse {
+	string url = 1;
+}
+
+message DeleteSocialAccountRequest {
+	uint32 id = 1;
+}
+
+message DeleteSocialAccountResponse {
+	StandardResponse standard_response = 1;
+}
+
+message RefreshSocialAccountRequest {
+	uint32 id = 1;
+}
+
+message RefreshSocialAccountResponse {
+	StandardResponse standard_response = 1;
+}
+
+message StandardResponse {
+	bool success = 1;
+	string message = 2;
+	string redirect_url = 3;
+}
+
+message GetTimelineRequest {
+}
+
+message GetTimelineResponse {
+	repeated PostStatus posts = 1;
+}
+
+message SetSocialAccountActiveRequest {
+	uint32 id = 1;
+	bool active = 2;
+}
+
+message SetSocialAccountActiveResponse {
+	StandardResponse standard_response = 1;
+}
+
+message LoginWithUsernameAndPasswordRequest {
+	string username = 1;
+	string password = 2;
+}
+
+message LoginWithUsernameAndPasswordResponse {
+	StandardResponse standard_response = 1;
+	string username = 2;
+	string token = 3;
+}
+
+message GetUsersRequest {
+}
+
+message GetUsersResponse {
+	repeated UserAccount users = 1;
+}
+
+message UserAccount {
+	uint32 id = 1;
+	string username = 2;
+	string created_at = 3;
+}
+
+message GetApiKeysRequest {
+}
+
+message GetApiKeysResponse {
+	repeated ApiKey keys = 1;
+}
+
+message ApiKey {
+	uint32 id = 1;
+	string key_value = 2;
+	string created_at = 3;
+	uint32 user_id = 4;
+	string username = 5;
+}
+
+message GetCvarsRequest {
+}
+
+message GetCvarsResponse {
+	map<string, CvarCategory> cvar_categories = 1;
+}
+
+message CvarCategory {
+	repeated Cvar cvars = 1;
+	string name = 2;
+}
+
+message Cvar {
+	string key_name = 1;
+	string value_string = 2;
+	int32 value_int = 3;
+	string description = 4;
+	bool is_read_only = 5;
+	uint32 max_length = 6;
+	string type = 7;
+	string title = 8;
+}
+
+message SaveUserPreferencesRequest {
+	string language = 1;
+}
+
+message SaveUserPreferencesResponse {
+	StandardResponse standard_response = 1;
+	string username = 2;
+}
+
+message CreateApiKeyRequest {
+}
+
+message CreateApiKeyResponse {
+	StandardResponse standard_response = 1;
+	string new_key_value = 2;
+}
+
+message RevokeApiKeyRequest {
+	uint32 id = 1;
+}
+
+message RevokeApiKeyResponse {
+	StandardResponse standard_response = 1;
+}
+
+message SetCvarRequest {
+	string key_name = 1;
+	string value_string = 2;
+	int32 value_int = 3;
+}
+
+message SetCvarResponse {
+	StandardResponse standard_response = 1;
+	string key_name = 2;
+	string value_string = 3;
+	int32 value_int = 4;
 }
 
 service JapellaControlApiService {
@@ -66,11 +252,39 @@ service JapellaControlApiService {
 
 	rpc SubmitPost(SubmitPostRequest) returns (SubmitPostResponse) {}
 
-	rpc GetPostingServices(GetPostingServicesRequest) returns (GetPostingServicesResponse) {}
-
 	rpc GetCannedPosts(GetCannedPostsRequest) returns (GetCannedPostsResponse) {}
 
 	rpc CreateCannedPost(CreateCannedPostRequest) returns (CreateCannedPostResponse) {}
 
 	rpc DeleteCannedPost(DeleteCannedPostRequest) returns (DeleteCannedPostResponse) {}
+
+	rpc GetSocialAccounts(GetSocialAccountsRequest) returns (GetSocialAccountsResponse) {}
+
+	rpc DeleteSocialAccount(DeleteSocialAccountRequest) returns (DeleteSocialAccountResponse) {}
+
+	rpc RefreshSocialAccount(RefreshSocialAccountRequest) returns (RefreshSocialAccountResponse) {}
+
+	rpc GetConnectors(GetConnectorsRequest) returns (GetConnectorsResponse) {}
+
+	rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse) {}
+
+	rpc GetTimeline(GetTimelineRequest) returns (GetTimelineResponse) {}
+
+	rpc SetSocialAccountActive(SetSocialAccountActiveRequest) returns (SetSocialAccountActiveResponse) {}
+
+	rpc LoginWithUsernameAndPassword(LoginWithUsernameAndPasswordRequest) returns (LoginWithUsernameAndPasswordResponse) {}
+
+	rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {}
+
+	rpc GetApiKeys(GetApiKeysRequest) returns (GetApiKeysResponse) {}
+
+	rpc GetCvars(GetCvarsRequest) returns (GetCvarsResponse) {}
+
+	rpc SaveUserPreferences(SaveUserPreferencesRequest) returns (SaveUserPreferencesResponse) {}
+
+	rpc CreateApiKey(CreateApiKeyRequest) returns (CreateApiKeyResponse) {}
+
+	rpc RevokeApiKey(RevokeApiKeyRequest) returns (RevokeApiKeyResponse) {}
+
+	rpc SetCvar(SetCvarRequest) returns (SetCvarResponse) {}
 }

@@ -4,6 +4,12 @@ default:
 dev:
 	air
 
+codestyle:
+	go fmt ./...
+	go vet ./...
+	gocyclo internal
+	gocritic check
+
 go-tools:
 	go install "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway"
 	go install "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2"

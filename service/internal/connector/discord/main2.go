@@ -14,8 +14,8 @@ type DiscordConnector struct {
 	connector.BaseConnector
 }
 
-func (a *DiscordConnector) StartWithConfig(rawconfig any) {
-	config, _ := rawconfig.(*runtimeconfig.DiscordConfig)
+func (a *DiscordConnector) StartWithConfig(startup *connector.ControllerStartupConfiguration) {
+	config, _ := startup.Config.(*runtimeconfig.DiscordConfig)
 
 	a.Start(config.Token)
 }

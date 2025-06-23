@@ -1,0 +1,10 @@
+= Nanoservices introduction
+
+Japella is designed to be resilient, and scale up. It has a single container image, and from that image, you can start which internal services of Japella to start up.
+
+The current list of nanoservices are;
+
+* telegram
+* discord
+* dashboard
+* exec

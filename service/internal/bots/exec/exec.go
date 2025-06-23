@@ -8,6 +8,7 @@ import (
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/botbase"
 	"github.com/jamesread/japella/internal/nanoservice"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
@@ -29,6 +30,11 @@ func (e *Exec) Start() {
 	bot := ExecBot{}
 	bot.SetName("Exec")
 	bot.Setup()
+
+	if !runtimeconfig.Get().Amqp.Enabled {
+		bot.Logger().Errorf("AMQP is not enabled, cannot start Exec bot.")
+		return
+	}
 
 	// List files in /usr/libexec/japella/
 

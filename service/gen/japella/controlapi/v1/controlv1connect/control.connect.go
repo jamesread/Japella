@@ -39,9 +39,6 @@ const (
 	// JapellaControlApiServiceSubmitPostProcedure is the fully-qualified name of the
 	// JapellaControlApiService's SubmitPost RPC.
 	JapellaControlApiServiceSubmitPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/SubmitPost"
-	// JapellaControlApiServiceGetPostingServicesProcedure is the fully-qualified name of the
-	// JapellaControlApiService's GetPostingServices RPC.
-	JapellaControlApiServiceGetPostingServicesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetPostingServices"
 	// JapellaControlApiServiceGetCannedPostsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetCannedPosts RPC.
 	JapellaControlApiServiceGetCannedPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCannedPosts"
@@ -51,6 +48,51 @@ const (
 	// JapellaControlApiServiceDeleteCannedPostProcedure is the fully-qualified name of the
 	// JapellaControlApiService's DeleteCannedPost RPC.
 	JapellaControlApiServiceDeleteCannedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteCannedPost"
+	// JapellaControlApiServiceGetSocialAccountsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetSocialAccounts RPC.
+	JapellaControlApiServiceGetSocialAccountsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetSocialAccounts"
+	// JapellaControlApiServiceDeleteSocialAccountProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteSocialAccount RPC.
+	JapellaControlApiServiceDeleteSocialAccountProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteSocialAccount"
+	// JapellaControlApiServiceRefreshSocialAccountProcedure is the fully-qualified name of the
+	// JapellaControlApiService's RefreshSocialAccount RPC.
+	JapellaControlApiServiceRefreshSocialAccountProcedure = "/japella.controlapi.v1.JapellaControlApiService/RefreshSocialAccount"
+	// JapellaControlApiServiceGetConnectorsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetConnectors RPC.
+	JapellaControlApiServiceGetConnectorsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetConnectors"
+	// JapellaControlApiServiceStartOAuthProcedure is the fully-qualified name of the
+	// JapellaControlApiService's StartOAuth RPC.
+	JapellaControlApiServiceStartOAuthProcedure = "/japella.controlapi.v1.JapellaControlApiService/StartOAuth"
+	// JapellaControlApiServiceGetTimelineProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetTimeline RPC.
+	JapellaControlApiServiceGetTimelineProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetTimeline"
+	// JapellaControlApiServiceSetSocialAccountActiveProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetSocialAccountActive RPC.
+	JapellaControlApiServiceSetSocialAccountActiveProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetSocialAccountActive"
+	// JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure is the fully-qualified name of the
+	// JapellaControlApiService's LoginWithUsernameAndPassword RPC.
+	JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure = "/japella.controlapi.v1.JapellaControlApiService/LoginWithUsernameAndPassword"
+	// JapellaControlApiServiceGetUsersProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetUsers RPC.
+	JapellaControlApiServiceGetUsersProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUsers"
+	// JapellaControlApiServiceGetApiKeysProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetApiKeys RPC.
+	JapellaControlApiServiceGetApiKeysProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetApiKeys"
+	// JapellaControlApiServiceGetCvarsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetCvars RPC.
+	JapellaControlApiServiceGetCvarsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCvars"
+	// JapellaControlApiServiceSaveUserPreferencesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SaveUserPreferences RPC.
+	JapellaControlApiServiceSaveUserPreferencesProcedure = "/japella.controlapi.v1.JapellaControlApiService/SaveUserPreferences"
+	// JapellaControlApiServiceCreateApiKeyProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateApiKey RPC.
+	JapellaControlApiServiceCreateApiKeyProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateApiKey"
+	// JapellaControlApiServiceRevokeApiKeyProcedure is the fully-qualified name of the
+	// JapellaControlApiService's RevokeApiKey RPC.
+	JapellaControlApiServiceRevokeApiKeyProcedure = "/japella.controlapi.v1.JapellaControlApiService/RevokeApiKey"
+	// JapellaControlApiServiceSetCvarProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetCvar RPC.
+	JapellaControlApiServiceSetCvarProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetCvar"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -58,10 +100,24 @@ const (
 type JapellaControlApiServiceClient interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error)
-	GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error)
 	GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error)
 	CreateCannedPost(context.Context, *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error)
 	DeleteCannedPost(context.Context, *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error)
+	GetSocialAccounts(context.Context, *connect.Request[v1.GetSocialAccountsRequest]) (*connect.Response[v1.GetSocialAccountsResponse], error)
+	DeleteSocialAccount(context.Context, *connect.Request[v1.DeleteSocialAccountRequest]) (*connect.Response[v1.DeleteSocialAccountResponse], error)
+	RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error)
+	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
+	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
+	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
+	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
+	LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error)
+	GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error)
+	GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error)
+	GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error)
+	SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error)
+	CreateApiKey(context.Context, *connect.Request[v1.CreateApiKeyRequest]) (*connect.Response[v1.CreateApiKeyResponse], error)
+	RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error)
+	SetCvar(context.Context, *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -88,12 +144,6 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("SubmitPost")),
 			connect.WithClientOptions(opts...),
 		),
-		getPostingServices: connect.NewClient[v1.GetPostingServicesRequest, v1.GetPostingServicesResponse](
-			httpClient,
-			baseURL+JapellaControlApiServiceGetPostingServicesProcedure,
-			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPostingServices")),
-			connect.WithClientOptions(opts...),
-		),
 		getCannedPosts: connect.NewClient[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceGetCannedPostsProcedure,
@@ -112,17 +162,121 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteCannedPost")),
 			connect.WithClientOptions(opts...),
 		),
+		getSocialAccounts: connect.NewClient[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetSocialAccountsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccounts")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteSocialAccount: connect.NewClient[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteSocialAccountProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteSocialAccount")),
+			connect.WithClientOptions(opts...),
+		),
+		refreshSocialAccount: connect.NewClient[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRefreshSocialAccountProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RefreshSocialAccount")),
+			connect.WithClientOptions(opts...),
+		),
+		getConnectors: connect.NewClient[v1.GetConnectorsRequest, v1.GetConnectorsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetConnectorsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetConnectors")),
+			connect.WithClientOptions(opts...),
+		),
+		startOAuth: connect.NewClient[v1.StartOAuthRequest, v1.StartOAuthResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceStartOAuthProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("StartOAuth")),
+			connect.WithClientOptions(opts...),
+		),
+		getTimeline: connect.NewClient[v1.GetTimelineRequest, v1.GetTimelineResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetTimelineProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
+			connect.WithClientOptions(opts...),
+		),
+		setSocialAccountActive: connect.NewClient[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetSocialAccountActiveProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountActive")),
+			connect.WithClientOptions(opts...),
+		),
+		loginWithUsernameAndPassword: connect.NewClient[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("LoginWithUsernameAndPassword")),
+			connect.WithClientOptions(opts...),
+		),
+		getUsers: connect.NewClient[v1.GetUsersRequest, v1.GetUsersResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetUsersProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUsers")),
+			connect.WithClientOptions(opts...),
+		),
+		getApiKeys: connect.NewClient[v1.GetApiKeysRequest, v1.GetApiKeysResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetApiKeysProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetApiKeys")),
+			connect.WithClientOptions(opts...),
+		),
+		getCvars: connect.NewClient[v1.GetCvarsRequest, v1.GetCvarsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetCvarsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCvars")),
+			connect.WithClientOptions(opts...),
+		),
+		saveUserPreferences: connect.NewClient[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSaveUserPreferencesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SaveUserPreferences")),
+			connect.WithClientOptions(opts...),
+		),
+		createApiKey: connect.NewClient[v1.CreateApiKeyRequest, v1.CreateApiKeyResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateApiKeyProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateApiKey")),
+			connect.WithClientOptions(opts...),
+		),
+		revokeApiKey: connect.NewClient[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRevokeApiKeyProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RevokeApiKey")),
+			connect.WithClientOptions(opts...),
+		),
+		setCvar: connect.NewClient[v1.SetCvarRequest, v1.SetCvarResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetCvarProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetCvar")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // japellaControlApiServiceClient implements JapellaControlApiServiceClient.
 type japellaControlApiServiceClient struct {
-	getStatus          *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	submitPost         *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
-	getPostingServices *connect.Client[v1.GetPostingServicesRequest, v1.GetPostingServicesResponse]
-	getCannedPosts     *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
-	createCannedPost   *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
-	deleteCannedPost   *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
+	getStatus                    *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	submitPost                   *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
+	getCannedPosts               *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
+	createCannedPost             *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
+	deleteCannedPost             *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
+	getSocialAccounts            *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
+	deleteSocialAccount          *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
+	refreshSocialAccount         *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
+	getConnectors                *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
+	startOAuth                   *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
+	getTimeline                  *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
+	setSocialAccountActive       *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
+	loginWithUsernameAndPassword *connect.Client[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse]
+	getUsers                     *connect.Client[v1.GetUsersRequest, v1.GetUsersResponse]
+	getApiKeys                   *connect.Client[v1.GetApiKeysRequest, v1.GetApiKeysResponse]
+	getCvars                     *connect.Client[v1.GetCvarsRequest, v1.GetCvarsResponse]
+	saveUserPreferences          *connect.Client[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse]
+	createApiKey                 *connect.Client[v1.CreateApiKeyRequest, v1.CreateApiKeyResponse]
+	revokeApiKey                 *connect.Client[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse]
+	setCvar                      *connect.Client[v1.SetCvarRequest, v1.SetCvarResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -133,11 +287,6 @@ func (c *japellaControlApiServiceClient) GetStatus(ctx context.Context, req *con
 // SubmitPost calls japella.controlapi.v1.JapellaControlApiService.SubmitPost.
 func (c *japellaControlApiServiceClient) SubmitPost(ctx context.Context, req *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error) {
 	return c.submitPost.CallUnary(ctx, req)
-}
-
-// GetPostingServices calls japella.controlapi.v1.JapellaControlApiService.GetPostingServices.
-func (c *japellaControlApiServiceClient) GetPostingServices(ctx context.Context, req *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error) {
-	return c.getPostingServices.CallUnary(ctx, req)
 }
 
 // GetCannedPosts calls japella.controlapi.v1.JapellaControlApiService.GetCannedPosts.
@@ -155,15 +304,106 @@ func (c *japellaControlApiServiceClient) DeleteCannedPost(ctx context.Context, r
 	return c.deleteCannedPost.CallUnary(ctx, req)
 }
 
+// GetSocialAccounts calls japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts.
+func (c *japellaControlApiServiceClient) GetSocialAccounts(ctx context.Context, req *connect.Request[v1.GetSocialAccountsRequest]) (*connect.Response[v1.GetSocialAccountsResponse], error) {
+	return c.getSocialAccounts.CallUnary(ctx, req)
+}
+
+// DeleteSocialAccount calls japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount.
+func (c *japellaControlApiServiceClient) DeleteSocialAccount(ctx context.Context, req *connect.Request[v1.DeleteSocialAccountRequest]) (*connect.Response[v1.DeleteSocialAccountResponse], error) {
+	return c.deleteSocialAccount.CallUnary(ctx, req)
+}
+
+// RefreshSocialAccount calls japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount.
+func (c *japellaControlApiServiceClient) RefreshSocialAccount(ctx context.Context, req *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error) {
+	return c.refreshSocialAccount.CallUnary(ctx, req)
+}
+
+// GetConnectors calls japella.controlapi.v1.JapellaControlApiService.GetConnectors.
+func (c *japellaControlApiServiceClient) GetConnectors(ctx context.Context, req *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error) {
+	return c.getConnectors.CallUnary(ctx, req)
+}
+
+// StartOAuth calls japella.controlapi.v1.JapellaControlApiService.StartOAuth.
+func (c *japellaControlApiServiceClient) StartOAuth(ctx context.Context, req *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error) {
+	return c.startOAuth.CallUnary(ctx, req)
+}
+
+// GetTimeline calls japella.controlapi.v1.JapellaControlApiService.GetTimeline.
+func (c *japellaControlApiServiceClient) GetTimeline(ctx context.Context, req *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error) {
+	return c.getTimeline.CallUnary(ctx, req)
+}
+
+// SetSocialAccountActive calls
+// japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive.
+func (c *japellaControlApiServiceClient) SetSocialAccountActive(ctx context.Context, req *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error) {
+	return c.setSocialAccountActive.CallUnary(ctx, req)
+}
+
+// LoginWithUsernameAndPassword calls
+// japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword.
+func (c *japellaControlApiServiceClient) LoginWithUsernameAndPassword(ctx context.Context, req *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error) {
+	return c.loginWithUsernameAndPassword.CallUnary(ctx, req)
+}
+
+// GetUsers calls japella.controlapi.v1.JapellaControlApiService.GetUsers.
+func (c *japellaControlApiServiceClient) GetUsers(ctx context.Context, req *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error) {
+	return c.getUsers.CallUnary(ctx, req)
+}
+
+// GetApiKeys calls japella.controlapi.v1.JapellaControlApiService.GetApiKeys.
+func (c *japellaControlApiServiceClient) GetApiKeys(ctx context.Context, req *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error) {
+	return c.getApiKeys.CallUnary(ctx, req)
+}
+
+// GetCvars calls japella.controlapi.v1.JapellaControlApiService.GetCvars.
+func (c *japellaControlApiServiceClient) GetCvars(ctx context.Context, req *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error) {
+	return c.getCvars.CallUnary(ctx, req)
+}
+
+// SaveUserPreferences calls japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences.
+func (c *japellaControlApiServiceClient) SaveUserPreferences(ctx context.Context, req *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error) {
+	return c.saveUserPreferences.CallUnary(ctx, req)
+}
+
+// CreateApiKey calls japella.controlapi.v1.JapellaControlApiService.CreateApiKey.
+func (c *japellaControlApiServiceClient) CreateApiKey(ctx context.Context, req *connect.Request[v1.CreateApiKeyRequest]) (*connect.Response[v1.CreateApiKeyResponse], error) {
+	return c.createApiKey.CallUnary(ctx, req)
+}
+
+// RevokeApiKey calls japella.controlapi.v1.JapellaControlApiService.RevokeApiKey.
+func (c *japellaControlApiServiceClient) RevokeApiKey(ctx context.Context, req *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error) {
+	return c.revokeApiKey.CallUnary(ctx, req)
+}
+
+// SetCvar calls japella.controlapi.v1.JapellaControlApiService.SetCvar.
+func (c *japellaControlApiServiceClient) SetCvar(ctx context.Context, req *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error) {
+	return c.setCvar.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error)
-	GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error)
 	GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error)
 	CreateCannedPost(context.Context, *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error)
 	DeleteCannedPost(context.Context, *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error)
+	GetSocialAccounts(context.Context, *connect.Request[v1.GetSocialAccountsRequest]) (*connect.Response[v1.GetSocialAccountsResponse], error)
+	DeleteSocialAccount(context.Context, *connect.Request[v1.DeleteSocialAccountRequest]) (*connect.Response[v1.DeleteSocialAccountResponse], error)
+	RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error)
+	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
+	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
+	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
+	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
+	LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error)
+	GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error)
+	GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error)
+	GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error)
+	SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error)
+	CreateApiKey(context.Context, *connect.Request[v1.CreateApiKeyRequest]) (*connect.Response[v1.CreateApiKeyResponse], error)
+	RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error)
+	SetCvar(context.Context, *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -185,12 +425,6 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("SubmitPost")),
 		connect.WithHandlerOptions(opts...),
 	)
-	japellaControlApiServiceGetPostingServicesHandler := connect.NewUnaryHandler(
-		JapellaControlApiServiceGetPostingServicesProcedure,
-		svc.GetPostingServices,
-		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPostingServices")),
-		connect.WithHandlerOptions(opts...),
-	)
 	japellaControlApiServiceGetCannedPostsHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceGetCannedPostsProcedure,
 		svc.GetCannedPosts,
@@ -209,20 +443,138 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteCannedPost")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetSocialAccountsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetSocialAccountsProcedure,
+		svc.GetSocialAccounts,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccounts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteSocialAccountHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteSocialAccountProcedure,
+		svc.DeleteSocialAccount,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteSocialAccount")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceRefreshSocialAccountHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRefreshSocialAccountProcedure,
+		svc.RefreshSocialAccount,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RefreshSocialAccount")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetConnectorsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetConnectorsProcedure,
+		svc.GetConnectors,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetConnectors")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceStartOAuthHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceStartOAuthProcedure,
+		svc.StartOAuth,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("StartOAuth")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetTimelineHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetTimelineProcedure,
+		svc.GetTimeline,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetSocialAccountActiveHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetSocialAccountActiveProcedure,
+		svc.SetSocialAccountActive,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountActive")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceLoginWithUsernameAndPasswordHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure,
+		svc.LoginWithUsernameAndPassword,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("LoginWithUsernameAndPassword")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetUsersHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetUsersProcedure,
+		svc.GetUsers,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUsers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetApiKeysHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetApiKeysProcedure,
+		svc.GetApiKeys,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetApiKeys")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetCvarsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetCvarsProcedure,
+		svc.GetCvars,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCvars")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSaveUserPreferencesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSaveUserPreferencesProcedure,
+		svc.SaveUserPreferences,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SaveUserPreferences")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateApiKeyHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateApiKeyProcedure,
+		svc.CreateApiKey,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateApiKey")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceRevokeApiKeyHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRevokeApiKeyProcedure,
+		svc.RevokeApiKey,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RevokeApiKey")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetCvarHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetCvarProcedure,
+		svc.SetCvar,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetCvar")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
 			japellaControlApiServiceGetStatusHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceSubmitPostProcedure:
 			japellaControlApiServiceSubmitPostHandler.ServeHTTP(w, r)
-		case JapellaControlApiServiceGetPostingServicesProcedure:
-			japellaControlApiServiceGetPostingServicesHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetCannedPostsProcedure:
 			japellaControlApiServiceGetCannedPostsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceCreateCannedPostProcedure:
 			japellaControlApiServiceCreateCannedPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceDeleteCannedPostProcedure:
 			japellaControlApiServiceDeleteCannedPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetSocialAccountsProcedure:
+			japellaControlApiServiceGetSocialAccountsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteSocialAccountProcedure:
+			japellaControlApiServiceDeleteSocialAccountHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRefreshSocialAccountProcedure:
+			japellaControlApiServiceRefreshSocialAccountHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetConnectorsProcedure:
+			japellaControlApiServiceGetConnectorsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceStartOAuthProcedure:
+			japellaControlApiServiceStartOAuthHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetTimelineProcedure:
+			japellaControlApiServiceGetTimelineHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetSocialAccountActiveProcedure:
+			japellaControlApiServiceSetSocialAccountActiveHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure:
+			japellaControlApiServiceLoginWithUsernameAndPasswordHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetUsersProcedure:
+			japellaControlApiServiceGetUsersHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetApiKeysProcedure:
+			japellaControlApiServiceGetApiKeysHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetCvarsProcedure:
+			japellaControlApiServiceGetCvarsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSaveUserPreferencesProcedure:
+			japellaControlApiServiceSaveUserPreferencesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateApiKeyProcedure:
+			japellaControlApiServiceCreateApiKeyHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRevokeApiKeyProcedure:
+			japellaControlApiServiceRevokeApiKeyHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetCvarProcedure:
+			japellaControlApiServiceSetCvarHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -240,10 +592,6 @@ func (UnimplementedJapellaControlApiServiceHandler) SubmitPost(context.Context, 
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SubmitPost is not implemented"))
 }
 
-func (UnimplementedJapellaControlApiServiceHandler) GetPostingServices(context.Context, *connect.Request[v1.GetPostingServicesRequest]) (*connect.Response[v1.GetPostingServicesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetPostingServices is not implemented"))
-}
-
 func (UnimplementedJapellaControlApiServiceHandler) GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCannedPosts is not implemented"))
 }
@@ -254,4 +602,64 @@ func (UnimplementedJapellaControlApiServiceHandler) CreateCannedPost(context.Con
 
 func (UnimplementedJapellaControlApiServiceHandler) DeleteCannedPost(context.Context, *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetSocialAccounts(context.Context, *connect.Request[v1.GetSocialAccountsRequest]) (*connect.Response[v1.GetSocialAccountsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteSocialAccount(context.Context, *connect.Request[v1.DeleteSocialAccountRequest]) (*connect.Response[v1.DeleteSocialAccountResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetConnectors is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.StartOAuth is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetTimeline is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUsers is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetApiKeys is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCvars is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateApiKey(context.Context, *connect.Request[v1.CreateApiKeyRequest]) (*connect.Response[v1.CreateApiKeyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateApiKey is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RevokeApiKey is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetCvar(context.Context, *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetCvar is not implemented"))
 }

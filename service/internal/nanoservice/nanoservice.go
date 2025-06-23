@@ -1,8 +1,9 @@
 package nanoservice
 
 import (
-	"os"
 	"strings"
+
+	"github.com/jamesread/japella/internal/runtimeconfig"
 )
 
 type Nanoservice interface {
@@ -12,10 +13,10 @@ type Nanoservice interface {
 func GetNanoservices() []string {
 	var ret []string
 
-	services := strings.Split(os.Getenv("JAPELLA_NANOSERVICES"), ",")
+	services := runtimeconfig.Get().Nanoservices
 
 	for _, service := range services {
-		tmp := strings.TrimSpace(service)
+		tmp := strings.TrimSpace(service.Name)
 
 		if tmp != "" {
 			ret = append(ret, tmp)

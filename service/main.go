@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/jamesread/japella/internal/bots/exec"
 	"github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/httpserver"
 	"github.com/jamesread/japella/internal/nanoservice"
@@ -10,7 +11,7 @@ import (
 )
 
 var (
-	serviceRegistry = make(map[string]*nanoservice.Nanoservice)
+	serviceRegistry = make(map[string]nanoservice.Nanoservice)
 	Version         = "dev"
 )
 
@@ -30,6 +31,8 @@ func main() {
 
 	log.Infof("japella startup")
 	log.WithFields(log.Fields{
+		"version": buildinfo.Version,
+		"buildDate": buildinfo.BuildDate,
 		"commit": buildinfo.Commit,
 	}).Infof("buildinfo")
 
@@ -58,6 +61,7 @@ func initServiceRegistry() {
 	   serviceRegistry["exec"] = exec.Exec{}
 	   serviceRegistry["dblogger"] = dblogger.DbLogger{}
 	*/
+	serviceRegistry["exec"] = &exec.Exec{}
 }
 
 func startNanoservices() {
@@ -79,7 +83,7 @@ func startNanoservices() {
 }
 
 func startService(serviceName string) {
-	_, ok := serviceRegistry[serviceName]
+	service, ok := serviceRegistry[serviceName]
 
 	if !ok {
 		log.WithFields(log.Fields{
@@ -92,5 +96,5 @@ func startService(serviceName string) {
 		}).Infof("Starting service")
 	}
 
-	//go service.Start()
+	go service.Start()
 }

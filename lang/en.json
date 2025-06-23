@@ -1,0 +1,28 @@
+{
+	"schemaVersion": 1,
+	"translations": {
+		"welcome": "Welcome to Japella!",
+		"welcome.gettingstarted": "Welcome to Japella. To get started, create your first post.",
+		"nav.post": "Post",
+		"nav.timeline": "Timeline",
+		"nav.settings": "Settings",
+		"nav.socialaccounts": "Social Accounts",
+		"nav.system": "System",
+		"nav.users": "Users",
+		"nav.connections": "Connections",
+		"nav.calendar": "Calendar",
+		"nav.schedule": "Schedule",
+		"nav.apikeys": "API Keys",
+		"nav.cannedPosts": "Canned Posts",
+		"section.postbox.submit": "Post",
+		"section.postbox.title": "Post",
+		"section.postbox.socialaccounts": "Social Accounts",
+		"section.postbox.intro": "Post a message for the world to see.",
+		"section.login.title": "Login",
+		"section.login.description": "Please enter your username and password to login.",
+		"section.login.error": "Login failed. Please check your username and password.",
+		"section.login.login": "Login",
+		"section.login.forgot-password": "Forgot Password",
+		"section.login.create-account": "Create Account"
+	}
+}

@@ -1,35 +1,154 @@
-header img {
-	width: 2em;
-	padding: 0.5em;
+@import 'femtocrank/style.css';
+@import 'femtocrank/dark.css';
+
+section.small {
+	max-width: 720px;
+	margin: auto;
 }
 
-header {
-	place-items: center;
-	gap: 1em;
-	padding: 0;
+section p:last-child {
+	margin-bottom: 0;
 }
 
-body {
+.icon-and-text {
 	display: flex;
-	flex-direction: column;
-	min-height: 100vh;
+	align-items: center;
+}
+.icon-and-text svg {
+	margin-right: .4em;
+	margin-left: .4em;
 }
 
-main {
-	flex-grow: 1;
+.social-account {
+	white-space: nowrap;
+	border-radius: 0.6em;
+	background-color: #242424;
+	font-weight: bold;
+	padding: 0.5em;
+	display: inline-flex;
+	align-items: center;
+	gap: .4em;
+	user-select: none;
+}
+
+.section-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding-bottom: 1em;
 }
 
 .notification {
 	padding: 0.75em;
 	border-radius: 0.25em;
 	margin-bottom: 1em;
-	position: fixed;
-	top: 1em;
-	left: 1em;
-	z-index: 1000;
 	cursor: pointer;
 }
 
 .notification span {
 	display: block;
+}
+
+.notification a {
+	color: black;
+	display: block;
+	margin-top: 1em;
+	font-weight: bold;
+}
+
+.inline-notification:last-child {
+	margin-bottom: 0;
+}
+
+.gs2 {
+	grid-column: 1 / span 2;
+}
+
+#nav-section-links h2 {
+	color: #bbb;
+	margin-left: .5em;
+	margin-bottom: 0.5em;
+}
+
+#nav-section-links a:hover {
+	color: white;
+	background-color: #1d345c;
+}
+
+#nav-section-links a.active {
+	text-decoration: underline;
+	color: white;
+	background-color: #1d345c;
+}
+
+#notification-list {
+	position: fixed;
+	right: 0;
+	top: 0;
+	z-index: 1000;
+	width: 300px;
+	padding: 1em;
+}
+
+.user-info {
+	padding: .5em;
+}
+
+table.data-table tr:hover td {
+	background-color: #1d345c;
+	color: white;
+}
+
+input:disabled {
+	cursor: not-allowed !important;
+}
+
+input[type="checkbox"] {
+	display: none;
+}
+
+button.neutral {
+	background-color: transparent;
+	color: white;
+	border: #666 solid 1px;
+}
+
+button.neutral:hover {
+	background-color: #666;
+	color: white;
+}
+
+aside {
+	background-color: black;
+}
+
+#app {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+}
+
+dialog {
+	background-color: #242424;
+	color: white;
+	border-radius: 0.5em;
+	border-color: white;
+	padding: 1em;
+	max-width: 600px;
+	margin: auto;
+}
+
+dialog::backdrop {
+	background-color: rgba(0, 0, 0, 0.5);
+}
+
+input:invalid {
+	outline: 2px solid red;
+	background-color: salmon;
+}
+
+@media (max-width: 600px) {
+	.grid-wide {
+		grid-column: 1 / span 2;
+	}
 }

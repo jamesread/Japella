@@ -10,7 +10,7 @@ frontend:
 	$(MAKE) -wC frontend
 
 docs:
-	mkdocs serve
+	$(MAKE) -wC docs
 
 
 .PHONY: default proto service frontend docs

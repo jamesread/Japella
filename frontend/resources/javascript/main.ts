@@ -4,91 +4,60 @@ import { createConnectTransport } from "@connectrpc/connect-web"
 import { JapellaControlApiService } from './gen/japella/controlapi/v1/control_pb'
 
 import { createApp } from 'vue';
-import Calendar from '../vue/calendar.vue';
-import PostBox from '../vue/post-box.vue';
-import CannedPosts from '../vue/canned-posts.vue';
-import AppStatus from '../vue/app-status.vue';
+import { createI18n, useI18n } from 'vue-i18n';
+import App from '../vue/App.vue';
 
-function setupPostBox () {
-  document.getElementById('submit-post').addEventListener('click', () => {
-    submitPost(document.getElementById('post-box').value)
-  })
-}
-
-function submitPost (post) {
-  window.fetch('/api/sendPost', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      post: post
-    })
-  }).then(response => {
-    if (response.ok) {
-      document.getElementById('result').value = ''
-    }
-  })
-}
+import Notification from './notification.js';
 
 export function main(): void {
-	createApp(PostBox).mount('#post-box')
-	createApp(Calendar).mount('#calendar')
-	createApp(CannedPosts).mount('#canned-posts')
-	createApp(AppStatus).mount('#app-status')
+	fetch('/lang')
+		.then(response => response.json())
+		.then(ret => {
+			const i18n = createI18n({
+				legacy: false,
+				locale: ret.acceptLanguages[0],
+				fallbackLocale: 'en',
+				messages: ret.messages,
+				postTranslation: (translated) => {
+					const params = new URLSearchParams(window.location.search);
 
-	createSectionLink('Canned Posts', 'canned-posts').click()
-	createSectionLink('Post', 'post-box')
-	createSectionLink('Calendar', 'calendar')
-	createSectionLink('Status', 'status')
+					if (params.has('debug-i18n')) {
+						return '___'
+					} else {
+						return translated;
+					}
+				}
+			})
 
-	createApiClient()
-	setupApi()
+			createTheApp(i18n);
+		})
+		.catch(error => {
+			console.error('Error loading language file:', error);
+		});
 }
 
-function createSectionLink(name: string, sectionClass: string): HTMLAnchorElement {
-	const link = document.createElement('a');
-	link.innerText = name;
+function createTheApp(i18n: any): void {
+	const app = createApp(App)
 
-	link.onclick = () => {
-		document.getElementsByTagName('nav')[0].querySelector('ul').querySelectorAll('a').forEach((a) => {
-			a.classList.remove('active')
-		});
+	app.use(i18n)
+	app.mount('#app')
 
-		for (const section of document.querySelectorAll('section')) {
-			const shown = section.classList.contains(sectionClass)
+	createApiClient()
+	//setupApi()
 
-			section.hidden = !shown
-		}
-
-		link.classList.add('active')
-	}
-
-	const li = document.createElement('li');
-	li.appendChild(link);
-
-	document.getElementsByTagName('nav')[0].querySelector('ul').appendChild(li);
-
-	return link;
+	displayNotifications()
 }
 
 function createApiClient(): void {
-	let baseUrl = '/api/'
-
-	if (window.location.hostname.includes('localhost')) {
-		baseUrl = 'http://localhost:8080/api/'
-	}
-
 	window.transport = createConnectTransport({
-		baseUrl: baseUrl,
+		baseUrl: '/api/',
+		credentials: 'include',
 	})
 
 	window.client = createClient(JapellaControlApiService, window.transport)
-
-//	setupPostBox()
 }
 
-async function setupApi(): void {
+async function onLogin(): void {
 	const status = await window.client.getStatus();
 
 	window.dispatchEvent(new CustomEvent('status-updated', {
@@ -97,4 +66,26 @@ async function setupApi(): void {
 
 	document.getElementById('currentVersion').innerText = 'Version: ' + status.version;
 
+}
+
+function getSearchParams(): URLSearchParams {
+	const params = new URLSearchParams(window.location.search);
+
+	return params;
+}
+
+function displayNotifications(): void {
+	let params = getSearchParams();
+	if (params.has('notification')) {
+		let type = params.get('type') || 'info';
+		let title = params.get('title') || 'Notification';
+		let message = params.get('notification');
+
+		let n = new Notification(type, title, message);
+		n.show();
+
+		// Clear the notification from the URL
+		params.delete('notification');
+		window.history.replaceState({}, '', window.location.pathname + '?' + params.toString());
+	}
 }
