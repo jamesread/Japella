@@ -1,4 +1,4 @@
-package db;
+package db
 
 import (
 	"time"
@@ -6,7 +6,7 @@ import (
 
 type Model struct {
 	/**
-	We use uint32 for IDs which might seem a but unusual in 2025, but JavaScript
+	We use uint32 for IDs which might seem a bit unusual in 2025, but JavaScript
 	uses 53-bit integers, and so all ints have to wrapped to a string, which
 	gets way too ugly.
 
@@ -24,87 +24,87 @@ type Model struct {
 type SocialAccount struct {
 	Model
 
-	Connector  string
-	Identity   string
-	OAuth2Token string
-	OAuth2TokenExpiry time.Time
-	OAuth2RefreshToken string
-	Active bool
+	Connector          string `gorm:"type:varchar(50);not null"`
+	Identity           string `gorm:"type:varchar(255);not null"`
+	OAuth2Token        string `gorm:"type:text"`
+	OAuth2TokenExpiry  time.Time
+	OAuth2RefreshToken string `gorm:"type:text"`
+	Active             bool   `gorm:"default:false;not null"`
 }
 
 type CannedPost struct {
 	Model
 
-	Content string
+	Content string `gorm:"type:text;not null"`
 }
 
 type Post struct {
 	Model
 
-	SocialAccountID uint32
-	SocialAccount *SocialAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
-	Status bool
-	Content string
-	PostURL string
-	RemoteID string
+	SocialAccountID uint32         `gorm:"not null"`
+	SocialAccount   *SocialAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	Status          bool           `gorm:"default:false;not null"`
+	Content         string         `gorm:"type:text;not null"`
+	PostURL         string         `gorm:"type:varchar(500)"`
+	RemoteID        string         `gorm:"type:varchar(255)"`
 }
 
 type UserAccount struct {
 	Model
 
-	Username string `gorm:"type:varchar(64);uniqueIndex"`
-	PasswordHash string
+	Username     string `gorm:"type:varchar(64);uniqueIndex;not null"`
+	PasswordHash string `gorm:"type:varchar(255);not null"`
 }
 
 type UserGroup struct {
 	Model
 
-	Name        string
+	Name string `gorm:"type:varchar(100);not null"`
 }
 
 type UserGroupMembership struct {
 	Model
 
-	UserAccountID uint32 `gorm:"uniqueIndex:idx_user_group_membership"`
-	UserAccount *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	UserAccountID uint32       `gorm:"uniqueIndex:idx_user_group_membership;not null"`
+	UserAccount   *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 
-	UserGroupID   uint32 `gorm:"uniqueIndex:idx_user_group_membership"`
-	UserGroup *UserGroup `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	UserGroupID uint32     `gorm:"uniqueIndex:idx_user_group_membership;not null"`
+	UserGroup   *UserGroup `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 }
 
 type ApiKey struct {
 	Model
 
-	KeyValue string `gorm:"type:varchar(64);uniqueIndex"` // Key keyword in SQL
-	UserAccountID uint32
-	UserAccount *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	KeyValue      string       `gorm:"type:varchar(64);uniqueIndex;not null"` // Key keyword in SQL
+	UserAccountID uint32       `gorm:"not null"`
+	UserAccount   *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 }
 
 type Session struct {
 	Model
 
-	UserAccountID uint32
-	UserAccount *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
-	SID string `gorm:"uniqueIndex"` // Session ID
+	UserAccountID uint32       `gorm:"not null"`
+	UserAccount   *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	SID           string       `gorm:"uniqueIndex;type:varchar(255);not null"` // Session ID
 }
 
 type Cvar struct {
 	Model
 
-	KeyName  string `gorm:"type:varchar(64);uniqueIndex;not null"`
-	Title	   string `gorm:"type:varchar(100);not null"`
-	ValueString    string `gorm:"type:text"`
-	ValueInt int32 `gorm:"type:int"`
-	Description string `gorm:"type:text"`
+	KeyName      string `gorm:"type:varchar(64);uniqueIndex;not null"`
+	Title        string `gorm:"type:varchar(100);not null"`
+	ValueString  string `gorm:"type:text"`
+	ValueInt     int32  `gorm:"type:int;default:0"`
+	Description  string `gorm:"type:text"`
 	DefaultValue string `gorm:"type:text"`
-	Category string `gorm:"type:text"`
-	Type string `gorm:"type:varchar(20);not null"`
+	Category     string `gorm:"type:varchar(50)"`
+	Type         string `gorm:"type:varchar(20);not null"`
 }
 
 type UserPreferences struct {
 	Model
 
-	UserAccountID uint32 `gorm:"uniqueIndex"`
-	UserAccount UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
-	Language string `gorm:"type:varchar(10)"`
+	UserAccountID uint32      `gorm:"uniqueIndex;not null"`
+	UserAccount   UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
+	Language      string      `gorm:"type:varchar(10);default:'en'"`
 }

@@ -1,10 +1,11 @@
 package db
 
 import (
-	"gorm.io/gorm"
 	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 
 	"fmt"
+
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 
@@ -64,12 +65,15 @@ func (db *DB) initAdminUser() error {
 			return err
 		}
 
-		db.CreateUserAccount("admin", passwordHash)
+		_, err = db.CreateUserAccount("admin", passwordHash)
+		if err != nil {
+			log.Errorf("Failed to create default admin user: %v", err)
+			return err
+		}
 	}
 
 	return nil
 }
-
 
 func (db *DB) Migrate() error {
 	if db.conn == nil {
@@ -100,7 +104,12 @@ func (db *DB) Migrate() error {
 }
 
 func (db *DB) UpdateSocialAccountIdentity(id uint32, identity string) error {
-	db.conn.Model(&SocialAccount{}).Where("id = ?", id).Update("identity", identity)
+	result := db.conn.Model(&SocialAccount{}).Where("id = ?", id).Update("identity", identity)
+
+	if result.Error != nil {
+		log.Errorf("Failed to update social account identity: %v", result.Error)
+		return result.Error
+	}
 
 	return nil
 }
@@ -110,9 +119,17 @@ func (db *DB) SelectSocialAccounts(onlyActive bool) []*SocialAccount {
 
 	if onlyActive {
 		log.Infof("Selecting only active social accounts")
-		db.conn.Where("active = ?", 1).Find(&ret)
+		result := db.conn.Where("active = ?", 1).Find(&ret)
+		if result.Error != nil {
+			log.Errorf("Failed to select active social accounts: %v", result.Error)
+			return ret
+		}
 	} else {
-		db.conn.Find(&ret)
+		result := db.conn.Find(&ret)
+		if result.Error != nil {
+			log.Errorf("Failed to select social accounts: %v", result.Error)
+			return ret
+		}
 	}
 
 	return ret
@@ -121,7 +138,12 @@ func (db *DB) SelectSocialAccounts(onlyActive bool) []*SocialAccount {
 func (db *DB) SelectCannedPosts() []*CannedPost {
 	ret := make([]*CannedPost, 0)
 
-	db.conn.Find(&ret)
+	result := db.conn.Find(&ret)
+
+	if result.Error != nil {
+		log.Errorf("Failed to select canned posts: %v", result.Error)
+		return ret
+	}
 
 	return ret
 }
@@ -131,33 +153,58 @@ func (db *DB) CreateCannedPost(content string) error {
 		Content: content,
 	}
 
-	db.conn.Create(post)
+	result := db.conn.Create(post)
+
+	if result.Error != nil {
+		log.Errorf("Failed to create canned post: %v", result.Error)
+		return result.Error
+	}
 
 	return nil
 }
 
 func (db *DB) DeleteCannedPost(id uint32) error {
-	log.Infof("Deleting canned post with ID: %s", id)
+	log.Infof("Deleting canned post with ID: %d", id)
 
-	db.conn.Delete(&CannedPost{}, id)
+	result := db.conn.Delete(&CannedPost{}, id)
+
+	if result.Error != nil {
+		log.Errorf("Failed to delete canned post: %v", result.Error)
+		return result.Error
+	}
 
 	return nil
 }
 
-func (db *DB) RegisterAccount(socialAccount *SocialAccount) (error) {
-	res := db.conn.Create(socialAccount)
+func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
+	result := db.conn.Create(socialAccount)
 
-	return res.Error
+	if result.Error != nil {
+		log.Errorf("Failed to register social account: %v", result.Error)
+		return result.Error
+	}
+
+	return nil
 }
 
 func (db *DB) DeleteSocialAccount(id uint32) error {
-	res := db.conn.Delete(&SocialAccount{}, id)
+	result := db.conn.Delete(&SocialAccount{}, id)
 
-	return res.Error
+	if result.Error != nil {
+		log.Errorf("Failed to delete social account: %v", result.Error)
+		return result.Error
+	}
+
+	return nil
 }
 
 func (db *DB) CreatePost(post *Post) error {
-	db.conn.Create(post)
+	result := db.conn.Create(post)
+
+	if result.Error != nil {
+		log.Errorf("Failed to create post: %v", result.Error)
+		return result.Error
+	}
 
 	return nil
 }
@@ -165,7 +212,12 @@ func (db *DB) CreatePost(post *Post) error {
 func (db *DB) SelectPosts() ([]*Post, error) {
 	ret := make([]*Post, 0)
 
-	db.conn.Preload("SocialAccount").Order("id DESC").Find(&ret)
+	result := db.conn.Preload("SocialAccount").Order("id DESC").Find(&ret)
+
+	if result.Error != nil {
+		log.Errorf("Failed to select posts: %v", result.Error)
+		return nil, result.Error
+	}
 
 	return ret, nil
 }
@@ -186,6 +238,7 @@ func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
 	result := db.conn.Model(&SocialAccount{}).Where("id = ?", id).Update("active", active)
 
 	if result.Error != nil {
+		log.Errorf("Failed to set social account active status: %v", result.Error)
 		return result.Error
 	}
 
@@ -195,7 +248,7 @@ func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
 func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 	ret := &ApiKey{}
 
-	result := db.conn.Preload("UserAccount").Where("key_value = ?", apiKey).Limit(1).Find(ret)
+	result := db.conn.Preload("UserAccount").Where("key_value = ?", apiKey).First(ret)
 
 	if result.Error != nil || result.RowsAffected == 0 {
 		return nil
@@ -207,7 +260,7 @@ func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 func (db *DB) GetUserByUsername(username string) *UserAccount {
 	var ret UserAccount
 
-	result := db.conn.Where("username = ?", username).Limit(1).Find(&ret)
+	result := db.conn.Where("username = ?", username).First(&ret)
 
 	if result.Error != nil || ret.Username == "" {
 		log.Warnf("No user found for username: %s", username)
@@ -265,7 +318,7 @@ func (db *DB) HasAnyUsers() bool {
 func (db *DB) CreateSession(sessionID string, uid uint32) error {
 	session := &Session{
 		UserAccountID: uid,
-		SID:     sessionID,
+		SID:           sessionID,
 	}
 
 	result := db.conn.Create(session)
@@ -330,19 +383,19 @@ func (db *DB) SelectCvars() ([]*Cvar, error) {
 	return ret, nil
 }
 
-func (db *DB) GetCvar(key string) (*Cvar) {
-	var cvar *Cvar
+func (db *DB) GetCvar(key string) *Cvar {
+	var cvar Cvar
 
-	result := db.conn.Where("key_name = ?", key).Limit(1).Find(&cvar)
+	result := db.conn.Where("key_name = ?", key).First(&cvar)
 
-	if result.RowsAffected == 0 {
+	if result.Error != nil || result.RowsAffected == 0 {
 		return nil
 	}
 
-	return cvar
+	return &cvar
 }
 
-func (db *DB) GetCvarString(key string) (string) {
+func (db *DB) GetCvarString(key string) string {
 	var cvar Cvar
 
 	result := db.conn.Where("key_name = ?", key).First(&cvar)
@@ -355,7 +408,7 @@ func (db *DB) GetCvarString(key string) (string) {
 	return cvar.ValueString
 }
 
-func (db *DB) GetCvarBool(key string) (bool) {
+func (db *DB) GetCvarBool(key string) bool {
 	var cvar Cvar
 
 	result := db.conn.Where("key_name = ?", key).First(&cvar)
@@ -369,10 +422,10 @@ func (db *DB) GetCvarBool(key string) (bool) {
 		return true
 	}
 
-	return false;
+	return false
 }
 
-func (db *DB) GetCvarInt(key string) (int32) {
+func (db *DB) GetCvarInt(key string) int32 {
 	var cvar Cvar
 
 	result := db.conn.Where("key_name = ?", key).First(&cvar)
@@ -386,7 +439,7 @@ func (db *DB) GetCvarInt(key string) (int32) {
 }
 
 func (db *DB) SetCvarString(key, value string) error {
-	result := db.conn.Model(&Cvar{}).Where("key_name = ?", key).Update("value_string", value);
+	result := db.conn.Model(&Cvar{}).Where("key_name = ?", key).Update("value_string", value)
 
 	if result.Error != nil {
 		log.Errorf("Failed to set cvar %s: %v", key, result.Error)
@@ -422,11 +475,21 @@ func (db *DB) SetCvarInt(key string, value int32) error {
 func (db *DB) SaveUserPreferences(preferences *UserPreferences) error {
 	result := db.conn.Save(preferences)
 
-	return result.Error
+	if result.Error != nil {
+		log.Errorf("Failed to save user preferences: %v", result.Error)
+		return result.Error
+	}
+
+	return nil
 }
 
 func (db *DB) RevokeApiKey(id uint32) error {
 	result := db.conn.Delete(&ApiKey{}, id)
 
-	return result.Error
+	if result.Error != nil {
+		log.Errorf("Failed to revoke API key: %v", result.Error)
+		return result.Error
+	}
+
+	return nil
 }

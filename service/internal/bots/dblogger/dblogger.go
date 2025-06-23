@@ -49,7 +49,7 @@ func (bot *DbLogger) ListenForMessages(db *sql.DB) {
 }
 
 func (bot *DbLogger) ConnectDatabase(db *runtimeconfig.DatabaseConfig) *sql.DB {
-	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", db.User, db.Password, db.Host, db.Database)
+	url := fmt.Sprintf("%v:%v@tcp(%v)/%v?parseTime=true", db.User, db.Pass, db.Host, db.Name)
 
 	conn, err := sql.Open("mysql", url)
 
