@@ -25,7 +25,7 @@ type ExecBot struct {
 
 var commands = ""
 
-func (e Exec) Start() {
+func (e *Exec) Start() {
 	bot := ExecBot{}
 	bot.SetName("Exec")
 	bot.Setup()
