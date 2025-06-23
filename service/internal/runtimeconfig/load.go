@@ -145,6 +145,21 @@ func (w *ConnectorConfigWrapper) UnmarshalYAML(node ast.Node) error {
 	return nil
 }
 
+func loadEnvVars(cfg *CommonConfig) {
+	loadEnvVar(&cfg.Database.Host, "DB_HOST")
+	loadEnvVar(&cfg.Database.User, "DB_USER")
+	loadEnvVar(&cfg.Database.Pass, "DB_PASS")
+}
+
+func loadEnvVar(variable *string, envVar string) {
+	value := os.Getenv(envVar)
+
+	if envVar != "" {
+		log.Infof("Overriding config variable with environment variable: %s", envVar)
+		*variable = value
+	}
+}
+
 func loadConfig() *CommonConfig {
 	configFilename := getConfigFilePath("config.yaml")
 
@@ -159,6 +174,8 @@ func loadConfig() *CommonConfig {
 	if err != nil {
 		log.Fatalf("could not load common config! %v", err)
 	}
+
+	loadEnvVars(cfg)
 
 	log.Infof("Config loading complete")
 

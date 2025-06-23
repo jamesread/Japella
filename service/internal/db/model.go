@@ -35,14 +35,12 @@ type SocialAccount struct {
 type CannedPost struct {
 	Model
 
-	ID      uint32 `gorm:"primarykey"`
 	Content string
 }
 
 type Post struct {
 	Model
 
-	ID uint32 `gorm:"primarykey"`
 	SocialAccountID uint32
 	SocialAccount *SocialAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`
 	Status bool
@@ -54,7 +52,6 @@ type Post struct {
 type UserAccount struct {
 	Model
 
-	ID       uint32 `gorm:"primarykey"`
 	Username string `gorm:"type:varchar(64);uniqueIndex"`
 	PasswordHash string
 }
@@ -62,7 +59,6 @@ type UserAccount struct {
 type UserGroup struct {
 	Model
 
-	ID          uint32 `gorm:"primarykey"`
 	Name        string
 }
 
@@ -79,7 +75,6 @@ type UserGroupMembership struct {
 type ApiKey struct {
 	Model
 
-	ID uint32 `gorm:"primarykey"`
 	KeyValue string `gorm:"type:varchar(64);uniqueIndex"` // Key keyword in SQL
 	UserAccountID uint32
 	UserAccount *UserAccount `gorm:"constraint:OnUpdate:NO ACTION,OnDelete:NO ACTION;"`

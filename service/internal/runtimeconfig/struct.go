@@ -53,8 +53,8 @@ type DatabaseConfig struct {
 	Enabled  bool
 	Host     string
 	User     string
-	Password string
-	Database string
+	Pass     string
+	Name     string
 }
 
 type MastodonConfig struct {

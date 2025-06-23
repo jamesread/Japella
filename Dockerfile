@@ -10,7 +10,7 @@ LABEL org.opencontainers.image.vendor="Japella's Community of Contributors"
 LABEL org.opencontainers.image.version={{.Version}}
 
 COPY webui /usr/share/Japella/webui/
-COPY var/config-skel/ /config/config.yaml
+COPY var/config-skel/ /config/
 COPY japella /app/
 COPY lang/ /app/lang/
 

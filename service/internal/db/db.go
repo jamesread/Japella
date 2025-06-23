@@ -21,17 +21,18 @@ func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) error {
 		return nil
 	}
 
-	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", dbconfig.User, dbconfig.Password, dbconfig.Host, dbconfig.Database)
+	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", dbconfig.User, dbconfig.Pass, dbconfig.Host, dbconfig.Name)
 
 	var err error
 
 	db.conn, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
-	db.conn = db.conn.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8 COLLATE=utf8_bin")
 
 	if err != nil {
 		log.Warnf("Failed to connect to database: %v", err)
 		return err
 	}
+
+	db.conn = db.conn.Set("gorm:table_options", "ENGINE=InnoDB CHARSET=utf8 COLLATE=utf8_bin")
 
 	err = db.Migrate()
 
@@ -46,6 +47,8 @@ func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) error {
 		log.Errorf("Failed to initialize admin user: %v", err)
 		return err
 	}
+
+	db.conn = db.conn.Session(&gorm.Session{})
 
 	return nil
 }
@@ -202,16 +205,16 @@ func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 }
 
 func (db *DB) GetUserByUsername(username string) *UserAccount {
-	ret := &UserAccount{}
+	var ret UserAccount
 
-	result := db.conn.Where("username = ?", username).Limit(1).Find(ret)
+	result := db.conn.Where("username = ?", username).Limit(1).Find(&ret)
 
 	if result.Error != nil || ret.Username == "" {
 		log.Warnf("No user found for username: %s", username)
 		return nil
 	}
 
-	return ret
+	return &ret
 }
 
 func (db *DB) CreateUserAccount(username, passwordHash string) (*UserAccount, error) {
