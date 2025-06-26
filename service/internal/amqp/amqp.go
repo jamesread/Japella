@@ -74,7 +74,7 @@ func GetChannel(name string) (*amqp.Channel, error) {
 		channel, err = conn.Channel()
 
 		if err != nil {
-			log.Warnf("GetChannel() - Error opening channel: %v")
+			log.Warnf("GetChannel() - Error opening channel: %v", name)
 			return nil, err
 		}
 

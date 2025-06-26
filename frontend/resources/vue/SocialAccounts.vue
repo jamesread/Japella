@@ -4,7 +4,7 @@
 			<div class = "fg1">
 				<h2>Social Accounts</h2>
 
-				<p>This page shows a list of social accounts that can be used in the chat.</p>
+				<p>This page shows a list of social accounts that you have configured.</p>
 			</div>
 			<div role = "toolbar">
 				<button @click = "refreshAccounts()" :disabled = "!clientReady" class = "neutral">
@@ -24,7 +24,7 @@
 				<table>
 					<thead>
 						<tr>
-							<th>Social Account</th>
+							<th>Identity</th>
 							<th class="small" style = "text-align: right">Actions</th>
 						</tr>
 					</thead>

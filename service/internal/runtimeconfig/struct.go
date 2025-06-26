@@ -54,6 +54,7 @@ type DatabaseConfig struct {
 	Host     string
 	User     string
 	Pass     string
+	Port	 int
 	Name     string
 }
 

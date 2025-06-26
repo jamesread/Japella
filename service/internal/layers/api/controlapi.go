@@ -13,6 +13,8 @@ import (
 
 	"github.com/rs/cors"
 
+	"os"
+
 	"github.com/jamesread/golure/pkg/redact"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
@@ -25,7 +27,6 @@ import (
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
-	"os"
 
 	"github.com/google/uuid"
 )
@@ -50,18 +51,10 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 	s.statusMessages = make([]*controlv1.StatusMessage, 0)
 
 	s.DB = &db.DB{}
-	err := s.DB.ReconnectDatabase(cfg.Database)
+	s.DB.SetDatabaseConfig(cfg.Database)
+	s.DB.ReconnectDatabaseAndSetErrorMessage()
 
-	if err != nil {
-		s.statusMessages = append(s.statusMessages, &controlv1.StatusMessage{
-			Message: fmt.Sprintf("Critical database error: %v", err),
-			Type:    "error",
-		})
-
-		log.Errorf("Database startup problem: %v", err)
-
-		return
-	}
+	go s.DB.ReconnectLoop()
 
 	s.oauth2states = make(map[string]*oauth2State)
 	s.cc = connectorcontroller.New(s.DB)
@@ -76,8 +69,8 @@ func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[co
 
 	for _, post := range cannedPosts {
 		ret = append(ret, &controlv1.CannedPost{
-			Id:      post.ID,
-			Content: post.Content,
+			Id:        post.ID,
+			Content:   post.Content,
 			CreatedAt: post.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
@@ -101,20 +94,20 @@ func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *authentication.A
 
 func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[controlv1.GetStatusRequest]) (*connect.Response[controlv1.GetStatusResponse], error) {
 	var authenticatedUser *authentication.AuthenticatedUser
-	username := ""
+	username := "<anonymous>"
 
 	if authenticatedUser = s.getAuthenticatedUser(ctx); authenticatedUser != nil {
 		username = authenticatedUser.User.Username
 	}
 
-	log.Infof("GetStatus called by user: %s", username)
+	log.Infof("GetStatus called by user: %s.", username)
 
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
-		Status:       "OK!",
-		Nanoservices: nanoservice.GetNanoservices(),
-		Version:      buildinfo.Version,
-		Username:     username,
-		IsLoggedIn:   authenticatedUser != nil,
+		Status:         "OK!",
+		Nanoservices:   nanoservice.GetNanoservices(),
+		Version:        buildinfo.Version,
+		Username:       username,
+		IsLoggedIn:     authenticatedUser != nil,
 		StatusMessages: s.statusMessages,
 	})
 
@@ -148,9 +141,9 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		log.Infof("Processing post for account: %v", accountId)
 
 		postStatus := &controlv1.PostStatus{
-			Success:   false,
+			Success:         false,
 			SocialAccountId: accountId,
-			Content:  req.Msg.Content,
+			Content:         req.Msg.Content,
 		}
 
 		socialAccount, _ := s.DB.GetSocialAccount(accountId)
@@ -160,7 +153,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		s.DB.CreatePost(&db.Post{
 			SocialAccountID: socialAccount.ID,
 			Content:         req.Msg.Content,
-			Status:         postStatus.Success,
+			Status:          postStatus.Success,
 			PostURL:         postStatus.PostUrl,
 		})
 
@@ -395,9 +388,9 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 	log.Infof("State connector: %+v", state)
 
 	err = s.DB.RegisterAccount(&db.SocialAccount{
-		Connector:  state.connector.GetProtocol(),
-		OAuth2Token:  token.AccessToken,
-		OAuth2TokenExpiry: token.Expiry,
+		Connector:          state.connector.GetProtocol(),
+		OAuth2Token:        token.AccessToken,
+		OAuth2TokenExpiry:  token.Expiry,
 		OAuth2RefreshToken: token.RefreshToken,
 	})
 
@@ -427,7 +420,7 @@ func redirect(w http.ResponseWriter, message string, msgType string) {
 }
 
 func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Request[controlv1.DeleteSocialAccountRequest]) (*connect.Response[controlv1.DeleteSocialAccountResponse], error) {
-	log.Infof("Deleting social account with ID: %s", req.Msg.Id)
+	log.Infof("Deleting social account with ID: %v", req.Msg.Id)
 
 	err := s.DB.DeleteSocialAccount(req.Msg.Id)
 
@@ -446,13 +439,13 @@ func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Reque
 }
 
 func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Request[controlv1.RefreshSocialAccountRequest]) (*connect.Response[controlv1.RefreshSocialAccountResponse], error) {
-	log.Infof("Refreshing social account with ID: %s", req.Msg.Id)
+	log.Infof("Refreshing social account with ID: %v", req.Msg.Id)
 
 	socialAccount, _ := s.DB.GetSocialAccount(req.Msg.Id)
 
 	if socialAccount == nil {
-		log.Errorf("Social account not found: %s", req.Msg.Id)
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %s", req.Msg.Id))
+		log.Errorf("Social account not found: %v", req.Msg.Id)
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %v", req.Msg.Id))
 	}
 
 	connectorService := s.cc.Get(socialAccount.Connector)
@@ -462,7 +455,7 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector service not found for connector: %s", socialAccount.Connector))
 	}
 
-	connectorService.OnRefresh(socialAccount);
+	connectorService.OnRefresh(socialAccount)
 
 	res := connect.NewResponse(&controlv1.RefreshSocialAccountResponse{
 		StandardResponse: &controlv1.StandardResponse{
@@ -483,7 +476,6 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 
 	timeline := make([]*controlv1.PostStatus, 0, len(posts))
 
-
 	for _, post := range posts {
 		socialAccountIcon := "mdi:question-mark-circle"
 		socialAccountIdentity := "Unknown"
@@ -494,14 +486,14 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 		}
 
 		timeline = append(timeline, &controlv1.PostStatus{
-			Id:             post.ID,
-			Created:      post.CreatedAt.Format("2006-01-02 15:04:05"),
-			SocialAccountId: post.SocialAccountID,
-			SocialAccountIcon: socialAccountIcon,
+			Id:                    post.ID,
+			Created:               post.CreatedAt.Format("2006-01-02 15:04:05"),
+			SocialAccountId:       post.SocialAccountID,
+			SocialAccountIcon:     socialAccountIcon,
 			SocialAccountIdentity: socialAccountIdentity,
-			Content:         post.Content,
-			Success:         post.Status,
-			PostUrl:         post.PostURL,
+			Content:               post.Content,
+			Success:               post.Status,
+			PostUrl:               post.PostURL,
 		})
 	}
 
@@ -566,7 +558,6 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 		res.Msg.Username = user.Username
 	}
 
-
 	sid := uuid.New().String()
 	log.Infof("Creating session for user: %s with session ID: %s", user.Username, sid)
 
@@ -579,10 +570,10 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 	}
 
 	c := http.Cookie{
-		Name: "japella-sid",
-		Value: sid,
+		Name:     "japella-sid",
+		Value:    sid,
 		HttpOnly: true,
-		Path: "/",
+		Path:     "/",
 		SameSite: http.SameSiteStrictMode,
 	}
 
@@ -614,8 +605,8 @@ func (s *ControlApi) GetUsers(ctx context.Context, req *connect.Request[controlv
 
 	for _, user := range users {
 		res.Msg.Users = append(res.Msg.Users, &controlv1.UserAccount{
-			Id:       user.ID,
-			Username: user.Username,
+			Id:        user.ID,
+			Username:  user.Username,
 			CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
 		})
 	}
@@ -682,12 +673,12 @@ func (s *ControlApi) GetCvars(ctx context.Context, req *connect.Request[controlv
 		}
 
 		category.Cvars = append(category.Cvars, &controlv1.Cvar{
-			KeyName:      cvar.KeyName,
-			ValueString:     cvar.ValueString,
+			KeyName:     cvar.KeyName,
+			ValueString: cvar.ValueString,
 			ValueInt:    cvar.ValueInt,
 			Description: cvar.Description,
-			Type:		 cvar.Type,
-			Title:        cvar.Title,
+			Type:        cvar.Type,
+			Title:       cvar.Title,
 		})
 	}
 
@@ -705,7 +696,7 @@ func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Reque
 
 	err := s.DB.SaveUserPreferences(&db.UserPreferences{
 		UserAccountID: authenticatedUser.User.ID,
-		Language: req.Msg.Language,
+		Language:      req.Msg.Language,
 	})
 
 	if err != nil {
@@ -738,7 +729,7 @@ func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[cont
 	}
 
 	res := connect.NewResponse(&controlv1.CreateApiKeyResponse{
-		StandardResponse: &controlv1.StandardResponse {
+		StandardResponse: &controlv1.StandardResponse{
 			Success: true,
 		},
 		NewKeyValue: newKeyValue,
@@ -782,12 +773,14 @@ func (s *ControlApi) SetCvar(ctx context.Context, req *connect.Request[controlv1
 
 	var err error
 
-	switch (cvar.Type) {
+	switch cvar.Type {
 	case "password":
 		fallthrough
 	case "text":
 		log.Infof("Setting cvar %s to string value: %s", cvar.KeyName, req.Msg.ValueString)
 		err = s.DB.SetCvarString(cvar.KeyName, req.Msg.ValueString)
+	case "bool":
+		fallthrough
 	case "int":
 		err = s.DB.SetCvarInt(cvar.KeyName, req.Msg.ValueInt)
 	default:

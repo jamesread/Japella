@@ -5,6 +5,7 @@
 				<h2>{{ link.name }}</h2>
 			</span>
 			<a v-else :href="'#' + link.sectionName" @click.prevent="showNavSection(link.sectionName)">
+				<Icon :icon="link.icon" v-if="link.icon" />
 				{{ link.name }}
 			</a>
 		</li>
@@ -15,6 +16,7 @@
 	import { useI18n } from 'vue-i18n'
 	import { ref, onMounted } from 'vue';
 	const { t } = useI18n()
+	import { Icon } from '@iconify/vue';
 
 	const emit = defineEmits(['section-change-request'])
 
@@ -22,6 +24,13 @@
 		{
 			name: t("nav.post"),
 			sectionName: "postBox",
+			icon: "jam:write-f",
+			type: "link"
+		},
+		{
+			name: t("nav.media"),
+			sectionName: "media",
+			icon: "jam:picture-f",
 			type: "link"
 		},
 		{
@@ -31,17 +40,20 @@
 		{
 			name: t('nav.timeline'),
 			sectionName: 'timeline',
-			type: 'link'
+			type: 'link',
+			icon: "jam:clock",
 		},
 		{
 			name: t('nav.cannedPosts'),
 			sectionName: 'cannedPosts',
 			type: 'link',
+			icon: "jam:box",
 		},
 		{
 			name: t('nav.calendar'),
 			sectionName: "calendar",
-			type: "link"
+			type: "link",
+			icon: "jam:calendar-alt",
 		},
 		{
 			name: t('nav.connections'),
@@ -51,6 +63,13 @@
 			name: t('nav.socialaccounts'),
 			sectionName: 'socialAccounts',
 			type: 'link',
+			icon: "jam:users",
+		},
+		{
+			name: t('nav.chataccounts'),
+			sectionName: 'oauthServices',
+			type: 'link',
+			icon: "jam:message",
 		},
 		{
 			name: t('nav.system'),
@@ -60,16 +79,19 @@
 			name: t('nav.settings'),
 			sectionName: 'settings',
 			type: 'link',
+			icon: "jam:settings-alt",
 		},
 		{
 			name: t('nav.apikeys'),
 			sectionName: 'settingsApiKeys',
 			type: 'link',
+			icon: "jam:key",
 		},
 		{
 			name: t('nav.users'),
 			sectionName: 'settingsUsers',
 			type: 'link',
+			icon: "jam:users",
 		},
 	]);
 

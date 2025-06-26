@@ -3,7 +3,6 @@ package utils
 import (
 	"runtime"
 	"github.com/alexedwards/argon2id"
-	log "github.com/sirupsen/logrus"
 )
 
 var defaultHashParams = argon2id.Params {
@@ -17,18 +16,11 @@ var defaultHashParams = argon2id.Params {
 func HashPassword(password string) (string, error) {
 	hashedPassword, err := argon2id.CreateHash(password, &defaultHashParams)
 
-	if err != nil {
-		log.Errorf("Failed to hash password: %v", err)
-		return "", err
-	}
-
-	return hashedPassword, nil
+	return hashedPassword, err
 }
 
 func VerifyPassword(hashedPassword, password string) (bool, error) {
 	match, err := argon2id.ComparePasswordAndHash(password, hashedPassword)
-	if err != nil {
-		return false, err
-	}
-	return match, nil
+
+	return match, err
 }

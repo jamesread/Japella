@@ -17,7 +17,7 @@
 						<input :type = "cvar.type" name = "" :id = "cvar.keyName" :placeholder = "cvar.keyName" :value = "cvar.valueString" @blur = "setCvar(cvar)" />
 					</template>
 					<template v-else-if = "cvar.type === 'bool'">
-						<input type = "checkbox" :id = "cvar.keyName" :checked = "cvar.valueInt === '1'" @change = "setCvar(cvar)" />
+						<input type = "checkbox" :id = "cvar.keyName" :checked = "cvar.valueInt === 1" @blur = "setCvar(cvar)" />
 					</template>
 				<span>{{ cvar.description }}</span>
 			</template>
@@ -52,14 +52,13 @@
 		if (cvar.type === 'text' || cvar.type === 'password') {
 			req.valueString = document.getElementById(cvar.keyName).value;
 		} else if (cvar.type === 'bool') {
-			req.valueInt = document.getElementById(cvar.keyName).checked ? '1' : '0';
+			req.valueInt = document.getElementById(cvar.keyName).checked ? 1 : 0;
 		} else if (cvar.type === 'int') {
 			req.valueInt = parseFloat(document.getElementById(cvar.keyName).value);
 		} else {
 			console.warn(`Unsupported cvar type: ${cvar.type}`);
 			return;
 		}
-
 
 		window.client.setCvar(req)
 		.then(() => {

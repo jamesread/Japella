@@ -2,14 +2,16 @@ package frontend
 
 import (
 	"net/http"
+
 	"github.com/jamesread/golure/pkg/dirs"
 )
 
 func findWebuiDir() string {
 	directoriesToSearch := []string{
 		"../frontend/dist/",
-		"../webui",
+		"../../webui",
 		"/usr/share/Japella/webui/",
+		"../../../frontend/dist/", // Relative to this file, for unit tests
 	}
 
 	dir, _ := dirs.GetFirstExistingDirectory("webui", directoriesToSearch)

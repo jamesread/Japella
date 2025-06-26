@@ -158,3 +158,9 @@
 			});
 	}
 </script>
+
+<style scoped>
+    input[type="checkbox"] {
+		display: none;
+	}
+</style>

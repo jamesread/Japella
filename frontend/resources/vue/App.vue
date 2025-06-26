@@ -108,17 +108,25 @@
 	}
 
 	async function getStatus() {
-		const st = await window.client.getStatus();
+		try {
+			const st = await window.client.getStatus();
 
-        statusMessages.value = st.statusMessages || [];
+			statusMessages.value = st.statusMessages || [];
 
-		if (st.isLoggedIn) {
-			onLogin(st)
-		} else {
-			isLoggedIn.value = false;
+			if (st.isLoggedIn) {
+				onLogin(st)
+			} else {
+				isLoggedIn.value = false;
+			}
+
+			currentVersion.value = 'Version: ' + st.version;
+		} catch (error) {
+			statusMessages.value.push({
+				id: Date.now(),
+				type: 'error',
+				message: 'Failed to fetch status from the server: ' + error.message
+			});
 		}
-
-		currentVersion.value = 'Version: ' + st.version;
 	}
 
 	/**

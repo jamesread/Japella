@@ -3,5 +3,5 @@ configVersion: 2
 database:
   host: mysql
   user: japella
-  password: password # sample password
-  database: japella
+  pass: password # sample password
+  name: japella

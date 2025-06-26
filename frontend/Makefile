@@ -1,10 +1,10 @@
 default: deps prod
 
 deps:
-	npm install --no-fund
+	NO_UPDATE_NOTIFIER=true npm install --no-fund --no-audit
 
 prod:
-	npx vite build --outDir ../webui/ --emptyOutDir
+	npx vite build --emptyOutDir
 
 dev:
-	npx vite preview --outDir ../webui/
+	npx vite preview

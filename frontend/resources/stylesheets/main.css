@@ -146,6 +146,12 @@ input:invalid {
 	background-color: salmon;
 }
 
+aside ul li a {
+  display: flex;
+  place-items: center;
+  gap: .6em;
+}
+
 @media (max-width: 600px) {
 	.grid-wide {
 		grid-column: 1 / span 2;

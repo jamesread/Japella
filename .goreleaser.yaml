@@ -38,7 +38,7 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
     extra_files:
       - README.md
-      - webui
+      - frontend/dist/
       - var/config-skel/
       - var/app-skel/
 
@@ -54,7 +54,7 @@ dockers:
       - "--label=org.opencontainers.image.version={{.Version}}"
     extra_files:
       - README.md
-      - webui
+      - frontend/dist/
       - var/config-skel/
       - var/app-skel/
 

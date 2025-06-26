@@ -1,28 +1,30 @@
 package i18n
 
 import (
-	"github.com/jamesread/golure/pkg/dirs"
-	log "github.com/sirupsen/logrus"
+	"encoding/json"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-	"encoding/json"
+
+	"github.com/jamesread/golure/pkg/dirs"
+	log "github.com/sirupsen/logrus"
 )
 
 type LanguageFilev1 struct {
-	SchemaVersion int			   `json:"schemaVersion"`
-	Translations map[string]string `json:"translations"`
+	SchemaVersion int               `json:"schemaVersion"`
+	Translations  map[string]string `json:"translations"`
 }
 
 type CombinedLanguageContent struct {
-	AcceptLanguages []string `json:"acceptLanguages"`
-	Messages map[string]map[string]string `json:"messages"`
+	AcceptLanguages []string                     `json:"acceptLanguages"`
+	Messages        map[string]map[string]string `json:"messages"`
 }
 
 func getLanguageDir() string {
 	dirsToSearch := []string{
 		"../var/app-skel/lang/",
+		"../../../../var/app-skel/lang/", // Relative to this file, for unit tests
 		"/app/lang/",
 	}
 
@@ -106,5 +108,4 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write(jsonData)
-	return
 }

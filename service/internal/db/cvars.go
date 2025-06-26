@@ -1,9 +1,5 @@
 package db
 
-import (
-	log "github.com/sirupsen/logrus"
-)
-
 var CvarKeys = struct {
 	OAuth2RedirectURL string
 
@@ -25,7 +21,11 @@ var CvarList = []Cvar{
 
 func (db *DB) InsertCvarsIfNotExists() error {
 	for _, cvar := range CvarList {
-		db.InsertCvarIfNotExists(&cvar)
+		err := db.InsertCvarIfNotExists(&cvar)
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -34,13 +34,8 @@ func (db *DB) InsertCvarsIfNotExists() error {
 func (db *DB) InsertCvarIfNotExists(cvar *Cvar) error {
 	db.Logger().Infof("Inserting cvar: %s", cvar.KeyName)
 
-	_, err := db.conn.Exec(`INSERT IGNORE INTO cvars (key_name, title, value_string, value_int, description, default_value, category, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-			cvar.KeyName, cvar.Title, cvar.ValueString, cvar.ValueInt, cvar.Description, cvar.DefaultValue, cvar.Category, cvar.Type)
+	_, err := db.ResilientExec(`INSERT IGNORE INTO cvars (key_name, title, value_string, value_int, description, default_value, category, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+		cvar.KeyName, cvar.Title, cvar.ValueString, cvar.ValueInt, cvar.Description, cvar.DefaultValue, cvar.Category, cvar.Type)
 
-	if err != nil {
-		log.Errorf("Error inserting cvar %s: %v", cvar.KeyName, err)
-		return err
-	}
-
-	return nil
+	return err
 }

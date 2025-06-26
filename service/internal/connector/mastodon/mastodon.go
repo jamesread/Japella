@@ -192,6 +192,8 @@ func (c *MastodonConnector) GetOAuth2Config() *oauth2.Config {
 		TokenURL: "https://mastodon.social/oauth/token",
 	}
 
+	log.Infof("OAuth2 Redirect URL: %s", c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL))
+
 	config := &oauth2.Config{
 		ClientID:     c.db.GetCvarString(CFG_MASTODON_CLIENT_ID),
 		ClientSecret: c.db.GetCvarString(CFG_MASTODON_CLIENT_SECRET),

@@ -5,7 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	//pb "github.com/jamesread/japella/gen/protobuf"
 	"context"
-	api "github.com/prometheus/client_golang/api"
+//	api "github.com/prometheus/client_golang/api"
 	promq "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	"time"
@@ -99,11 +99,7 @@ func updateTicker(api promq.API, cfg *PromWatcherConfig) {
 }
 
 func main() {
-	cfg := &LocalConfig{}
-	cfg.Common = runtimeconfig.LoadNewConfigCommon()
-	cfg.PromWatcher = &PromWatcherConfig{}
-	cfg.PromWatcher.Metrics = make([]*PromMetric, 0)
-
+	/*
 	runtimeconfig.LoadConfig("config.promwatcher.yaml", cfg.PromWatcher)
 
 	log.Infof("PromWatcherConfig: %+v", cfg.PromWatcher)
@@ -117,4 +113,5 @@ func main() {
 	api := promq.NewAPI(client)
 
 	updateTicker(api, cfg.PromWatcher)
+	*/
 }

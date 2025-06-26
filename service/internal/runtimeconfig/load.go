@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
+	"strconv"
 	"path/filepath"
 
 	"github.com/goccy/go-yaml"
@@ -20,7 +21,7 @@ func getConfigFilePath(filename string) string {
 	filename = filepath.Join(getConfigPath(), filename)
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		log.Fatalf("Config file %s does not exist", filename)
+		log.Warnf("Config file %s does not exist", filename)
 	}
 
 	return filename
@@ -30,13 +31,13 @@ func readFile(filename string) []byte {
 	handle, err := os.Open(filename)
 
 	if err != nil {
-		log.Fatalf("Load %v", err)
+		log.Warnf("Load %v", err)
 	}
 
 	content, err := io.ReadAll(handle)
 
 	if err != nil {
-		log.Fatalf("Load %v", err)
+		log.Warnf("Load %v", err)
 	}
 
 	return content
@@ -137,12 +138,28 @@ func (w *ConnectorConfigWrapper) UnmarshalYAML(node ast.Node) error {
 }
 
 func loadEnvVars(cfg *CommonConfig) {
-	loadEnvVar(&cfg.Database.Host, "DB_HOST")
-	loadEnvVar(&cfg.Database.User, "DB_USER")
-	loadEnvVar(&cfg.Database.Pass, "DB_PASS")
+	loadEnvVarStr(&cfg.Database.Host, "JAPELLA_DB_HOST")
+	loadEnvVarStr(&cfg.Database.User, "JAPELLA_DB_USER")
+	loadEnvVarStr(&cfg.Database.Pass, "JAPELLA_DB_PASS")
+	loadEnvVarInt(&cfg.Database.Port, "JAPELLA_DB_PORT")
+	loadEnvVarStr(&cfg.Database.Name, "JAPELLA_DB_NAME")
 }
 
-func loadEnvVar(variable *string, envVar string) {
+func loadEnvVarInt(variable *int, envVar string) {
+	value := os.Getenv(envVar)
+
+	if value != "" {
+		log.Infof("Overriding config variable with environment variable: %s", envVar)
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			log.Errorf("Invalid integer value for %s: %v", envVar, err)
+			return
+		}
+		*variable = intValue
+	}
+}
+
+func loadEnvVarStr(variable *string, envVar string) {
 	value := os.Getenv(envVar)
 
 	if value != "" {
@@ -163,7 +180,7 @@ func loadConfig() *CommonConfig {
 	err := yaml.UnmarshalWithOptions(readFile(configFilename), cfg, yaml.Strict())
 
 	if err != nil {
-		log.Fatalf("could not load common config! %v", err)
+		log.Warnf("could not load common config! %v", err)
 	}
 
 	loadEnvVars(cfg)

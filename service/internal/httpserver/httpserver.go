@@ -1,14 +1,16 @@
 package httpserver
 
 import (
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 	"net/http"
 
-	"github.com/jamesread/japella/internal/layers/authentication"
-	"github.com/jamesread/japella/internal/layers/api"
-	"github.com/jamesread/japella/internal/httpserver/i18n"
+	"golang.org/x/net/http2"
+	"golang.org/x/net/http2/h2c"
+
 	"github.com/jamesread/japella/internal/httpserver/frontend"
+	"github.com/jamesread/japella/internal/httpserver/i18n"
+	"github.com/jamesread/japella/internal/layers/api"
+	"github.com/jamesread/japella/internal/layers/authentication"
+	"github.com/jamesread/japella/internal/layers/healthcheck"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -48,13 +50,16 @@ func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func Start() {
+func CreateServer(endpoint string) (*http.Server, error) {
 	mux := http.NewServeMux()
 
 	apipath, apihandler, srv := api.GetNewHandler()
 
+	healthcheckLayer := healthcheck.NewHealthCheckLayer(srv)
+	healthcheckHandler := healthcheckLayer.Wrap(apihandler)
+
 	authenticationLayer := authentication.DefaultAuthLayer(srv.DB)
-	authenticatedApiHandler := authenticationLayer.WrapHandler(apihandler)
+	authenticatedApiHandler := authenticationLayer.WrapHandler(healthcheckHandler)
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", authenticatedApiHandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
@@ -63,16 +68,23 @@ func Start() {
 	mux.HandleFunc("/healthz", handleHealthz)
 	mux.Handle("/", http.StripPrefix("/", frontend.GetNewHandler()))
 
-	endpoint := "0.0.0.0:8080"
-
-	log.Infof("Starting http server on %v", endpoint)
-	log.Infof("API available at http://%v/api%v", endpoint, apipath)
-
-	if err := http.ListenAndServe(
-		endpoint,
-		h2c.NewHandler(mux, &http2.Server{}),
-	); err != nil {
-		log.Errorf("Error: %v", err)
+	server := &http.Server{
+		Addr:    endpoint,
+		Handler: h2c.NewHandler(mux, &http2.Server{}),
 	}
 
+	return server, nil
+}
+
+func Start() {
+	server, err := CreateServer("0.0.0.0:8080")
+	if err != nil {
+		log.Errorf("Error creating server: %v", err)
+		return
+	}
+
+	log.Infof("Starting http server on %v", server.Addr)
+	if err := server.ListenAndServe(); err != nil {
+		log.Errorf("Error: %v", err)
+	}
 }

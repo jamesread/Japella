@@ -2,7 +2,9 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jamesread/golure/pkg/dirs"
@@ -10,7 +12,7 @@ import (
 	"github.com/jamesread/japella/internal/utils"
 	"github.com/jmoiron/sqlx"
 
-	log "github.com/sirupsen/logrus"
+	"sync"
 
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/mysql"
@@ -20,14 +22,50 @@ import (
 type DB struct {
 	utils.LogComponent
 
-	conn                 *sqlx.DB
+	errorMessage string
+
+	dbconfig runtimeconfig.DatabaseConfig
+
+	connectionMutex sync.Mutex
+
+	connx                *sqlx.DB
 	currentSchemaVersion uint
 	currentSchemaDirty   bool
+}
+
+func (db *DB) SetErrorMessage(message string) {
+	db.errorMessage = message
+}
+
+func (db *DB) GetErrorMessage() string {
+	return db.errorMessage
+}
+
+func (db *DB) SetDatabaseConfig(dbconfig runtimeconfig.DatabaseConfig) {
+	db.SetPrefix("db")
+	db.dbconfig = dbconfig
+}
+
+func (db *DB) ReconnectLoop() {
+	for {
+		db.ReconnectDatabaseAndSetErrorMessage()
+
+		time.Sleep(30 * time.Second)
+	}
+}
+
+func (db *DB) ReconnectDatabaseAndSetErrorMessage() {
+	if err := db.reconnectDatabase(); err != nil {
+		db.SetErrorMessage(err.Error())
+	} else {
+		db.SetErrorMessage("")
+	}
 }
 
 func (db *DB) findMigrationsDirectory() (string, error) {
 	toSearch := []string{
 		"../var/app-skel/db-migrations/",
+		"../../../var/app-skel/db-migrations/", // Relative to this file, for unit tests
 		"/app/db-migrations/",
 	}
 
@@ -35,6 +73,9 @@ func (db *DB) findMigrationsDirectory() (string, error) {
 }
 
 func (db *DB) Migrate(dsn string, migrationsDir string) error {
+	db.connectionMutex.Lock()
+	defer db.connectionMutex.Unlock()
+
 	db.Logger().Infof("Starting migration from directory: %s", migrationsDir)
 
 	m, err := migrate.New(
@@ -43,7 +84,7 @@ func (db *DB) Migrate(dsn string, migrationsDir string) error {
 	)
 
 	if err != nil {
-		log.Errorf("Failed to create migration instance: %v", err)
+		db.Logger().Errorf("Failed to create migration instance: %v", err)
 		return err
 	}
 
@@ -65,72 +106,84 @@ func (db *DB) Migrate(dsn string, migrationsDir string) error {
 	}
 }
 
-func (db *DB) ReconnectDatabase(dbconfig runtimeconfig.DatabaseConfig) error {
-	db.SetPrefix("db")
+func (db *DB) reconnectDatabase() error {
+	db.Logger().Debugf("Reconnecting to database")
 
-	if db.conn != nil {
-		log.Warn("Database connection already exists, skipping reconnection")
-		return nil
+	if db.connx != nil {
+		if db.connx.Ping() == nil {
+			db.Logger().Debugf("Database connection is alive, skipping reconnection")
+			return nil
+		} else {
+			db.Logger().Warn("Database connection is not alive, reconnecting")
+
+			db.connx.Close()
+			db.connx = nil
+		}
 	}
 
-	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", dbconfig.User, dbconfig.Pass, dbconfig.Host, dbconfig.Name)
+	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", db.dbconfig.User, db.dbconfig.Pass, db.dbconfig.Host, db.dbconfig.Name)
 
-	var err error
+	if db.connx == nil {
+		var err error
 
-	db.conn, err = sqlx.Connect("mysql", dsn)
+		db.connx, err = sqlx.Connect("mysql", dsn)
 
-	if err != nil {
-		log.Warnf("Failed to connect to database: %v", err)
+		if err != nil {
+			db.Logger().Warnf("Failed to connect to database: %v", err)
+			return err
+		}
+	}
+
+	if err := db.connx.Ping(); err != nil {
+		db.Logger().Errorf("Failed to ping database: %v", err)
 		return err
 	}
 
 	migrationsDir, err := db.findMigrationsDirectory()
 
 	if err != nil {
-		log.Errorf("Failed to find migrations directory: %v", err)
+		db.Logger().Errorf("Failed to find migrations directory: %v", err)
 		return err
 	}
 
 	err = db.Migrate(dsn, migrationsDir)
 
 	if err != nil {
-		log.Errorf("Failed to migrate database: %v", err)
+		db.Logger().Errorf("Failed to migrate database: %v", err)
 		return err
 	}
 
 	err = db.InsertCvarsIfNotExists()
 
 	if err != nil {
-		log.Errorf("Failed to insert cvars: %v", err)
+		db.Logger().Errorf("Failed to insert cvars: %v", err)
 		return err
 	}
 
 	err = db.initAdminUser()
 
 	if err != nil {
-		log.Errorf("Failed to initialize admin user: %v", err)
+		db.Logger().Errorf("Failed to initialize admin user: %v", err)
 		return err
 	}
-
-
 
 	return nil
 }
 
 func (db *DB) initAdminUser() error {
 	if !db.HasAnyUsers() {
-		log.Warn("No users found in the database, creating default admin user")
+		db.Logger().Warn("No users found in the database, creating default admin user")
 
 		passwordHash, err := utils.HashPassword("admin")
 
 		if err != nil {
-			log.Errorf("Error hashing default password: %v", err)
+			db.Logger().Errorf("Error hashing default password: %v", err)
 			return err
 		}
 
 		_, err = db.CreateUserAccount("admin", passwordHash)
 		if err != nil {
-			log.Errorf("Failed to create default admin user: %v", err)
+			db.Logger().Errorf("Failed to create default admin user: %v", err)
 			return err
 		}
 	}
@@ -138,10 +191,50 @@ func (db *DB) initAdminUser() error {
 	return nil
 }
 
+func (db *DB) ResilientExec(query string, args ...any) (sql.Result, error) {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+
+		return nil, errors.New("database connection is not established")
+	}
+
+	return db.connx.Exec(query, args...)
+}
+
+func (db *DB) ResilientNamedExec(query string, args ...any) (sql.Result, error) {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+
+		return nil, errors.New("database connection is not established")
+	}
+
+	return db.connx.NamedExec(query, args)
+}
+
+func (db *DB) ResilientSelect(dest interface{}, query string, args ...any) error {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+
+		return errors.New("database connection is not established")
+	}
+
+	return db.connx.Select(dest, query, args...)
+}
+
+func (db *DB) ResilientGet(dest interface{}, query string, args ...any) error {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+
+		return errors.New("database connection is not established")
+	}
+
+	return db.connx.Get(dest, query, args...)
+}
+
 func (db *DB) UpdateSocialAccountIdentity(id uint32, identity string) error {
-	_, err := db.conn.Exec("UPDATE social_accounts SET identity = ?, updated_at = NOW() WHERE id = ?", identity, id)
+	_, err := db.ResilientExec("UPDATE social_accounts SET identity = ?, updated_at = NOW() WHERE id = ?", identity, id)
 	if err != nil {
-		log.Errorf("Failed to update social account identity: %v", err)
+		db.Logger().Errorf("Failed to update social account identity: %v", err)
 		return err
 	}
 	return nil
@@ -152,29 +245,29 @@ func (db *DB) SelectSocialAccounts(onlyActive bool) []*SocialAccount {
 	var err error
 	if onlyActive {
 		db.Logger().Infof("Selecting only active social accounts")
-		err = db.conn.Select(&ret, "SELECT * FROM social_accounts WHERE active = 1")
+		err = db.ResilientSelect(&ret, "SELECT * FROM social_accounts WHERE active = 1")
 	} else {
-		err = db.conn.Select(&ret, "SELECT * FROM social_accounts")
+		err = db.ResilientSelect(&ret, "SELECT * FROM social_accounts")
 	}
 	if err != nil {
-		log.Errorf("Failed to select social accounts: %v", err)
+		db.Logger().Errorf("Failed to select social accounts: %v", err)
 	}
 	return ret
 }
 
 func (db *DB) SelectCannedPosts() []*CannedPost {
 	ret := make([]*CannedPost, 0)
-	err := db.conn.Select(&ret, "SELECT * FROM canned_posts")
+	err := db.ResilientSelect(&ret, "SELECT * FROM canned_posts")
 	if err != nil {
-		log.Errorf("Failed to select canned posts: %v", err)
+		db.Logger().Errorf("Failed to select canned posts: %v", err)
 	}
 	return ret
 }
 
 func (db *DB) CreateCannedPost(content string) error {
-	_, err := db.conn.Exec("INSERT INTO canned_posts (content, created_at, updated_at) VALUES (?, NOW(), NOW())", content)
+	_, err := db.ResilientExec("INSERT INTO canned_posts (content, created_at, updated_at) VALUES (?, NOW(), NOW())", content)
 	if err != nil {
-		log.Errorf("Failed to create canned post: %v", err)
+		db.Logger().Errorf("Failed to create canned post: %v", err)
 		return err
 	}
 	return nil
@@ -182,36 +275,36 @@ func (db *DB) CreateCannedPost(content string) error {
 
 func (db *DB) DeleteCannedPost(id uint32) error {
 	db.Logger().Infof("Deleting canned post with ID: %d", id)
-	_, err := db.conn.Exec("DELETE FROM canned_posts WHERE id = ?", id)
+	_, err := db.ResilientExec("DELETE FROM canned_posts WHERE id = ?", id)
 	if err != nil {
-		log.Errorf("Failed to delete canned post: %v", err)
+		db.Logger().Errorf("Failed to delete canned post: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
-	_, err := db.conn.NamedExec(`INSERT INTO social_accounts (connector, identity, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, created_at, updated_at) VALUES (:connector, :identity, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, NOW(), NOW())`, socialAccount)
+	_, err := db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, created_at, updated_at) VALUES (:connector, :identity, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, NOW(), NOW())`, socialAccount)
 	if err != nil {
-		log.Errorf("Failed to register social account: %v", err)
+		db.Logger().Errorf("Failed to register social account: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (db *DB) DeleteSocialAccount(id uint32) error {
-	_, err := db.conn.Exec("DELETE FROM social_accounts WHERE id = ?", id)
+	_, err := db.ResilientExec("DELETE FROM social_accounts WHERE id = ?", id)
 	if err != nil {
-		log.Errorf("Failed to delete social account: %v", err)
+		db.Logger().Errorf("Failed to delete social account: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (db *DB) CreatePost(post *Post) error {
-	_, err := db.conn.NamedExec(`INSERT INTO posts (social_account_id, status, content, post_url, remote_id, created_at, updated_at) VALUES (:social_account_id, :status, :content, :post_url, :remote_id, NOW(), NOW())`, post)
+	_, err := db.ResilientNamedExec(`INSERT INTO posts (social_account_id, status, content, post_url, remote_id, created_at, updated_at) VALUES (:social_account_id, :status, :content, :post_url, :remote_id, NOW(), NOW())`, post)
 	if err != nil {
-		log.Errorf("Failed to create post: %v", err)
+		db.Logger().Errorf("Failed to create post: %v", err)
 		return err
 	}
 	return nil
@@ -219,9 +312,9 @@ func (db *DB) CreatePost(post *Post) error {
 
 func (db *DB) SelectPosts() ([]*Post, error) {
 	ret := make([]*Post, 0)
-	err := db.conn.Select(&ret, "SELECT * FROM posts ORDER BY id DESC")
+	err := db.ResilientSelect(&ret, "SELECT * FROM posts ORDER BY id DESC")
 	if err != nil {
-		log.Errorf("Failed to select posts: %v", err)
+		db.Logger().Errorf("Failed to select posts: %v", err)
 		return nil, err
 	}
 	return ret, nil
@@ -229,18 +322,18 @@ func (db *DB) SelectPosts() ([]*Post, error) {
 
 func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {
 	var account SocialAccount
-	err := db.conn.Get(&account, "SELECT * FROM social_accounts WHERE id = ?", id)
+	err := db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE id = ?", id)
 	if err != nil {
-		log.Errorf("Failed to get social account: %v", err)
+		db.Logger().Errorf("Failed to get social account: %v", err)
 		return nil, err
 	}
 	return &account, nil
 }
 
 func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
-	_, err := db.conn.Exec("UPDATE social_accounts SET active = ?, updated_at = NOW() WHERE id = ?", active, id)
+	_, err := db.ResilientExec("UPDATE social_accounts SET active = ?, updated_at = NOW() WHERE id = ?", active, id)
 	if err != nil {
-		log.Errorf("Failed to set social account active status: %v", err)
+		db.Logger().Errorf("Failed to set social account active status: %v", err)
 		return err
 	}
 	return nil
@@ -248,10 +341,10 @@ func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
 
 func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 	var user UserAccount
-	err := db.conn.Get(&user, `SELECT ua.* FROM user_accounts ua JOIN api_keys ak ON ua.id = ak.user_account_id WHERE ak.key_value = ? LIMIT 1`, apiKey)
+	err := db.ResilientGet(&user, `SELECT ua.* FROM user_accounts ua JOIN api_keys ak ON ua.id = ak.user_account_id WHERE ak.key_value = ? LIMIT 1`, apiKey)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Errorf("Failed to get user by API key: %v", err)
+			db.Logger().Errorf("Failed to get user by API key: %v", err)
 		}
 		return nil
 	}
@@ -260,12 +353,12 @@ func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 
 func (db *DB) GetUserByUsername(username string) *UserAccount {
 	var user UserAccount
-	err := db.conn.Get(&user, "SELECT * FROM user_accounts WHERE username = ? LIMIT 1", username)
+	err := db.ResilientGet(&user, "SELECT * FROM user_accounts WHERE username = ? LIMIT 1", username)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Warnf("No user found for username: %s", username)
+			db.Logger().Warnf("No user found for username: %s", username)
 		} else {
-			log.Errorf("Error querying user by username: %v", err)
+			db.Logger().Errorf("Error querying user by username: %v", err)
 		}
 		return nil
 	}
@@ -273,9 +366,9 @@ func (db *DB) GetUserByUsername(username string) *UserAccount {
 }
 
 func (db *DB) CreateUserAccount(username, passwordHash string) (*UserAccount, error) {
-	res, err := db.conn.Exec("INSERT INTO user_accounts (username, password_hash, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", username, passwordHash)
+	res, err := db.ResilientExec("INSERT INTO user_accounts (username, password_hash, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", username, passwordHash)
 	if err != nil {
-		log.Errorf("Failed to create user account: %v", err)
+		db.Logger().Errorf("Failed to create user account: %v", err)
 		return nil, err
 	}
 	id, err := res.LastInsertId()
@@ -290,9 +383,9 @@ func (db *DB) CreateUserAccount(username, passwordHash string) (*UserAccount, er
 }
 
 func (db *DB) CreateApiKey(user *UserAccount, keyValue string) (*ApiKey, error) {
-	res, err := db.conn.Exec("INSERT INTO api_keys (key_value, user_account_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", keyValue, user.ID)
+	res, err := db.ResilientExec("INSERT INTO api_keys (key_value, user_account_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", keyValue, user.ID)
 	if err != nil {
-		log.Errorf("Failed to create API key: %v", err)
+		db.Logger().Errorf("Failed to create API key: %v", err)
 		return nil, err
 	}
 	id, err := res.LastInsertId()
@@ -309,18 +402,18 @@ func (db *DB) CreateApiKey(user *UserAccount, keyValue string) (*ApiKey, error) 
 
 func (db *DB) HasAnyUsers() bool {
 	var count int64
-	err := db.conn.Get(&count, "SELECT COUNT(*) FROM user_accounts")
+	err := db.ResilientGet(&count, "SELECT COUNT(*) FROM user_accounts")
 	if err != nil {
-		log.Errorf("Failed to count users: %v", err)
+		db.Logger().Errorf("Failed to count users: %v", err)
 		return false
 	}
 	return count > 0
 }
 
 func (db *DB) CreateSession(sessionID string, uid uint32) error {
-	_, err := db.conn.Exec("INSERT INTO sessions (user_account_id, sid, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", uid, sessionID)
+	_, err := db.ResilientExec("INSERT INTO sessions (user_account_id, sid, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", uid, sessionID)
 	if err != nil {
-		log.Errorf("Failed to create session: %v", err)
+		db.Logger().Errorf("Failed to create session: %v", err)
 		return err
 	}
 	return nil
@@ -328,9 +421,9 @@ func (db *DB) CreateSession(sessionID string, uid uint32) error {
 
 func (db *DB) GetUserByID(id uint32) *UserAccount {
 	var user UserAccount
-	err := db.conn.Get(&user, "SELECT * FROM user_accounts WHERE id = ? LIMIT 1", id)
+	err := db.ResilientGet(&user, "SELECT * FROM user_accounts WHERE id = ? LIMIT 1", id)
 	if err != nil {
-		log.Errorf("Failed to get user by ID: %v", err)
+		db.Logger().Errorf("Failed to get user by ID: %v", err)
 		return nil
 	}
 	return &user
@@ -338,19 +431,19 @@ func (db *DB) GetUserByID(id uint32) *UserAccount {
 
 func (db *DB) GetSessionByID(sessionID string) *Session {
 	var session Session
-	err := db.conn.Get(&session, "SELECT * FROM sessions WHERE sid = ? LIMIT 1", sessionID)
+	err := db.ResilientGet(&session, "SELECT * FROM sessions WHERE sid = ? LIMIT 1", sessionID)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Warnf("No session found for ID: %s", sessionID)
+			db.Logger().Warnf("No session found for ID: %s", sessionID)
 		} else {
-			log.Errorf("Error querying session by ID: %v", err)
+			db.Logger().Errorf("Error querying session by ID: %v", err)
 		}
 		return nil
 	}
 
 	session.UserAccount = db.GetUserByID(session.UserAccountID)
 	if session.UserAccount == nil {
-		log.Warnf("No user found for session ID: %s", sessionID)
+		db.Logger().Warnf("No user found for session ID: %s", sessionID)
 		return nil
 	}
 
@@ -359,9 +452,9 @@ func (db *DB) GetSessionByID(sessionID string) *Session {
 
 func (db *DB) SelectUsers() ([]*UserAccount, error) {
 	ret := make([]*UserAccount, 0)
-	err := db.conn.Select(&ret, "SELECT * FROM user_accounts")
+	err := db.ResilientSelect(&ret, "SELECT * FROM user_accounts")
 	if err != nil {
-		log.Errorf("Failed to select users: %v", err)
+		db.Logger().Errorf("Failed to select users: %v", err)
 		return nil, err
 	}
 	return ret, nil
@@ -369,19 +462,21 @@ func (db *DB) SelectUsers() ([]*UserAccount, error) {
 
 func (db *DB) SelectAPIKeys() ([]*ApiKey, error) {
 	ret := make([]*ApiKey, 0)
-	err := db.conn.Select(&ret, "SELECT * FROM api_keys")
+	err := db.ResilientSelect(&ret, "SELECT * FROM api_keys")
 	if err != nil {
-		log.Errorf("Failed to select API keys: %v", err)
+		db.Logger().Errorf("Failed to select API keys: %v", err)
 		return nil, err
 	}
+
+	db.Logger().Infof("Selected %+v API keys", ret)
 	return ret, nil
 }
 
 func (db *DB) SelectCvars() ([]*Cvar, error) {
 	ret := make([]*Cvar, 0)
-	err := db.conn.Select(&ret, "SELECT * FROM cvars")
+	err := db.ResilientSelect(&ret, "SELECT * FROM cvars")
 	if err != nil {
-		log.Errorf("Failed to select cvars: %v", err)
+		db.Logger().Errorf("Failed to select cvars: %v", err)
 		return nil, err
 	}
 	return ret, nil
@@ -389,12 +484,12 @@ func (db *DB) SelectCvars() ([]*Cvar, error) {
 
 func (db *DB) GetCvar(key string) *Cvar {
 	var cvar Cvar
-	err := db.conn.Get(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
+	err := db.ResilientGet(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Warnf("No cvar found for key: %s", key)
+			db.Logger().Warnf("No cvar found for key: %s", key)
 		} else {
-			log.Errorf("Error querying cvar by key: %v", err)
+			db.Logger().Errorf("Error querying cvar by key: %v", err)
 		}
 		return nil
 	}
@@ -403,9 +498,9 @@ func (db *DB) GetCvar(key string) *Cvar {
 
 func (db *DB) GetCvarString(key string) string {
 	var cvar Cvar
-	err := db.conn.Get(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
+	err := db.ResilientGet(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
 	if err != nil {
-		log.Errorf("Failed to get cvar %s: %v", key, err)
+		db.Logger().Errorf("Failed to get cvar %s: %v", key, err)
 		return ""
 	}
 	return cvar.ValueString
@@ -413,9 +508,9 @@ func (db *DB) GetCvarString(key string) string {
 
 func (db *DB) GetCvarBool(key string) bool {
 	var cvar Cvar
-	err := db.conn.Get(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
+	err := db.ResilientGet(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
 	if err != nil {
-		log.Errorf("Failed to get cvar %s: %v", key, err)
+		db.Logger().Errorf("Failed to get cvar %s: %v", key, err)
 		return false
 	}
 	return cvar.ValueInt == 1
@@ -423,18 +518,18 @@ func (db *DB) GetCvarBool(key string) bool {
 
 func (db *DB) GetCvarInt(key string) int32 {
 	var cvar Cvar
-	err := db.conn.Get(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
+	err := db.ResilientGet(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
 	if err != nil {
-		log.Errorf("Failed to get cvar %s: %v", key, err)
+		db.Logger().Errorf("Failed to get cvar %s: %v", key, err)
 		return 0
 	}
 	return cvar.ValueInt
 }
 
 func (db *DB) SetCvarString(key, value string) error {
-	_, err := db.conn.Exec("UPDATE cvars SET value_string = ?, updated_at = NOW() WHERE key_name = ?", value, key)
+	_, err := db.ResilientExec("UPDATE cvars SET value_string = ?, updated_at = NOW() WHERE key_name = ?", value, key)
 	if err != nil {
-		log.Errorf("Failed to set cvar %s: %v", key, err)
+		db.Logger().Errorf("Failed to set cvar %s: %v", key, err)
 		return err
 	}
 	return nil
@@ -449,27 +544,29 @@ func (db *DB) SetCvarBool(key string, value bool) error {
 }
 
 func (db *DB) SetCvarInt(key string, value int32) error {
-	_, err := db.conn.Exec("UPDATE cvars SET value_int = ?, updated_at = NOW() WHERE key_name = ?", value, key)
+	db.Logger().Infof("Setting cvar %s to value %d", key, value)
+
+	_, err := db.ResilientExec("UPDATE cvars SET value_int = ?, updated_at = NOW() WHERE key_name = ?", value, key)
 	if err != nil {
-		log.Errorf("Failed to set cvar %s: %v", key, err)
+		db.Logger().Errorf("Failed to set cvar %s: %v", key, err)
 		return err
 	}
 	return nil
 }
 
 func (db *DB) SaveUserPreferences(preferences *UserPreferences) error {
-	_, err := db.conn.NamedExec(`INSERT INTO user_preferences (user_account_id, language, created_at, updated_at) VALUES (:user_account_id, :language, NOW(), NOW()) ON DUPLICATE KEY UPDATE language = VALUES(language), updated_at = NOW()`, preferences)
+	_, err := db.ResilientNamedExec(`INSERT INTO user_preferences (user_account_id, language, created_at, updated_at) VALUES (:user_account_id, :language, NOW(), NOW()) ON DUPLICATE KEY UPDATE language = VALUES(language), updated_at = NOW()`, preferences)
 	if err != nil {
-		log.Errorf("Failed to save user preferences: %v", err)
+		db.Logger().Errorf("Failed to save user preferences: %v", err)
 		return err
 	}
 	return nil
 }
 
 func (db *DB) RevokeApiKey(id uint32) error {
-	_, err := db.conn.Exec("DELETE FROM api_keys WHERE id = ?", id)
+	_, err := db.ResilientExec("DELETE FROM api_keys WHERE id = ?", id)
 	if err != nil {
-		log.Errorf("Failed to revoke API key: %v", err)
+		db.Logger().Errorf("Failed to revoke API key: %v", err)
 		return err
 	}
 	return nil

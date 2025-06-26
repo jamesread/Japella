@@ -1,6 +1,15 @@
 default:
 	go build -ldflags="-s -w -X buildinfo.Commit=$(shell git rev-parse HEAD)"
 
+test: tests
+
+tests:
+	go vet ./...
+	mkdir -p reports
+	go test ./... -v -coverprofile=reports/coverage.out -covermode=atomic
+	go tool cover -html=reports/coverage.out -o reports/coverage.html
+	cp reports/coverage.html /var/www/html/japella-coverage/index.html
+
 dev:
 	air
 
