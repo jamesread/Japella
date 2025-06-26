@@ -1,6 +1,7 @@
 package x
 
 import (
+	"encoding/base64"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/runtimeconfig"
@@ -9,8 +10,6 @@ import (
 	"golang.org/x/oauth2/endpoints"
 
 	log "github.com/sirupsen/logrus"
-
-	"net/http"
 )
 
 type XConnector struct {
@@ -20,8 +19,6 @@ type XConnector struct {
 	connector.OAuth2Connector
 
 	db *db.DB
-
-	httpClient *http.Client
 }
 
 func (x *XConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
@@ -39,14 +36,53 @@ func (x *XConnector) GetProtocol() string {
 	return "x"
 }
 
-type WhoamiResult struct {
-	Data WhoamiData `json:"data"`
+type UpdateTokenResult struct {
+	RefreshToken string `json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+	ExpiresIn    int64  `json:"expires_in"`
 }
 
-type WhoamiData struct {
-	ID        string `json:"id"`
-	Namespace string `json:"name"`
-	Username  string `json:"username"`
+func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
+	// This function refreshes the OAuth2 token for a given social account
+	// and then calls the whoami function to update the account's identity.
+	//
+	// It should really be using the OAuth2 library's token refresh capabilities,
+	// but we're not using the OAuth2 client directly here, so we handle it manually.
+
+	log.Infof("Refreshing token for XConnector with socialAccount: %+v", socialAccount)
+
+	refreshTokenArgs := make(map[string]string)
+	refreshTokenArgs["refresh_token"] = socialAccount.OAuth2RefreshToken
+	refreshTokenArgs["grant_type"] = "refresh_token"
+	refreshTokenArgs["client_id"] = x.config.ClientID
+
+	requrl := "https://api.x.com/2/oauth2/token"
+	tok := base64.StdEncoding.EncodeToString([]byte(x.config.ClientID + ":" + x.config.ClientSecret))
+
+	client, req, err := utils.NewHttpClientAndGetReqWithUrlEncodedMap(requrl, tok, refreshTokenArgs)
+
+	if err != nil {
+		log.Errorf("Error creating request: %v", err)
+		return err
+	}
+
+	res := &UpdateTokenResult{}
+
+	err = utils.ClientDoJson(client, req, res)
+
+	if err != nil {
+		log.Errorf("Error refreshing token: %v", err)
+		return err
+	}
+
+	log.Debugf("Token refreshed successfully: %+v", res)
+
+	x.db.UpdateSocialAccountToken(socialAccount.ID, res.AccessToken, res.RefreshToken, res.ExpiresIn)
+
+	socialAccount.OAuth2Token = res.AccessToken
+	x.whoami(socialAccount)
+
+	return nil
 }
 
 func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
@@ -61,18 +97,6 @@ func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
 	utils.ClientDoJson(client, req, whoamiResult)
 
 	x.db.UpdateSocialAccountIdentity(socialAccount.ID, whoamiResult.Data.Username)
-}
-
-type Tweet struct {
-	Text string `json:"text"`
-}
-
-type TweetData struct {
-	ID string `json:"id"`
-}
-
-type TweetResult struct {
-	Data TweetData `json:"data"`
 }
 
 func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *connector.PostResult {
@@ -119,7 +143,7 @@ func (x *XConnector) GetOAuth2Config() *oauth2.Config {
 func (x *XConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 	log.Infof("OnRefresh called for XConnector with socialAccount: %+v", socialAccount)
 
-	x.whoami(socialAccount)
+	x.RefreshToken(socialAccount)
 
 	return nil
 }

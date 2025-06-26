@@ -15,7 +15,6 @@
 
 	const health = ref(null)
 	const nanoservices = ref(null)
-	const postingServices = ref(null)
 
 	onMounted(() => {
 		window.addEventListener('status-updated', (st) => {

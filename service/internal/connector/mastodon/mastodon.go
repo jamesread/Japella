@@ -11,11 +11,11 @@ import (
 )
 
 type MastodonConnector struct {
-	token  string
-	db     *db.DB
+	token string
+	db    *db.DB
 
 	doRegistration bool
-	isInert bool
+	isInert        bool
 
 	connector.ConnectorWithWall
 	connector.OAuth2Connector
@@ -37,33 +37,32 @@ const CFG_MASTODON_CLIENT_ID = "mastodon.client_id"
 const CFG_MASTODON_CLIENT_SECRET = "mastodon.client_secret"
 const CFG_MASTODON_REGISTER = "mastodon.register"
 
-func (c *MastodonConnector) GetCvars() (map[string]*db.Cvar) {
+func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
 	return map[string]*db.Cvar{
 		CFG_MASTODON_CLIENT_ID: &db.Cvar{
 			KeyName:      CFG_MASTODON_CLIENT_ID,
 			DefaultValue: "",
-			Title:       "Mastodon Client ID",
-			Description: "https://docs.joinmastodon.org/client/token/",
-			Category:    "Mastodon",
-			Type:		 "text",
+			Title:        "Mastodon Client ID",
+			Description:  "https://docs.joinmastodon.org/client/token/",
+			Category:     "Mastodon",
+			Type:         "text",
 		},
 		CFG_MASTODON_CLIENT_SECRET: &db.Cvar{
 			KeyName:      CFG_MASTODON_CLIENT_SECRET,
 			DefaultValue: "",
-			Title:       "Mastodon Client Secret",
-			Description: "https://docs.joinmastodon.org/client/token/",
-			Category:    "Mastodon",
-			Type:		 "password",
+			Title:        "Mastodon Client Secret",
+			Description:  "https://docs.joinmastodon.org/client/token/",
+			Category:     "Mastodon",
+			Type:         "password",
 		},
 		CFG_MASTODON_REGISTER: &db.Cvar{
 			KeyName:      CFG_MASTODON_REGISTER,
 			DefaultValue: "0",
-			Title:       "Mastodon app registration?",
-			Description: "Register a new Mastodon app on startup",
-			Category:    "Mastodon",
-			Type:        "bool",
+			Title:        "Mastodon app registration?",
+			Description:  "Register a new Mastodon app on startup",
+			Category:     "Mastodon",
+			Type:         "bool",
 		},
-
 	}
 }
 

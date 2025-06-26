@@ -1,0 +1,5 @@
+<template>
+	<MediaGallery />
+
+	<MediaUpload />
+</template>

@@ -55,7 +55,7 @@ func (b *BlueskyConnector) GetOAuth2Config() *oauth2.Config {
 	}
 }
 
-func (b *BlueskyConnector) GetCvars() (map[string]*db.Cvar) {
+func (b *BlueskyConnector) GetCvars() map[string]*db.Cvar {
 	return map[string]*db.Cvar{
 		"bluesky.client_id": &db.Cvar{
 			KeyName:      "bluesky.client_id",

@@ -14,9 +14,9 @@ type DiscordConnector struct {
 }
 
 func (a *DiscordConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
-//	config, _ := startup.Config.(*runtimeconfig.DiscordConfig)
+	//	config, _ := startup.Config.(*runtimeconfig.DiscordConfig)
 
-//	a.Start(config.Token)
+	// a.Start(config.Token)
 }
 
 func (a *DiscordConnector) Start() {}

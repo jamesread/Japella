@@ -2,8 +2,8 @@ package authentication
 
 import (
 	"context"
-	"net/http"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 
 	"github.com/jamesread/japella/internal/db"
@@ -18,13 +18,13 @@ type AuthenticatedUser struct {
 }
 
 type AuthLayer struct {
-	DB *db.DB
+	DB        *db.DB
 	AuthChain []AuthFunc
 }
 
 var allowList = map[string]bool{
 	controlv1.JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure: true,
-	controlv1.JapellaControlApiServiceGetStatusProcedure: true,
+	controlv1.JapellaControlApiServiceGetStatusProcedure:                    true,
 }
 
 type AuthFunc func(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error)
@@ -66,7 +66,7 @@ func (al *AuthLayer) WrapHandler(in http.Handler) http.Handler {
 }
 
 func CheckAuthAllowAll(ctx context.Context, dbc *db.DB, req *http.Request) (*AuthenticatedUser, error) {
-	return &AuthenticatedUser{User: &db.UserAccount{ Username: "anonymous" }}, nil
+	return &AuthenticatedUser{User: &db.UserAccount{Username: "anonymous"}}, nil
 }
 
 func DefaultAuthLayer(db *db.DB) *AuthLayer {
@@ -83,7 +83,7 @@ func DefaultAuthLayer(db *db.DB) *AuthLayer {
 	}
 
 	return &AuthLayer{
-		DB: db,
+		DB:        db,
 		AuthChain: authChain,
 	}
 }

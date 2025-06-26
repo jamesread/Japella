@@ -14,7 +14,7 @@
 
 <script setup>
 	import { useI18n } from 'vue-i18n'
-	import { ref, onMounted } from 'vue';
+	import { ref } from 'vue';
 	const { t } = useI18n()
 	import { Icon } from '@iconify/vue';
 

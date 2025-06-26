@@ -73,7 +73,6 @@
 	import { ref, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
 
-	const posts = ref([])
 	const clientReady = ref(false)
 	const errorMessage = ref("")
 	const accounts = ref([])

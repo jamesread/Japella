@@ -1,12 +1,12 @@
 package authentication
 
 import (
+	"connectrpc.com/authn"
 	"context"
-	"net/http"
 	"github.com/jamesread/golure/pkg/redact"
 	"github.com/jamesread/japella/internal/db"
-	"connectrpc.com/authn"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 func CheckAuthApiKey(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error) {

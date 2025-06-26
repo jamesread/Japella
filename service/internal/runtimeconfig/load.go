@@ -4,8 +4,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
-	"strconv"
 	"path/filepath"
+	"strconv"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -71,6 +71,7 @@ func Get() *CommonConfig {
 	return cfg
 }
 
+//gocyclo:ignore
 func (w *ConnectorConfigWrapper) UnmarshalYAML(node ast.Node) error {
 	var typeHolder struct {
 		Type    string

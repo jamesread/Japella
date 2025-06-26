@@ -1,9 +1,9 @@
 package healthcheck
 
 import (
-	"net/http"
 	"github.com/jamesread/japella/internal/layers/api"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 type HealthCheckLayer struct {
@@ -15,7 +15,7 @@ func NewHealthCheckLayer(srv *api.ControlApi) *HealthCheckLayer {
 }
 
 func (h *HealthCheckLayer) Wrap(apiHandler http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if h.srv.DB.GetErrorMessage() != "" {
 			log.Errorf("Healthcheck database error: %s", h.srv.DB.GetErrorMessage())
 

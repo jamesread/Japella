@@ -33,11 +33,7 @@
 
 
 <script setup>
-	import { ref, onMounted } from 'vue';
-	import RadioGroup from './radio-group.vue';
-	import InlineNotification from './inline-notification.vue';
-	import { Icon } from '@iconify/vue';
-	const clientReady = ref(false);
+	import { ref } from 'vue';
 	const items = ref([]);
 
 </script>

@@ -20,10 +20,10 @@ func (bot DbLogger) Start() {
 	bot.SetName("dblogger")
 	bot.Logger().Infof("japella-bot-dblogger")
 
-//	cfg := runtimeconfig.Get().Database
+	//	cfg := runtimeconfig.Get().Database
 
-//	db := bot.ConnectDatabase(cfg)
-//	bot.ListenForMessages(db)
+	// db := bot.ConnectDatabase(cfg)
+	// bot.ListenForMessages(db)
 }
 
 func (bot *DbLogger) Stop() {

@@ -35,7 +35,7 @@
 </style>
 
 <script setup>
-	import { onMounted, ref } from 'vue'
+	import { ref } from 'vue'
 	import { useI18n } from 'vue-i18n'
 
 	const emit = defineEmits(['login-success'])

@@ -1,16 +1,16 @@
 package utils
 
 import (
-	"runtime"
 	"github.com/alexedwards/argon2id"
+	"runtime"
 )
 
-var defaultHashParams = argon2id.Params {
-	Memory: 64 * 1024,
-	Iterations: 4,
+var defaultHashParams = argon2id.Params{
+	Memory:      64 * 1024,
+	Iterations:  4,
 	Parallelism: uint8(runtime.NumCPU()),
-	SaltLength: 16,
-	KeyLength: 32,
+	SaltLength:  16,
+	KeyLength:   32,
 }
 
 func HashPassword(password string) (string, error) {

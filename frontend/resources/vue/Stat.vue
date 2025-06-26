@@ -8,15 +8,15 @@
 <script setup>
 	import { ref } from 'vue'
 
-	const props = defineProps({
+	defineProps({
 		title: String,
 		value: [String, Number]
 	})
 
-	const value = ref('???')
+	const valueRef = ref('???')
 
 	function setValue(v) {
-		value.value = v
+		valueRef.value = v
 	}
 
 	defineExpose({

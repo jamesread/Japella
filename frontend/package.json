@@ -24,6 +24,8 @@
 		"@bufbuild/protoc-gen-es": "^2.5.2",
 		"@connectrpc/connect": "^2.0.2",
 		"@connectrpc/connect-web": "^2.0.2",
+		"eslint": "^9.29.0",
+		"eslint-plugin-vue": "^10.2.0",
 		"process": "^0.11.10",
 		"unplugin-vue-components": "^28.7.0",
 		"vite": "^6.3.5"

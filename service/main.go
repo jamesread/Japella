@@ -31,9 +31,9 @@ func main() {
 
 	log.Infof("japella startup")
 	log.WithFields(log.Fields{
-		"version": buildinfo.Version,
+		"version":   buildinfo.Version,
 		"buildDate": buildinfo.BuildDate,
-		"commit": buildinfo.Commit,
+		"commit":    buildinfo.Commit,
 	}).Infof("buildinfo")
 
 	supportedVersion := 2

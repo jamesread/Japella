@@ -15,7 +15,6 @@
 </template>
 
 <script setup>
-	import { ref } from 'vue';
 	import Notification from '../javascript/notification.js';
 
 	function showNotification(date) {
@@ -35,7 +34,6 @@
 	function formatDate(d) {
 		const day = d.getDate()
 		const dayName = d.toLocaleString('default', { weekday: 'short' })
-		const month = d.toLocaleString('default', { month: 'long' })
 
 		return `${dayName} ${ordinalSuffix(day)}`
 	}

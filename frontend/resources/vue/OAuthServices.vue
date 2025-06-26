@@ -7,9 +7,8 @@
 		<div v-if="services.length === 0">
 			<p class="inline-notification note">No OAuth services available.</p>
 		</div>
-		<div v-else>
-			<div v-for="service in services" :key="service.id">
-
+		<div v-else class = "service-list">
+			<div v-for="service in services" :key="service.id"  class = "oauth-service">
 				<h3>{{ service.name }}</h3>
 				<div v-if = "service.issues.length > 0">
 					<p class = "inline-notification error">There are issues with this service, please check the details below.</p>
@@ -24,15 +23,13 @@
 
 				</div>
 				<div v-else>
+					<p><a href = "#">Docs</a></p>
 					<button @click="connectService(service.name)" :class = "service.issues.length == 0 ? 'good' : 'bad'" type = "submit">
 						<Icon :icon="service.icon" />
 
-						Login with {{ service.name }}
+						Login
 					</button>
-
 				</div>
-				<br />
-				<br />
 			</div>
 		</div>
 
@@ -77,3 +74,22 @@
 		fetchServices();
 	});
 </script>
+
+<style scoped>
+	.service-list {
+		display: flex;
+		flex-direction: row;
+		gap: 1em;
+	}
+
+	.oauth-service {
+		border: 1px solid #555;
+		border-radius: 1em;
+		padding: 1em;
+		text-align: center;
+	}
+
+	h3 {
+		margin: 0;
+	}
+</style>

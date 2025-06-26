@@ -1,11 +1,13 @@
 package db
 
 var CvarKeys = struct {
+	BaseUrl string
 	OAuth2RedirectURL string
 
 	XClientID     string
 	XClientSecret string
 }{
+	BaseUrl:          "base_url",
 	OAuth2RedirectURL: "oauth2_redirect_url",
 
 	XClientID:     "twitter_client_id",
@@ -13,22 +15,22 @@ var CvarKeys = struct {
 }
 
 var CvarList = []Cvar{
+	{KeyName: CvarKeys.BaseUrl, Title: "Base URL", ValueString: "http://localhost:8080", Category: "General", Description: "The base URL of the application", Type: "text"},
 	{KeyName: CvarKeys.OAuth2RedirectURL, Title: "OAuth2 Redirect URL", ValueString: "http://localhost:8080/oauth2callback", Category: "OAuth2", Description: "The redirect URL for OAuth2 authentication", Type: "text"},
 
 	{KeyName: CvarKeys.XClientID, Title: "X Client ID", ValueString: "", Category: "X", Description: "Client ID for X OAuth", Type: "text"},
 	{KeyName: CvarKeys.XClientSecret, Title: "X Client Secret", ValueString: "", Category: "X", Description: "Client secret for X OAuth", Type: "password"},
 }
 
-func (db *DB) InsertCvarsIfNotExists() error {
+func (db *DB) InsertCvarsIfNotExists(chain *ConnectionChain) {
 	for _, cvar := range CvarList {
 		err := db.InsertCvarIfNotExists(&cvar)
 
 		if err != nil {
-			return err
+			chain.err = err
+			return
 		}
 	}
-
-	return nil
 }
 
 func (db *DB) InsertCvarIfNotExists(cvar *Cvar) error {

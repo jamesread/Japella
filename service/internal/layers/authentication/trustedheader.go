@@ -2,8 +2,8 @@ package authentication
 
 import (
 	"context"
-	"net/http"
 	"github.com/jamesread/japella/internal/db"
+	"net/http"
 )
 
 func CheckAuthTrustedHeader(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error) {

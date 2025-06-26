@@ -27,6 +27,7 @@ import (
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
+	"encoding/json"
 
 	"github.com/google/uuid"
 )
@@ -800,4 +801,43 @@ func (s *ControlApi) SetCvar(ctx context.Context, req *connect.Request[controlv1
 	})
 
 	return res, nil
+}
+
+type OAuthClientMetadata struct {
+	ClientID	 string `json:"client_id"`
+	ApplicationType string `json:"application_type"`
+	ClientName	 string `json:"client_name"`
+	ClientURI	 string `json:"client_uri"`
+	DpopBoundAccessTokens bool `json:"dpop_bound_access_tokens"`
+	GrantTypes	 []string `json:"grant_types"`
+	RedirectURIs	 []string `json:"redirect_uris"`
+	ResponseTypes	 []string `json:"response_types"`
+	Scope		 string `json:"scope"`
+	TokenEndpointAuthMethod string `json:"token_endpoint_auth_method"`
+}
+
+func (s *ControlApi) OAuthClientMetadataHandler(w http.ResponseWriter, r *http.Request) {
+	log.Infof("Serving OAuth client metadata")
+
+	metadata := &OAuthClientMetadata{
+		ClientID:              s.DB.GetCvarString(db.CvarKeys.BaseUrl) + "/oauth/client-metadata.json",
+		ApplicationType:       "web",
+		ClientName:            "Japella",
+		ClientURI:             s.DB.GetCvarString(db.CvarKeys.BaseUrl),
+		DpopBoundAccessTokens: true,
+		GrantTypes:            []string{"authorization_code", "refresh_token"},
+		RedirectURIs:          []string{s.DB.GetCvarString(db.CvarKeys.BaseUrl) + "/oauth2callback"},
+		ResponseTypes:         []string{"code"},
+		Scope:                 "atproto transition:generic",
+		TokenEndpointAuthMethod: "none",
+	}
+
+	res, _ := json.MarshalIndent(metadata, "", "  ")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(res); err != nil {
+		log.Errorf("Error writing OAuth client metadata response: %v", err)
+	}
 }

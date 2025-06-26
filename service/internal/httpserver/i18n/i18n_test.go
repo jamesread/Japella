@@ -1,8 +1,8 @@
 package i18n
 
 import (
-	"testing"
 	"github.com/stretchr/testify/assert"
+	"testing"
 )
 
 func TestGetLanguageDir(t *testing.T) {

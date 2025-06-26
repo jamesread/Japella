@@ -9,20 +9,34 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+
+	"net/url"
 )
 
 type loggingHTTPClient struct {
 	rt http.RoundTripper
 }
 
-func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error) {
-	log.Infof("Request: %s %s", req.Method, req.URL.String())
-
+func (l *loggingHTTPClient) logRequestHeaders(req *http.Request) {
 	for key, values := range req.Header {
 		for _, value := range values {
 			log.Infof("Request Header: %s: %s", key, value)
 		}
 	}
+}
+
+func (l *loggingHTTPClient) logResponseHeaders(resp *http.Response) {
+	for key, values := range resp.Header {
+		for _, value := range values {
+			log.Infof("Response Header: %s: %s", key, value)
+		}
+	}
+}
+
+func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error) {
+	log.Infof("Request: %s %s", req.Method, req.URL.String())
+
+	l.logRequestHeaders(req)
 
 	if req.Body != nil {
 		log.Debugf("Request Body: %v", req.Body)
@@ -44,7 +58,8 @@ func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error)
 	}
 
 	log.Infof("Response: %d %s", resp.StatusCode, resp.Status)
-	log.Debugf("Response Headers: %v", resp.Header)
+
+	l.logResponseHeaders(resp)
 
 	// use strings.Contains here because some servers include the charset in the Content-Type, so it does not exactly match "application/json"
 	isJson := strings.Contains(resp.Header.Get("Content-Type"), "application/json")
@@ -58,6 +73,12 @@ func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error)
 		resp.Body = io.NopCloser(bytes.NewBufferString(bodyString)) // Reassign the body to allow further reading
 	}
 
+	l.logBodyContent(isJson, bodyString)
+
+	return resp, nil
+}
+
+func (l *loggingHTTPClient) logBodyContent(isJson bool, bodyString string) {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		if isJson {
 			var prettyJSON bytes.Buffer
@@ -65,7 +86,6 @@ func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error)
 			if err := json.Indent(&prettyJSON, []byte(bodyString), "", "  "); err != nil {
 				log.Errorf("Error pretty printing JSON response: %v", err)
 				log.Debugf("Response Body Content: %s", bodyString)
-				return resp, nil
 			}
 
 			fmt.Printf("Response Body JSON:\n%s\n", prettyJSON.String())
@@ -73,8 +93,6 @@ func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error)
 			log.Debugf("Response Body Content: %s", bodyString)
 		}
 	}
-
-	return resp, nil
 }
 
 func NewLoggingTransport(rt http.RoundTripper) *loggingHTTPClient {
@@ -104,6 +122,31 @@ func ClientDoJson(client *http.Client, req *http.Request, v any) error {
 	}
 
 	return nil
+}
+
+func NewHttpClientAndGetReqWithUrlEncodedMap(requrl string, token string, body map[string]string) (*http.Client, *http.Request, error) {
+	form := url.Values{}
+	for key, value := range body {
+		form.Add(key, value)
+	}
+
+	req, err := http.NewRequest("POST", requrl, strings.NewReader(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating request: %w", err)
+	}
+
+	if token != "" {
+		req.Header.Set("Authorization", "Basic "+token)
+		//		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	client := &http.Client{
+		Transport: NewLoggingTransport(nil),
+	}
+
+	return client, req, nil
 }
 
 func NewHttpClientAndGetReqWithJson(url string, token string, body any) (*http.Client, *http.Request, error) {

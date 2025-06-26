@@ -40,8 +40,8 @@ func (bot *TodoBotImpl) onNew(msg *pb.IncomingMessage, a string, b string) {
 
 func (bot *TodoBotImpl) onDone(msg *pb.IncomingMessage, a string, b string) {
 	/*
-	bot.Logger().Infof("Completing todo")
+		bot.Logger().Infof("Completing todo")
 
-	bot.list = bot.list[1:]
+		bot.list = bot.list[1:]
 	*/
 }

@@ -50,12 +50,12 @@ type AmqpConfig struct {
 }
 
 type DatabaseConfig struct {
-	Enabled  bool
-	Host     string
-	User     string
-	Pass     string
-	Port	 int
-	Name     string
+	Enabled bool
+	Host    string
+	User    string
+	Pass    string
+	Port    int
+	Name    string
 }
 
 type WhatsAppConfig struct {

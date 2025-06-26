@@ -5,7 +5,7 @@ import (
 )
 
 type ConfigProvider interface {
-	GetCvars() (map[string]*db.Cvar)
+	GetCvars() map[string]*db.Cvar
 	OnCvarChange(key string, value string)
 	CheckConfiguration() *ConfigurationCheckResult
 }

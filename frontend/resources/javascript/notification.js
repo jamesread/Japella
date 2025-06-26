@@ -29,7 +29,9 @@ export default class Notification {
 
     try {
       validUrl = new URL(this.url).toString()
-    } catch (e) { }
+    } catch (e) {
+      validUrl = false;
+    }
 
     if (validUrl) {
       const linkElement = document.createElement('a');

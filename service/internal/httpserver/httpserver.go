@@ -8,6 +8,7 @@ import (
 
 	"github.com/jamesread/japella/internal/httpserver/frontend"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
+	"github.com/jamesread/japella/internal/httpserver/upload"
 	"github.com/jamesread/japella/internal/layers/api"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/layers/healthcheck"
@@ -63,7 +64,9 @@ func CreateServer(endpoint string) (*http.Server, error) {
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", authenticatedApiHandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
+	mux.HandleFunc("/oauth/client-metadata.json", srv.OAuthClientMetadataHandler)
 	mux.Handle("/lang", http.HandlerFunc(i18n.Handle))
+	mux.HandleFunc("/upload", upload.Handle)
 	mux.HandleFunc("/readyz", handleReadyz)
 	mux.HandleFunc("/healthz", handleHealthz)
 	mux.Handle("/", http.StripPrefix("/", frontend.GetNewHandler()))

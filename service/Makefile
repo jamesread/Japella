@@ -16,7 +16,7 @@ dev:
 codestyle:
 	go fmt ./...
 	go vet ./...
-	gocyclo internal
+	gocyclo -over 5 internal
 	gocritic check
 
 go-tools:

@@ -2,9 +2,9 @@ package authentication
 
 import (
 	"context"
-	"net/http"
 	"github.com/jamesread/japella/internal/db"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 )
 
 func CheckAuthSessionCookie(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error) {

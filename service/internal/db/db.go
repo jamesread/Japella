@@ -22,6 +22,9 @@ import (
 type DB struct {
 	utils.LogComponent
 
+	dsn           string
+	migrationsDir string
+
 	errorMessage string
 
 	dbconfig runtimeconfig.DatabaseConfig
@@ -72,20 +75,21 @@ func (db *DB) findMigrationsDirectory() (string, error) {
 	return dirs.GetFirstExistingDirectory("db-migrations", toSearch)
 }
 
-func (db *DB) Migrate(dsn string, migrationsDir string) error {
+func (db *DB) Migrate(chain *ConnectionChain) {
 	db.connectionMutex.Lock()
 	defer db.connectionMutex.Unlock()
 
-	db.Logger().Infof("Starting migration from directory: %s", migrationsDir)
+	db.Logger().Infof("Starting migration from directory: %s", db.migrationsDir)
 
 	m, err := migrate.New(
-		"file://"+migrationsDir,
-		"mysql://"+dsn,
+		"file://"+db.migrationsDir,
+		"mysql://"+db.dsn,
 	)
 
 	if err != nil {
 		db.Logger().Errorf("Failed to create migration instance: %v", err)
-		return err
+		chain.err = err
+		return
 	}
 
 	db.currentSchemaVersion, db.currentSchemaDirty, _ = m.Version()
@@ -95,24 +99,22 @@ func (db *DB) Migrate(dsn string, migrationsDir string) error {
 
 	if err == migrate.ErrNoChange {
 		db.Logger().Info("Database is already at the latest version, no migration needed")
-		return nil
 	} else if err != nil {
 		db.Logger().Errorf("Failed to migrate database: %v", err)
-		return err
+		chain.err = err
 	} else {
 		db.currentSchemaVersion, db.currentSchemaDirty, _ = m.Version()
 		db.Logger().Infof("Database upgraded to schema version: %v, dirty: %v", db.currentSchemaVersion, db.currentSchemaDirty)
-		return nil
 	}
 }
 
-func (db *DB) reconnectDatabase() error {
-	db.Logger().Debugf("Reconnecting to database")
+type databaseConnectionCheck func(*ConnectionChain)
 
+func (db *DB) checkConnNotNil(chain *ConnectionChain) {
 	if db.connx != nil {
 		if db.connx.Ping() == nil {
 			db.Logger().Debugf("Database connection is alive, skipping reconnection")
-			return nil
+			chain.continueConnecting = false
 		} else {
 			db.Logger().Warn("Database connection is not alive, reconnecting")
 
@@ -120,57 +122,80 @@ func (db *DB) reconnectDatabase() error {
 			db.connx = nil
 		}
 	}
+}
 
-	dsn := fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", db.dbconfig.User, db.dbconfig.Pass, db.dbconfig.Host, db.dbconfig.Name)
+func (db *DB) buildDsn(chain *ConnectionChain) {
+	db.dsn = fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", db.dbconfig.User, db.dbconfig.Pass, db.dbconfig.Host, db.dbconfig.Name)
+}
 
+func (db *DB) connectToDatabase(chain *ConnectionChain) {
 	if db.connx == nil {
 		var err error
 
-		db.connx, err = sqlx.Connect("mysql", dsn)
+		db.connx, err = sqlx.Connect("mysql", db.dsn)
 
 		if err != nil {
-			db.Logger().Warnf("Failed to connect to database: %v", err)
-			return err
+			chain.err = errors.New("failed to connect to database: " + err.Error())
 		}
 	}
+}
 
-	if err := db.connx.Ping(); err != nil {
-		db.Logger().Errorf("Failed to ping database: %v", err)
-		return err
-	}
+func (db *DB) pingOk(chain *ConnectionChain) {
+	chain.err = db.connx.Ping()
+}
 
-	migrationsDir, err := db.findMigrationsDirectory()
+func (db *DB) findMigrationsDirectoryWrapped(chain *ConnectionChain) {
+	md, err := db.findMigrationsDirectory()
 
 	if err != nil {
 		db.Logger().Errorf("Failed to find migrations directory: %v", err)
-		return err
+		chain.err = err
+		return
 	}
 
-	err = db.Migrate(dsn, migrationsDir)
+	db.migrationsDir = md
+}
 
-	if err != nil {
-		db.Logger().Errorf("Failed to migrate database: %v", err)
-		return err
+type ConnectionChain struct {
+	err                error
+	continueConnecting bool
+}
+
+func (db *DB) reconnectDatabase() error {
+	db.Logger().Debugf("Reconnecting to database")
+
+	chain := &ConnectionChain{
+		continueConnecting: true,
 	}
 
-	err = db.InsertCvarsIfNotExists()
-
-	if err != nil {
-		db.Logger().Errorf("Failed to insert cvars: %v", err)
-		return err
+	var connectionChecks = []databaseConnectionCheck{
+		db.checkConnNotNil,
+		db.buildDsn,
+		db.connectToDatabase,
+		db.pingOk,
+		db.findMigrationsDirectoryWrapped,
+		db.Migrate,
+		db.InsertCvarsIfNotExists,
+		db.initAdminUser,
 	}
 
-	err = db.initAdminUser()
+	for _, check := range connectionChecks {
+		check(chain)
 
-	if err != nil {
-		db.Logger().Errorf("Failed to initialize admin user: %v", err)
-		return err
+		if chain.err != nil {
+			db.Logger().Errorf("Database connection check failed: %v", chain.err)
+			return chain.err
+		}
+
+		if !chain.continueConnecting {
+			return nil
+		}
 	}
 
 	return nil
 }
 
-func (db *DB) initAdminUser() error {
+func (db *DB) initAdminUser(chain *ConnectionChain) {
 	if !db.HasAnyUsers() {
 		db.Logger().Warn("No users found in the database, creating default admin user")
 
@@ -178,17 +203,17 @@ func (db *DB) initAdminUser() error {
 
 		if err != nil {
 			db.Logger().Errorf("Error hashing default password: %v", err)
-			return err
+			chain.err = err
+			return
 		}
 
 		_, err = db.CreateUserAccount("admin", passwordHash)
 		if err != nil {
 			db.Logger().Errorf("Failed to create default admin user: %v", err)
-			return err
+			chain.err = err
+			return
 		}
 	}
-
-	return nil
 }
 
 func (db *DB) ResilientExec(query string, args ...any) (sql.Result, error) {
@@ -569,5 +594,18 @@ func (db *DB) RevokeApiKey(id uint32) error {
 		db.Logger().Errorf("Failed to revoke API key: %v", err)
 		return err
 	}
+	return nil
+}
+
+func (db *DB) UpdateSocialAccountToken(socialAccountId uint32, accessToken string, refreshToken string, epiresIn int64) error {
+	db.Logger().Infof("Updating social account token for ID: %d", socialAccountId)
+
+	_, err := db.ResilientExec("UPDATE social_accounts SET oauth2_token = ?, oauth2_refresh_token = ?, oauth2_token_expiry = DATE_ADD(NOW(), INTERVAL ? SECOND), updated_at = NOW() WHERE id = ?", accessToken, refreshToken, epiresIn, socialAccountId)
+
+	if err != nil {
+		db.Logger().Errorf("Failed to update social account token: %v", err)
+		return err
+	}
+
 	return nil
 }
