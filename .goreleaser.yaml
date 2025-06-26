@@ -36,6 +36,7 @@ dockers:
       - "--platform=linux/amd64"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--build-arg=BIN_DIR=./"
     extra_files:
       - README.md
       - frontend/dist/
@@ -52,6 +53,7 @@ dockers:
       - "--platform=linux/arm64"
       - "--label=org.opencontainers.image.revision={{.FullCommit}}"
       - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--build-arg=BIN_DIR=./"
     extra_files:
       - README.md
       - frontend/dist/
