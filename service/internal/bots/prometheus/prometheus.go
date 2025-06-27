@@ -3,12 +3,14 @@ package prometheus
 import (
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
+
 	//pb "github.com/jamesread/japella/gen/protobuf"
 	"context"
 	//	api "github.com/prometheus/client_golang/api"
+	"time"
+
 	promq "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
-	"time"
 )
 
 type LocalConfig struct {
@@ -87,13 +89,11 @@ func checkPromMetrics(api promq.API, metricName string) {
 
 func updateTicker(api promq.API, cfg *PromWatcherConfig) {
 	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			for _, metric := range cfg.Metrics {
-				checkPromMetrics(api, metric.Name)
-			}
+	for range ticker.C {
+		for _, metric := range cfg.Metrics {
+			checkPromMetrics(api, metric.Name)
 		}
 	}
 }

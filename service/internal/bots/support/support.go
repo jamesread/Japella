@@ -7,8 +7,3 @@ import (
 type SupportBot struct {
 	botbase.Bot
 }
-
-func main() {
-	bot := &SupportBot{}
-	bot.Setup()
-}

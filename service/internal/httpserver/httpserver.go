@@ -12,8 +12,36 @@ import (
 	"github.com/jamesread/japella/internal/layers/api"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/layers/healthcheck"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
 )
+
+// Prometheus metrics
+var (
+	httpRequestsTotal = prometheus.NewCounterVec(
+		prometheus.CounterOpts{
+			Name: "http_requests_total",
+			Help: "Total number of HTTP requests",
+		},
+		[]string{"method", "endpoint", "status"},
+	)
+
+	httpRequestDuration = prometheus.NewHistogramVec(
+		prometheus.HistogramOpts{
+			Name:    "http_request_duration_seconds",
+			Help:    "HTTP request duration in seconds",
+			Buckets: prometheus.DefBuckets,
+		},
+		[]string{"method", "endpoint"},
+	)
+)
+
+func init() {
+	// Register metrics with the default registry
+	prometheus.MustRegister(httpRequestsTotal)
+	prometheus.MustRegister(httpRequestDuration)
+}
 
 /*
 func allowCors(h http.Handler) http.Handler {
@@ -69,6 +97,7 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	mux.HandleFunc("/upload", upload.Handle)
 	mux.HandleFunc("/readyz", handleReadyz)
 	mux.HandleFunc("/healthz", handleHealthz)
+	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/", http.StripPrefix("/", frontend.GetNewHandler()))
 
 	server := &http.Server{

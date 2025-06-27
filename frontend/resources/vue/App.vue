@@ -1,18 +1,28 @@
 <template>
     <header>
-        <div class = "logo-and-title fg1">
-            <img src = "../../logo.png" class = "logo" />
-            <h1>Japella</h1>
+		<div @click = "clickSidebarToggle" id = "sidebar-button">
+			<div class = "logo-and-title">
+				<img src = "../../logo.png" class = "logo" />
+				<h1>Japella</h1>
+			</div>
+			<span class = "menu-icon">
+				<Icon icon = "material-symbols:menu-rounded" width = "24" height = "24" />
+			</span>
         </div>
 
-        <div class = "user-info icon-and-text" v-if = "isLoggedIn">
+		<div class = "fg1"></div>
+
+        <div class = "user-info icon-and-text logo-with-title" v-if = "isLoggedIn">
             <span id = "user-name">{{ username }}</span>
             <Icon icon = "mdi:user" width = "24" height = "24" />
         </div>
     </header>
 
     <div id = "layout">
-        <aside class = "shown stuck" v-show = "isLoggedIn">
+        <aside class = "shown stuck" v-show = "isLoggedIn" id = "section-navigation">
+			<div id = "stick-icon" class = "icon-and-text vh" @click = "clickSidebarStick">
+				<Icon icon = "mdi:pin" width = "24" height = "24" />
+			</div>
             <SectionNavigation @section-change-request = "changeSection"/>
         </aside>
 
@@ -43,9 +53,11 @@
                 </div>
             </main>
             <footer>
+				<small>
                 <span><a href = "https://github.com/jamesread/Japella">Japella on GitHub</a></span>
                 <span><a href = "https://jamesread.github.io/Japella/">Documentation</a></span>
                 <span id = "currentVersion" v-if = "isLoggedIn">{{ currentVersion }}</span>
+				</small>
             </footer>
         </div>
     </div>
@@ -148,4 +160,35 @@
         clientReady.value = true;
         getStatus()
     });
+
+	function clickSidebarToggle() {
+	  const sidebar = document.getElementById('section-navigation');
+	  const stickIcon = document.getElementById('stick-icon');
+	  const toggleButton = document.getElementById('sidebar-button');
+
+	  if (sidebar.classList.contains('shown')) {
+		sidebar.classList.remove('shown');
+		stickIcon.classList.add('vh')
+		toggleButton.style.position = '';
+	  } else {
+		sidebar.classList.add('shown');
+		stickIcon.classList.remove('vh')
+		toggleButton.style.position = 'fixed';
+	  }
+	}
+
+	function clickSidebarStick() {
+	  const sidebar = document.getElementById('sidebar');
+	  const toggleButton = document.getElementById('sidebar-button');
+
+	  if (sidebar.classList.contains('stuck')) {
+		sidebar.classList.remove('stuck');
+		toggleButton.style.position = 'fixed';
+	  } else {
+		sidebar.classList.add('stuck');
+		toggleButton.style.position = '';
+	  }
+
+	  console.log('Sidebar stick toggled');
+	}
 </script>

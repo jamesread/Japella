@@ -25,11 +25,6 @@ type ConnectorConfigWrapper struct {
 type BlueskyConfig struct {
 }
 
-type XConfig struct {
-	ClientID     string
-	ClientSecret string
-}
-
 type DiscordConfig struct {
 	AppId     string
 	PublicKey string

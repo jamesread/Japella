@@ -128,23 +128,6 @@ func (c *MastodonConnector) Start() {
 	}
 }
 
-func amqpReplier() {
-	/*
-		amqp.ConsumeForever("mastodon-OutgoingMessage", func(d amqp.Delivery) {
-			reply := msgs.OutgoingMessage{}
-
-			amqp.Decode(d.Message.Body, &reply)
-
-			toot := &mastodon.Toot{
-				Status:     reply.Content,
-				Visibility: "public",
-			}
-
-			Post(toot)
-		})
-	*/
-}
-
 func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, content string) *connector.PostResult {
 	res := &connector.PostResult{}
 

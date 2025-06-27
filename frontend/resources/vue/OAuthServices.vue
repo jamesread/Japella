@@ -2,30 +2,26 @@
 	<section class = "oauth2-services social-accounts">
 		<h2>Login to account</h2>
 
-		<p>This page shows a list of OAuth services that can be connected to Japella.</p>
+		<p>This is a list of OAuth services that can be connected to Japella.</p>
+
+	</section>
 
 		<div v-if="services.length === 0">
 			<p class="inline-notification note">No OAuth services available.</p>
 		</div>
 		<div v-else class = "service-list">
 			<div v-for="service in services" :key="service.id"  class = "oauth-service">
-				<h3>{{ service.name }}</h3>
-				<div v-if = "service.issues.length > 0">
-					<p class = "inline-notification error">There are issues with this service, please check the details below.</p>
-					<details>
-						<p class = "inline-notification note" v-for="issue in service.issues">
-							{{ issue }}
-						</p>
-						<summary>
-							{{ service.issues.length > 0 ? 'Open issues' : 'No issues' }}
-						</summary>
-					</details>
+				<h3>
+					<Icon :icon="service.icon" />
+					<br />
+					{{ service.name }}
+				</h3>
 
+				<div v-if = "service.issues.length > 0">
+					<button @click="showIssues(service)" class = "bad">Show issues</button>
 				</div>
 				<div v-else>
-					<p><a href = "#">Docs</a></p>
 					<button @click="connectService(service.name)" :class = "service.issues.length == 0 ? 'good' : 'bad'" type = "submit">
-						<Icon :icon="service.icon" />
 
 						Login
 					</button>
@@ -33,8 +29,18 @@
 			</div>
 		</div>
 
-		<p>If you don't see the service you want, it probably needs initial setup in the settings.</p>
-	</section>
+	<dialog ref = "serviceIssuesDialog" v-if="selectedService" class = "dialog">
+		<h3>Service Issues for {{ selectedService.name }}</h3>
+		<a :href = "selectedService.name" target="_blank">Documentation</a>
+		<p>There are issues with this service, please check the details below.</p>
+		<div>
+			<ul>
+				<li class = "inline-notification bad" v-for="issue in selectedService.issues" :key="issue">
+					{{ issue }}
+				</li>
+			</ul>
+		</div>
+	</dialog>
 </template>
 
 <script setup>
@@ -43,6 +49,13 @@
 	import { Icon } from '@iconify/vue';
 
 	const services = ref([]);
+	const serviceIssuesDialog = ref(null);
+	const selectedService = ref(null);
+
+	function showIssues(service) {
+		selectedService.value = service;
+		serviceIssuesDialog.value.showModal();
+	}
 
 	async function fetchServices() {
 		await waitForClient();
@@ -76,6 +89,10 @@
 </script>
 
 <style scoped>
+    button {
+		margin-top: 1em;
+	}
+
 	.service-list {
 		display: flex;
 		flex-direction: row;
@@ -84,12 +101,17 @@
 
 	.oauth-service {
 		border: 1px solid #555;
-		border-radius: 1em;
+		border-radius: .5em;
 		padding: 1em;
 		text-align: center;
+		width: 160px;
 	}
 
 	h3 {
 		margin: 0;
+	}
+
+	li {
+		margin-bottom: 1em;
 	}
 </style>

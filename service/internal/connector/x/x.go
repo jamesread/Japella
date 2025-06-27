@@ -4,7 +4,6 @@ import (
 	"encoding/base64"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
-	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
@@ -13,17 +12,56 @@ import (
 )
 
 type XConnector struct {
-	config *runtimeconfig.XConfig
 	connector.BaseConnector
 	connector.ConnectorWithWall
 	connector.OAuth2Connector
+	connector.ConfigProvider
 
 	db *db.DB
 }
 
+const CFG_X_CLIENT_ID = "x.client_id"
+const CFG_X_CLIENT_SECRET = "x.client_secret"
+
+func (x *XConnector) GetCvars() map[string]*db.Cvar {
+	return map[string]*db.Cvar{
+		CFG_X_CLIENT_ID: &db.Cvar{
+			KeyName:      CFG_X_CLIENT_ID,
+			DefaultValue: "",
+			Title:        "X Client ID",
+			Description:  "https://developer.x.com/en/docs/authentication/oauth-2-0",
+			Category:     "X",
+			Type:         "text",
+		},
+		CFG_X_CLIENT_SECRET: &db.Cvar{
+			KeyName:      CFG_X_CLIENT_SECRET,
+			DefaultValue: "",
+			Title:        "X Client Secret",
+			Description:  "https://developer.x.com/en/docs/authentication/oauth-2-0",
+			Category:     "X",
+			Type:         "password",
+		},
+	}
+}
+
+func (x *XConnector) CheckConfiguration() *connector.ConfigurationCheckResult {
+	res := &connector.ConfigurationCheckResult{
+		Issues: []string{},
+	}
+
+	if x.db.GetCvarString(CFG_X_CLIENT_ID) == "" {
+		res.AddIssue("X Client ID is not set in the database, please configure it in the settings.")
+	}
+
+	if x.db.GetCvarString(CFG_X_CLIENT_SECRET) == "" {
+		res.AddIssue("X Client Secret is not set in the database, please configure it in the settings.")
+	}
+
+	return res
+}
+
 func (x *XConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
 	x.db = startup.DB
-	x.config = startup.Config.(*runtimeconfig.XConfig)
 }
 
 func (x *XConnector) Start() {}
@@ -54,10 +92,10 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 	refreshTokenArgs := make(map[string]string)
 	refreshTokenArgs["refresh_token"] = socialAccount.OAuth2RefreshToken
 	refreshTokenArgs["grant_type"] = "refresh_token"
-	refreshTokenArgs["client_id"] = x.config.ClientID
+	refreshTokenArgs["client_id"] = x.db.GetCvarString(CFG_X_CLIENT_ID)
 
 	requrl := "https://api.x.com/2/oauth2/token"
-	tok := base64.StdEncoding.EncodeToString([]byte(x.config.ClientID + ":" + x.config.ClientSecret))
+	tok := base64.StdEncoding.EncodeToString([]byte(x.db.GetCvarString(CFG_X_CLIENT_ID) + ":" + x.db.GetCvarString(CFG_X_CLIENT_SECRET)))
 
 	client, req, err := utils.NewHttpClientAndGetReqWithUrlEncodedMap(requrl, tok, refreshTokenArgs)
 
@@ -130,8 +168,8 @@ func (x *XConnector) GetOAuth2Config() *oauth2.Config {
 	ep := endpoints.X
 
 	config := &oauth2.Config{
-		ClientID:     x.config.ClientID,
-		ClientSecret: x.config.ClientSecret,
+		ClientID:     x.db.GetCvarString(CFG_X_CLIENT_ID),
+		ClientSecret: x.db.GetCvarString(CFG_X_CLIENT_SECRET),
 		RedirectURL:  "http://localhost:8080/oauth2callback",
 		Scopes:       []string{"tweet.write", "users.read", "offline.access", "tweet.read"},
 		Endpoint:     ep,
