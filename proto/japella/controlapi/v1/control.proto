@@ -33,6 +33,7 @@ message GetStatusResponse {
 	string username = 5;
 	bool is_logged_in = 6;
 	repeated StatusMessage status_messages = 7;
+    bool uses_secure_cookies = 8;
 }
 
 message StatusMessage {

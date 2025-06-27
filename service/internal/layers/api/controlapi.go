@@ -110,6 +110,7 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		Username:       username,
 		IsLoggedIn:     authenticatedUser != nil,
 		StatusMessages: s.statusMessages,
+		UsesSecureCookies: os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
 	})
 
 	return res, nil

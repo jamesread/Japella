@@ -254,15 +254,16 @@ func (*GetStatusRequest) Descriptor() ([]byte, []int) {
 }
 
 type GetStatusResponse struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Status         string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
-	Nanoservices   []string               `protobuf:"bytes,2,rep,name=nanoservices,proto3" json:"nanoservices,omitempty"`
-	Version        string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
-	Username       string                 `protobuf:"bytes,5,opt,name=username,proto3" json:"username,omitempty"`
-	IsLoggedIn     bool                   `protobuf:"varint,6,opt,name=is_logged_in,json=isLoggedIn,proto3" json:"is_logged_in,omitempty"`
-	StatusMessages []*StatusMessage       `protobuf:"bytes,7,rep,name=status_messages,json=statusMessages,proto3" json:"status_messages,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Status            string                 `protobuf:"bytes,1,opt,name=status,proto3" json:"status,omitempty"`
+	Nanoservices      []string               `protobuf:"bytes,2,rep,name=nanoservices,proto3" json:"nanoservices,omitempty"`
+	Version           string                 `protobuf:"bytes,3,opt,name=version,proto3" json:"version,omitempty"`
+	Username          string                 `protobuf:"bytes,5,opt,name=username,proto3" json:"username,omitempty"`
+	IsLoggedIn        bool                   `protobuf:"varint,6,opt,name=is_logged_in,json=isLoggedIn,proto3" json:"is_logged_in,omitempty"`
+	StatusMessages    []*StatusMessage       `protobuf:"bytes,7,rep,name=status_messages,json=statusMessages,proto3" json:"status_messages,omitempty"`
+	UsesSecureCookies bool                   `protobuf:"varint,8,opt,name=uses_secure_cookies,json=usesSecureCookies,proto3" json:"uses_secure_cookies,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *GetStatusResponse) Reset() {
@@ -335,6 +336,13 @@ func (x *GetStatusResponse) GetStatusMessages() []*StatusMessage {
 		return x.StatusMessages
 	}
 	return nil
+}
+
+func (x *GetStatusResponse) GetUsesSecureCookies() bool {
+	if x != nil {
+		return x.UsesSecureCookies
+	}
+	return false
 }
 
 type StatusMessage struct {
@@ -2601,7 +2609,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x13social_account_icon\x18\x06 \x01(\tR\x11socialAccountIcon\x126\n" +
 	"\x17social_account_identity\x18\a \x01(\tR\x15socialAccountIdentity\x12\x18\n" +
 	"\acontent\x18\b \x01(\tR\acontent\"\x12\n" +
-	"\x10GetStatusRequest\"\xf6\x01\n" +
+	"\x10GetStatusRequest\"\xa6\x02\n" +
 	"\x11GetStatusResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\"\n" +
 	"\fnanoservices\x18\x02 \x03(\tR\fnanoservices\x12\x18\n" +
@@ -2609,7 +2617,8 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\busername\x18\x05 \x01(\tR\busername\x12 \n" +
 	"\fis_logged_in\x18\x06 \x01(\bR\n" +
 	"isLoggedIn\x12M\n" +
-	"\x0fstatus_messages\x18\a \x03(\v2$.japella.controlapi.v1.StatusMessageR\x0estatusMessages\"=\n" +
+	"\x0fstatus_messages\x18\a \x03(\v2$.japella.controlapi.v1.StatusMessageR\x0estatusMessages\x12.\n" +
+	"\x13uses_secure_cookies\x18\b \x01(\bR\x11usesSecureCookies\"=\n" +
 	"\rStatusMessage\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\"\x17\n" +

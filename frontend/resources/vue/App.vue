@@ -40,6 +40,8 @@
                 <div v-if = "statusMessages.length > 0" class = "messages">
                     <div v-for = "message in statusMessages" :key = "message.id" :class = "message.type + ' notification'">
                         <strong>Server Message: </strong> {{ message.message }}
+
+						<a v-if = "message.url" :href = "message.url" target = "_blank">More info</a>
                     </div>
                 </div>
 
@@ -121,11 +123,23 @@
         }
     }
 
+	function checkSecureContext(st) {
+		if (st.usesSecureCookies && !window.isSecureContext) {
+			statusMessages.value.push({
+				type: 'error',
+				message: 'Your browser is not running in a secure context, and the server is set to only send secure cookies. You will not be able to stay logged in.',
+				url: 'https://jamesread.github.io/Japella/troubleshooting/secure-context-cookies.html'
+			});
+		}
+	}
+
     async function getStatus() {
         try {
             const st = await window.client.getStatus();
 
             statusMessages.value = st.statusMessages || [];
+
+            checkSecureContext(st)
 
             if (st.isLoggedIn) {
                 onLogin(st)

@@ -1,0 +1,3 @@
+= Secure context cookies
+
+Set JAPELLA_SECURE_COOKIES to `false` to disable secure context cookies. This is useful if you are not using HTTPS.

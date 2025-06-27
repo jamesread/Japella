@@ -31,6 +31,10 @@ func New(dbc *db.DB) *ConnectionController {
 		}
 	}
 
+	cc.RegisterController("mastodon", &mastodon.MastodonConnector{})
+	cc.RegisterController("x", &x.XConnector{})
+	cc.RegisterController("bluesky", &bluesky.BlueskyConnector{})
+
 	return cc
 }
 
@@ -110,7 +114,7 @@ func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config
 
 func (cc *ConnectionController) RegisterController(name string, controller connector.BaseConnector) {
 	if _, exists := cc.controllers[name]; exists {
-		panic("Connector registered: " + name)
+		return
 	}
 
 	cc.controllers[name] = controller

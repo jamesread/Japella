@@ -16,6 +16,8 @@
 ** xref:connectors/x.adoc[X]
 ** xref:connectors/mastodon.adoc[Mastodon]
 ** xref:connectors/bluesky.adoc[Bluesky]
+* Troubleshooting
+** xref:troubleshooting/secure-context-cookies.adoc[Secure Context Cookies]
 * FAQ
 ** xref:faq/postiz.adoc[Postiz]
 * xref:nanoservices/index.adoc[Nano Services]

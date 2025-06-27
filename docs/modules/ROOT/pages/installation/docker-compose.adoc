@@ -24,7 +24,7 @@ services:
       - JAPELLA_DB_NAME=japella
       - JAPELLA_DB_USER=japella
       - JAPELLA_DB_PASS=hunter2
-      - JAPELLA_SECURE_COOKIE=false
+      - JAPELLA_SECURE_COOKIES=false
     depends_on:
       - mariadb
 
