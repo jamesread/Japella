@@ -31,9 +31,9 @@ func New(dbc *db.DB) *ConnectionController {
 		}
 	}
 
-	cc.RegisterController("mastodon", &mastodon.MastodonConnector{})
-	cc.RegisterController("x", &x.XConnector{})
-	cc.RegisterController("bluesky", &bluesky.BlueskyConnector{})
+	cc.setupConnector(&mastodon.MastodonConnector{}, nil)
+	cc.setupConnector(&x.XConnector{}, nil)
+	cc.setupConnector(&bluesky.BlueskyConnector{}, nil)
 
 	return cc
 }
@@ -109,10 +109,10 @@ func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config
 	c.Start()
 
 	log.Infof("Setting up connector: %v", c.GetProtocol())
-	cc.RegisterController(c.GetProtocol(), c)
+	cc.registerConnector(c.GetProtocol(), c)
 }
 
-func (cc *ConnectionController) RegisterController(name string, controller connector.BaseConnector) {
+func (cc *ConnectionController) registerConnector(name string, controller connector.BaseConnector) {
 	if _, exists := cc.controllers[name]; exists {
 		return
 	}

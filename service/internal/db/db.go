@@ -75,10 +75,7 @@ func (db *DB) findMigrationsDirectory() (string, error) {
 	return dirs.GetFirstExistingDirectory("db-migrations", toSearch)
 }
 
-func (db *DB) Migrate(chain *ConnectionChain) {
-	db.connectionMutex.Lock()
-	defer db.connectionMutex.Unlock()
-
+func (db *DB) Migrate(chain *ConnectionChain) {	
 	db.Logger().Infof("Starting migration from directory: %s", db.migrationsDir)
 
 	m, err := migrate.New(
@@ -162,6 +159,9 @@ type ConnectionChain struct {
 }
 
 func (db *DB) reconnectDatabase() error {
+	db.connectionMutex.Lock()
+	defer db.connectionMutex.Unlock()
+
 	db.Logger().Debugf("Reconnecting to database")
 
 	chain := &ConnectionChain{
