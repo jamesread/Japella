@@ -70,12 +70,13 @@
 
 <script setup>
 	import { Icon } from '@iconify/vue';
-	import { ref, onMounted } from 'vue';
+	import { ref, onMounted, inject } from 'vue';
 	import { waitForClient } from '../javascript/util';
 
 	const clientReady = ref(false)
 	const errorMessage = ref("")
 	const accounts = ref([])
+	const showErrorDialog = inject('showSectionError')
 
 	function deleteAccount(accountId) {
 		if (!confirm("Are you sure you want to delete this account?")) {
@@ -94,7 +95,12 @@
 
 	function refreshAccount(accountId) {
 		window.client.refreshSocialAccount({ "id": accountId })
-			.then(() => {
+			.then((ret) => {
+				if (!ret.standardResponse.success) {
+				    console.log('Error refreshing social account:', ret.standardResponse.message)
+				    showErrorDialog?.(ret.standardResponse.message)
+				}
+
 				refreshAccounts()
 			})
 			.catch((error) => {

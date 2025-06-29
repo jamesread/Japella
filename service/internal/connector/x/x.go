@@ -170,7 +170,7 @@ func (x *XConnector) GetOAuth2Config() *oauth2.Config {
 	config := &oauth2.Config{
 		ClientID:     x.db.GetCvarString(CFG_X_CLIENT_ID),
 		ClientSecret: x.db.GetCvarString(CFG_X_CLIENT_SECRET),
-		RedirectURL:  "http://localhost:8080/oauth2callback",
+		RedirectURL:  x.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
 		Scopes:       []string{"tweet.write", "users.read", "offline.access", "tweet.read"},
 		Endpoint:     ep,
 	}
@@ -181,7 +181,5 @@ func (x *XConnector) GetOAuth2Config() *oauth2.Config {
 func (x *XConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 	log.Infof("OnRefresh called for XConnector with socialAccount: %+v", socialAccount)
 
-	x.RefreshToken(socialAccount)
-
-	return nil
+	return x.RefreshToken(socialAccount)
 }

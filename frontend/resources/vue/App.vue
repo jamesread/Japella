@@ -1,11 +1,11 @@
 <template>
     <header>
-		<div @click = "clickSidebarToggle" id = "sidebar-button">
+		<div @click = "clickSidebarToggle" id = "sidebar-button" ref = "toggleButton">
 			<div class = "logo-and-title">
 				<img src = "../../logo.png" class = "logo" />
 				<h1>Japella</h1>
 			</div>
-			<span class = "menu-icon">
+			<span class = "menu-icon" ref = "menuIcon" hidden>
 				<Icon icon = "material-symbols:menu-rounded" width = "24" height = "24" />
 			</span>
         </div>
@@ -19,9 +19,9 @@
     </header>
 
     <div id = "layout">
-        <aside class = "shown stuck" v-show = "isLoggedIn" id = "section-navigation">
-			<div id = "stick-icon" class = "icon-and-text vh" @click = "clickSidebarStick">
-				<Icon icon = "mdi:pin" width = "24" height = "24" />
+        <aside class = "" v-show = "isLoggedIn" ref = "sectionNavigation">
+			<div ref = "stickIcon" class = "stick-icon icon-and-text" @click = "clickSidebarStick">
+				<Icon :icon = "pinIcon" width = "24" height = "24" />
 			</div>
             <SectionNavigation @section-change-request = "changeSection"/>
         </aside>
@@ -53,6 +53,7 @@
                         <component :is = "currentSection" />
                     </KeepAlive>
                 </div>
+				<ErrorDialog ref = "errorDialogRef" />
             </main>
             <footer>
 				<small>
@@ -70,11 +71,27 @@
         display: inline-block;
         margin-right: 10px;
     }
+
+
+	#sidebar-button {
+		border-right: 0;
+	}
+
+	#sidebar-button:hover {
+		background-color: #1d345c;
+	}
+
+	.stick-icon {
+		padding: 0.1em;
+		padding-top: 0.5em;
+		display: flex;
+		justify-content: end;
+	}
 </style>
 
 <script setup>
     import { waitForClient } from '../javascript/util.js'
-    import { ref, computed, onMounted } from 'vue';
+    import { ref, computed, onMounted, provide } from 'vue';
     import { Icon } from '@iconify/vue';
 
     const clientReady = ref(false);
@@ -82,6 +99,7 @@
     const currentVersion = ref('');
     const username = ref('');
     const statusMessages = ref([]);
+	const menuIcon = ref(null);
 
     import Welcome from './Welcome.vue';
     import Timeline from './Timeline.vue';
@@ -114,10 +132,23 @@
     const currentSectionName = ref('welcome');
     const currentSection = computed(() => sections[currentSectionName.value]);
     const loadingWarning = ref('');
+	const stickIcon = ref(null);
+	const sectionNavigation = ref(null);
+	const toggleButton = ref(null);
+	const pinIcon = ref('mdi:pin-outline');
+	const errorDialogRef = ref();
+
+	provide('showSectionError', (msg) => {
+		errorDialogRef.value?.showError(msg)
+	});
 
     function changeSection(sectionName) {
         if (sections[sectionName]) {
             currentSectionName.value = sectionName;
+
+			if (!sectionNavigation.value.classList.contains('stuck')) {
+				hideSidebar();
+			}
         } else {
             console.warn(`Section "${sectionName}" does not exist.`);
         }
@@ -163,6 +194,8 @@
     function onLogin(ret) {
         isLoggedIn.value = true;
         username.value = ret.username
+
+		menuIcon.value.hidden = false;
     }
 
     onMounted(async () => {
@@ -176,31 +209,26 @@
     });
 
 	function clickSidebarToggle() {
-	  const sidebar = document.getElementById('section-navigation');
-	  const stickIcon = document.getElementById('stick-icon');
-	  const toggleButton = document.getElementById('sidebar-button');
-
-	  if (sidebar.classList.contains('shown')) {
-		sidebar.classList.remove('shown');
-		stickIcon.classList.add('vh')
-		toggleButton.style.position = '';
+	  if (sectionNavigation.value.classList.contains('shown')) {
+	    hideSidebar();
 	  } else {
-		sidebar.classList.add('shown');
-		stickIcon.classList.remove('vh')
-		toggleButton.style.position = 'fixed';
+		sectionNavigation.value.classList.add('shown');
+		stickIcon.value.classList.remove('vh')
 	  }
 	}
 
-	function clickSidebarStick() {
-	  const sidebar = document.getElementById('sidebar');
-	  const toggleButton = document.getElementById('sidebar-button');
+	function hideSidebar() {
+	  sectionNavigation.value.classList.remove('shown');
+	  stickIcon.value.classList.add('vh');
+	}
 
-	  if (sidebar.classList.contains('stuck')) {
-		sidebar.classList.remove('stuck');
-		toggleButton.style.position = 'fixed';
+	function clickSidebarStick() {
+	  if (sectionNavigation.value.classList.contains('stuck')) {
+	    pinIcon.value = 'mdi:pin-outline';
+		sectionNavigation.value.classList.remove('stuck');
 	  } else {
-		sidebar.classList.add('stuck');
-		toggleButton.style.position = '';
+	    pinIcon.value = 'mdi:pin';
+		sectionNavigation.value.classList.add('stuck');
 	  }
 
 	  console.log('Sidebar stick toggled');

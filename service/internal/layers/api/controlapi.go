@@ -457,11 +457,19 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector service not found for connector: %s", socialAccount.Connector))
 	}
 
-	connectorService.OnRefresh(socialAccount)
+	errMsg := "OK"
+	err := connectorService.OnRefresh(socialAccount)
+	if err != nil {
+		log.Errorf("Error refreshing social account: %v", err)
+		errMsg = fmt.Sprintf("Error refreshing social account: %v", err)
+	} else {
+		log.Infof("Social account refreshed successfully: %v", req.Msg.Id)
+	}
 
 	res := connect.NewResponse(&controlv1.RefreshSocialAccountResponse{
 		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
+			Success: err == nil,
+			Message: errMsg,
 		},
 	})
 

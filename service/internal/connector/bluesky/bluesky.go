@@ -12,10 +12,12 @@ type BlueskyConnector struct {
 	connector.OAuth2Connector
 	connector.ConnectorWithWall
 	connector.ConfigProvider
+
+	db *db.DB
 }
 
 func (b *BlueskyConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
-
+	b.db = startup.DB
 }
 
 func (b *BlueskyConnector) Start() {}
@@ -51,7 +53,7 @@ func (b *BlueskyConnector) GetOAuth2Config() *oauth2.Config {
 		ClientID:     "japella",
 		ClientSecret: "",
 		Scopes:       []string{"com.atproto.sync.subscribe", "com.atproto.repo.createRecord", "com.atproto.server.createSession"},
-		RedirectURL:  "https://japella.app/oauth/callback/bluesky",
+		RedirectURL:  b.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
 	}
 }
 

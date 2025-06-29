@@ -33,10 +33,12 @@
             </div>
 
 
-            <textarea id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!"></textarea>
+            <textarea id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!" @keyup = "recountLength" ></textarea>
 
             <fieldset>
                 <button id = "submit" type = "submit">{{ t('section.postbox.submit') }}</button>
+				<div class = "fg1"></div>
+				<span ref = "postLengthCounter">{{ postLength }}</span>
             </fieldset>
         </form>
     </section>
@@ -51,6 +53,21 @@
 
     const clientReady = ref(false);
     const items = ref([]);
+	const postLength = ref(0);
+	const postLengthCounter = ref(null);
+
+	const recountLength = (e) => {
+	    const length = e.target.value.length;
+
+		postLength.value = post.value.length;
+
+		if (length > 280) {
+			postLengthCounter.value.classList.add('bad');
+		} else {
+			postLengthCounter.value.classList.remove('bad');
+		}
+	}
+
 	/*
     const availablePostModes = ref([
         {
@@ -160,4 +177,8 @@
     input[type="checkbox"] {
         display: none;
     }
+
+	fieldset {
+        align-items: center;
+	}
 </style>
