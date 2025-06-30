@@ -14,9 +14,6 @@ type MastodonConnector struct {
 	token string
 	db    *db.DB
 
-	doRegistration bool
-	isInert        bool
-
 	connector.ConnectorWithWall
 	connector.OAuth2Connector
 	connector.ConfigProvider
@@ -94,38 +91,54 @@ func (c *MastodonConnector) SetStartupConfiguration(startup *connector.Controlle
 	c.db = startup.DB
 }
 
-func (c *MastodonConnector) register() {
-	/**
-	app, err := mastodon.RegisterApp(context.Background(), &mastodon.AppConfig{
-		Server:     "https://mastodon.social",
-		ClientName: "japella",
-		Scopes:     "read write follow",
-		Website:    c.config.Website,
-		RedirectURIs: "http://localhost:8080/oauth2callback",
-	})
+type AppConfig struct {
+	Server string `json:"server"`
+	ClientName string `json:"client_name"`
+	Scopes string `json:"scopes"`
+	Website string `json:"website"`
+	RedirectURIs string `json:"redirect_uris"`
+}
 
-	if err != nil {
-		log.Errorf("Error: %s", err)
+type RegistrationResponse struct {
+	ClientID     string `json:"client_id"`
+	ClientSecret string `json:"client_secret"`
+	AuthURI      string `json:"authorization_uri"`
+}
+
+func (c *MastodonConnector) register() {
+	client := utils.NewClient()
+
+	appConfig := &AppConfig{
+		Server:       "https://mastodon.social",
+		ClientName:   "japella",
+		Scopes:       "read write follow",
+		Website:      "https://jamesread.github.io/Japella",
+		RedirectURIs: c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
 	}
 
-	c.Logger().Infof("client-id: %v", app.ClientID)
-	c.Logger().Infof("client-secret: %v", app.ClientSecret)
-	c.Logger().Infof("AuthURL: %v", app.AuthURI)
-	*/
+	client.PostWithJson("https://mastodon.social/api/v1/apps", appConfig)
 
-	//	fmt.Println("!!! Please type your token below:")
-	//	fmt.Scanln(&c.token)
+	if client.Err != nil {
+		log.Errorf("Error: %s", client.Err)
+	}
 
-	c.Logger().Infof("Token: %s", c.token)
+	resp := &RegistrationResponse{}
+	
+	client.AsJson(resp)
+
+	if client.Err != nil {
+		log.Errorf("Error registering Mastodon app: %v", client.Err)
+		return
+	}
+
+	c.Logger().Infof("client-id: %v", resp.ClientID)
+	c.Logger().Infof("client-secret: %v", resp.ClientSecret)
+	c.Logger().Infof("AuthURL: %v", resp.AuthURI)
 }
 
 func (c *MastodonConnector) Start() {
 	c.SetPrefix("Mastodon")
 	c.Logger().Infof("Mastodon connector started")
-
-	if c.doRegistration {
-		c.register()
-	}
 }
 
 func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, content string) *connector.PostResult {
@@ -133,28 +146,23 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 
 	log.Infof("Posting to wall: %s", content)
 
-	if c.isInert {
-		res.URL = "https://mastodon.social/@jamesread/1234567890" // Dummy URL for inert mode
-		return res
-	}
-
 	toot := &Toot{
 		Status: content,
 	}
 
-	client, req, err := utils.NewHttpClientAndGetReqWithJson("https://mastodon.social/api/v1/statuses", socialAccount.OAuthToken, toot)
+	client := utils.NewClient().PostWithJson("https://mastodon.social/api/v1/statuses", toot).WithBearerToken(socialAccount.OAuthToken)
 
-	if err != nil {
-		res.Err = err
+	if client.Err != nil {
+		res.Err = client.Err
 		return res
 	}
 
 	postResult := &Status{}
 
-	err = utils.ClientDoJson(client, req, postResult)
+	client.AsJson(postResult)
 
-	if err != nil {
-		res.Err = err
+	if client.Err != nil {
+		res.Err = client.Err
 		return res
 	}
 
@@ -192,16 +200,16 @@ type VerifyCredentialsResponse struct {
 }
 
 func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
-	client, req, err := utils.NewHttpClientAndGetReq("https://mastodon.social/api/v1/accounts/verify_credentials", socialAccount.OAuth2Token)
+	client := utils.NewClient().Get("https://mastodon.social/api/v1/accounts/verify_credentials").WithBearerToken(socialAccount.OAuth2Token)
 
-	if err != nil {
-		log.Errorf("Error creating request: %v", err)
+	if client.Err != nil {
+		log.Errorf("Error creating request: %v", client.Err)
 		return
 	}
 
 	data := &VerifyCredentialsResponse{}
 
-	utils.ClientDoJson(client, req, &data)
+	client.AsJson(&data)
 
 	log.Infof("Whoami response: %+v", data)
 
@@ -209,6 +217,11 @@ func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
 }
 
 func (c *MastodonConnector) OnRefresh(socialAccount *db.SocialAccount) error {
+	if c.db.GetCvarBool(CFG_MASTODON_REGISTER) {
+		log.Infof("Registering Mastodon app on refresh")
+		c.register()
+	}
+
 	c.whoami(socialAccount)
 	return nil
 }

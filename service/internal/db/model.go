@@ -99,6 +99,8 @@ type Cvar struct {
 	DefaultValue string `db:"default_value"`
 	Category     string `db:"category"`
 	Type         string `db:"type"`
+	DocsUrl      string `db:"docs_url"`
+	ExternalUrl  string `db:"external_url"` // URL to the external documentation or portal
 }
 
 type UserPreferences struct {

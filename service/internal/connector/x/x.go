@@ -29,7 +29,9 @@ func (x *XConnector) GetCvars() map[string]*db.Cvar {
 			KeyName:      CFG_X_CLIENT_ID,
 			DefaultValue: "",
 			Title:        "X Client ID",
-			Description:  "https://developer.x.com/en/docs/authentication/oauth-2-0",
+			Description:  "X Developer Portal &raquo; App Settings &raquo; User Authentication Seetings &raquo; Edit &raquo; Keys &amp; Tokens",
+			ExternalUrl:  "https://developer.x.com/en/portal/projects-and-apps",
+			DocsUrl:      "https://jamesread.github.io/Japella/connectors/x.html",
 			Category:     "X",
 			Type:         "text",
 		},
@@ -37,7 +39,9 @@ func (x *XConnector) GetCvars() map[string]*db.Cvar {
 			KeyName:      CFG_X_CLIENT_SECRET,
 			DefaultValue: "",
 			Title:        "X Client Secret",
-			Description:  "https://developer.x.com/en/docs/authentication/oauth-2-0",
+			Description:  "X Developer Portal &raquo; App Settings &raquo; User Authentication Seetings &raquo; Edit &raquo; Keys &amp; Tokens",
+			ExternalUrl:  "https://developer.x.com/en/portal/projects-and-apps",
+			DocsUrl:      "https://jamesread.github.io/Japella/connectors/x.html",
 			Category:     "X",
 			Type:         "password",
 		},
@@ -97,20 +101,20 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 	requrl := "https://api.x.com/2/oauth2/token"
 	tok := base64.StdEncoding.EncodeToString([]byte(x.db.GetCvarString(CFG_X_CLIENT_ID) + ":" + x.db.GetCvarString(CFG_X_CLIENT_SECRET)))
 
-	client, req, err := utils.NewHttpClientAndGetReqWithUrlEncodedMap(requrl, tok, refreshTokenArgs)
+	client := utils.NewClient().GetWithFormVars(requrl, refreshTokenArgs).WithBasicAuth(tok)
 
-	if err != nil {
-		log.Errorf("Error creating request: %v", err)
-		return err
+	if client.Err != nil {
+		log.Errorf("Error creating request: %v", client.Err)
+		return client.Err
 	}
 
 	res := &UpdateTokenResult{}
 
-	err = utils.ClientDoJson(client, req, res)
+	client.AsJson(res)
 
-	if err != nil {
-		log.Errorf("Error refreshing token: %v", err)
-		return err
+	if client.Err != nil {
+		log.Errorf("Error refreshing token: %v", client.Err)
+		return client.Err
 	}
 
 	log.Debugf("Token refreshed successfully: %+v", res)
@@ -124,15 +128,19 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 }
 
 func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
-	client, req, err := utils.NewHttpClientAndGetReq("https://api.x.com/2/users/me", socialAccount.OAuth2Token)
+	client := utils.NewClient()
+	client.Get("https://api.x.com/2/users/me").WithBearerToken(socialAccount.OAuth2Token)
 
-	if err != nil {
-		log.Errorf("Error creating request: %v", err)
+	//client, req, err := utils.NewHttpClientAndGetReq("https://api.x.com/2/users/me", socialAccount.OAuth2Token)
+
+	if client.Err != nil {
+		log.Errorf("Error creating request: %v", client.Err)
 		return
 	}
 
 	whoamiResult := &WhoamiResult{}
-	utils.ClientDoJson(client, req, whoamiResult)
+
+	client.AsJson(whoamiResult)
 
 	x.db.UpdateSocialAccountIdentity(socialAccount.ID, whoamiResult.Data.Username)
 }
@@ -144,16 +152,17 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 		Text: message,
 	}
 
-	client, req, err := utils.NewHttpClientAndGetReqWithJson("https://api.x.com/2/tweets", sa.OAuthToken, t)
+	client := utils.NewClient()
+	client.PostWithJson("https://api.x.com/2/tweets", t).WithBearerToken(sa.OAuthToken)
 
-	if err != nil {
-		res.Err = err
+	if client.Err != nil {
+		res.Err = client.Err
 		return res
 	}
 
 	tweetResult := &TweetResult{}
 
-	utils.ClientDoJson(client, req, tweetResult)
+	client.AsJson(tweetResult)
 
 	res.URL = "https://x.com/user/status/" + tweetResult.Data.ID
 

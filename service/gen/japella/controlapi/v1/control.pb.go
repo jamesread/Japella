@@ -2099,6 +2099,8 @@ type Cvar struct {
 	MaxLength     uint32                 `protobuf:"varint,6,opt,name=max_length,json=maxLength,proto3" json:"max_length,omitempty"`
 	Type          string                 `protobuf:"bytes,7,opt,name=type,proto3" json:"type,omitempty"`
 	Title         string                 `protobuf:"bytes,8,opt,name=title,proto3" json:"title,omitempty"`
+	DocsUrl       string                 `protobuf:"bytes,9,opt,name=docs_url,json=docsUrl,proto3" json:"docs_url,omitempty"`
+	ExternalUrl   string                 `protobuf:"bytes,10,opt,name=external_url,json=externalUrl,proto3" json:"external_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -2185,6 +2187,20 @@ func (x *Cvar) GetType() string {
 func (x *Cvar) GetTitle() string {
 	if x != nil {
 		return x.Title
+	}
+	return ""
+}
+
+func (x *Cvar) GetDocsUrl() string {
+	if x != nil {
+		return x.DocsUrl
+	}
+	return ""
+}
+
+func (x *Cvar) GetExternalUrl() string {
+	if x != nil {
+		return x.ExternalUrl
 	}
 	return ""
 }
@@ -2720,7 +2736,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\v2#.japella.controlapi.v1.CvarCategoryR\x05value:\x028\x01\"U\n" +
 	"\fCvarCategory\x121\n" +
 	"\x05cvars\x18\x01 \x03(\v2\x1b.japella.controlapi.v1.CvarR\x05cvars\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"\xee\x01\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"\xac\x02\n" +
 	"\x04Cvar\x12\x19\n" +
 	"\bkey_name\x18\x01 \x01(\tR\akeyName\x12!\n" +
 	"\fvalue_string\x18\x02 \x01(\tR\vvalueString\x12\x1b\n" +
@@ -2731,7 +2747,10 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\n" +
 	"max_length\x18\x06 \x01(\rR\tmaxLength\x12\x12\n" +
 	"\x04type\x18\a \x01(\tR\x04type\x12\x14\n" +
-	"\x05title\x18\b \x01(\tR\x05title\"8\n" +
+	"\x05title\x18\b \x01(\tR\x05title\x12\x19\n" +
+	"\bdocs_url\x18\t \x01(\tR\adocsUrl\x12!\n" +
+	"\fexternal_url\x18\n" +
+	" \x01(\tR\vexternalUrl\"8\n" +
 	"\x1aSaveUserPreferencesRequest\x12\x1a\n" +
 	"\blanguage\x18\x01 \x01(\tR\blanguage\"\x8f\x01\n" +
 	"\x1bSaveUserPreferencesResponse\x12T\n" +

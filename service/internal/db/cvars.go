@@ -3,23 +3,14 @@ package db
 var CvarKeys = struct {
 	BaseUrl string
 	OAuth2RedirectURL string
-
-	XClientID     string
-	XClientSecret string
 }{
 	BaseUrl:          "base_url",
 	OAuth2RedirectURL: "oauth2_redirect_url",
-
-	XClientID:     "twitter_client_id",
-	XClientSecret: "twitter_client_secret",
 }
 
 var CvarList = []Cvar{
 	{KeyName: CvarKeys.BaseUrl, Title: "Base URL", ValueString: "http://localhost:8080", Category: "General", Description: "The base URL of the application", Type: "text"},
 	{KeyName: CvarKeys.OAuth2RedirectURL, Title: "OAuth2 Redirect URL", ValueString: "http://localhost:8080/oauth2callback", Category: "OAuth2", Description: "The redirect URL for OAuth2 authentication", Type: "text"},
-
-	{KeyName: CvarKeys.XClientID, Title: "X Client ID", ValueString: "", Category: "X", Description: "Client ID for X OAuth", Type: "text"},
-	{KeyName: CvarKeys.XClientSecret, Title: "X Client Secret", ValueString: "", Category: "X", Description: "Client secret for X OAuth", Type: "password"},
 }
 
 func (db *DB) InsertCvarsIfNotExists(chain *ConnectionChain) {
@@ -36,8 +27,8 @@ func (db *DB) InsertCvarsIfNotExists(chain *ConnectionChain) {
 func (db *DB) InsertCvarIfNotExists(cvar *Cvar) error {
 	db.Logger().Infof("Inserting cvar: %s", cvar.KeyName)
 
-	_, err := db.ResilientExec(`INSERT IGNORE INTO cvars (key_name, title, value_string, value_int, description, default_value, category, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-		cvar.KeyName, cvar.Title, cvar.ValueString, cvar.ValueInt, cvar.Description, cvar.DefaultValue, cvar.Category, cvar.Type)
+	_, err := db.ResilientExec(`INSERT INTO cvars (key_name, title, value_string, value_int, description, default_value, category, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE description = ?, docs_url = ?, external_url = ?`,
+		cvar.KeyName, cvar.Title, cvar.ValueString, cvar.ValueInt, cvar.Description, cvar.DefaultValue, cvar.Category, cvar.Type, cvar.Description, cvar.DocsUrl, cvar.ExternalUrl)
 
 	return err
 }

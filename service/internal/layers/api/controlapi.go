@@ -687,6 +687,8 @@ func (s *ControlApi) GetCvars(ctx context.Context, req *connect.Request[controlv
 			ValueString: cvar.ValueString,
 			ValueInt:    cvar.ValueInt,
 			Description: cvar.Description,
+			DocsUrl:     cvar.DocsUrl,
+			ExternalUrl: cvar.ExternalUrl,
 			Type:        cvar.Type,
 			Title:       cvar.Title,
 		})

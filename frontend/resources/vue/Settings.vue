@@ -19,7 +19,13 @@
                     <template v-else-if = "cvar.type === 'bool'">
                         <input type = "checkbox" :id = "cvar.keyName" :checked = "cvar.valueInt === 1" @blur = "setCvar(cvar)" />
                     </template>
-                <span>{{ cvar.description }}</span>
+				<span class = "fg1"><div v-html="cvar.description"></div></span>
+				<span>
+					<a v-if = "cvar.externalUrl" :href = "cvar.externalUrl">Get</a>
+				</span>
+				<span>
+					<a v-if = "cvar.docsUrl" :href = "cvar.docsUrl">Docs</a>
+				</span>
             </template>
         </form>
     </section>
@@ -75,7 +81,7 @@
 
 <style scoped>
     form {
-        grid-template-columns: 240px 1fr 3fr;
+        grid-template-columns: 240px 300px 3fr min-content min-content;
     }
 
     form {

@@ -209,6 +209,8 @@ message Cvar {
 	uint32 max_length = 6;
 	string type = 7;
 	string title = 8;
+    string docs_url = 9;
+    string external_url = 10;
 }
 
 message SaveUserPreferencesRequest {

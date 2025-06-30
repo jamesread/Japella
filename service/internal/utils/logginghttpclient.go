@@ -15,6 +15,12 @@ import (
 
 type loggingHTTPClient struct {
 	rt http.RoundTripper
+
+	client *http.Client
+
+	url string
+	Err error
+	req *http.Request
 }
 
 func (l *loggingHTTPClient) logRequestHeaders(req *http.Request) {
@@ -103,50 +109,94 @@ func NewLoggingTransport(rt http.RoundTripper) *loggingHTTPClient {
 	return &loggingHTTPClient{rt: rt}
 }
 
-func ClientDoJson(client *http.Client, req *http.Request, v any) error {
-	resp, err := client.Do(req)
+func (c *loggingHTTPClient) AsJson(v any) {
+	var resp *http.Response
 
-	if err != nil {
-		return fmt.Errorf("error making request: %w", err)
+	resp, c.Err = c.client.Do(c.req)
+
+	if c.Err != nil {
+		c.Err = fmt.Errorf("error making request: %w", c.Err)
+		return
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		c.Err = fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return
 	}
 
 	if v != nil {
 		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
-			return fmt.Errorf("error decoding JSON response: %w", err)
+			c.Err = fmt.Errorf("error decoding JSON response: %w", err)
 		}
 	}
-
-	return nil
 }
 
-func NewHttpClientAndGetReqWithUrlEncodedMap(requrl string, token string, body map[string]string) (*http.Client, *http.Request, error) {
+func NewClient() *loggingHTTPClient {
+	return &loggingHTTPClient{
+		rt: http.DefaultTransport,
+		client: &http.Client{
+			Transport: NewLoggingTransport(nil),
+		},
+	}
+}
+
+func (c *loggingHTTPClient) GetWithFormVars(requrl string, body map[string]string) (*loggingHTTPClient) {
+	c.url = requrl
+
 	form := url.Values{}
 	for key, value := range body {
 		form.Add(key, value)
 	}
 
-	req, err := http.NewRequest("POST", requrl, strings.NewReader(form.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	c.req, c.Err = http.NewRequest("GET", c.url, strings.NewReader(form.Encode()))
+	c.req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	return c;
+}
+
+func (c *loggingHTTPClient) Get(requrl string) *loggingHTTPClient {
+	c.url = requrl
+
+	var err error
+	c.req, err = http.NewRequest("GET", c.url, nil)
 
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating request: %w", err)
+		c.Err = fmt.Errorf("error creating request: %w", err)
 	}
 
-	if token != "" {
-		req.Header.Set("Authorization", "Basic "+token)
-		//		req.Header.Set("Authorization", "Bearer "+token)
+	return c
+}
+
+func (c *loggingHTTPClient) WithBasicAuth(token string) *loggingHTTPClient {
+	c.req.Header.Set("Authorization", "Basic "+token)
+	return c
+}
+
+func NewHttpClientAndGetReqWithUrlEncodedMap(requrl string, token string, body map[string]string) (*http.Client, *http.Request, error) {
+	x := NewClient().GetWithFormVars(requrl, body).WithBasicAuth(token)
+
+	return x.client, x.req, x.Err
+}
+
+func (c *loggingHTTPClient) PostWithJson(requrl string, body any) (*loggingHTTPClient) {
+	jsonBody, err := json.MarshalIndent(body, "", "  ")
+
+	if err != nil {
+		c.Err = fmt.Errorf("error encoding body to JSON: %w", err)
+		return c
 	}
 
-	client := &http.Client{
-		Transport: NewLoggingTransport(nil),
+	c.req, c.Err = http.NewRequest("POST", requrl, bytes.NewReader(jsonBody))
+	c.req.Header.Set("Content-Type", "application/json")
+
+	if c.Err != nil {
+		c.Err = fmt.Errorf("error creating request: %w", c.Err)
+		return c
 	}
 
-	return client, req, nil
+	return c
 }
 
 func NewHttpClientAndGetReqWithJson(url string, token string, body any) (*http.Client, *http.Request, error) {
@@ -174,6 +224,14 @@ func NewHttpClientAndGetReqWithJson(url string, token string, body any) (*http.C
 	}
 
 	return client, req, nil
+}
+
+func (c *loggingHTTPClient) WithBearerToken(token string) (*loggingHTTPClient) {
+	if token != "" {
+		c.req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return c
 }
 
 func NewHttpClientAndGetReq(url string, token string) (*http.Client, *http.Request, error) {
