@@ -25,10 +25,14 @@ func (db *DB) InsertCvarsIfNotExists(chain *ConnectionChain) {
 }
 
 func (db *DB) InsertCvarIfNotExists(cvar *Cvar) error {
-	db.Logger().Infof("Inserting cvar: %s", cvar.KeyName)
-
-	_, err := db.ResilientExec(`INSERT INTO cvars (key_name, title, value_string, value_int, description, default_value, category, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE description = ?, docs_url = ?, external_url = ?`,
+	res, err := db.ResilientExec(`INSERT INTO cvars (key_name, title, value_string, value_int, description, default_value, category, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE description = ?, docs_url = ?, external_url = ?`,
 		cvar.KeyName, cvar.Title, cvar.ValueString, cvar.ValueInt, cvar.Description, cvar.DefaultValue, cvar.Category, cvar.Type, cvar.Description, cvar.DocsUrl, cvar.ExternalUrl)
+
+	count, _ := res.RowsAffected()
+
+	if count > 0 {
+		db.Logger().Infof("Cvar %s inserted successfully", cvar.KeyName)
+	}
 
 	return err
 }

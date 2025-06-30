@@ -32,6 +32,12 @@ export function main(): void {
 			createTheApp(i18n);
 		})
 		.catch(error => {
+			const errorMessage = document.createElement('p');
+			errorMessage.classList.add('bad');
+			errorMessage.innerHTML = 'Error loading the initial language file, something is badly wrong with the connection to the Japella server. Please check your browser console for more details. <br /><br />' + error.message;
+
+			document.body.prepend(errorMessage);
+
 			console.error('Error loading language file:', error);
 		});
 }

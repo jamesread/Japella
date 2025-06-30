@@ -987,6 +987,7 @@ type Connector struct {
 	Icon          string                 `protobuf:"bytes,3,opt,name=icon,proto3" json:"icon,omitempty"`
 	HasOauth      bool                   `protobuf:"varint,4,opt,name=has_oauth,json=hasOauth,proto3" json:"has_oauth,omitempty"`
 	Issues        []string               `protobuf:"bytes,5,rep,name=issues,proto3" json:"issues,omitempty"`
+	IsRegistered  bool                   `protobuf:"varint,6,opt,name=is_registered,json=isRegistered,proto3" json:"is_registered,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -1047,6 +1048,13 @@ func (x *Connector) GetIssues() []string {
 		return x.Issues
 	}
 	return nil
+}
+
+func (x *Connector) GetIsRegistered() bool {
+	if x != nil {
+		return x.IsRegistered
+	}
+	return false
 }
 
 type StartOAuthRequest struct {
@@ -2605,6 +2613,94 @@ func (x *SetCvarResponse) GetValueInt() int32 {
 	return 0
 }
 
+type RegisterConnectorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RegisterConnectorRequest) Reset() {
+	*x = RegisterConnectorRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterConnectorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterConnectorRequest) ProtoMessage() {}
+
+func (x *RegisterConnectorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterConnectorRequest.ProtoReflect.Descriptor instead.
+func (*RegisterConnectorRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *RegisterConnectorRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type RegisterConnectorResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StandardResponse *StandardResponse      `protobuf:"bytes,1,opt,name=standard_response,json=standardResponse,proto3" json:"standard_response,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RegisterConnectorResponse) Reset() {
+	*x = RegisterConnectorResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[51]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RegisterConnectorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RegisterConnectorResponse) ProtoMessage() {}
+
+func (x *RegisterConnectorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[51]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RegisterConnectorResponse.ProtoReflect.Descriptor instead.
+func (*RegisterConnectorResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{51}
+}
+
+func (x *RegisterConnectorResponse) GetStandardResponse() *StandardResponse {
+	if x != nil {
+		return x.StandardResponse
+	}
+	return nil
+}
+
 var File_japella_controlapi_v1_control_proto protoreflect.FileDescriptor
 
 const file_japella_controlapi_v1_control_proto_rawDesc = "" +
@@ -2673,12 +2769,13 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x15GetConnectorsResponse\x12@\n" +
 	"\n" +
 	"connectors\x18\x01 \x03(\v2 .japella.controlapi.v1.ConnectorR\n" +
-	"connectors\"h\n" +
+	"connectors\"\x8d\x01\n" +
 	"\tConnector\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
 	"\x04icon\x18\x03 \x01(\tR\x04icon\x12\x1b\n" +
 	"\thas_oauth\x18\x04 \x01(\bR\bhasOauth\x12\x16\n" +
-	"\x06issues\x18\x05 \x03(\tR\x06issues\"6\n" +
+	"\x06issues\x18\x05 \x03(\tR\x06issues\x12#\n" +
+	"\ris_registered\x18\x06 \x01(\bR\fisRegistered\"6\n" +
 	"\x11StartOAuthRequest\x12!\n" +
 	"\fconnector_id\x18\x01 \x01(\tR\vconnectorId\"&\n" +
 	"\x12StartOAuthResponse\x12\x10\n" +
@@ -2772,7 +2869,11 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\x12\x19\n" +
 	"\bkey_name\x18\x02 \x01(\tR\akeyName\x12!\n" +
 	"\fvalue_string\x18\x03 \x01(\tR\vvalueString\x12\x1b\n" +
-	"\tvalue_int\x18\x04 \x01(\x05R\bvalueInt2\xf4\x11\n" +
+	"\tvalue_int\x18\x04 \x01(\x05R\bvalueInt\".\n" +
+	"\x18RegisterConnectorRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\"q\n" +
+	"\x19RegisterConnectorResponse\x12T\n" +
+	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse2\xee\x12\n" +
 	"\x18JapellaControlApiService\x12`\n" +
 	"\tGetStatus\x12'.japella.controlapi.v1.GetStatusRequest\x1a(.japella.controlapi.v1.GetStatusResponse\"\x00\x12c\n" +
 	"\n" +
@@ -2796,7 +2897,8 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x13SaveUserPreferences\x121.japella.controlapi.v1.SaveUserPreferencesRequest\x1a2.japella.controlapi.v1.SaveUserPreferencesResponse\"\x00\x12i\n" +
 	"\fCreateApiKey\x12*.japella.controlapi.v1.CreateApiKeyRequest\x1a+.japella.controlapi.v1.CreateApiKeyResponse\"\x00\x12i\n" +
 	"\fRevokeApiKey\x12*.japella.controlapi.v1.RevokeApiKeyRequest\x1a+.japella.controlapi.v1.RevokeApiKeyResponse\"\x00\x12Z\n" +
-	"\aSetCvar\x12%.japella.controlapi.v1.SetCvarRequest\x1a&.japella.controlapi.v1.SetCvarResponse\"\x00BBZ@github.com/jamesread/japella/gen/japella/controlapi/v1;controlv1b\x06proto3"
+	"\aSetCvar\x12%.japella.controlapi.v1.SetCvarRequest\x1a&.japella.controlapi.v1.SetCvarResponse\"\x00\x12x\n" +
+	"\x11RegisterConnector\x12/.japella.controlapi.v1.RegisterConnectorRequest\x1a0.japella.controlapi.v1.RegisterConnectorResponse\"\x00BBZ@github.com/jamesread/japella/gen/japella/controlapi/v1;controlv1b\x06proto3"
 
 var (
 	file_japella_controlapi_v1_control_proto_rawDescOnce sync.Once
@@ -2810,7 +2912,7 @@ func file_japella_controlapi_v1_control_proto_rawDescGZIP() []byte {
 	return file_japella_controlapi_v1_control_proto_rawDescData
 }
 
-var file_japella_controlapi_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
+var file_japella_controlapi_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 53)
 var file_japella_controlapi_v1_control_proto_goTypes = []any{
 	(*SubmitPostRequest)(nil),                    // 0: japella.controlapi.v1.SubmitPostRequest
 	(*SubmitPostResponse)(nil),                   // 1: japella.controlapi.v1.SubmitPostResponse
@@ -2862,7 +2964,9 @@ var file_japella_controlapi_v1_control_proto_goTypes = []any{
 	(*RevokeApiKeyResponse)(nil),                 // 47: japella.controlapi.v1.RevokeApiKeyResponse
 	(*SetCvarRequest)(nil),                       // 48: japella.controlapi.v1.SetCvarRequest
 	(*SetCvarResponse)(nil),                      // 49: japella.controlapi.v1.SetCvarResponse
-	nil,                                          // 50: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
+	(*RegisterConnectorRequest)(nil),             // 50: japella.controlapi.v1.RegisterConnectorRequest
+	(*RegisterConnectorResponse)(nil),            // 51: japella.controlapi.v1.RegisterConnectorResponse
+	nil,                                          // 52: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
 }
 var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	2,  // 0: japella.controlapi.v1.SubmitPostResponse.posts:type_name -> japella.controlapi.v1.PostStatus
@@ -2877,58 +2981,61 @@ var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	25, // 9: japella.controlapi.v1.LoginWithUsernameAndPasswordResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	34, // 10: japella.controlapi.v1.GetUsersResponse.users:type_name -> japella.controlapi.v1.UserAccount
 	37, // 11: japella.controlapi.v1.GetApiKeysResponse.keys:type_name -> japella.controlapi.v1.ApiKey
-	50, // 12: japella.controlapi.v1.GetCvarsResponse.cvar_categories:type_name -> japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
+	52, // 12: japella.controlapi.v1.GetCvarsResponse.cvar_categories:type_name -> japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
 	41, // 13: japella.controlapi.v1.CvarCategory.cvars:type_name -> japella.controlapi.v1.Cvar
 	25, // 14: japella.controlapi.v1.SaveUserPreferencesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	25, // 15: japella.controlapi.v1.CreateApiKeyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	25, // 16: japella.controlapi.v1.RevokeApiKeyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	25, // 17: japella.controlapi.v1.SetCvarResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	40, // 18: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry.value:type_name -> japella.controlapi.v1.CvarCategory
-	3,  // 19: japella.controlapi.v1.JapellaControlApiService.GetStatus:input_type -> japella.controlapi.v1.GetStatusRequest
-	0,  // 20: japella.controlapi.v1.JapellaControlApiService.SubmitPost:input_type -> japella.controlapi.v1.SubmitPostRequest
-	6,  // 21: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:input_type -> japella.controlapi.v1.GetCannedPostsRequest
-	9,  // 22: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:input_type -> japella.controlapi.v1.CreateCannedPostRequest
-	11, // 23: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:input_type -> japella.controlapi.v1.DeleteCannedPostRequest
-	13, // 24: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:input_type -> japella.controlapi.v1.GetSocialAccountsRequest
-	21, // 25: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:input_type -> japella.controlapi.v1.DeleteSocialAccountRequest
-	23, // 26: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:input_type -> japella.controlapi.v1.RefreshSocialAccountRequest
-	16, // 27: japella.controlapi.v1.JapellaControlApiService.GetConnectors:input_type -> japella.controlapi.v1.GetConnectorsRequest
-	19, // 28: japella.controlapi.v1.JapellaControlApiService.StartOAuth:input_type -> japella.controlapi.v1.StartOAuthRequest
-	26, // 29: japella.controlapi.v1.JapellaControlApiService.GetTimeline:input_type -> japella.controlapi.v1.GetTimelineRequest
-	28, // 30: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:input_type -> japella.controlapi.v1.SetSocialAccountActiveRequest
-	30, // 31: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:input_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
-	32, // 32: japella.controlapi.v1.JapellaControlApiService.GetUsers:input_type -> japella.controlapi.v1.GetUsersRequest
-	35, // 33: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:input_type -> japella.controlapi.v1.GetApiKeysRequest
-	38, // 34: japella.controlapi.v1.JapellaControlApiService.GetCvars:input_type -> japella.controlapi.v1.GetCvarsRequest
-	42, // 35: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:input_type -> japella.controlapi.v1.SaveUserPreferencesRequest
-	44, // 36: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:input_type -> japella.controlapi.v1.CreateApiKeyRequest
-	46, // 37: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:input_type -> japella.controlapi.v1.RevokeApiKeyRequest
-	48, // 38: japella.controlapi.v1.JapellaControlApiService.SetCvar:input_type -> japella.controlapi.v1.SetCvarRequest
-	4,  // 39: japella.controlapi.v1.JapellaControlApiService.GetStatus:output_type -> japella.controlapi.v1.GetStatusResponse
-	1,  // 40: japella.controlapi.v1.JapellaControlApiService.SubmitPost:output_type -> japella.controlapi.v1.SubmitPostResponse
-	7,  // 41: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:output_type -> japella.controlapi.v1.GetCannedPostsResponse
-	10, // 42: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:output_type -> japella.controlapi.v1.CreateCannedPostResponse
-	12, // 43: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:output_type -> japella.controlapi.v1.DeleteCannedPostResponse
-	14, // 44: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:output_type -> japella.controlapi.v1.GetSocialAccountsResponse
-	22, // 45: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:output_type -> japella.controlapi.v1.DeleteSocialAccountResponse
-	24, // 46: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:output_type -> japella.controlapi.v1.RefreshSocialAccountResponse
-	17, // 47: japella.controlapi.v1.JapellaControlApiService.GetConnectors:output_type -> japella.controlapi.v1.GetConnectorsResponse
-	20, // 48: japella.controlapi.v1.JapellaControlApiService.StartOAuth:output_type -> japella.controlapi.v1.StartOAuthResponse
-	27, // 49: japella.controlapi.v1.JapellaControlApiService.GetTimeline:output_type -> japella.controlapi.v1.GetTimelineResponse
-	29, // 50: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:output_type -> japella.controlapi.v1.SetSocialAccountActiveResponse
-	31, // 51: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:output_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
-	33, // 52: japella.controlapi.v1.JapellaControlApiService.GetUsers:output_type -> japella.controlapi.v1.GetUsersResponse
-	36, // 53: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:output_type -> japella.controlapi.v1.GetApiKeysResponse
-	39, // 54: japella.controlapi.v1.JapellaControlApiService.GetCvars:output_type -> japella.controlapi.v1.GetCvarsResponse
-	43, // 55: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:output_type -> japella.controlapi.v1.SaveUserPreferencesResponse
-	45, // 56: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:output_type -> japella.controlapi.v1.CreateApiKeyResponse
-	47, // 57: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:output_type -> japella.controlapi.v1.RevokeApiKeyResponse
-	49, // 58: japella.controlapi.v1.JapellaControlApiService.SetCvar:output_type -> japella.controlapi.v1.SetCvarResponse
-	39, // [39:59] is the sub-list for method output_type
-	19, // [19:39] is the sub-list for method input_type
-	19, // [19:19] is the sub-list for extension type_name
-	19, // [19:19] is the sub-list for extension extendee
-	0,  // [0:19] is the sub-list for field type_name
+	25, // 18: japella.controlapi.v1.RegisterConnectorResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	40, // 19: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry.value:type_name -> japella.controlapi.v1.CvarCategory
+	3,  // 20: japella.controlapi.v1.JapellaControlApiService.GetStatus:input_type -> japella.controlapi.v1.GetStatusRequest
+	0,  // 21: japella.controlapi.v1.JapellaControlApiService.SubmitPost:input_type -> japella.controlapi.v1.SubmitPostRequest
+	6,  // 22: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:input_type -> japella.controlapi.v1.GetCannedPostsRequest
+	9,  // 23: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:input_type -> japella.controlapi.v1.CreateCannedPostRequest
+	11, // 24: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:input_type -> japella.controlapi.v1.DeleteCannedPostRequest
+	13, // 25: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:input_type -> japella.controlapi.v1.GetSocialAccountsRequest
+	21, // 26: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:input_type -> japella.controlapi.v1.DeleteSocialAccountRequest
+	23, // 27: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:input_type -> japella.controlapi.v1.RefreshSocialAccountRequest
+	16, // 28: japella.controlapi.v1.JapellaControlApiService.GetConnectors:input_type -> japella.controlapi.v1.GetConnectorsRequest
+	19, // 29: japella.controlapi.v1.JapellaControlApiService.StartOAuth:input_type -> japella.controlapi.v1.StartOAuthRequest
+	26, // 30: japella.controlapi.v1.JapellaControlApiService.GetTimeline:input_type -> japella.controlapi.v1.GetTimelineRequest
+	28, // 31: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:input_type -> japella.controlapi.v1.SetSocialAccountActiveRequest
+	30, // 32: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:input_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
+	32, // 33: japella.controlapi.v1.JapellaControlApiService.GetUsers:input_type -> japella.controlapi.v1.GetUsersRequest
+	35, // 34: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:input_type -> japella.controlapi.v1.GetApiKeysRequest
+	38, // 35: japella.controlapi.v1.JapellaControlApiService.GetCvars:input_type -> japella.controlapi.v1.GetCvarsRequest
+	42, // 36: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:input_type -> japella.controlapi.v1.SaveUserPreferencesRequest
+	44, // 37: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:input_type -> japella.controlapi.v1.CreateApiKeyRequest
+	46, // 38: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:input_type -> japella.controlapi.v1.RevokeApiKeyRequest
+	48, // 39: japella.controlapi.v1.JapellaControlApiService.SetCvar:input_type -> japella.controlapi.v1.SetCvarRequest
+	50, // 40: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:input_type -> japella.controlapi.v1.RegisterConnectorRequest
+	4,  // 41: japella.controlapi.v1.JapellaControlApiService.GetStatus:output_type -> japella.controlapi.v1.GetStatusResponse
+	1,  // 42: japella.controlapi.v1.JapellaControlApiService.SubmitPost:output_type -> japella.controlapi.v1.SubmitPostResponse
+	7,  // 43: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:output_type -> japella.controlapi.v1.GetCannedPostsResponse
+	10, // 44: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:output_type -> japella.controlapi.v1.CreateCannedPostResponse
+	12, // 45: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:output_type -> japella.controlapi.v1.DeleteCannedPostResponse
+	14, // 46: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:output_type -> japella.controlapi.v1.GetSocialAccountsResponse
+	22, // 47: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:output_type -> japella.controlapi.v1.DeleteSocialAccountResponse
+	24, // 48: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:output_type -> japella.controlapi.v1.RefreshSocialAccountResponse
+	17, // 49: japella.controlapi.v1.JapellaControlApiService.GetConnectors:output_type -> japella.controlapi.v1.GetConnectorsResponse
+	20, // 50: japella.controlapi.v1.JapellaControlApiService.StartOAuth:output_type -> japella.controlapi.v1.StartOAuthResponse
+	27, // 51: japella.controlapi.v1.JapellaControlApiService.GetTimeline:output_type -> japella.controlapi.v1.GetTimelineResponse
+	29, // 52: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:output_type -> japella.controlapi.v1.SetSocialAccountActiveResponse
+	31, // 53: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:output_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
+	33, // 54: japella.controlapi.v1.JapellaControlApiService.GetUsers:output_type -> japella.controlapi.v1.GetUsersResponse
+	36, // 55: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:output_type -> japella.controlapi.v1.GetApiKeysResponse
+	39, // 56: japella.controlapi.v1.JapellaControlApiService.GetCvars:output_type -> japella.controlapi.v1.GetCvarsResponse
+	43, // 57: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:output_type -> japella.controlapi.v1.SaveUserPreferencesResponse
+	45, // 58: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:output_type -> japella.controlapi.v1.CreateApiKeyResponse
+	47, // 59: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:output_type -> japella.controlapi.v1.RevokeApiKeyResponse
+	49, // 60: japella.controlapi.v1.JapellaControlApiService.SetCvar:output_type -> japella.controlapi.v1.SetCvarResponse
+	51, // 61: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:output_type -> japella.controlapi.v1.RegisterConnectorResponse
+	41, // [41:62] is the sub-list for method output_type
+	20, // [20:41] is the sub-list for method input_type
+	20, // [20:20] is the sub-list for extension type_name
+	20, // [20:20] is the sub-list for extension extendee
+	0,  // [0:20] is the sub-list for field type_name
 }
 
 func init() { file_japella_controlapi_v1_control_proto_init() }
@@ -2942,7 +3049,7 @@ func file_japella_controlapi_v1_control_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_japella_controlapi_v1_control_proto_rawDesc), len(file_japella_controlapi_v1_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   51,
+			NumMessages:   53,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

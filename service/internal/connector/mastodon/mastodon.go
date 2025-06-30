@@ -16,6 +16,7 @@ type MastodonConnector struct {
 
 	connector.ConnectorWithWall
 	connector.OAuth2Connector
+	connector.OAuth2ConnectorWithClientRegistration
 	connector.ConfigProvider
 
 	utils.LogComponent
@@ -32,7 +33,14 @@ type Status struct {
 
 const CFG_MASTODON_CLIENT_ID = "mastodon.client_id"
 const CFG_MASTODON_CLIENT_SECRET = "mastodon.client_secret"
-const CFG_MASTODON_REGISTER = "mastodon.register"
+
+func (c *MastodonConnector) IsRegistered() bool {
+	clientID := c.db.GetCvarString(CFG_MASTODON_CLIENT_ID)
+	clientSecret := c.db.GetCvarString(CFG_MASTODON_CLIENT_SECRET)
+
+	return clientID != "" || clientSecret != ""
+}
+
 
 func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
 	return map[string]*db.Cvar{
@@ -52,14 +60,6 @@ func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
 			Category:     "Mastodon",
 			Type:         "password",
 		},
-		CFG_MASTODON_REGISTER: &db.Cvar{
-			KeyName:      CFG_MASTODON_REGISTER,
-			DefaultValue: "0",
-			Title:        "Mastodon app registration?",
-			Description:  "Register a new Mastodon app on startup",
-			Category:     "Mastodon",
-			Type:         "bool",
-		},
 	}
 }
 
@@ -68,12 +68,8 @@ func (c *MastodonConnector) CheckConfiguration() *connector.ConfigurationCheckRe
 		Issues: []string{},
 	}
 
-	if c.db.GetCvarString(CFG_MASTODON_CLIENT_ID) == "" {
-		res.AddIssue("Mastodon client ID is not configured")
-	}
-
-	if c.db.GetCvarString(CFG_MASTODON_CLIENT_SECRET) == "" {
-		res.AddIssue("Mastodon client secret is not configured")
+	if !c.IsRegistered() {
+		res.AddIssue("Mastodon client is not registered. Please register the client first.")
 	}
 
 	return res
@@ -102,10 +98,9 @@ type AppConfig struct {
 type RegistrationResponse struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
-	AuthURI      string `json:"authorization_uri"`
 }
 
-func (c *MastodonConnector) register() {
+func (c *MastodonConnector) RegisterClient() error {
 	client := utils.NewClient()
 
 	appConfig := &AppConfig{
@@ -123,17 +118,18 @@ func (c *MastodonConnector) register() {
 	}
 
 	resp := &RegistrationResponse{}
-	
+
 	client.AsJson(resp)
 
 	if client.Err != nil {
 		log.Errorf("Error registering Mastodon app: %v", client.Err)
-		return
+		return nil
 	}
 
-	c.Logger().Infof("client-id: %v", resp.ClientID)
-	c.Logger().Infof("client-secret: %v", resp.ClientSecret)
-	c.Logger().Infof("AuthURL: %v", resp.AuthURI)
+	c.db.SetCvarString(CFG_MASTODON_CLIENT_ID, resp.ClientID)
+	c.db.SetCvarString(CFG_MASTODON_CLIENT_SECRET, resp.ClientSecret)
+
+	return nil
 }
 
 func (c *MastodonConnector) Start() {
@@ -217,11 +213,6 @@ func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
 }
 
 func (c *MastodonConnector) OnRefresh(socialAccount *db.SocialAccount) error {
-	if c.db.GetCvarBool(CFG_MASTODON_REGISTER) {
-		log.Infof("Registering Mastodon app on refresh")
-		c.register()
-	}
-
 	c.whoami(socialAccount)
 	return nil
 }

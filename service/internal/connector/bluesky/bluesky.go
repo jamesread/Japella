@@ -1,5 +1,13 @@
 package bluesky
 
+/**
+The bluesky OAuth2 protocol is pretty wild, and needs a lot more work
+than Mastodon or X (Twitter) to get working.
+
+Useful links:
+https://bsky.social/.well-known/oauth-authorization-server
+*/
+
 import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
@@ -12,8 +20,23 @@ type BlueskyConnector struct {
 	connector.OAuth2Connector
 	connector.ConnectorWithWall
 	connector.ConfigProvider
+	connector.OAuth2ConnectorWithClientRegistration
 
 	db *db.DB
+}
+
+const CFG_BSKY_CLIENT_ID = "bluesky.client_id" // notsecret
+const CFG_BSKY_CLIENT_SECRET = "bluesky.client_secret" // notsecret
+
+func (b *BlueskyConnector) IsRegistered() bool {
+	clientID := b.db.GetCvarString(CFG_BSKY_CLIENT_ID)
+	clientSecret := b.db.GetCvarString(CFG_BSKY_CLIENT_SECRET)
+
+	return clientID != "" || clientSecret != ""
+}
+
+func (b *BlueskyConnector) RegisterClient() error {
+	return nil
 }
 
 func (b *BlueskyConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
@@ -44,7 +67,7 @@ func (b *BlueskyConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 
 func (b *BlueskyConnector) GetOAuth2Config() *oauth2.Config {
 	ep := oauth2.Endpoint{
-		AuthURL:  "https://bsky.app/auth",
+		AuthURL:  "https://bsky.social/oauth/par",
 		TokenURL: "https://bsky.app/xrpc/com.atproto.server.createSession",
 	}
 
@@ -52,7 +75,7 @@ func (b *BlueskyConnector) GetOAuth2Config() *oauth2.Config {
 		Endpoint:     ep,
 		ClientID:     "japella",
 		ClientSecret: "",
-		Scopes:       []string{"com.atproto.sync.subscribe", "com.atproto.repo.createRecord", "com.atproto.server.createSession"},
+		Scopes:       []string{"atproto"},
 		RedirectURL:  b.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
 	}
 }
@@ -60,7 +83,7 @@ func (b *BlueskyConnector) GetOAuth2Config() *oauth2.Config {
 func (b *BlueskyConnector) GetCvars() map[string]*db.Cvar {
 	return map[string]*db.Cvar{
 		"bluesky.client_id": &db.Cvar{
-			KeyName:      "bluesky.client_id",
+			KeyName:      CFG_BSKY_CLIENT_ID,
 			DefaultValue: "",
 			Title:        "Bluesky Client ID",
 			Description:  "Client ID for Bluesky OAuth2",
@@ -68,7 +91,7 @@ func (b *BlueskyConnector) GetCvars() map[string]*db.Cvar {
 			Type:         "text",
 		},
 		"bluesky.client_secret": &db.Cvar{
-			KeyName:      "bluesky.client_secret",
+			KeyName:      CFG_BSKY_CLIENT_SECRET,
 			DefaultValue: "",
 			Title:        "Bluesky Client Secret",
 			Description:  "Client Secret for Bluesky OAuth2",

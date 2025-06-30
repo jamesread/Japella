@@ -296,6 +296,7 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 			Name:     svc.GetProtocol(),
 			Icon:     svc.GetIcon(),
 			HasOauth: isOAuth,
+			IsRegistered: isOAuthRegistered(svc),
 		}
 
 		cfgProvider, isConfigProvider := svc.(connector.ConfigProvider)
@@ -310,6 +311,16 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 	log.Infof("Marshalled connectors: %+v", len(services))
 
 	return services
+}
+
+func isOAuthRegistered(svc connector.BaseConnector) bool {
+	oauthWithClientRegistration, hasOAuthClientRegistration := svc.(connector.OAuth2ConnectorWithClientRegistration)
+
+	if !hasOAuthClientRegistration {
+		return true
+	}
+
+	return oauthWithClientRegistration.IsRegistered()
 }
 
 func (s *ControlApi) StartOAuth(ctx context.Context, req *connect.Request[controlv1.StartOAuthRequest]) (*connect.Response[controlv1.StartOAuthResponse], error) {
@@ -851,4 +862,39 @@ func (s *ControlApi) OAuthClientMetadataHandler(w http.ResponseWriter, r *http.R
 	if _, err := w.Write(res); err != nil {
 		log.Errorf("Error writing OAuth client metadata response: %v", err)
 	}
+}
+
+func (s *ControlApi) RegisterConnector(ctx context.Context, req *connect.Request[controlv1.RegisterConnectorRequest]) (*connect.Response[controlv1.RegisterConnectorResponse], error) {
+	log.Infof("Registering connector: %s", req.Msg.Name)
+
+	connectorService := s.cc.Get(req.Msg.Name)
+
+	if connectorService == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector not found: %s", req.Msg.Name))
+	}
+
+	connectorWithRegistration, ok := connectorService.(connector.OAuth2ConnectorWithClientRegistration)
+
+	if !ok {
+		log.Warnf("Connector %s does not support client registration", req.Msg.Name)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("connector does not support client registration: %s", req.Msg.Name))
+	}
+
+	if !connectorWithRegistration.IsRegistered() {
+		err := connectorWithRegistration.RegisterClient()
+
+		if err != nil {
+			log.Errorf("Error registering connector: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to register connector: %w", err))
+		}
+	}
+
+	res := connect.NewResponse(&controlv1.RegisterConnectorResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Connector registered successfully",
+		},
+	})
+
+	return res, nil
 }

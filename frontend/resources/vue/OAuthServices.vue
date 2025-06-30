@@ -17,14 +17,19 @@
 					{{ service.name }}
 				</h3>
 
-				<div v-if = "service.issues.length > 0">
-					<button @click="showIssues(service)" class = "bad">Show issues</button>
+				<div v-if = "!service.isRegistered">
+					<button @click="registerService(service)" class = "good">Register client</button>
 				</div>
 				<div v-else>
-					<button @click="connectService(service.name)" :class = "service.issues.length == 0 ? 'good' : 'bad'" type = "submit">
+					<div v-if = "service.issues.length > 0">
+						<button @click="showIssues(service)" class = "bad">Show issues</button>
+					</div>
+					<div v-else>
+						<button @click="connectService(service.name)" :class = "service.issues.length == 0 ? 'good' : 'bad'" type = "submit">
 
-						Login
-					</button>
+							Login
+						</button>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -68,6 +73,19 @@
 		res.connectors.sort((a, b) => a.name.localeCompare(b.name));
 
 		services.value = res.connectors
+	}
+
+	function registerService(service) {
+		window.client.registerConnector({
+			name: service.name,
+		})
+			.then((res) => {
+			    window.alert('Service registered successfully!');
+				fetchServices(); // Refresh the list of services
+			})
+			.catch((error) => {
+				console.error('Error registering service:', error);
+			});
 	}
 
 	function connectService(serviceId) {

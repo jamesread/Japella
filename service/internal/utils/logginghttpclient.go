@@ -26,7 +26,7 @@ type loggingHTTPClient struct {
 func (l *loggingHTTPClient) logRequestHeaders(req *http.Request) {
 	for key, values := range req.Header {
 		for _, value := range values {
-			log.Infof("Request Header: %s: %s", key, value)
+			log.Debugf("Request Header: %s: %s", key, value)
 		}
 	}
 }
@@ -34,7 +34,7 @@ func (l *loggingHTTPClient) logRequestHeaders(req *http.Request) {
 func (l *loggingHTTPClient) logResponseHeaders(resp *http.Response) {
 	for key, values := range resp.Header {
 		for _, value := range values {
-			log.Infof("Response Header: %s: %s", key, value)
+			log.Debugf("Response Header: %s: %s", key, value)
 		}
 	}
 }
@@ -63,7 +63,11 @@ func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error)
 		return nil, err
 	}
 
-	log.Infof("Response: %d %s", resp.StatusCode, resp.Status)
+	log.WithFields(log.Fields{
+		"status":     resp.Status,
+		"url":        req.URL.String(),
+		"method":     req.Method,
+	}).Infof("HTTP Response")
 
 	l.logResponseHeaders(resp)
 
@@ -109,6 +113,16 @@ func NewLoggingTransport(rt http.RoundTripper) *loggingHTTPClient {
 	return &loggingHTTPClient{rt: rt}
 }
 
+func NewClient() *loggingHTTPClient {
+	return &loggingHTTPClient{
+		rt: http.DefaultTransport,
+		client: &http.Client{
+			Transport: NewLoggingTransport(nil),
+		},
+	}
+}
+
+
 func (c *loggingHTTPClient) AsJson(v any) {
 	var resp *http.Response
 
@@ -130,15 +144,6 @@ func (c *loggingHTTPClient) AsJson(v any) {
 		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
 			c.Err = fmt.Errorf("error decoding JSON response: %w", err)
 		}
-	}
-}
-
-func NewClient() *loggingHTTPClient {
-	return &loggingHTTPClient{
-		rt: http.DefaultTransport,
-		client: &http.Client{
-			Transport: NewLoggingTransport(nil),
-		},
 	}
 }
 
@@ -174,12 +179,6 @@ func (c *loggingHTTPClient) WithBasicAuth(token string) *loggingHTTPClient {
 	return c
 }
 
-func NewHttpClientAndGetReqWithUrlEncodedMap(requrl string, token string, body map[string]string) (*http.Client, *http.Request, error) {
-	x := NewClient().GetWithFormVars(requrl, body).WithBasicAuth(token)
-
-	return x.client, x.req, x.Err
-}
-
 func (c *loggingHTTPClient) PostWithJson(requrl string, body any) (*loggingHTTPClient) {
 	jsonBody, err := json.MarshalIndent(body, "", "  ")
 
@@ -199,55 +198,10 @@ func (c *loggingHTTPClient) PostWithJson(requrl string, body any) (*loggingHTTPC
 	return c
 }
 
-func NewHttpClientAndGetReqWithJson(url string, token string, body any) (*http.Client, *http.Request, error) {
-	jsonBody, err := json.MarshalIndent(body, "", "  ")
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("error encoding body to JSON: %w", err)
-	}
-
-	fmt.Println("JSON Body:\n", string(jsonBody))
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonBody))
-	req.Header.Set("Content-Type", "application/json")
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating request: %w", err)
-	}
-
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-
-	client := &http.Client{
-		Transport: NewLoggingTransport(nil),
-	}
-
-	return client, req, nil
-}
-
 func (c *loggingHTTPClient) WithBearerToken(token string) (*loggingHTTPClient) {
 	if token != "" {
 		c.req.Header.Set("Authorization", "Bearer "+token)
 	}
 
 	return c
-}
-
-func NewHttpClientAndGetReq(url string, token string) (*http.Client, *http.Request, error) {
-	req, err := http.NewRequest("GET", url, nil)
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating request: %w", err)
-	}
-
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
-
-	client := &http.Client{
-		Transport: NewLoggingTransport(nil),
-	}
-
-	return client, req, nil
 }

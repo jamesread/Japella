@@ -73,10 +73,6 @@ func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig
 		cc.setupConnector(&telegram.TelegramConnector{}, wrapper.ConnectorConfig)
 	case "discord":
 		cc.setupConnector(&discord.DiscordConnector{}, wrapper.ConnectorConfig)
-	case "mastodon":
-		cc.setupConnector(&mastodon.MastodonConnector{}, wrapper.ConnectorConfig)
-	case "x":
-		cc.setupConnector(&x.XConnector{}, wrapper.ConnectorConfig)
 	case "bluesky":
 		cc.setupConnector(&bluesky.BlueskyConnector{}, wrapper.ConnectorConfig)
 	default:
@@ -85,6 +81,14 @@ func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig
 }
 
 func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config any) {
+	name := c.GetProtocol()
+
+	if _, exists := cc.controllers[name]; exists {
+		return
+	}
+
+	log.Infof("Setting up connector: %v", c.GetProtocol())
+
 	startupConfiguration := &connector.ControllerStartupConfiguration{
 		Config: config,
 		DB:     cc.db,
@@ -108,14 +112,5 @@ func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config
 
 	c.Start()
 
-	log.Infof("Setting up connector: %v", c.GetProtocol())
-	cc.registerConnector(c.GetProtocol(), c)
-}
-
-func (cc *ConnectionController) registerConnector(name string, controller connector.BaseConnector) {
-	if _, exists := cc.controllers[name]; exists {
-		return
-	}
-
-	cc.controllers[name] = controller
+	cc.controllers[name] = c
 }

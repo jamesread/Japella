@@ -101,6 +101,7 @@ message Connector {
 	string icon = 3;
 	bool has_oauth = 4;
     repeated string issues = 5;
+    bool is_registered = 6;
 }
 
 message StartOAuthRequest {
@@ -251,6 +252,14 @@ message SetCvarResponse {
 	int32 value_int = 4;
 }
 
+message RegisterConnectorRequest {
+  string name = 1;
+}
+
+message RegisterConnectorResponse {
+  StandardResponse standard_response = 1;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -291,4 +300,6 @@ service JapellaControlApiService {
 	rpc RevokeApiKey(RevokeApiKeyRequest) returns (RevokeApiKeyResponse) {}
 
 	rpc SetCvar(SetCvarRequest) returns (SetCvarResponse) {}
+
+    rpc RegisterConnector(RegisterConnectorRequest) returns (RegisterConnectorResponse) {}
 }
