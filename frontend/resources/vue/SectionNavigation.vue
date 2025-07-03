@@ -17,8 +17,9 @@
 	import { ref } from 'vue';
 	const { t } = useI18n()
 	import { Icon } from '@iconify/vue';
+	import { inject } from 'vue';
 
-	const emit = defineEmits(['section-change-request'])
+	const changeSection = inject('changeSection');
 
 	const links = ref([
 		{
@@ -38,16 +39,22 @@
 			type: "title"
 		},
 		{
-			name: t('nav.timeline'),
-			sectionName: 'timeline',
+			name: t('nav.campaigns'),
+			sectionName: 'campaigns',
 			type: 'link',
-			icon: "jam:clock",
+			icon: "jam:volume-up",
 		},
 		{
 			name: t('nav.cannedPosts'),
 			sectionName: 'cannedPosts',
 			type: 'link',
 			icon: "jam:box",
+		},
+		{
+			name: t('nav.timeline'),
+			sectionName: 'timeline',
+			type: 'link',
+			icon: "jam:clock",
 		},
 		{
 			name: t('nav.calendar'),
@@ -96,7 +103,7 @@
 	]);
 
 	function showNavSection(sectionName) {
-		emit('section-change-request', sectionName);
+		changeSection(sectionName);
 	}
 
 	defineExpose({

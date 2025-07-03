@@ -1,6 +1,6 @@
 <template>
 	<section class = "canned-posts">
-		<div class = "flex-row">
+		<div class = "flex-row section-header">
 			<div class = "fg1">
 				<h2>Canned Posts</h2>
 
@@ -11,7 +11,7 @@
 					<Icon icon="material-symbols:refresh" />
 				</button>
 
-				<button class = "neutral" :disabled = "!clientReady" @click = "createCannedPost">
+				<button class = "good" :disabled = "!clientReady" @click = "createCannedPost">
 					<Icon icon="material-symbols:add-rounded" />
 				</button>
 			</div>
@@ -31,7 +31,7 @@
 							<th>ID</th>
 							<th>Content</th>
 							<th>Created</th>
-							<th class = "small">Actions</th>
+							<th class = "small"></th>
 						</tr>
 					</thead>
 					<tbody>
@@ -40,13 +40,24 @@
 							{{ p.id }}
 						</td>
 						<td>
-							<textarea :id = "'canned-post-' + p.id" readonly>{{ p.content }}</textarea>
+							<textarea :id = "'canned-post-' + p.id"
+							    v-model = "p.content"
+							    @click = "beginEditing(p)"
+							    @keyup.enter = "saveCannedPost(p)"
+							    @keyup.esc = "cancelEditing(p)"
+								:readonly = "!p.editing">{{ p.content }}</textarea>
 						</td>
 						<td>
 							{{ p.createdAt }}
 						</td>
 
-						<td>
+						<td align = "right">
+							<button @click = "usePost(p)" class = "good">
+								<Icon icon="jam:write-f" />
+							</button>
+
+							&nbsp;
+
 							<button @click = "deleteCannedPost(p.id)" class = "bad">
 								<Icon icon="material-symbols:delete" />
 							</button>
@@ -61,12 +72,47 @@
 
 <script setup>
 	import { Icon } from '@iconify/vue';
-	import { ref, onMounted } from 'vue';
+	import { ref, onMounted, inject } from 'vue';
 	import { waitForClient } from '../javascript/util';
 
 	const posts = ref([])
 	const clientReady = ref(false)
 	const errorMessage = ref("")
+	const changeSection = inject('changeSection');
+	let startPost = () => {};
+
+	function usePost(p) {
+		changeSection('postBox')
+	}
+
+	function beginEditing(post) {
+		post.editing = true
+	}
+
+	function cancelEditing(post) {
+		post.editing = false
+	}
+
+	function saveCannedPost(post) {
+		if (!window.client) {
+			errorMessage.value = "Client is not ready."
+			return
+		}
+
+		window.client.updateCannedPost({
+			"id": post.id,
+			"content": post.content
+			})
+			.then(() => {
+				console.log('Updated canned post with ID:', post.id)
+				post.editing = false
+				refreshPosts()
+			})
+			.catch((error) => {
+				errorMessage.value = "Failed to update canned post: " + error.message
+				console.error('Error updating canned post:', error)
+			})
+	}
 
 	function deleteCannedPost(id) {
 		if (!window.client) {
@@ -90,6 +136,10 @@
 	async function getCannedPosts() {
 		return await window.client.getCannedPosts()
 			.then((ret) => {
+				ret.posts.forEach(post => {
+					post.editing = false
+				})
+
 				return ret.posts
 			})
 			.catch((error) => {
@@ -125,6 +175,9 @@
 	}
 
 	onMounted(async () => {
+		startPost = inject('startPost');
+		console.log('Start post function injected:', startPost)
+
 		await waitForClient()
 
 		clientReady.value = true
@@ -132,3 +185,10 @@
 		refreshPosts()
 	})
 </script>
+
+<style scoped>
+	textarea[readonly] {
+		background-color: transparent;
+		border: 1px solid transparent;
+	}
+</style>

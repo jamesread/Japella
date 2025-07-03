@@ -17,6 +17,7 @@
 			<thead>
 				<tr>
 					<th>Social Account</th>
+					<th>Campaign</th>
 					<th>Content</th>
 					<th>Date</th>
 					<th>URL</th>
@@ -32,6 +33,10 @@
 							<Icon :icon="post.socialAccountIcon" />
 							{{ post.socialAccountIdentity }}
 						</span>
+					</td>
+					<td>
+						<div v-if = "post.campaignId != 0">{{ post.campaignName }}</div>
+						<div v-else>None</div>
 					</td>
 					<td>{{ post.content }}</td>
 					<td>{{ post.created }}</td>

@@ -2,6 +2,7 @@ package db
 
 import (
 	"time"
+	"database/sql"
 )
 
 type Model struct {
@@ -47,6 +48,8 @@ type Post struct {
 	Content         string `db:"content"`
 	PostURL         string `db:"post_url"`
 	RemoteID        string `db:"remote_id"`
+	CampaignID      sql.NullInt32 `db:"campaign_id"`
+	CampaignName   sql.NullString `db:"campaign_name"`
 }
 
 type UserAccount struct {
@@ -109,4 +112,15 @@ type UserPreferences struct {
 	UserAccountID uint32 `db:"user_account_id"`
 	UserAccount   UserAccount
 	Language      string `db:"language"`
+}
+
+type Campaign struct {
+	Model
+
+	Name        string `db:"name"`
+	Description string `db:"description"`
+	PostCount   int32  `db:"post_count"`
+	LastPostDate *time.Time `db:"last_post_date"`
+	StartDate   time.Time `db:"start_date"`
+	EndDate     time.Time `db:"end_date"`
 }

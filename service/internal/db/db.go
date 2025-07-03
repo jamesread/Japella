@@ -75,7 +75,7 @@ func (db *DB) findMigrationsDirectory() (string, error) {
 	return dirs.GetFirstExistingDirectory("db-migrations", toSearch)
 }
 
-func (db *DB) Migrate(chain *ConnectionChain) {	
+func (db *DB) Migrate(chain *ConnectionChain) {
 	db.Logger().Infof("Starting migration from directory: %s", db.migrationsDir)
 
 	m, err := migrate.New(
@@ -337,7 +337,7 @@ func (db *DB) CreatePost(post *Post) error {
 
 func (db *DB) SelectPosts() ([]*Post, error) {
 	ret := make([]*Post, 0)
-	err := db.ResilientSelect(&ret, "SELECT * FROM posts ORDER BY id DESC")
+	err := db.ResilientSelect(&ret, "SELECT p.id, p.social_account_id, p.status, p.content, p.post_url, p.remote_id, p.created_at, p.campaign AS campaign_id, c.name AS campaign_name FROM posts p LEFT JOIN campaigns c ON p.campaign = c.id ORDER BY p.id DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select posts: %v", err)
 		return nil, err
@@ -604,6 +604,69 @@ func (db *DB) UpdateSocialAccountToken(socialAccountId uint32, accessToken strin
 
 	if err != nil {
 		db.Logger().Errorf("Failed to update social account token: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) CreateCampaign(campaign *Campaign) error {
+	_, err := db.ResilientNamedExec(`INSERT INTO campaigns (name, description, start_date, end_date, created_at, updated_at) VALUES (:name, :description, :start_date, :end_date, NOW(), NOW())`, campaign)
+	if err != nil {
+		db.Logger().Errorf("Failed to create campaign: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (db *DB) SelectCampaigns() ([]*Campaign, error) {
+	ret := make([]*Campaign, 0)
+	err := db.ResilientSelect(&ret, "SELECT c.*, count(p.id) as post_count, max(p.created_at) AS last_post_date FROM campaigns c LEFT JOIN posts p ON p.campaign = c.id GROUP BY c.id ORDER BY id DESC")
+	if err != nil {
+		db.Logger().Errorf("Failed to select campaigns: %v", err)
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (db *DB) UpdateCampaign(campaign *Campaign) error {
+	_, err := db.ResilientNamedExec(`UPDATE campaigns SET name = :name, description = :description, start_date = :start_date, end_date = :end_date, updated_at = NOW() WHERE id = :id`, campaign)
+	if err != nil {
+		db.Logger().Errorf("Failed to update campaign: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (db *DB) DeleteCampaign(id uint32) error {
+	_, err := db.ResilientExec("DELETE FROM campaigns WHERE id = ?", id)
+	if err != nil {
+		db.Logger().Errorf("Failed to delete campaign: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) GetCampaign(id uint32) (*Campaign, error) {
+	var campaign Campaign
+	err := db.ResilientGet(&campaign, "SELECT * FROM campaigns WHERE id = ? LIMIT 1", id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			db.Logger().Warnf("No campaign found for ID: %d", id)
+		} else {
+			db.Logger().Errorf("Error querying campaign by ID: %v", err)
+		}
+		return nil, err
+	}
+	return &campaign, nil
+}
+
+func (db *DB) UpdateCannedPost(cannedPost *CannedPost) error {
+	_, err := db.ResilientNamedExec(`UPDATE canned_posts SET content = :content, updated_at = NOW() WHERE id = :id`, cannedPost)
+
+	if err != nil {
+		db.Logger().Errorf("Failed to update canned post: %v", err)
 		return err
 	}
 

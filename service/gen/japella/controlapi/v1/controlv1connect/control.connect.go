@@ -96,6 +96,21 @@ const (
 	// JapellaControlApiServiceRegisterConnectorProcedure is the fully-qualified name of the
 	// JapellaControlApiService's RegisterConnector RPC.
 	JapellaControlApiServiceRegisterConnectorProcedure = "/japella.controlapi.v1.JapellaControlApiService/RegisterConnector"
+	// JapellaControlApiServiceCreateCampaignProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateCampaign RPC.
+	JapellaControlApiServiceCreateCampaignProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateCampaign"
+	// JapellaControlApiServiceGetCampaignsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetCampaigns RPC.
+	JapellaControlApiServiceGetCampaignsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCampaigns"
+	// JapellaControlApiServiceUpdateCampaignProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateCampaign RPC.
+	JapellaControlApiServiceUpdateCampaignProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateCampaign"
+	// JapellaControlApiServiceDeleteCampaignProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteCampaign RPC.
+	JapellaControlApiServiceDeleteCampaignProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteCampaign"
+	// JapellaControlApiServiceUpdateCannedPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateCannedPost RPC.
+	JapellaControlApiServiceUpdateCannedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateCannedPost"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -122,6 +137,11 @@ type JapellaControlApiServiceClient interface {
 	RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error)
 	SetCvar(context.Context, *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error)
 	RegisterConnector(context.Context, *connect.Request[v1.RegisterConnectorRequest]) (*connect.Response[v1.RegisterConnectorResponse], error)
+	CreateCampaign(context.Context, *connect.Request[v1.CreateCampaignRequest]) (*connect.Response[v1.CreateCampaignResponse], error)
+	GetCampaigns(context.Context, *connect.Request[v1.GetCampaignsRequest]) (*connect.Response[v1.GetCampaignsResponse], error)
+	UpdateCampaign(context.Context, *connect.Request[v1.UpdateCampaignRequest]) (*connect.Response[v1.UpdateCampaignResponse], error)
+	DeleteCampaign(context.Context, *connect.Request[v1.DeleteCampaignRequest]) (*connect.Response[v1.DeleteCampaignResponse], error)
+	UpdateCannedPost(context.Context, *connect.Request[v1.UpdateCannedPostRequest]) (*connect.Response[v1.UpdateCannedPostResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -262,6 +282,36 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("RegisterConnector")),
 			connect.WithClientOptions(opts...),
 		),
+		createCampaign: connect.NewClient[v1.CreateCampaignRequest, v1.CreateCampaignResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateCampaignProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateCampaign")),
+			connect.WithClientOptions(opts...),
+		),
+		getCampaigns: connect.NewClient[v1.GetCampaignsRequest, v1.GetCampaignsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetCampaignsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCampaigns")),
+			connect.WithClientOptions(opts...),
+		),
+		updateCampaign: connect.NewClient[v1.UpdateCampaignRequest, v1.UpdateCampaignResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateCampaignProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateCampaign")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteCampaign: connect.NewClient[v1.DeleteCampaignRequest, v1.DeleteCampaignResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteCampaignProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteCampaign")),
+			connect.WithClientOptions(opts...),
+		),
+		updateCannedPost: connect.NewClient[v1.UpdateCannedPostRequest, v1.UpdateCannedPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateCannedPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateCannedPost")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -288,6 +338,11 @@ type japellaControlApiServiceClient struct {
 	revokeApiKey                 *connect.Client[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse]
 	setCvar                      *connect.Client[v1.SetCvarRequest, v1.SetCvarResponse]
 	registerConnector            *connect.Client[v1.RegisterConnectorRequest, v1.RegisterConnectorResponse]
+	createCampaign               *connect.Client[v1.CreateCampaignRequest, v1.CreateCampaignResponse]
+	getCampaigns                 *connect.Client[v1.GetCampaignsRequest, v1.GetCampaignsResponse]
+	updateCampaign               *connect.Client[v1.UpdateCampaignRequest, v1.UpdateCampaignResponse]
+	deleteCampaign               *connect.Client[v1.DeleteCampaignRequest, v1.DeleteCampaignResponse]
+	updateCannedPost             *connect.Client[v1.UpdateCannedPostRequest, v1.UpdateCannedPostResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -397,6 +452,31 @@ func (c *japellaControlApiServiceClient) RegisterConnector(ctx context.Context, 
 	return c.registerConnector.CallUnary(ctx, req)
 }
 
+// CreateCampaign calls japella.controlapi.v1.JapellaControlApiService.CreateCampaign.
+func (c *japellaControlApiServiceClient) CreateCampaign(ctx context.Context, req *connect.Request[v1.CreateCampaignRequest]) (*connect.Response[v1.CreateCampaignResponse], error) {
+	return c.createCampaign.CallUnary(ctx, req)
+}
+
+// GetCampaigns calls japella.controlapi.v1.JapellaControlApiService.GetCampaigns.
+func (c *japellaControlApiServiceClient) GetCampaigns(ctx context.Context, req *connect.Request[v1.GetCampaignsRequest]) (*connect.Response[v1.GetCampaignsResponse], error) {
+	return c.getCampaigns.CallUnary(ctx, req)
+}
+
+// UpdateCampaign calls japella.controlapi.v1.JapellaControlApiService.UpdateCampaign.
+func (c *japellaControlApiServiceClient) UpdateCampaign(ctx context.Context, req *connect.Request[v1.UpdateCampaignRequest]) (*connect.Response[v1.UpdateCampaignResponse], error) {
+	return c.updateCampaign.CallUnary(ctx, req)
+}
+
+// DeleteCampaign calls japella.controlapi.v1.JapellaControlApiService.DeleteCampaign.
+func (c *japellaControlApiServiceClient) DeleteCampaign(ctx context.Context, req *connect.Request[v1.DeleteCampaignRequest]) (*connect.Response[v1.DeleteCampaignResponse], error) {
+	return c.deleteCampaign.CallUnary(ctx, req)
+}
+
+// UpdateCannedPost calls japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost.
+func (c *japellaControlApiServiceClient) UpdateCannedPost(ctx context.Context, req *connect.Request[v1.UpdateCannedPostRequest]) (*connect.Response[v1.UpdateCannedPostResponse], error) {
+	return c.updateCannedPost.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -421,6 +501,11 @@ type JapellaControlApiServiceHandler interface {
 	RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error)
 	SetCvar(context.Context, *connect.Request[v1.SetCvarRequest]) (*connect.Response[v1.SetCvarResponse], error)
 	RegisterConnector(context.Context, *connect.Request[v1.RegisterConnectorRequest]) (*connect.Response[v1.RegisterConnectorResponse], error)
+	CreateCampaign(context.Context, *connect.Request[v1.CreateCampaignRequest]) (*connect.Response[v1.CreateCampaignResponse], error)
+	GetCampaigns(context.Context, *connect.Request[v1.GetCampaignsRequest]) (*connect.Response[v1.GetCampaignsResponse], error)
+	UpdateCampaign(context.Context, *connect.Request[v1.UpdateCampaignRequest]) (*connect.Response[v1.UpdateCampaignResponse], error)
+	DeleteCampaign(context.Context, *connect.Request[v1.DeleteCampaignRequest]) (*connect.Response[v1.DeleteCampaignResponse], error)
+	UpdateCannedPost(context.Context, *connect.Request[v1.UpdateCannedPostRequest]) (*connect.Response[v1.UpdateCannedPostResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -556,6 +641,36 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("RegisterConnector")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceCreateCampaignHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateCampaignProcedure,
+		svc.CreateCampaign,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateCampaign")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetCampaignsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetCampaignsProcedure,
+		svc.GetCampaigns,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCampaigns")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateCampaignHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateCampaignProcedure,
+		svc.UpdateCampaign,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateCampaign")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteCampaignHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteCampaignProcedure,
+		svc.DeleteCampaign,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteCampaign")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateCannedPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateCannedPostProcedure,
+		svc.UpdateCannedPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateCannedPost")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -600,6 +715,16 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceSetCvarHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceRegisterConnectorProcedure:
 			japellaControlApiServiceRegisterConnectorHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateCampaignProcedure:
+			japellaControlApiServiceCreateCampaignHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetCampaignsProcedure:
+			japellaControlApiServiceGetCampaignsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateCampaignProcedure:
+			japellaControlApiServiceUpdateCampaignHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteCampaignProcedure:
+			japellaControlApiServiceDeleteCampaignHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateCannedPostProcedure:
+			japellaControlApiServiceUpdateCannedPostHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -691,4 +816,24 @@ func (UnimplementedJapellaControlApiServiceHandler) SetCvar(context.Context, *co
 
 func (UnimplementedJapellaControlApiServiceHandler) RegisterConnector(context.Context, *connect.Request[v1.RegisterConnectorRequest]) (*connect.Response[v1.RegisterConnectorResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RegisterConnector is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateCampaign(context.Context, *connect.Request[v1.CreateCampaignRequest]) (*connect.Response[v1.CreateCampaignResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateCampaign is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetCampaigns(context.Context, *connect.Request[v1.GetCampaignsRequest]) (*connect.Response[v1.GetCampaignsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCampaigns is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateCampaign(context.Context, *connect.Request[v1.UpdateCampaignRequest]) (*connect.Response[v1.UpdateCampaignResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateCampaign is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteCampaign(context.Context, *connect.Request[v1.DeleteCampaignRequest]) (*connect.Response[v1.DeleteCampaignResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteCampaign is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateCannedPost(context.Context, *connect.Request[v1.UpdateCannedPostRequest]) (*connect.Response[v1.UpdateCannedPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost is not implemented"))
 }

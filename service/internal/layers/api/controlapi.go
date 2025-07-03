@@ -10,6 +10,7 @@ import (
 	"golang.org/x/oauth2"
 
 	"net/http"
+	"database/sql"
 
 	"github.com/rs/cors"
 
@@ -157,7 +158,9 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			Content:         req.Msg.Content,
 			Status:          postStatus.Success,
 			PostURL:         postStatus.PostUrl,
+			CampaignID:      sql.NullInt32{ Int32: int32(req.Msg.CampaignId) },
 		})
+
 
 		res.Posts = append(res.Posts, postStatus)
 	}
@@ -427,7 +430,9 @@ func redirect(w http.ResponseWriter, message string, msgType string) {
 	url := fmt.Sprintf("%v/?notification=%v&type=%v", server, message, msgType)
 
 	w.Header().Set("Location", url)
-	w.Write([]byte(fmt.Sprintf("<html><body><h1>Redirecting...</h1><p>%s</p><a href = \"%v\">click here</a></body></html>", message, url)))
+	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv = \"Refresh\" content = \"0; URL=" + url + "\" /></head>")));
+	w.Write([]byte(fmt.Sprintf("<body><style type = \"text/css\">body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; }</style>")))
+	w.Write([]byte(fmt.Sprintf("<h1>Redirecting...</h1><p>%s</p><a href = \"%v\">click here</a></body></html>", message, url)))
 
 	log.Infof("Redirecting with message: %v", message)
 }
@@ -515,6 +520,8 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 			Content:               post.Content,
 			Success:               post.Status,
 			PostUrl:               post.PostURL,
+			CampaignId:            uint32(post.CampaignID.Int32),
+			CampaignName:          post.CampaignName.String,
 		})
 	}
 
@@ -893,6 +900,140 @@ func (s *ControlApi) RegisterConnector(ctx context.Context, req *connect.Request
 		StandardResponse: &controlv1.StandardResponse{
 			Success: true,
 			Message: "Connector registered successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) CreateCampaign(ctx context.Context, req *connect.Request[controlv1.CreateCampaignRequest]) (*connect.Response[controlv1.CreateCampaignResponse], error) {
+	log.Infof("Creating campaign: %s", req.Msg.Name)
+
+	campaign := &db.Campaign{
+		Name:        req.Msg.Name,
+		Description: req.Msg.Description,
+	}
+
+	err := s.DB.CreateCampaign(campaign)
+
+	if err != nil {
+		log.Errorf("Error creating campaign: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create campaign: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.CreateCampaignResponse{
+		CampaignId: campaign.ID,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) GetCampaigns(ctx context.Context, req *connect.Request[controlv1.GetCampaignsRequest]) (*connect.Response[controlv1.GetCampaignsResponse], error) {
+	log.Infof("Fetching campaigns")
+
+	campaigns, err := s.DB.SelectCampaigns()
+
+	if err != nil {
+		log.Errorf("Error selecting campaigns: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve campaigns: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.GetCampaignsResponse{
+		Campaigns: make([]*controlv1.Campaign, 0, len(campaigns)),
+	})
+
+	for _, campaign := range campaigns {
+		pbcampaign := &controlv1.Campaign{
+			Id:          campaign.ID,
+			Name:        campaign.Name,
+			Description: campaign.Description,
+			CreatedAt:   campaign.CreatedAt.Format("2006-01-02 15:04:05"),
+			PostCount:   campaign.PostCount,
+		}
+
+		if campaign.LastPostDate != nil {
+			pbcampaign.LastPostDate = campaign.LastPostDate.Format("2006-01-02 15:04:05")
+		}
+
+		res.Msg.Campaigns = append(res.Msg.Campaigns, pbcampaign);
+	}
+
+	return res, nil
+}
+
+func (s *ControlApi) UpdateCampaign(ctx context.Context, req *connect.Request[controlv1.UpdateCampaignRequest]) (*connect.Response[controlv1.UpdateCampaignResponse], error) {
+	log.Infof("Updating campaign: %s", req.Msg.Name)
+
+	campaign, err := s.DB.GetCampaign(req.Msg.Id)
+
+	if err != nil {
+		log.Errorf("Error getting campaign: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get campaign: %w", err))
+	}
+
+	if campaign == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("campaign not found: %v", req.Msg.Id))
+	}
+
+	campaign.Name = req.Msg.Name
+	campaign.Description = req.Msg.Description
+
+	err = s.DB.UpdateCampaign(campaign)
+
+	if err != nil {
+		log.Errorf("Error updating campaign: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update campaign: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.UpdateCampaignResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Campaign updated successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) DeleteCampaign(ctx context.Context, req *connect.Request[controlv1.DeleteCampaignRequest]) (*connect.Response[controlv1.DeleteCampaignResponse], error) {
+	log.Infof("Deleting campaign with ID: %v", req.Msg.Id)
+
+	err := s.DB.DeleteCampaign(req.Msg.Id)
+
+	if err != nil {
+		log.Errorf("Error deleting campaign: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete campaign: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.DeleteCampaignResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Campaign deleted successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) UpdateCannedPost(ctx context.Context, req *connect.Request[controlv1.UpdateCannedPostRequest]) (*connect.Response[controlv1.UpdateCannedPostResponse], error) {
+	log.Infof("Updating canned post with ID: %v", req.Msg.Id)
+
+	post := &db.CannedPost{
+		Content: req.Msg.Content,
+	}
+	post.ID = req.Msg.Id
+
+	err := s.DB.UpdateCannedPost(post)
+
+	if err != nil {
+		log.Errorf("Error updating canned post: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update canned post: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.UpdateCannedPostResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Canned post updated successfully",
 		},
 	})
 

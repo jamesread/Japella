@@ -31,9 +31,16 @@
                     <p>Loading social accounts...</p>
                 </div>
             </div>
+			<label>Campaign ID</label>
+			<select v-if = "clientReady" v-model = "selectedCampaignId">
+				<option value = "0">None</option>
+				<option v-for = "campaign in campaigns" :key = "campaign.id" :value = "campaign.id">{{ campaign.name }}</option>
+			</select>
+			<div v-else>
+				<p>Loading campaigns...</p>
+			</div>
 
-
-            <textarea id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!" @keyup = "recountLength" ></textarea>
+            <textarea ref = "postTextarea" id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!" @keyup = "recountLength" ></textarea>
 
             <fieldset>
                 <button id = "submit" type = "submit">{{ t('section.postbox.submit') }}</button>
@@ -55,6 +62,9 @@
     const items = ref([]);
 	const postLength = ref(0);
 	const postLengthCounter = ref(null);
+	const postTextarea = ref('');
+	const campaigns = ref([]);
+	const selectedCampaignId = ref(0);
 
 	const recountLength = (e) => {
 	    const length = e.target.value.length;
@@ -103,8 +113,11 @@
       clientReady.value = true;
 
       const ret = await window.client.getSocialAccounts({"onlyActive": true});
+	  const campaignsRet = await window.client.getCampaigns();
 
       items.value = ret.accounts
+
+	  campaigns.value = campaignsRet.campaigns || [];
     });
 
     const postMode = ref('live');
@@ -112,6 +125,10 @@
     const postingServiceCheckboxes = ref(null);
 
     import Notification from './../javascript/notification.js'
+
+	function startPost(p) {
+	    postTextarea.value.value = p.content || 'Unknown post content';
+	}
 
     function getSelectedPostingServices() {
         const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
@@ -128,7 +145,7 @@
         return ret;
     }
 
-    function submitPost() {
+    function submitPost(x) {
         const post = document.getElementById('post').value;
         const submit = document.getElementById('submit');
 
@@ -143,6 +160,7 @@
         let req = {
             content: post,
             socialAccounts: getSelectedPostingServices(),
+			campaignId: selectedCampaignId.value,
         }
 
         console.log(req)
@@ -171,6 +189,10 @@
                 submit.disabled = false;
             });
     }
+
+	defineExpose({
+		startPost,
+	});
 </script>
 
 <style scoped>

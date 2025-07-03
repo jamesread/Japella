@@ -7,6 +7,7 @@ option go_package = "github.com/jamesread/japella/gen/japella/controlapi/v1;cont
 message SubmitPostRequest {
 	string content = 1;
 	repeated uint32 social_accounts = 2;
+    uint32 campaign_id = 3;
 }
 
 message SubmitPostResponse {
@@ -22,6 +23,8 @@ message PostStatus {
 	string social_account_icon = 6;
 	string social_account_identity = 7;
 	string content = 8;
+    uint32 campaign_id = 9;
+    string campaign_name = 10;
 }
 
 message GetStatusRequest {}
@@ -68,6 +71,15 @@ message DeleteCannedPostRequest {
 
 message DeleteCannedPostResponse {
 	string message = 1;
+}
+
+message UpdateCannedPostRequest {
+  uint32 id = 1;
+  string content = 2;
+}
+
+message UpdateCannedPostResponse {
+  StandardResponse standard_response = 1;
 }
 
 message GetSocialAccountsRequest {
@@ -260,6 +272,50 @@ message RegisterConnectorResponse {
   StandardResponse standard_response = 1;
 }
 
+message CreateCampaignRequest {
+  string name = 1;
+  string description = 2;
+}
+
+message CreateCampaignResponse {
+  StandardResponse standard_response = 1;
+  uint32 campaign_id = 2;
+}
+
+message GetCampaignsRequest {
+}
+
+message GetCampaignsResponse {
+  repeated Campaign campaigns = 1;
+}
+
+message Campaign {
+  uint32 id = 1;
+  string name = 2;
+  string description = 3;
+  string created_at = 4;
+  int32 post_count = 5;
+  string last_post_date = 6;
+}
+
+message UpdateCampaignRequest {
+  uint32 id = 1;
+  string name = 2;
+  string description = 3;
+}
+
+message UpdateCampaignResponse {
+  StandardResponse standard_response = 1;
+}
+
+message DeleteCampaignRequest {
+  uint32 id = 1;
+}
+
+message DeleteCampaignResponse {
+  StandardResponse standard_response = 1;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -302,4 +358,14 @@ service JapellaControlApiService {
 	rpc SetCvar(SetCvarRequest) returns (SetCvarResponse) {}
 
     rpc RegisterConnector(RegisterConnectorRequest) returns (RegisterConnectorResponse) {}
+
+    rpc CreateCampaign(CreateCampaignRequest) returns (CreateCampaignResponse) {}
+
+    rpc GetCampaigns(GetCampaignsRequest) returns (GetCampaignsResponse) {}
+
+    rpc UpdateCampaign(UpdateCampaignRequest) returns (UpdateCampaignResponse) {}
+
+    rpc DeleteCampaign(DeleteCampaignRequest) returns (DeleteCampaignResponse) {}
+
+    rpc UpdateCannedPost(UpdateCannedPostRequest) returns (UpdateCannedPostResponse) {}
 }

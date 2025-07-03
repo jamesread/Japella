@@ -23,7 +23,7 @@
 			<div ref = "stickIcon" class = "stick-icon icon-and-text" @click = "clickSidebarStick">
 				<Icon :icon = "pinIcon" width = "24" height = "24" />
 			</div>
-            <SectionNavigation @section-change-request = "changeSection"/>
+            <SectionNavigation />
         </aside>
 
         <div id = "loading" v-if = "!clientReady" class = "icon-and-text" style = "margin: auto; margin-top: 5em;">
@@ -103,6 +103,7 @@
 
     import Welcome from './Welcome.vue';
     import Timeline from './Timeline.vue';
+    import Campaigns from './Campaigns.vue';
     import AppStatus from './AppStatus.vue';
     import PostBox from './PostBox.vue';
     import Calendar from './Calendar.vue';
@@ -117,6 +118,7 @@
     const sections = {
         welcome: Welcome,
         timeline: Timeline,
+		campaigns: Campaigns,
         appStatus: AppStatus,
         postBox: PostBox,
         calendar: Calendar,
@@ -142,17 +144,17 @@
 		errorDialogRef.value?.showError(msg)
 	});
 
-    function changeSection(sectionName) {
-        if (sections[sectionName]) {
-            currentSectionName.value = sectionName;
+	provide('changeSection', (sectionName) => {
+		if (sections[sectionName]) {
+			currentSectionName.value = sectionName;
 
 			if (!sectionNavigation.value.classList.contains('stuck')) {
 				hideSidebar();
 			}
-        } else {
-            console.warn(`Section "${sectionName}" does not exist.`);
-        }
-    }
+		} else {
+			console.warn(`Section "${sectionName}" does not exist.`);
+		}
+	})
 
 	function checkSecureContext(st) {
 		if (st.usesSecureCookies && !window.isSecureContext) {

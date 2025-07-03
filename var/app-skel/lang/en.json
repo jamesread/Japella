@@ -14,6 +14,7 @@
     "nav.connections": "Connections",
     "nav.calendar": "Calendar",
     "nav.schedule": "Schedule",
+	"nav.campaigns": "Campaigns",
     "nav.apikeys": "API Keys",
     "nav.cannedPosts": "Canned Posts",
     "section.postbox.submit": "Post",
