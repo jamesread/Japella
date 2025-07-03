@@ -368,10 +368,12 @@ func (s *ControlApi) StartOAuth(ctx context.Context, req *connect.Request[contro
 func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Request) {
 	log.Infof("Received OAuth2 callback with URL: %s", r.URL.String())
 
+	baseUrl := s.DB.GetCvarString(db.CvarKeys.BaseUrl)
+
 	errText := r.URL.Query().Get("error")
 
 	if errText != "" {
-		redirect(w, fmt.Sprintf("OAuth2 error: %v", errText), "bad")
+		redirect(baseUrl, w, fmt.Sprintf("OAuth2 error: %v", errText), "bad")
 		return
 	}
 
@@ -381,7 +383,7 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 	state := s.oauth2states[stateKey]
 
 	if state == nil {
-		redirect(w, fmt.Sprintf("state not found: %v", stateKey), "bad")
+		redirect(baseUrl, w, fmt.Sprintf("state not found: %v", stateKey), "bad")
 		return
 	}
 
@@ -395,7 +397,7 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 
 	if err != nil {
 		log.Errorf("Error exchanging OAuth2 code: %v", err)
-		redirect(w, "error exchanging OAuth2 code", "bad")
+		redirect(baseUrl, w, "error exchanging OAuth2 code", "bad")
 		return
 	}
 
@@ -412,22 +414,20 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 
 	if err != nil {
 		log.Errorf("Error registering account: %v", err)
-		redirect(w, fmt.Sprintf("Error registering account: %v", err), "bad")
+		redirect(baseUrl, w, fmt.Sprintf("Error registering account: %v", err), "bad")
 	} else {
-		redirect(w, fmt.Sprintf("Successfully registered account for connector: %s", state.connector.GetProtocol()), "good")
+		redirect(baseUrl, w, fmt.Sprintf("Successfully registered account for connector: %s", state.connector.GetProtocol()), "good")
 	}
 }
 
-func redirect(w http.ResponseWriter, message string, msgType string) {
+func redirect(redirectUrl string, w http.ResponseWriter, message string, msgType string) {
 	inDev := os.Getenv("JAPELLA_DEV_REDIRECT_VITE") == "true"
 
-	server := "http://localhost:8080"
-
 	if inDev {
-		server = "http://localhost:5173"
+		redirectUrl = "http://localhost:5173"
 	}
 
-	url := fmt.Sprintf("%v/?notification=%v&type=%v", server, message, msgType)
+	url := fmt.Sprintf("%v/?notification=%v&type=%v", redirectUrl, message, msgType)
 
 	w.Header().Set("Location", url)
 	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv = \"Refresh\" content = \"0; URL=" + url + "\" /></head>")));
