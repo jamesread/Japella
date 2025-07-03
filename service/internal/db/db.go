@@ -337,7 +337,7 @@ func (db *DB) CreatePost(post *Post) error {
 
 func (db *DB) SelectPosts() ([]*Post, error) {
 	ret := make([]*Post, 0)
-	err := db.ResilientSelect(&ret, "SELECT p.id, p.social_account_id, p.status, p.content, p.post_url, p.remote_id, p.created_at, p.campaign AS campaign_id, c.name AS campaign_name FROM posts p LEFT JOIN campaigns c ON p.campaign = c.id ORDER BY p.id DESC")
+	err := db.ResilientSelect(&ret, "SELECT p.id, p.social_account_id, p.status, p.content, p.post_url, p.remote_id, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name FROM posts p LEFT JOIN campaigns c ON p.campaign_id = c.id ORDER BY p.id DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select posts: %v", err)
 		return nil, err
