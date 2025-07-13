@@ -621,7 +621,7 @@ func (db *DB) CreateCampaign(campaign *Campaign) error {
 
 func (db *DB) SelectCampaigns() ([]*Campaign, error) {
 	ret := make([]*Campaign, 0)
-	err := db.ResilientSelect(&ret, "SELECT c.*, count(p.id) as post_count, max(p.created_at) AS last_post_date FROM campaigns c LEFT JOIN posts p ON p.campaign = c.id GROUP BY c.id ORDER BY id DESC")
+	err := db.ResilientSelect(&ret, "SELECT c.*, count(p.id) as post_count, max(p.created_at) AS last_post_date FROM campaigns c LEFT JOIN posts p ON p.campaign_id = c.id GROUP BY c.id ORDER BY id DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select campaigns: %v", err)
 		return nil, err
