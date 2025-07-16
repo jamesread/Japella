@@ -28,7 +28,6 @@
 				<table>
 					<thead>
 						<tr>
-							<th>ID</th>
 							<th>Content</th>
 							<th>Created</th>
 							<th class = "small"></th>
@@ -36,9 +35,6 @@
 					</thead>
 					<tbody>
 					<tr class = "canned-post" v-for = "p in posts" :key = "p.id">
-						<td class = "small">
-							{{ p.id }}
-						</td>
 						<td>
 							<textarea :id = "'canned-post-' + p.id"
 							    v-model = "p.content"
@@ -187,6 +183,10 @@
 </script>
 
 <style scoped>
+	textarea {
+		width: 90%;
+		overflow: scroll-x;
+	}
 	textarea[readonly] {
 		background-color: transparent;
 		border: 1px solid transparent;

@@ -13,7 +13,7 @@ import (
 	"net/url"
 )
 
-type loggingHTTPClient struct {
+type ChainingHttpClient struct {
 	rt http.RoundTripper
 
 	client *http.Client
@@ -21,9 +21,14 @@ type loggingHTTPClient struct {
 	url string
 	Err error
 	req *http.Request
+	Res *http.Response
 }
 
-func (l *loggingHTTPClient) logRequestHeaders(req *http.Request) {
+func (l *ChainingHttpClient) UnderlyingClient() *http.Client {
+	return l.client
+}
+
+func (l *ChainingHttpClient) logRequestHeaders(req *http.Request) {
 	for key, values := range req.Header {
 		for _, value := range values {
 			log.Debugf("Request Header: %s: %s", key, value)
@@ -31,7 +36,7 @@ func (l *loggingHTTPClient) logRequestHeaders(req *http.Request) {
 	}
 }
 
-func (l *loggingHTTPClient) logResponseHeaders(resp *http.Response) {
+func (l *ChainingHttpClient) logResponseHeaders(resp *http.Response) {
 	for key, values := range resp.Header {
 		for _, value := range values {
 			log.Debugf("Response Header: %s: %s", key, value)
@@ -39,7 +44,7 @@ func (l *loggingHTTPClient) logResponseHeaders(resp *http.Response) {
 	}
 }
 
-func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error) {
+func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error) {
 	log.Infof("Request: %s %s", req.Method, req.URL.String())
 
 	l.logRequestHeaders(req)
@@ -74,21 +79,28 @@ func (l *loggingHTTPClient) RoundTrip(req *http.Request) (*http.Response, error)
 	// use strings.Contains here because some servers include the charset in the Content-Type, so it does not exactly match "application/json"
 	isJson := strings.Contains(resp.Header.Get("Content-Type"), "application/json")
 
-	bodyString := ""
-	if resp.Body != nil {
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(resp.Body)
-		bodyString = buf.String()
-		resp.Body.Close()                                           // Close the body to avoid resource leaks
-		resp.Body = io.NopCloser(bytes.NewBufferString(bodyString)) // Reassign the body to allow further reading
-	}
+	bodyString := ReadBody(resp)
 
 	l.logBodyContent(isJson, bodyString)
 
 	return resp, nil
 }
 
-func (l *loggingHTTPClient) logBodyContent(isJson bool, bodyString string) {
+func ReadBody(r *http.Response) string {
+	bodyString := ""
+
+	if r.Body != nil {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(r.Body)
+		bodyString = buf.String()
+		r.Body.Close()                                           // Close the body to avoid resource leaks
+		r.Body = io.NopCloser(bytes.NewBufferString(bodyString)) // Reassign the body to allow further reading
+	}
+
+	return bodyString
+}
+
+func (l *ChainingHttpClient) logBodyContent(isJson bool, bodyString string) {
 	if log.IsLevelEnabled(log.DebugLevel) {
 		if isJson {
 			var prettyJSON bytes.Buffer
@@ -105,16 +117,16 @@ func (l *loggingHTTPClient) logBodyContent(isJson bool, bodyString string) {
 	}
 }
 
-func NewLoggingTransport(rt http.RoundTripper) *loggingHTTPClient {
+func NewLoggingTransport(rt http.RoundTripper) *ChainingHttpClient {
 	if rt == nil {
 		rt = http.DefaultTransport
 	}
 
-	return &loggingHTTPClient{rt: rt}
+	return &ChainingHttpClient{rt: rt}
 }
 
-func NewClient() *loggingHTTPClient {
-	return &loggingHTTPClient{
+func NewClient() *ChainingHttpClient {
+	return &ChainingHttpClient{
 		rt: http.DefaultTransport,
 		client: &http.Client{
 			Transport: NewLoggingTransport(nil),
@@ -123,31 +135,29 @@ func NewClient() *loggingHTTPClient {
 }
 
 
-func (c *loggingHTTPClient) AsJson(v any) {
-	var resp *http.Response
-
-	resp, c.Err = c.client.Do(c.req)
+func (c *ChainingHttpClient) AsJson(v any) {
+	c.Res, c.Err = c.client.Do(c.req)
 
 	if c.Err != nil {
 		c.Err = fmt.Errorf("error making request: %w", c.Err)
 		return
 	}
 
-	defer resp.Body.Close()
+	defer c.Res.Body.Close()
 
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		c.Err = fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	if c.Res.StatusCode < 200 || c.Res.StatusCode >= 300 {
+		c.Err = fmt.Errorf("unexpected status code: %d", c.Res.StatusCode)
 		return
 	}
 
 	if v != nil {
-		if err := json.NewDecoder(resp.Body).Decode(v); err != nil {
+		if err := json.NewDecoder(c.Res.Body).Decode(v); err != nil {
 			c.Err = fmt.Errorf("error decoding JSON response: %w", err)
 		}
 	}
 }
 
-func (c *loggingHTTPClient) GetWithFormVars(requrl string, body map[string]string) (*loggingHTTPClient) {
+func (c *ChainingHttpClient) PostWithFormVars(requrl string, body map[string]string) (*ChainingHttpClient) {
 	c.url = requrl
 
 	form := url.Values{}
@@ -155,13 +165,13 @@ func (c *loggingHTTPClient) GetWithFormVars(requrl string, body map[string]strin
 		form.Add(key, value)
 	}
 
-	c.req, c.Err = http.NewRequest("GET", c.url, strings.NewReader(form.Encode()))
+	c.req, c.Err = http.NewRequest("POST", c.url, strings.NewReader(form.Encode()))
 	c.req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	return c;
 }
 
-func (c *loggingHTTPClient) Get(requrl string) *loggingHTTPClient {
+func (c *ChainingHttpClient) Get(requrl string) *ChainingHttpClient {
 	c.url = requrl
 
 	var err error
@@ -174,12 +184,12 @@ func (c *loggingHTTPClient) Get(requrl string) *loggingHTTPClient {
 	return c
 }
 
-func (c *loggingHTTPClient) WithBasicAuth(token string) *loggingHTTPClient {
+func (c *ChainingHttpClient) WithBasicAuth(token string) *ChainingHttpClient {
 	c.req.Header.Set("Authorization", "Basic "+token)
 	return c
 }
 
-func (c *loggingHTTPClient) PostWithJson(requrl string, body any) (*loggingHTTPClient) {
+func (c *ChainingHttpClient) PostWithJson(requrl string, body any) (*ChainingHttpClient) {
 	jsonBody, err := json.MarshalIndent(body, "", "  ")
 
 	if err != nil {
@@ -198,7 +208,7 @@ func (c *loggingHTTPClient) PostWithJson(requrl string, body any) (*loggingHTTPC
 	return c
 }
 
-func (c *loggingHTTPClient) WithBearerToken(token string) (*loggingHTTPClient) {
+func (c *ChainingHttpClient) WithBearerToken(token string) (*ChainingHttpClient) {
 	if token != "" {
 		c.req.Header.Set("Authorization", "Bearer "+token)
 	}

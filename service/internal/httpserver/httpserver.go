@@ -15,6 +15,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
+
+	"os"
 )
 
 // Prometheus metrics
@@ -108,14 +110,63 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	return server, nil
 }
 
+func findCerts() (string, string) {
+	crtPath := os.Getenv("JAPELLA_TLS_CRT_PATH")
+	keyPath := os.Getenv("JAPELLA_TLS_KEY_PATH")
+
+	if crtPath == "" || keyPath == "" {
+		log.Warn("TLS_CRT_PATH or TLS_KEY_PATH environment variables not set, using HTTP instead of HTTPS")
+		return "", ""
+	}
+
+	if _, err := os.Stat(crtPath); os.IsNotExist(err) {
+		log.Errorf("TLS certificate file not found at %s", crtPath)
+		return "", ""
+	}
+
+	if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+		log.Errorf("TLS key file not found at %s", keyPath)
+		return "", ""
+	}
+	
+	log.Infof("Using TLS certificates: %s (crt), %s (key)", crtPath, keyPath)
+
+	return crtPath, keyPath
+}
+
 func Start() {
+	crt, key := findCerts()
+
+	if crt != "" && key != "" {
+		startHttpsServer(crt, key)
+	} else {
+		startHttpServer()
+	}
+}
+
+func startHttpsServer(crt string, key string) {
+	server, err := CreateServer("0.0.0.0:443")
+	if err != nil {
+		log.Errorf("Error creating server: %v", err)
+		return
+	}
+
+	log.Infof("Using TLS certificates for HTTPS")
+
+	if err := server.ListenAndServeTLS(crt, key); err != nil {
+		log.Errorf("Error: %v", err)
+	}
+}
+
+func startHttpServer() {
 	server, err := CreateServer("0.0.0.0:8080")
 	if err != nil {
 		log.Errorf("Error creating server: %v", err)
 		return
 	}
 
-	log.Infof("Starting http server on %v", server.Addr)
+	log.Infof("No TLS certificates found, using HTTP")
+
 	if err := server.ListenAndServe(); err != nil {
 		log.Errorf("Error: %v", err)
 	}

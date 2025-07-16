@@ -70,7 +70,7 @@
 
 <script setup>
 	import { Icon } from '@iconify/vue';
-	import { ref, onMounted, inject } from 'vue';
+	import { ref, onMounted, inject, onActivated } from 'vue';
 	import { waitForClient } from '../javascript/util';
 
 	const clientReady = ref(false)
@@ -139,6 +139,10 @@
 
 		clientReady.value = true
 
+		refreshAccounts()
+	})
+
+	onActivated(() => {
 		refreshAccounts()
 	})
 </script>

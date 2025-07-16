@@ -7,6 +7,8 @@ import (
 	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
 
+	"context"
+
 	"golang.org/x/oauth2"
 )
 
@@ -216,3 +218,29 @@ func (c *MastodonConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 	c.whoami(socialAccount)
 	return nil
 }
+
+func (c *MastodonConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) error {
+	client := utils.NewClient()
+
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
+
+	config := c.GetOAuth2Config()
+
+	token, err := config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
+
+	if err != nil {
+		return err
+	}
+
+	c.Logger().Infof("OAuth2 token received: %+v", token)
+
+	c.db.RegisterAccount(&db.SocialAccount{
+		Connector:          "mastodon",
+		OAuth2Token:        token.AccessToken,
+		OAuth2TokenExpiry:  token.Expiry,
+		OAuth2RefreshToken: token.RefreshToken,
+	})
+
+	return err
+}
+
