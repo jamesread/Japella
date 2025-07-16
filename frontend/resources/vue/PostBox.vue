@@ -55,7 +55,7 @@
     import { useI18n } from 'vue-i18n'
     const { t } = useI18n()
 
-    import { ref, onMounted } from 'vue';
+    import { ref, onMounted, onActivated } from 'vue';
     import { Icon } from '@iconify/vue';
 
     const clientReady = ref(false);
@@ -112,13 +112,21 @@
       await waitForClient();
       clientReady.value = true;
 
+		refreshAccounts()
+    });
+
+	onActivated(async () => {
+		refreshAccounts()
+	})
+
+	async function refreshAccounts() {
       const ret = await window.client.getSocialAccounts({"onlyActive": true});
 	  const campaignsRet = await window.client.getCampaigns();
 
       items.value = ret.accounts
 
 	  campaigns.value = campaignsRet.campaigns || [];
-    });
+	}
 
     const postMode = ref('live');
 

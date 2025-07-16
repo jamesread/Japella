@@ -309,7 +309,7 @@ func (db *DB) DeleteCannedPost(id uint32) error {
 }
 
 func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, created_at, updated_at) VALUES (:connector, :identity, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, NOW(), NOW())`, socialAccount)
+	_, err := db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :dpop_key, NOW(), NOW())`, socialAccount)
 	if err != nil {
 		db.Logger().Errorf("Failed to register social account: %v", err)
 		return err

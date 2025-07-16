@@ -26,3 +26,17 @@ go-tools:
 	go install "google.golang.org/protobuf/cmd/protoc-gen-go"
 	#go install "github.com/go-kod/kod/cmd/kod"
 	go install "go.uber.org/mock/mockgen"
+
+certs: cert-ca cert-server
+
+cert-ca:
+	openssl genrsa -out ca.key 4096
+	openssl req -x509 -new -nodes -key ca.key -sha256 -out ca.crt -subj "/CN=Japella CA"
+
+cert-server:
+	openssl genrsa -out server.key 4096
+	openssl req -new -key server.key -out server.csr -subj "/CN=Japella Server"
+	openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365 -sha256
+	cat ca.crt >> server.crt
+
+.PHONY: default test tests dev codestyle go-tools certs cert-ca cert-server

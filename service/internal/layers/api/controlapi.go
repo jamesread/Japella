@@ -387,30 +387,14 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	client := &http.Client{
-		Transport: utils.NewLoggingTransport(nil),
+	headers := make(map[string]string)
+	for name, values := range r.Header {
+		for _, value := range values {
+			headers[name] = value
+		}
 	}
 
-	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
-
-	token, err := state.config.Exchange(ctx, code, oauth2.VerifierOption(state.verifier))
-
-	if err != nil {
-		log.Errorf("Error exchanging OAuth2 code: %v", err)
-		redirect(baseUrl, w, "error exchanging OAuth2 code", "bad")
-		return
-	}
-
-	log.Infof("Received token on exchange: %+v", token)
-
-	log.Infof("State connector: %+v", state)
-
-	err = s.DB.RegisterAccount(&db.SocialAccount{
-		Connector:          state.connector.GetProtocol(),
-		OAuth2Token:        token.AccessToken,
-		OAuth2TokenExpiry:  token.Expiry,
-		OAuth2RefreshToken: token.RefreshToken,
-	})
+	err := state.connector.OnOAuth2Callback(code, state.verifier, headers)
 
 	if err != nil {
 		log.Errorf("Error registering account: %v", err)

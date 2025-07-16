@@ -30,6 +30,7 @@ type SocialAccount struct {
 	OAuth2Token        string    `db:"oauth2_token"`
 	OAuth2TokenExpiry  time.Time `db:"oauth2_token_expiry"`
 	OAuth2RefreshToken string    `db:"oauth2_refresh_token"`
+	DpopKey            sql.NullString `db:"dpop_key"`
 	Active             bool      `db:"active"`
 }
 
