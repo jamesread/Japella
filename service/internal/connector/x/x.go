@@ -21,6 +21,9 @@ type XConnector struct {
 	utils.LogComponent
 }
 
+const EXPECTED_CLIENT_ID_LENGTH = 34
+const EXPECTED_CLIENT_SECRET_LENGTH = 50
+
 const CFG_X_CLIENT_ID = "x.client_id"
 const CFG_X_CLIENT_SECRET = "x.client_secret"
 
@@ -60,7 +63,7 @@ func (x *XConnector) CheckConfiguration() *connector.ConfigurationCheckResult {
 		res.AddIssue("X Client ID is not set in the database, please configure it in the settings.")
 	}
 
-	if len(clientId) != 34 {
+	if len(clientId) != EXPECTED_CLIENT_ID_LENGTH {
 		res.AddIssue("X Client ID is not valid, it should be 34 characters long.")
 		return res
 	}
@@ -71,7 +74,7 @@ func (x *XConnector) CheckConfiguration() *connector.ConfigurationCheckResult {
 		res.AddIssue("X Client Secret is not set in the database, please configure it in the settings.")
 	}
 
-	if len(clientSecret) != 50 {
+	if len(clientSecret) != EXPECTED_CLIENT_SECRET_LENGTH {
 		res.AddIssue("X Client Secret is not valid, it should be 50 characters long.")
 	}
 
@@ -220,7 +223,7 @@ func (x *XConnector) OnOAuth2Callback(code string, verifier string, headers map[
 		return err
 	}
 
-	x.Logger().Infof("Received token on exchange: %+v", token)
+	x.Logger().Debugf("Received token on exchange: %+v", token)
 
 	err = x.db.RegisterAccount(&db.SocialAccount{
 		Connector:          "x",

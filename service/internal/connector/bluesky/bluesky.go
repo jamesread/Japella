@@ -13,7 +13,7 @@ import (
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/utils"
 	"github.com/jamesread/japella/internal/utils/dateutil"
-//	"database/sql"
+	"database/sql"
 
 	"crypto/ecdsa"
 
@@ -41,15 +41,9 @@ const PAR_ENDPOINT = "https://bsky.social/oauth/par"
 const CFG_BSKY_CLIENT_ID = "bluesky.client_id" // notsecret
 const CFG_BSKY_CLIENT_SECRET = "bluesky.client_secret" // notsecret
 
+// BlueSky does dynamic client registration, so we don't need to store the client ID and secret
 func (b *BlueskyConnector) IsRegistered() bool {
-
 	return true;
-	/*
-	clientID := b.db.GetCvarString(CFG_BSKY_CLIENT_ID)
-	clientSecret := b.db.GetCvarString(CFG_BSKY_CLIENT_SECRET)
-
-	return clientID != "" || clientSecret != ""
-	*/
 }
 
 func (b *BlueskyConnector) RegisterClient() error {
@@ -81,7 +75,7 @@ type BlueskyCreatePostRequest struct {
 type BlueskyPostRecord struct {
 	Type string `json:"$type"`
 	Text string `json:"text"`
-	createdAt string `json:"createdAt"`
+	CreatedAt string `json:"createdAt"`
 }
 
 type BlueskyCreatePostResponse struct {
@@ -91,12 +85,12 @@ type BlueskyCreatePostResponse struct {
 
 func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, content string) *connector.PostResult {
 	req := BlueskyCreatePostRequest{
-		Repo:       "did_todo",
+		Repo:       socialAccount.Identity,
 		Collection: "app.bsky.feed.post",
 		Record: BlueskyPostRecord{
 			Type:      "app.bsky.feed.post",
 			Text:      content,
-			createdAt: dateutil.GetCurrentTimeRFC3339(),
+			CreatedAt: dateutil.GetCurrentTimeRFC3339(),
 		},
 	}
 
@@ -187,7 +181,7 @@ type dpopTransport struct {
 }
 
 func (t *dpopTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	dpopJwt, _ := createDPoPProof(t.privKey, "POST", req.URL.String(), t.dpopNonce)
+	dpopJwt, _ := createDPoPProof(t.privKey, req.Method, req.URL.String(), t.dpopNonce)
 
 	req.Header.Set("DPoP", dpopJwt)
 	req.Header.Set("Authorization", "DPoP "+t.signedAccessToken)
@@ -231,7 +225,7 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 		return err
 	}
 
-	b.Logger().Infof("Received token on exchange: %+v", token)
+	b.Logger().Debugf("Received token on exchange: %+v", token)
 
 	err = b.db.RegisterAccount(&db.SocialAccount{
 		Connector:          "bluesky",
@@ -239,7 +233,7 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 		OAuth2Token:        token.AccessToken,
 		OAuth2TokenExpiry:  token.Expiry,
 		OAuth2RefreshToken: token.RefreshToken,
-//		DpopKey:            sql.NullString{String: dpopServerKey.D.String(), Valid: true},
+		DpopKey:            sql.NullString{String: privKey.D.String(), Valid: true},
 	})
 
 	return err

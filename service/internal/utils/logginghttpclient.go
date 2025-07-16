@@ -79,25 +79,36 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 	// use strings.Contains here because some servers include the charset in the Content-Type, so it does not exactly match "application/json"
 	isJson := strings.Contains(resp.Header.Get("Content-Type"), "application/json")
 
-	bodyString := ReadBody(resp)
+	bodyString, err := ReadBody(resp)
+
+	if err != nil {
+		log.Errorf("Error reading response body: %v", err)
+		return nil, fmt.Errorf("error reading response body: %w", err)
+	}
 
 	l.logBodyContent(isJson, bodyString)
 
 	return resp, nil
 }
 
-func ReadBody(r *http.Response) string {
+func ReadBody(r *http.Response) (string, error) {
 	bodyString := ""
 
 	if r.Body != nil {
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(r.Body)
+
+		_, err := buf.ReadFrom(r.Body) 
+
+		if err != nil {
+			return "", fmt.Errorf("error reading response body: %w", err)
+		}
+
 		bodyString = buf.String()
 		r.Body.Close()                                           // Close the body to avoid resource leaks
 		r.Body = io.NopCloser(bytes.NewBufferString(bodyString)) // Reassign the body to allow further reading
 	}
 
-	return bodyString
+	return bodyString, nil
 }
 
 func (l *ChainingHttpClient) logBodyContent(isJson bool, bodyString string) {

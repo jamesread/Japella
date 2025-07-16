@@ -145,7 +145,14 @@ func Start() {
 }
 
 func startHttpsServer(crt string, key string) {
-	server, err := CreateServer("0.0.0.0:443")
+	listenAddress := os.Getenv("JAPELLA_LISTEN_ADDRESS")
+
+	if listenAddress == "" {
+		listenAddress =  "0.0.0.0:443"
+	}
+
+	server, err := CreateServer(listenAddress)
+
 	if err != nil {
 		log.Errorf("Error creating server: %v", err)
 		return
@@ -159,7 +166,14 @@ func startHttpsServer(crt string, key string) {
 }
 
 func startHttpServer() {
-	server, err := CreateServer("0.0.0.0:8080")
+	listenAddress := os.Getenv("JAPELLA_LISTEN_ADDRESS")
+
+	if listenAddress == "" {
+		listenAddress  = "0.0.0.0:8080"
+	}
+
+	server, err := CreateServer(listenAddress)
+
 	if err != nil {
 		log.Errorf("Error creating server: %v", err)
 		return

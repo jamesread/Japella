@@ -185,7 +185,7 @@
 <style scoped>
 	textarea {
 		width: 90%;
-		overflow: scroll-x;
+		overflow: scroll;
 	}
 	textarea[readonly] {
 		background-color: transparent;

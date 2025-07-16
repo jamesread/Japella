@@ -232,7 +232,7 @@ func (c *MastodonConnector) OnOAuth2Callback(code string, verifier string, heade
 		return err
 	}
 
-	c.Logger().Infof("OAuth2 token received: %+v", token)
+	c.Logger().Debugf("OAuth2 token received: %+v", token)
 
 	c.db.RegisterAccount(&db.SocialAccount{
 		Connector:          "mastodon",

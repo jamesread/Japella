@@ -8,8 +8,6 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"log"
-	"net/http"
 	"time"
 
 	"github.com/google/uuid"
@@ -76,41 +74,3 @@ func generatePrivateKey() (*ecdsa.PrivateKey, error) {
 	return privKey, nil
 
 }
-
-func main() {
-
-	privKey, err := generatePrivateKey()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Example API call
-	url := "https://api.example.com/resource"
-	method := "GET"
-
-	// Step 1: Create DPoP proof
-	proof, err := createDPoPProof(privKey, method, url, "")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Step 2: Create HTTP request
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	// Attach headers
-	req.Header.Set("DPoP", proof)
-	req.Header.Set("Authorization", "DPoP your_access_token_here")
-
-	// Step 3: Execute request
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer resp.Body.Close()
-
-	fmt.Println("Status:", resp.Status)
-}
-
