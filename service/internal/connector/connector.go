@@ -28,6 +28,7 @@ type SocialAccount struct {
 	Connector  string
 	Identity   string
 	OAuthToken string
+	Homeserver string
 }
 
 type ControllerStartupConfiguration struct {

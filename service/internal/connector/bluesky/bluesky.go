@@ -98,7 +98,9 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 
 	client := b.tmpClient
 	b.Logger().Infof("Posting to Bluesky with request: %+v %+v", b, req)
-	client.PostWithJson("https://homeserver.host.bsky.network/xrpc/com.atproto.repo.createRecord", &req)
+
+	endpoint := socialAccount.Homeserver + "/xrpc/com.atproto.repo.createRecord"
+	client.PostWithJson(endpoint, &req)
 	client.AsJson(res)
 
 	b.Logger().Infof("Response from Bluesky: %+v", res)
@@ -116,7 +118,7 @@ func (b *BlueskyConnector) GetIcon() string {
 }
 
 func (b *BlueskyConnector) OnRefresh(socialAccount *db.SocialAccount) error {
-	user := "jamesread.bsky.social"
+	user := socialAccount.Identity
 	url := "https://bsky.social/xrpc/com.atproto.identity.resolveHandle?handle=" + user
 
 	b.tmpClient.Get(url).AsJson(nil)
