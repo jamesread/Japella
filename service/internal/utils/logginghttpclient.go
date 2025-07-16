@@ -7,8 +7,9 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"github.com/google/uuid"
 
-	log "github.com/sirupsen/logrus"
+	logp "github.com/sirupsen/logrus"
 
 	"net/url"
 )
@@ -22,6 +23,8 @@ type ChainingHttpClient struct {
 	Err error
 	req *http.Request
 	Res *http.Response
+
+	logger *logp.Entry
 }
 
 func (l *ChainingHttpClient) UnderlyingClient() *http.Client {
@@ -31,7 +34,7 @@ func (l *ChainingHttpClient) UnderlyingClient() *http.Client {
 func (l *ChainingHttpClient) logRequestHeaders(req *http.Request) {
 	for key, values := range req.Header {
 		for _, value := range values {
-			log.Debugf("Request Header: %s: %s", key, value)
+			l.logger.Debugf("Request Header: %s: %s", key, value)
 		}
 	}
 }
@@ -39,18 +42,20 @@ func (l *ChainingHttpClient) logRequestHeaders(req *http.Request) {
 func (l *ChainingHttpClient) logResponseHeaders(resp *http.Response) {
 	for key, values := range resp.Header {
 		for _, value := range values {
-			log.Debugf("Response Header: %s: %s", key, value)
+			l.logger.Debugf("Response Header: %s: %s", key, value)
 		}
 	}
 }
 
 func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error) {
-	log.Infof("Request: %s %s", req.Method, req.URL.String())
+	logp.Infof("Logger: %v", l.logger)
+
+	l.logger.Infof("Request: %s %s", req.Method, req.URL.String())
 
 	l.logRequestHeaders(req)
 
 	if req.Body != nil {
-		log.Debugf("Request Body: %v", req.Body)
+		l.logger.Debugf("Request Body: %v", req.Body)
 
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(req.Body)
@@ -64,11 +69,11 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 	resp, err := l.rt.RoundTrip(req)
 
 	if err != nil {
-		log.Errorf("Error during request: %v", err)
+		l.logger.Errorf("Error during request: %v", err)
 		return nil, err
 	}
 
-	log.WithFields(log.Fields{
+	l.logger.WithFields(logp.Fields{
 		"status":     resp.Status,
 		"url":        req.URL.String(),
 		"method":     req.Method,
@@ -82,7 +87,7 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 	bodyString, err := ReadBody(resp)
 
 	if err != nil {
-		log.Errorf("Error reading response body: %v", err)
+		l.logger.Errorf("Error reading response body: %v", err)
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
@@ -97,7 +102,7 @@ func ReadBody(r *http.Response) (string, error) {
 	if r.Body != nil {
 		buf := new(bytes.Buffer)
 
-		_, err := buf.ReadFrom(r.Body) 
+		_, err := buf.ReadFrom(r.Body)
 
 		if err != nil {
 			return "", fmt.Errorf("error reading response body: %w", err)
@@ -112,39 +117,46 @@ func ReadBody(r *http.Response) (string, error) {
 }
 
 func (l *ChainingHttpClient) logBodyContent(isJson bool, bodyString string) {
-	if log.IsLevelEnabled(log.DebugLevel) {
+	if logp.IsLevelEnabled(logp.DebugLevel) {
 		if isJson {
 			var prettyJSON bytes.Buffer
 
 			if err := json.Indent(&prettyJSON, []byte(bodyString), "", "  "); err != nil {
-				log.Errorf("Error pretty printing JSON response: %v", err)
-				log.Debugf("Response Body Content: %s", bodyString)
+				l.logger.Errorf("Error pretty printing JSON response: %v", err)
+				l.logger.Debugf("Response Body Content: %s", bodyString)
 			}
 
 			fmt.Printf("Response Body JSON:\n%s\n", prettyJSON.String())
 		} else {
-			log.Debugf("Response Body Content: %s", bodyString)
+			l.logger.Debugf("Response Body Content: %s", bodyString)
 		}
 	}
 }
 
-func NewLoggingTransport(rt http.RoundTripper) *ChainingHttpClient {
+func NewLoggingTransport(rt http.RoundTripper, logger *logp.Entry) *ChainingHttpClient {
 	if rt == nil {
 		rt = http.DefaultTransport
 	}
 
-	return &ChainingHttpClient{rt: rt}
-}
-
-func NewClient() *ChainingHttpClient {
 	return &ChainingHttpClient{
-		rt: http.DefaultTransport,
-		client: &http.Client{
-			Transport: NewLoggingTransport(nil),
-		},
+		rt: rt,
+		logger: logger,
 	}
 }
 
+func NewClient(logger *logp.Entry) *ChainingHttpClient {
+	logger = logger.WithField("client", uuid.New().String())
+
+	client := &ChainingHttpClient{
+		rt: http.DefaultTransport,
+		logger: logger,
+		client: &http.Client{
+			Transport: NewLoggingTransport(nil, logger),
+		},
+	}
+
+	return client
+}
 
 func (c *ChainingHttpClient) AsJson(v any) {
 	c.Res, c.Err = c.client.Do(c.req)

@@ -18,6 +18,7 @@ type XConnector struct {
 	connector.ConfigProvider
 
 	db *db.DB
+
 	utils.LogComponent
 }
 
@@ -85,7 +86,9 @@ func (x *XConnector) SetStartupConfiguration(startup *connector.ControllerStartu
 	x.db = startup.DB
 }
 
-func (x *XConnector) Start() {}
+func (x *XConnector) Start() {
+	x.SetPrefix("X")
+}
 
 func (x *XConnector) GetIdentity() string {
 	return "untitled-account"
@@ -118,7 +121,7 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 	requrl := "https://api.x.com/2/oauth2/token"
 	tok := base64.StdEncoding.EncodeToString([]byte(x.db.GetCvarString(CFG_X_CLIENT_ID) + ":" + x.db.GetCvarString(CFG_X_CLIENT_SECRET)))
 
-	client := utils.NewClient().PostWithFormVars(requrl, refreshTokenArgs).WithBasicAuth(tok)
+	client := utils.NewClient(x.Logger()).PostWithFormVars(requrl, refreshTokenArgs).WithBasicAuth(tok)
 
 	if client.Err != nil {
 		x.Logger().Errorf("Error creating request: %v", client.Err)
@@ -145,7 +148,7 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 }
 
 func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
-	client := utils.NewClient()
+	client := utils.NewClient(x.Logger())
 	client.Get("https://api.x.com/2/users/me").WithBearerToken(socialAccount.OAuth2Token)
 
 	//client, req, err := utils.NewHttpClientAndGetReq("https://api.x.com/2/users/me", socialAccount.OAuth2Token)
@@ -169,7 +172,7 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 		Text: message,
 	}
 
-	client := utils.NewClient()
+	client := utils.NewClient(x.Logger())
 	client.PostWithJson("https://api.x.com/2/tweets", t).WithBearerToken(sa.OAuthToken)
 
 	if client.Err != nil {
@@ -211,7 +214,7 @@ func (x *XConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 }
 
 func (x *XConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) (error) {
-	client := utils.NewClient()
+	client := utils.NewClient(x.Logger())
 
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
 

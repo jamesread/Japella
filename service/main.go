@@ -16,10 +16,12 @@ var (
 )
 
 func main() {
+	/**
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp:    false,
 		DisableTimestamp: true,
 	})
+	*/
 
 	log.SetOutput(os.Stdout)
 
@@ -30,6 +32,7 @@ func main() {
 	}
 
 	log.Infof("japella startup")
+	log.Warnf("This is a development build, do not use in production!")
 	log.WithFields(log.Fields{
 		"version":   buildinfo.Version,
 		"buildDate": buildinfo.BuildDate,

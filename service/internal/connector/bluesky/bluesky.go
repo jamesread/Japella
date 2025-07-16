@@ -191,10 +191,10 @@ func (t *dpopTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return t.base.RoundTrip(req)
 }
 
-func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) error {	
+func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) error {
 	privKey, err := generatePrivateKey()
 
-	client := utils.NewClient()
+	client := utils.NewClient(b.Logger())
 	client.PostWithJson(PAR_ENDPOINT, "").AsJson(nil)
 
 	dpopServerKey := findHeader(client.Res)
@@ -211,8 +211,8 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 		dpopNonce: dpopServerKey,
 		privKey: privKey,
 	}
-	
-	client.UnderlyingClient().Transport = tp 
+
+	client.UnderlyingClient().Transport = tp
 
 	b.tmpClient = client
 
@@ -221,7 +221,7 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 	token, err := config.Exchange(ctx, code, oauth2.VerifierOption(verifier))
 
 	tp.signedAccessToken = token.AccessToken // Switch to using the signed token as the DPoP key
-	
+
 	if err != nil {
 		b.Logger().Infof("Error exchanging code: %v", err)
 		return err

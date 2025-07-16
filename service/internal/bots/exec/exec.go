@@ -146,7 +146,7 @@ func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments str
 	b.SendMessage(out)
 }
 
-func buildEnv(logger *log.Logger, args map[string]string) []string {
+func buildEnv(logger *log.Entry, args map[string]string) []string {
 	env := os.Environ()
 	env = append(env, "JAPELLA=1")
 

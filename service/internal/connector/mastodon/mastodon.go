@@ -103,7 +103,7 @@ type RegistrationResponse struct {
 }
 
 func (c *MastodonConnector) RegisterClient() error {
-	client := utils.NewClient()
+	client := utils.NewClient(c.Logger())
 
 	appConfig := &AppConfig{
 		Server:       "https://mastodon.social",
@@ -148,7 +148,7 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 		Status: content,
 	}
 
-	client := utils.NewClient().PostWithJson("https://mastodon.social/api/v1/statuses", toot).WithBearerToken(socialAccount.OAuthToken)
+	client := utils.NewClient(c.Logger()).PostWithJson("https://mastodon.social/api/v1/statuses", toot).WithBearerToken(socialAccount.OAuthToken)
 
 	if client.Err != nil {
 		res.Err = client.Err
@@ -198,7 +198,7 @@ type VerifyCredentialsResponse struct {
 }
 
 func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
-	client := utils.NewClient().Get("https://mastodon.social/api/v1/accounts/verify_credentials").WithBearerToken(socialAccount.OAuth2Token)
+	client := utils.NewClient(c.Logger()).Get("https://mastodon.social/api/v1/accounts/verify_credentials").WithBearerToken(socialAccount.OAuth2Token)
 
 	if client.Err != nil {
 		log.Errorf("Error creating request: %v", client.Err)
@@ -209,7 +209,7 @@ func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
 
 	client.AsJson(&data)
 
-	log.Infof("Whoami response: %+v", data)
+	c.Logger().Infof("Whoami response: %+v", data)
 
 	c.db.UpdateSocialAccountIdentity(socialAccount.ID, data.Username)
 }
@@ -220,7 +220,7 @@ func (c *MastodonConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 }
 
 func (c *MastodonConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) error {
-	client := utils.NewClient()
+	client := utils.NewClient(c.Logger())
 
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
 
@@ -243,4 +243,3 @@ func (c *MastodonConnector) OnOAuth2Callback(code string, verifier string, heade
 
 	return err
 }
-
