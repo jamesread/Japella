@@ -220,19 +220,22 @@
 	}
 
 	function hideSidebar() {
+      unstickSidebar();
 	  sectionNavigation.value.classList.remove('shown');
 	  stickIcon.value.classList.add('vh');
 	}
 
+	function unstickSidebar() {
+	  sectionNavigation.value.classList.remove('stuck');
+	  pinIcon.value = 'mdi:pin-outline';
+	}
+
 	function clickSidebarStick() {
 	  if (sectionNavigation.value.classList.contains('stuck')) {
-	    pinIcon.value = 'mdi:pin-outline';
-		sectionNavigation.value.classList.remove('stuck');
+	    unstickSidebar();
 	  } else {
 	    pinIcon.value = 'mdi:pin';
 		sectionNavigation.value.classList.add('stuck');
 	  }
-
-	  console.log('Sidebar stick toggled');
 	}
 </script>
