@@ -1,11 +1,11 @@
 * xref:index.adoc[Home]
-* xref:gettingStarted.adoc[Getting Started]
 * xref:installation/index.adoc[Installation]
 ** Linux Container
 *** xref:installation/docker-compose.adoc[Docker Compose]
 *** xref:installation/standalone.adoc[Docker or Podman]
 *** xref:installation/helm.adoc[Kubernetes with Helm]
 *** xref:installation/truenas-scale.adoc[TrueNAS SCALE]
+* xref:gettingStarted.adoc[Getting Started]
 * xref:configuration/index.adoc[Configuration]
 * xref:integrations/index.adoc[Integrations]
 ** xref:integrations/hass.adoc[Home Assistant]

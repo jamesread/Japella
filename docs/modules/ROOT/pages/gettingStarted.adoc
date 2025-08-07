@@ -1,5 +1,9 @@
-# Getting Started
+= Getting Started
 
-It is recommended to use the [docker containers](installation/docker-compose.md) to run Japella.
+Assuming that you have installed Japella, the next step is to check that you can access the web interface and login.
 
-Once it is installed and running, you can start adding scripts.
+The web UI runs on port 8080 by default, so you can access it by navigating to `http://<your-server-ip>:8080` in your web browser. If you are running Japella on your local machine, you can use `http://localhost:8080`.
+
+== First login
+
+When you first access the web interface, you will need to login. The default username is `admin` and the default password is `admin`. After logging in, you will be prompted to change the password. It is recommended to choose a strong password for security reasons.
