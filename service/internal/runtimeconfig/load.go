@@ -175,6 +175,8 @@ func loadConfig() *CommonConfig {
 
 	if err != nil {
 		log.Warnf("could not load common config! %v", err)
+	} else {
+		checkConfigVersion(cfg)
 	}
 
 	loadEnvVars(cfg)
@@ -182,4 +184,17 @@ func loadConfig() *CommonConfig {
 	log.Infof("Config loading complete")
 
 	return cfg
+}
+
+func checkConfigVersion(cfg *CommonConfig) {
+	supportedVersion := 2
+	configVersion := cfg.ConfigVersion
+
+	if configVersion == 0 {
+		log.Warnf("The configuration version is zero, this probably means `configVersion` has not been set.")
+	}
+
+	if configVersion != supportedVersion {
+		log.Warnf("This version of Japella only supports config files with version %v", supportedVersion)
+	}
 }

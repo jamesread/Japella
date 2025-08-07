@@ -5,7 +5,6 @@ import (
 	"github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/httpserver"
 	"github.com/jamesread/japella/internal/nanoservice"
-	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 	"os"
 )
@@ -38,18 +37,6 @@ func main() {
 		"buildDate": buildinfo.BuildDate,
 		"commit":    buildinfo.Commit,
 	}).Infof("buildinfo")
-
-	supportedVersion := 2
-	configVersion := runtimeconfig.Get().ConfigVersion
-
-	if configVersion == 0 {
-		log.Fatal("The configuration version is zero, this probably means `configVersion` has not been set.")
-		os.Exit(1)
-	}
-
-	if configVersion != supportedVersion {
-		log.Fatalf("This version of Japella only supports config files with version %v", supportedVersion)
-	}
 
 	initServiceRegistry()
 	startNanoservices()
