@@ -27,20 +27,20 @@ func getConfigFilePath(filename string) string {
 	return filename
 }
 
-func readFile(filename string) []byte {
+func readFile(filename string) ([]byte, error) {
 	handle, err := os.Open(filename)
 
 	if err != nil {
-		log.Warnf("Load %v", err)
+		return nil, err
 	}
 
 	content, err := io.ReadAll(handle)
 
 	if err != nil {
-		log.Warnf("Load %v", err)
+		return nil, err
 	}
 
-	return content
+	return content, nil
 }
 
 var cfgGetLock sync.RWMutex
@@ -171,12 +171,18 @@ func loadConfig() *CommonConfig {
 
 	cfg = &CommonConfig{}
 
-	err := yaml.UnmarshalWithOptions(readFile(configFilename), cfg, yaml.Strict())
+	configFileContents, err := readFile(configFilename)
 
 	if err != nil {
-		log.Warnf("could not load common config! %v", err)
+		log.Warnf("could not read common config file %s: %v", configFilename, err)
 	} else {
-		checkConfigVersion(cfg)
+		err = yaml.UnmarshalWithOptions(configFileContents, cfg, yaml.Strict())
+
+		if err != nil {
+			log.Warnf("could not load common config! %v", err)
+		} else {
+			checkConfigVersion(cfg)
+		}
 	}
 
 	loadEnvVars(cfg)

@@ -28,7 +28,17 @@ func (db *DB) InsertCvarIfNotExists(cvar *Cvar) error {
 	res, err := db.ResilientExec(`INSERT INTO cvars (key_name, title, value_string, value_int, description, default_value, category, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW()) ON DUPLICATE KEY UPDATE description = ?, docs_url = ?, external_url = ?`,
 		cvar.KeyName, cvar.Title, cvar.ValueString, cvar.ValueInt, cvar.Description, cvar.DefaultValue, cvar.Category, cvar.Type, cvar.Description, cvar.DocsUrl, cvar.ExternalUrl)
 
-	count, _ := res.RowsAffected()
+	if err != nil {
+		db.Logger().Errorf("Failed to insert cvar %s: %v", cvar.KeyName, err)
+		return err
+	}
+
+	count, err := res.RowsAffected()
+
+	if err != nil {
+		db.Logger().Errorf("Failed to get affected rows for cvar %s: %v", cvar.KeyName, err)
+		return err
+	}
 
 	if count > 0 {
 		db.Logger().Infof("Cvar %s inserted successfully", cvar.KeyName)
