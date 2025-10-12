@@ -9,12 +9,14 @@ import (
 	connectcors "connectrpc.com/cors"
 	"golang.org/x/oauth2"
 
-	"net/http"
 	"database/sql"
+	"net/http"
 
 	"github.com/rs/cors"
 
 	"os"
+
+	"encoding/json"
 
 	"github.com/jamesread/golure/pkg/redact"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
@@ -28,7 +30,6 @@ import (
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
-	"encoding/json"
 
 	"github.com/google/uuid"
 )
@@ -84,6 +85,26 @@ func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[co
 	return res, nil
 }
 
+func (s *ControlApi) GetCannedPost(ctx context.Context, req *connect.Request[controlv1.GetCannedPostRequest]) (*connect.Response[controlv1.GetCannedPostResponse], error) {
+	log.Infof("Getting canned post with ID: %v", req.Msg.Id)
+
+	cannedPost, err := s.DB.GetCannedPost(req.Msg.Id)
+	if err != nil {
+		log.Errorf("Error getting canned post: %v", err)
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("canned post not found: %w", err))
+	}
+
+	res := connect.NewResponse(&controlv1.GetCannedPostResponse{
+		Post: &controlv1.CannedPost{
+			Id:        cannedPost.ID,
+			Content:   cannedPost.Content,
+			CreatedAt: cannedPost.CreatedAt.Format("2006-01-02 15:04:05"),
+		},
+	})
+
+	return res, nil
+}
+
 func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *authentication.AuthenticatedUser {
 	v := authn.GetInfo(ctx)
 
@@ -105,13 +126,15 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 	log.Infof("GetStatus called by user: %s.", username)
 
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
-		Status:         "OK!",
-		Nanoservices:   nanoservice.GetNanoservices(),
-		Version:        buildinfo.Version,
-		Username:       username,
-		IsLoggedIn:     authenticatedUser != nil,
-		StatusMessages: s.statusMessages,
+		Status:            "OK!",
+		Nanoservices:      nanoservice.GetNanoservices(),
+		Version:           buildinfo.Version,
+		Username:          username,
+		IsLoggedIn:        authenticatedUser != nil,
+		StatusMessages:    s.statusMessages,
 		UsesSecureCookies: os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
+		DatabaseHost:      s.DB.GetDatabaseHost(),
+		DatabaseName:      s.DB.GetDatabaseName(),
 	})
 
 	return res, nil
@@ -158,9 +181,8 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			Content:         req.Msg.Content,
 			Status:          postStatus.Success,
 			PostURL:         postStatus.PostUrl,
-			CampaignID:      sql.NullInt32{ Int32: int32(req.Msg.CampaignId) },
+			CampaignID:      sql.NullInt32{Int32: int32(req.Msg.CampaignId)},
 		})
-
 
 		res.Posts = append(res.Posts, postStatus)
 	}
@@ -296,9 +318,9 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 		}
 
 		srv := &controlv1.Connector{
-			Name:     svc.GetProtocol(),
-			Icon:     svc.GetIcon(),
-			HasOauth: isOAuth,
+			Name:         svc.GetProtocol(),
+			Icon:         svc.GetIcon(),
+			HasOauth:     isOAuth,
 			IsRegistered: isOAuthRegistered(svc),
 		}
 
@@ -414,7 +436,7 @@ func redirect(redirectUrl string, w http.ResponseWriter, message string, msgType
 	url := fmt.Sprintf("%v/?notification=%v&type=%v", redirectUrl, message, msgType)
 
 	w.Header().Set("Location", url)
-	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv = \"Refresh\" content = \"0; URL=" + url + "\" /></head>")));
+	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv = \"Refresh\" content = \"0; URL=" + url + "\" /></head>")))
 	w.Write([]byte(fmt.Sprintf("<body><style type = \"text/css\">body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; }</style>")))
 	w.Write([]byte(fmt.Sprintf("<h1>Redirecting...</h1><p>%s</p><a href = \"%v\">click here</a></body></html>", message, url)))
 
@@ -490,9 +512,24 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 		socialAccountIcon := "mdi:question-mark-circle"
 		socialAccountIdentity := "Unknown"
 
+		var sa *db.SocialAccount
 		if post.SocialAccount != nil {
-			socialAccountIcon = s.cc.Get(post.SocialAccount.Connector).GetIcon()
-			socialAccountIdentity = post.SocialAccount.Identity
+			sa = post.SocialAccount
+		} else {
+			// Fallback: fetch the social account when not preloaded
+			fetched, ferr := s.DB.GetSocialAccount(post.SocialAccountID)
+			if ferr == nil {
+				sa = fetched
+			} else {
+				log.Warnf("Failed to load social account %d for post %d: %v", post.SocialAccountID, post.ID, ferr)
+			}
+		}
+
+		if sa != nil {
+			socialAccountIdentity = sa.Identity
+			if svc := s.cc.Get(sa.Connector); svc != nil {
+				socialAccountIcon = svc.GetIcon()
+			}
 		}
 
 		timeline = append(timeline, &controlv1.PostStatus{
@@ -817,31 +854,31 @@ func (s *ControlApi) SetCvar(ctx context.Context, req *connect.Request[controlv1
 }
 
 type OAuthClientMetadata struct {
-	ClientID	 string `json:"client_id"`
-	ApplicationType string `json:"application_type"`
-	ClientName	 string `json:"client_name"`
-	ClientURI	 string `json:"client_uri"`
-	DpopBoundAccessTokens bool `json:"dpop_bound_access_tokens"`
-	GrantTypes	 []string `json:"grant_types"`
-	RedirectURIs	 []string `json:"redirect_uris"`
-	ResponseTypes	 []string `json:"response_types"`
-	Scope		 string `json:"scope"`
-	TokenEndpointAuthMethod string `json:"token_endpoint_auth_method"`
+	ClientID                string   `json:"client_id"`
+	ApplicationType         string   `json:"application_type"`
+	ClientName              string   `json:"client_name"`
+	ClientURI               string   `json:"client_uri"`
+	DpopBoundAccessTokens   bool     `json:"dpop_bound_access_tokens"`
+	GrantTypes              []string `json:"grant_types"`
+	RedirectURIs            []string `json:"redirect_uris"`
+	ResponseTypes           []string `json:"response_types"`
+	Scope                   string   `json:"scope"`
+	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
 }
 
 func (s *ControlApi) OAuthClientMetadataHandler(w http.ResponseWriter, r *http.Request) {
 	log.Infof("Serving OAuth client metadata")
 
 	metadata := &OAuthClientMetadata{
-		ClientID:              s.DB.GetCvarString(db.CvarKeys.BaseUrl) + "/oauth/client-metadata.json",
-		ApplicationType:       "web",
-		ClientName:            "Japella",
-		ClientURI:             s.DB.GetCvarString(db.CvarKeys.BaseUrl),
-		DpopBoundAccessTokens: true,
-		GrantTypes:            []string{"authorization_code", "refresh_token"},
-		RedirectURIs:          []string{s.DB.GetCvarString(db.CvarKeys.BaseUrl) + "/oauth2callback"},
-		ResponseTypes:         []string{"code"},
-		Scope:                 "atproto transition:generic",
+		ClientID:                s.DB.GetCvarString(db.CvarKeys.BaseUrl) + "/oauth/client-metadata.json",
+		ApplicationType:         "web",
+		ClientName:              "Japella",
+		ClientURI:               s.DB.GetCvarString(db.CvarKeys.BaseUrl),
+		DpopBoundAccessTokens:   true,
+		GrantTypes:              []string{"authorization_code", "refresh_token"},
+		RedirectURIs:            []string{s.DB.GetCvarString(db.CvarKeys.BaseUrl) + "/oauth2callback"},
+		ResponseTypes:           []string{"code"},
+		Scope:                   "atproto transition:generic",
 		TokenEndpointAuthMethod: "none",
 	}
 
@@ -939,7 +976,7 @@ func (s *ControlApi) GetCampaigns(ctx context.Context, req *connect.Request[cont
 			pbcampaign.LastPostDate = campaign.LastPostDate.Format("2006-01-02 15:04:05")
 		}
 
-		res.Msg.Campaigns = append(res.Msg.Campaigns, pbcampaign);
+		res.Msg.Campaigns = append(res.Msg.Campaigns, pbcampaign)
 	}
 
 	return res, nil

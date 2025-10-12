@@ -1,83 +1,133 @@
 <template>
-	<section class = "calendar">
-		<h2>Calendar</h2>
+	<Section
+		title="Calendar"
+		subtitle="This page shows a calendar for the current month."
+		classes="calendar"
+		:padding="false"
+	>
+		<template #toolbar>
+			<button @click="refreshEvents" :disabled="!clientReady" class="neutral">
+				<Icon icon="material-symbols:refresh" />
+			</button>
+		</template>
 
-		<p>This page shows a calendar for the current month.</p>
-
-		<div class = "day-container">
-			<div class = "day" v-for = "d in getCalendarDates()" :key = "d">
-				<button @click = "showNotification(d)" class = "neutral">
-					<small>{{ formatDate(d) }}</small>
-				</button>
-			</div>
+		<div v-if="errorMessage">
+			<p class="inline-notification error">{{ errorMessage }}</p>
 		</div>
-	</section>
+		<div v-else>
+			<Calendar
+				:events="events"
+				:loading="loading"
+				:error="errorMessage"
+				@date-click="handleDateClick"
+				@event-click="handleEventClick"
+				@month-change="handleMonthChange"
+			/>
+		</div>
+	</Section>
 </template>
 
 <script setup>
+    import { ref, onMounted } from 'vue';
+	import { waitForClient } from '../javascript/util';
+	import { Icon } from '@iconify/vue';
+	import Section from 'picocrank/vue/components/Section.vue';
+	import Calendar from 'picocrank/vue/components/Calendar.vue';
 	import Notification from '../javascript/notification.js';
 
-	function showNotification(date) {
-		let formattedDate = formatDate(date);
-		let notification = new Notification('good', ',Calendar Date', `You clicked on ${formattedDate}`);
+	const clientReady = ref(false);
+	const loading = ref(false);
+	const errorMessage = ref('');
+	const events = ref([]);
+    const currentMonth = ref(new Date().getMonth());
+    const currentYear = ref(new Date().getFullYear());
 
+	function handleDateClick(date) {
+		const formattedDate = date.toLocaleDateString();
+		const notification = new Notification('good', 'Calendar Date', `You clicked on ${formattedDate}`);
 		notification.show();
-		console.log('Notification shown for date:', formattedDate);
+		console.log('Date clicked:', formattedDate);
 	}
 
-	function ordinalSuffix(n) {
-		let suffix = ['th', 'st', 'nd', 'rd']
-		let value = n % 100
-		return n + (suffix[(value - 20) % 10] || suffix[value] || suffix[0])
+	function handleEventClick(event) {
+		const notification = new Notification('good', 'Calendar Event', `You clicked on event: ${event.title}`);
+		notification.show();
+		console.log('Event clicked:', event);
 	}
 
-	function formatDate(d) {
-		const day = d.getDate()
-		const dayName = d.toLocaleString('default', { weekday: 'short' })
+    function handleMonthChange(month, year) {
+        console.log('Month changed to:', month, year);
+        currentMonth.value = month;
+        currentYear.value = year;
+        refreshEvents();
+    }
 
-		return `${dayName} ${ordinalSuffix(day)}`
-	}
+    async function refreshEvents() {
+        if (!window.client) {
+            errorMessage.value = "Client is not ready.";
+            return;
+        }
 
-	function getCalendarDates() {
-		let start = new Date();
-		start.setDate(1); // 1st of Month
-		start.setDate(start.getDate() - (start.getDay() - 1)) // Monday
+        loading.value = true;
+        errorMessage.value = '';
 
-		let days = []
-		let dayCount = 0;
+        try {
+            // Fetch timeline posts and map them to calendar events using the created timestamp
+            const ret = await window.client.getTimeline();
+            const posts = (ret && ret.posts) ? ret.posts : [];
 
-		for (let week = 0; week < 5; week++) {
-			for (let i = 0; i != 7; i++) {
-				let day = new Date(start.getTime())
-				day.setDate(day.getDate() + dayCount);
+            const mapped = posts
+                .map((p) => {
+                    // Parse created date safely
+                    let d = new Date(p.created);
+                    if (Number.isNaN(d.getTime()) && typeof p.created === 'string') {
+                        // Try common non-ISO format fallback (e.g. "YYYY-MM-DD HH:mm:ss")
+                        d = new Date(p.created.replace(' ', 'T'));
+                    }
+                    if (Number.isNaN(d.getTime()) && typeof p.created === 'number') {
+                        d = new Date(p.created);
+                    }
+                    if (Number.isNaN(d.getTime())) {
+                        return null; // skip if still invalid
+                    }
 
-				days.push(day)
-				dayCount++
-			}
-		}
+                    const titleFromIdentity = p.socialAccountIdentity && p.socialAccountIdentity.trim().length > 0
+                        ? p.socialAccountIdentity
+                        : 'Post';
+                    const contentPreview = (p.content || '').trim();
+                    const preview = contentPreview.length > 80
+                        ? contentPreview.slice(0, 77) + '...'
+                        : contentPreview;
 
+                    return {
+                        id: p.id,
+                        title: preview || titleFromIdentity,
+                        date: d,
+                        startDate: d,
+                        endDate: d,
+                    };
+                })
+                .filter((e) => e !== null);
 
+            events.value = mapped;
+        } catch (error) {
+            errorMessage.value = `Failed to fetch events: ${error.message}`;
+            console.error('Error fetching events:', error);
+        } finally {
+            loading.value = false;
+        }
+    }
 
-		return days
-	}
+    onMounted(async () => {
+        await waitForClient();
+        clientReady.value = true;
+        const now = new Date();
+        currentMonth.value = now.getMonth();
+        currentYear.value = now.getFullYear();
+        refreshEvents();
+    });
 </script>
 
-<style lang = "css" scoped>
-	.day-container {
-		display: grid;
-		grid-template-rows: repeat(5, auto);
-		grid-template-columns: repeat(7, auto);
-		gap: 0;
-		/** grid border collapse */
-		border-collapse: collapse;
-		box-sizing: border-box;
-
-
-	}
-
-	.day {
-		outline: 1px solid #666;
-		padding: 8px;
-		min-height: 120px;
-	}
+<style scoped>
+	/* Custom calendar styling can be added here if needed */
 </style>

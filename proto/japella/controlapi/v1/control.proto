@@ -37,6 +37,8 @@ message GetStatusResponse {
 	bool is_logged_in = 6;
 	repeated StatusMessage status_messages = 7;
     bool uses_secure_cookies = 8;
+    string database_host = 9;
+    string database_name = 10;
 }
 
 message StatusMessage {
@@ -80,6 +82,14 @@ message UpdateCannedPostRequest {
 
 message UpdateCannedPostResponse {
   StandardResponse standard_response = 1;
+}
+
+message GetCannedPostRequest {
+  uint32 id = 1;
+}
+
+message GetCannedPostResponse {
+  CannedPost post = 1;
 }
 
 message GetSocialAccountsRequest {
@@ -322,6 +332,8 @@ service JapellaControlApiService {
 	rpc SubmitPost(SubmitPostRequest) returns (SubmitPostResponse) {}
 
 	rpc GetCannedPosts(GetCannedPostsRequest) returns (GetCannedPostsResponse) {}
+
+	rpc GetCannedPost(GetCannedPostRequest) returns (GetCannedPostResponse) {}
 
 	rpc CreateCannedPost(CreateCannedPostRequest) returns (CreateCannedPostResponse) {}
 

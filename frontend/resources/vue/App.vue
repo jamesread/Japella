@@ -1,69 +1,56 @@
 <template>
-    <header>
-		<div @click = "clickSidebarToggle" id = "sidebar-button" ref = "toggleButton">
-			<div class = "logo-and-title">
-				<img src = "../../logo.png" class = "logo" />
-				<h1>Japella</h1>
+	<Header
+		:username="isLoggedIn ? username : ''"
+		@toggleSidebar="toggleSidebar"
+		title="Japella"
+		logoUrl="../../logo.png"
+	>
+		<template #user-info>
+			<div class="user-info icon-and-text logo-with-title" v-if="isLoggedIn">
+				<span id="user-name">{{ username }}</span>
+				<Icon icon="mdi:user" width="24" height="24" />
 			</div>
-			<span class = "menu-icon" ref = "menuIcon" hidden>
-				<Icon icon = "material-symbols:menu-rounded" width = "24" height = "24" />
-			</span>
-        </div>
+		</template>
+	</Header>
 
-		<div class = "fg1"></div>
+	<div id="layout">
+		<Sidebar ref="sidebar" />
 
-        <div class = "user-info icon-and-text logo-with-title" v-if = "isLoggedIn">
-            <span id = "user-name">{{ username }}</span>
-            <Icon icon = "mdi:user" width = "24" height = "24" />
-        </div>
-    </header>
-
-    <div id = "layout">
-        <aside class = "" v-show = "isLoggedIn" ref = "sectionNavigation">
-			<div ref = "stickIcon" class = "stick-icon icon-and-text" @click = "clickSidebarStick">
-				<Icon :icon = "pinIcon" width = "24" height = "24" />
+		<div id="loading" v-if="!clientReady" class="icon-and-text" style="margin: auto; margin-top: 5em;">
+			<Icon icon="eos-icons:loading" width="48" height="48" />
+			<div>
+				Loading...
+				<div v-if="loadingWarning"><br />
+					<div class="error">{{ loadingWarning }}</div>
+				</div>
 			</div>
-            <SectionNavigation />
-        </aside>
+		</div>
+		<div id="content" v-else>
+			<main>
+				<div v-if="statusMessages.length > 0" class="messages">
+					<div v-for="message in statusMessages" :key="message.id" :class="message.type + ' notification'">
+						<strong>Server Message: </strong> {{ message.message }}
+						<a v-if="message.url" :href="message.url" target="_blank">More info</a>
+					</div>
+				</div>
 
-        <div id = "loading" v-if = "!clientReady" class = "icon-and-text" style = "margin: auto; margin-top: 5em;">
-            <Icon icon = "eos-icons:loading" width = "48" height = "48" />
-            <div>
-                Loading...
-                <div v-if = "loadingWarning"><br />
-                    <div class = "error">{{ loadingWarning }}</div>
-                </div>
-            </div>
-        </div>
-        <div id = "content" v-else>
-            <main>
-                <div v-if = "statusMessages.length > 0" class = "messages">
-                    <div v-for = "message in statusMessages" :key = "message.id" :class = "message.type + ' notification'">
-                        <strong>Server Message: </strong> {{ message.message }}
-
-						<a v-if = "message.url" :href = "message.url" target = "_blank">More info</a>
-                    </div>
-                </div>
-
-                <div v-if = "!isLoggedIn">
-                    <LoginForm @login-success = "onLogin" />
-                </div>
-                <div v-else>
-                    <KeepAlive>
-                        <component :is = "currentSection" />
-                    </KeepAlive>
-                </div>
-				<ErrorDialog ref = "errorDialogRef" />
-            </main>
-            <footer>
+				<div v-if="!isLoggedIn">
+					<LoginForm @login-success="onLogin" />
+				</div>
+				<div v-else>
+					<router-view />
+				</div>
+				<ErrorDialog ref="errorDialogRef" />
+			</main>
+			<footer>
 				<small>
-                <span><a href = "https://github.com/jamesread/Japella">Japella on GitHub</a></span>
-                <span><a href = "https://jamesread.github.io/Japella/">Documentation</a></span>
-                <span id = "currentVersion" v-if = "isLoggedIn">{{ currentVersion }}</span>
+					<span><a href="https://github.com/jamesread/Japella">Japella on GitHub</a></span>
+					<span><a href="https://jamesread.github.io/Japella/">Documentation</a></span>
+					<span id="currentVersion" v-if="isLoggedIn">{{ currentVersion }}</span>
 				</small>
-            </footer>
-        </div>
-    </div>
+			</footer>
+		</div>
+	</div>
 </template>
 
 <style scoped>
@@ -71,90 +58,86 @@
         display: inline-block;
         margin-right: 10px;
     }
-
-
-	#sidebar-button {
-		border-right: 0;
-	}
-
-	#sidebar-button:hover {
-		background-color: #1d345c;
-	}
-
-	.stick-icon {
-		padding: 0.1em;
-		padding-top: 0.5em;
-		display: flex;
-		justify-content: end;
-	}
 </style>
 
 <script setup>
     import { waitForClient } from '../javascript/util.js'
     import { ref, computed, onMounted, provide } from 'vue';
     import { Icon } from '@iconify/vue';
+    import { useI18n } from 'vue-i18n';
+	import LoginForm from './LoginForm.vue';
+	import ErrorDialog from './ErrorDialog.vue';
+    import Header from 'picocrank/vue/components/Header.vue';
+    import Sidebar from 'picocrank/vue/components/Sidebar.vue';
+
+    const { t } = useI18n();
 
     const clientReady = ref(false);
     const isLoggedIn = ref(false);
     const currentVersion = ref('');
     const username = ref('');
     const statusMessages = ref([]);
-	const menuIcon = ref(null);
 
-    import Welcome from './Welcome.vue';
-    import Timeline from './Timeline.vue';
-    import Campaigns from './Campaigns.vue';
-    import AppStatus from './AppStatus.vue';
-    import PostBox from './PostBox.vue';
-    import Calendar from './Calendar.vue';
-    import Settings from './Settings.vue';
-    import CannedPosts from './CannedPosts.vue';
-    import UserList from './UserList.vue';
-    import SocialAccounts from './SocialAccounts.vue';
-    import OAuthServices from './OAuthServices.vue';
-    import ApiKeys from './ApiKeys.vue';
-    import Media from './Media.vue';
-
-    const sections = {
-        welcome: Welcome,
-        timeline: Timeline,
-		campaigns: Campaigns,
-        appStatus: AppStatus,
-        postBox: PostBox,
-        calendar: Calendar,
-        settings: Settings,
-        cannedPosts: CannedPosts,
-        settingsUsers: UserList,
-        settingsApiKeys: ApiKeys,
-        socialAccounts: SocialAccounts,
-        oauthServices: OAuthServices,
-        media: Media
-    }
-
-    const currentSectionName = ref('welcome');
-    const currentSection = computed(() => sections[currentSectionName.value]);
+    // Router will handle component loading
     const loadingWarning = ref('');
-	const stickIcon = ref(null);
-	const sectionNavigation = ref(null);
-	const toggleButton = ref(null);
-	const pinIcon = ref('mdi:pin-outline');
-	const errorDialogRef = ref();
+    const sidebar = ref(null);
+    const errorDialogRef = ref();
 
 	provide('showSectionError', (msg) => {
 		errorDialogRef.value?.showError(msg)
 	});
 
-	provide('changeSection', (sectionName) => {
-		if (sections[sectionName]) {
-			currentSectionName.value = sectionName;
-
-			if (!sectionNavigation.value.classList.contains('stuck')) {
-				hideSidebar();
-			}
-		} else {
-			console.warn(`Section "${sectionName}" does not exist.`);
+	function toggleSidebar() {
+		if (sidebar.value) {
+			sidebar.value.toggle();
 		}
-	})
+	}
+
+	function setupNavigation() {
+		if (!sidebar.value) return;
+
+		// Clear existing navigation
+		sidebar.value.clearNavigationLinks();
+
+		// Add router links
+		sidebar.value.addRouterLink('postBox');
+
+		sidebar.value.addRouterLink('media');
+
+		sidebar.value.addSeparator('schedule-separator');
+
+		sidebar.value.addRouterLink('campaigns');
+
+		sidebar.value.addRouterLink('cannedPosts');
+
+		sidebar.value.addRouterLink('timeline');
+
+		sidebar.value.addRouterLink('calendar');
+
+		sidebar.value.addSeparator('connections-separator');
+
+		sidebar.value.addRouterLink('socialAccounts');
+
+		sidebar.value.addRouterLink('oauthServices');
+
+		sidebar.value.addSeparator('system-separator');
+
+		sidebar.value.addRouterLink('settings');
+
+		sidebar.value.addRouterLink('settingsApiKeys');
+
+		sidebar.value.addRouterLink('settingsUsers');
+
+		sidebar.value.addRouterLink('controlPanel');
+
+		sidebar.value.addRouterLink('appStatus');
+
+		// Open and stick the sidebar for logged-in users
+		if (isLoggedIn.value) {
+			sidebar.value.open();
+			sidebar.value.stick();
+		}
+	}
 
 	function checkSecureContext(st) {
 		if (st.usesSecureCookies && !window.isSecureContext) {
@@ -178,6 +161,7 @@
                 onLogin(st)
             } else {
                 isLoggedIn.value = false;
+                window.isLoggedIn = false; // Set global auth state for router
             }
 
             currentVersion.value = 'Version: ' + st.version;
@@ -196,8 +180,10 @@
     function onLogin(ret) {
         isLoggedIn.value = true;
         username.value = ret.username
+        window.isLoggedIn = true; // Set global auth state for router
 
-		menuIcon.value.hidden = false;
+        // Setup navigation for logged-in user
+        setupNavigation();
     }
 
     onMounted(async () => {
@@ -207,35 +193,6 @@
 
         await waitForClient();
         clientReady.value = true;
-        getStatus()
+        getStatus();
     });
-
-	function clickSidebarToggle() {
-	  if (sectionNavigation.value.classList.contains('shown')) {
-	    hideSidebar();
-	  } else {
-		sectionNavigation.value.classList.add('shown');
-		stickIcon.value.classList.remove('vh')
-	  }
-	}
-
-	function hideSidebar() {
-      unstickSidebar();
-	  sectionNavigation.value.classList.remove('shown');
-	  stickIcon.value.classList.add('vh');
-	}
-
-	function unstickSidebar() {
-	  sectionNavigation.value.classList.remove('stuck');
-	  pinIcon.value = 'mdi:pin-outline';
-	}
-
-	function clickSidebarStick() {
-	  if (sectionNavigation.value.classList.contains('stuck')) {
-	    unstickSidebar();
-	  } else {
-	    pinIcon.value = 'mdi:pin';
-		sectionNavigation.value.classList.add('stuck');
-	  }
-	}
 </script>

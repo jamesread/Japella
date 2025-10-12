@@ -49,6 +49,14 @@ func (db *DB) SetDatabaseConfig(dbconfig runtimeconfig.DatabaseConfig) {
 	db.dbconfig = dbconfig
 }
 
+func (db *DB) GetDatabaseHost() string {
+	return db.dbconfig.Host
+}
+
+func (db *DB) GetDatabaseName() string {
+	return db.dbconfig.Name
+}
+
 func (db *DB) ReconnectLoop() {
 	for {
 		db.ReconnectDatabaseAndSetErrorMessage()
@@ -287,6 +295,20 @@ func (db *DB) SelectCannedPosts() []*CannedPost {
 		db.Logger().Errorf("Failed to select canned posts: %v", err)
 	}
 	return ret
+}
+
+func (db *DB) GetCannedPost(id uint32) (*CannedPost, error) {
+	var cannedPost CannedPost
+	err := db.ResilientGet(&cannedPost, "SELECT * FROM canned_posts WHERE id = ? LIMIT 1", id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			db.Logger().Warnf("No canned post found for ID: %d", id)
+		} else {
+			db.Logger().Errorf("Error querying canned post by ID: %v", err)
+		}
+		return nil, err
+	}
+	return &cannedPost, nil
 }
 
 func (db *DB) CreateCannedPost(content string) error {

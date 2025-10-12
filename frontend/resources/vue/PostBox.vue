@@ -25,12 +25,24 @@
                             </label
                             >
                         </span>
+
+                        <!-- Canned Post Option within social accounts -->
+                        <span class="check-list">
+                            <label>
+                                <input type="checkbox" id="canned-post" name="canned-post" value="canned-post" v-model="saveAsCannedPost" />
+                                <span>
+                                    <Icon icon="jam:box" />
+                                    Canned post
+                                </span>
+                            </label>
+                        </span>
                     </div>
                 </div>
                 <div v-else>
                     <p>Loading social accounts...</p>
                 </div>
             </div>
+
 			<label>Campaign ID</label>
 			<select v-if = "clientReady" v-model = "selectedCampaignId">
 				<option value = "0">None</option>
@@ -56,7 +68,9 @@
     const { t } = useI18n()
 
     import { ref, onMounted, onActivated } from 'vue';
+    import { useRoute } from 'vue-router';
     import { Icon } from '@iconify/vue';
+    import InlineNotification from './InlineNotification.vue';
 
     const clientReady = ref(false);
     const items = ref([]);
@@ -65,6 +79,9 @@
 	const postTextarea = ref('');
 	const campaigns = ref([]);
 	const selectedCampaignId = ref(0);
+	const saveAsCannedPost = ref(true);
+
+	const route = useRoute();
 
 	const recountLength = (e) => {
 	    const length = e.target.value.length;
@@ -113,10 +130,20 @@
       clientReady.value = true;
 
 		refreshAccounts()
+
+		// Check for canned post ID in query parameters
+		if (route.query.cannedPostId) {
+			await startPost(route.query.cannedPostId);
+		}
     });
 
 	onActivated(async () => {
 		refreshAccounts()
+
+		// Check for canned post ID in query parameters
+		if (route.query.cannedPostId) {
+			await startPost(route.query.cannedPostId);
+		}
 	})
 
 	async function refreshAccounts() {
@@ -134,8 +161,39 @@
 
     import Notification from './../javascript/notification.js'
 
-	function startPost(p) {
-	    postTextarea.value.value = p.content || 'Unknown post content';
+	async function startPost(cannedPostId) {
+		if (!cannedPostId) {
+			console.log('No canned post ID provided');
+			return;
+		}
+
+		try {
+			// Convert string ID to number for the API call
+			const id = parseInt(cannedPostId, 10);
+			if (isNaN(id)) {
+				console.error('Invalid canned post ID:', cannedPostId);
+				return;
+			}
+
+			// Fetch the canned post by ID
+			const response = await window.client.getCannedPost({ id: id });
+			if (response.post && response.post.content) {
+				postTextarea.value.value = response.post.content;
+				// Update the character count
+				postLength.value = response.post.content.length;
+				if (postLengthCounter.value) {
+					if (response.post.content.length > 280) {
+						postLengthCounter.value.classList.add('bad');
+					} else {
+						postLengthCounter.value.classList.remove('bad');
+					}
+				}
+			} else {
+				console.error('Canned post not found or has no content');
+			}
+		} catch (error) {
+			console.error('Error fetching canned post:', error);
+		}
 	}
 
     function getSelectedPostingServices() {
@@ -164,10 +222,43 @@
         submit.innerText = "Submitting...";
         submit.disabled = true;
 
+        const selectedServices = getSelectedPostingServices();
+
+        // If no social accounts are selected OR canned post option is checked, create a canned post
+        if (selectedServices.length === 0 || saveAsCannedPost.value) {
+            window.client.createCannedPost({
+                content: post,
+                campaignId: selectedCampaignId.value,
+            })
+            .then((res) => {
+                submit.innerText = "Post";
+                submit.disabled = false;
+
+                // Clear the textarea
+                document.getElementById('post').value = '';
+                postLength.value = 0;
+                if (postLengthCounter.value) {
+                    postLengthCounter.value.classList.remove('bad');
+                }
+
+                // Show notification with link to canned posts
+                let n = new Notification("good", "Canned Post Created",
+                    `Your post has been saved as a canned post. Click here to view it.`,
+                    "/canned-posts");
+                n.show();
+            })
+            .catch((error) => {
+                alert("Error creating canned post: " + error);
+                submit.innerText = "Post";
+                submit.disabled = false;
+            });
+            return;
+        }
+
          // Use `create(SubmitPostRequestSchema)` to create a new message.
         let req = {
             content: post,
-            socialAccounts: getSelectedPostingServices(),
+            socialAccounts: selectedServices,
 			campaignId: selectedCampaignId.value,
         }
 
@@ -177,6 +268,13 @@
             .then((res) => {
                 submit.innerText = "Post";
                 submit.disabled = false;
+
+                // Clear the textarea
+                document.getElementById('post').value = '';
+                postLength.value = 0;
+                if (postLengthCounter.value) {
+                    postLengthCounter.value.classList.remove('bad');
+                }
 
                 for (let x of res.posts) {
                     let status = ""

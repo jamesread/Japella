@@ -4,8 +4,9 @@ import { createConnectTransport } from "@connectrpc/connect-web"
 import { JapellaControlApiService } from './gen/japella/controlapi/v1/control_pb'
 
 import { createApp } from 'vue';
-import { createI18n, useI18n } from 'vue-i18n';
+import { createI18n } from 'vue-i18n';
 import App from '../vue/App.vue';
+import router from './router.js';
 
 import Notification from './notification.js';
 
@@ -34,7 +35,9 @@ export function main(): void {
 		.catch(error => {
 			const errorMessage = document.createElement('p');
 			errorMessage.classList.add('bad');
-			errorMessage.innerHTML = 'Error loading the initial language file, something is badly wrong with the connection to the Japella server. Please check your browser console for more details. <br /><br />' + error.message;
+			errorMessage.classList.add('notification');
+			errorMessage.style.margin = '2em';
+			errorMessage.innerHTML = 'Error loading the initial language file. This could be if the frontend is running, but cannot connect to the Japella server. Please check your browser console for more details. <br /><br />' + error.message;
 
 			document.body.prepend(errorMessage);
 
@@ -46,6 +49,11 @@ function createTheApp(i18n: any): void {
 	const app = createApp(App)
 
 	app.use(i18n)
+	app.use(router)
+
+	// Make router available globally for backward compatibility
+	window.router = router
+
 	app.mount('#app')
 
 	createApiClient()
@@ -63,16 +71,7 @@ function createApiClient(): void {
 	window.client = createClient(JapellaControlApiService, window.transport)
 }
 
-async function onLogin(): void {
-	const status = await window.client.getStatus();
-
-	window.dispatchEvent(new CustomEvent('status-updated', {
-		"detail": status
-	}));
-
-	document.getElementById('currentVersion').innerText = 'Version: ' + status.version;
-
-}
+// onLogin function removed - handled by App.vue
 
 function getSearchParams(): URLSearchParams {
 	const params = new URLSearchParams(window.location.search);

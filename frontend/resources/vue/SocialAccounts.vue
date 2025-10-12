@@ -1,69 +1,65 @@
 <template>
-	<section class = "social-accounts">
-		<div class = "section-header">
-			<div class = "fg1">
-				<h2>Social Accounts</h2>
+	<Section
+		title="Social Accounts"
+		subtitle="This page shows a list of social accounts that you have configured."
+		classes="social-accounts"
+		:padding="false"
+	>
+		<template #toolbar>
+			<button @click="refreshAccounts()" :disabled="!clientReady" class="neutral">
+				<Icon icon="material-symbols:refresh" />
+			</button>
+		</template>
 
-				<p>This page shows a list of social accounts that you have configured.</p>
-			</div>
-			<div role = "toolbar">
-				<button @click = "refreshAccounts()" :disabled = "!clientReady" class = "neutral">
-					<Icon icon="material-symbols:refresh" />
-				</button>
-			</div>
-		</div>
-
-		<div v-if = "errorMessage">
-			<p class = "inline-notification error">{{ errorMessage }}</p>
+		<div v-if="errorMessage">
+			<p class="inline-notification error">{{ errorMessage }}</p>
 		</div>
 		<div v-else>
-			<div v-if = "accounts.length === 0" class = "empty">
-				<p class = "inline-notification note">No social accounts connected yet.</p>
+			<div v-if="accounts.length === 0">
+				<p class="inline-notification note">No social accounts connected yet.</p>
 			</div>
-			<div v-else class = "empty">
-				<table>
-					<thead>
-						<tr>
-							<th>Identity</th>
-							<th class="small" style = "text-align: right">Actions</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr v-for="account in accounts" :key="account.id">
-							<td>
-								<span class = "social-account">
-									<Icon :icon="account.icon" />
-									{{ account.identity }}
-								</span>
-							</td>
-							<td align = "right">
-								<button @click="refreshAccount(account.id)" class="good">
-									<Icon icon="material-symbols:refresh" />
-								</button>
+			<table v-else>
+				<thead>
+					<tr>
+						<th>Identity</th>
+						<th class="actions" style="text-align: right">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="account in accounts" :key="account.id">
+						<td>
+							<span class="social-account">
+								<Icon :icon="account.icon" />
+								{{ account.identity }}
+							</span>
+						</td>
+						<td align="right">
+							<button @click="refreshAccount(account.id)" class="good">
+								<Icon icon="material-symbols:refresh" />
+							</button>
 
-								&nbsp;
+							&nbsp;
 
-								<button @click="setAccountActive(account.id, true)" class="good" v-if="!account.active">
-									Enable
-									<Icon icon="material-symbols:toggle-on" />
-								</button>
-								<button @click="setAccountActive(account.id, false)" class="warning" v-else>
-									Disable
-									<Icon icon="material-symbols:toggle-off" />
-								</button>
+							<button @click="setAccountActive(account.id, true)" class="good" v-if="!account.active">
+								Enable
+								<Icon icon="material-symbols:toggle-on" />
+							</button>
+							<button @click="setAccountActive(account.id, false)" class="warning" v-else>
+								Disable
+								<Icon icon="material-symbols:toggle-off" />
+							</button>
 
-								&nbsp;
+							&nbsp;
 
-								<button @click="deleteAccount(account.id)" class = "bad">
-									<Icon icon="material-symbols:delete" />
-								</button>
-							</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
+							<button @click="deleteAccount(account.id)" class="bad">
+								<Icon icon="material-symbols:delete" />
+							</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
 		</div>
-	</section>
+	</Section>
 
 	<OAuthServices />
 </template>
@@ -72,6 +68,7 @@
 	import { Icon } from '@iconify/vue';
 	import { ref, onMounted, inject, onActivated } from 'vue';
 	import { waitForClient } from '../javascript/util';
+	import Section from 'picocrank/vue/components/Section.vue';
 
 	const clientReady = ref(false)
 	const errorMessage = ref("")

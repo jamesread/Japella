@@ -1,25 +1,21 @@
 <template>
-	<section>
-		<div class = "section-header">
-			<div class = "fg1">
-				<h2>Campaigns</h2>
-
-				<p>Manage your campaigns here. You can create, edit, and delete campaigns.</p>
-
-			</div>
-			<div role = "toolbar">
-				<button @click = "refreshCampaigns()" :disabled = "!clientReady" class = "neutral">
-					<Icon icon="material-symbols:refresh" />
-				</button>
-
-				<button class = "good" @click="createCampaign">
-					<Icon icon="material-symbols:add-rounded" />
-				</button>
-			</div>
-		</div>
+	<Section
+		title="Campaigns"
+		subtitle="Manage your campaigns here. You can create, edit, and delete campaigns."
+		classes="campaigns"
+		:padding="false"
+	>
+		<template #toolbar>
+			<button @click="refreshCampaigns()" :disabled="!clientReady" class="neutral">
+				<Icon icon="material-symbols:refresh" />
+			</button>
+			<button class="good" @click="createCampaign">
+				<Icon icon="material-symbols:add-rounded" />
+			</button>
+		</template>
 
 		<div v-if="!campaignList || campaignList.length === 0">
-			<p>No campaigns available. Please create a new campaign.</p>
+			<p class="inline-notification note">No campaigns available. Please create a new campaign.</p>
 		</div>
 		<table v-else>
 			<thead>
@@ -27,46 +23,42 @@
 					<th>Name</th>
 					<th>Posts</th>
 					<th>Last Post</th>
-					<th></th>
+					<th class="actions" style="text-align: right">Actions</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr v-for="campaign in campaignList" :key="campaign.id">
 					<td>
 						<input
-							class = "editable"
-							type = "text"
-							v-model = "campaign.name"
-							:readonly = "!campaign.editing"
-							@click = "startEditing(campaign)"
-							@keyup.enter = "saveCampaign(campaign)"
-							@keyup.esc = "cancelEditing(campaign)"
-							@blur = "cancelEditing(campaign)"
-							/>
+							class="editable"
+							type="text"
+							v-model="campaign.name"
+							:readonly="!campaign.editing"
+							@click="startEditing(campaign)"
+							@keyup.enter="saveCampaign(campaign)"
+							@keyup.esc="cancelEditing(campaign)"
+							@blur="cancelEditing(campaign)"
+						/>
 					</td>
 					<td>{{ campaign.postCount }}</td>
 					<td>{{ campaign.lastPostDate }}</td>
-					<td align = "right">
-						<button @click = "goToCannedPosts()" class = "neutral">
+					<td align="right">
+						<button @click="goToCannedPosts()" class="neutral">
 							<Icon icon="jam:box" />
 						</button>
-
 						&nbsp;
-
-						<button @click = "usePost(p)" class = "good">
+						<button @click="usePost(p)" class="good">
 							<Icon icon="jam:write-f" />
 						</button>
-
 						&nbsp;
-
-						<button @click="deleteCampaign(campaign.id)" class = "bad">
+						<button @click="deleteCampaign(campaign.id)" class="bad">
 							<Icon icon="material-symbols:delete" />
 						</button>
 					</td>
 				</tr>
 			</tbody>
 		</table>
-	</section>
+	</Section>
 </template>
 
 <style scoped>
@@ -89,18 +81,19 @@
 	import { waitForClient } from '../javascript/util.js'
 	import { Icon } from '@iconify/vue';
 	import { ref, onMounted } from 'vue';
-	import { inject } from 'vue';
+	import Section from 'picocrank/vue/components/Section.vue';
 
 	const campaignList = ref([]);
 	const clientReady = ref(false)
-	const changeSection = inject('changeSection');
 
 	function goToCannedPosts() {
-		changeSection('cannedPosts');
+		// Navigate to canned posts using router
+		window.router.push('/canned-posts');
 	}
 
 	function usePost(p) {
-		changeSection('postBox');
+		// Navigate to post box using router
+		window.router.push('/post');
 	}
 
 	function startEditing(campaign) {

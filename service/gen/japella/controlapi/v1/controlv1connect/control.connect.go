@@ -42,6 +42,9 @@ const (
 	// JapellaControlApiServiceGetCannedPostsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetCannedPosts RPC.
 	JapellaControlApiServiceGetCannedPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCannedPosts"
+	// JapellaControlApiServiceGetCannedPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetCannedPost RPC.
+	JapellaControlApiServiceGetCannedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCannedPost"
 	// JapellaControlApiServiceCreateCannedPostProcedure is the fully-qualified name of the
 	// JapellaControlApiService's CreateCannedPost RPC.
 	JapellaControlApiServiceCreateCannedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateCannedPost"
@@ -119,6 +122,7 @@ type JapellaControlApiServiceClient interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error)
 	GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error)
+	GetCannedPost(context.Context, *connect.Request[v1.GetCannedPostRequest]) (*connect.Response[v1.GetCannedPostResponse], error)
 	CreateCannedPost(context.Context, *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error)
 	DeleteCannedPost(context.Context, *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error)
 	GetSocialAccounts(context.Context, *connect.Request[v1.GetSocialAccountsRequest]) (*connect.Response[v1.GetSocialAccountsResponse], error)
@@ -172,6 +176,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceGetCannedPostsProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCannedPosts")),
+			connect.WithClientOptions(opts...),
+		),
+		getCannedPost: connect.NewClient[v1.GetCannedPostRequest, v1.GetCannedPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetCannedPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCannedPost")),
 			connect.WithClientOptions(opts...),
 		),
 		createCannedPost: connect.NewClient[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse](
@@ -320,6 +330,7 @@ type japellaControlApiServiceClient struct {
 	getStatus                    *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
 	submitPost                   *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
 	getCannedPosts               *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
+	getCannedPost                *connect.Client[v1.GetCannedPostRequest, v1.GetCannedPostResponse]
 	createCannedPost             *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
 	deleteCannedPost             *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
 	getSocialAccounts            *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
@@ -358,6 +369,11 @@ func (c *japellaControlApiServiceClient) SubmitPost(ctx context.Context, req *co
 // GetCannedPosts calls japella.controlapi.v1.JapellaControlApiService.GetCannedPosts.
 func (c *japellaControlApiServiceClient) GetCannedPosts(ctx context.Context, req *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error) {
 	return c.getCannedPosts.CallUnary(ctx, req)
+}
+
+// GetCannedPost calls japella.controlapi.v1.JapellaControlApiService.GetCannedPost.
+func (c *japellaControlApiServiceClient) GetCannedPost(ctx context.Context, req *connect.Request[v1.GetCannedPostRequest]) (*connect.Response[v1.GetCannedPostResponse], error) {
+	return c.getCannedPost.CallUnary(ctx, req)
 }
 
 // CreateCannedPost calls japella.controlapi.v1.JapellaControlApiService.CreateCannedPost.
@@ -483,6 +499,7 @@ type JapellaControlApiServiceHandler interface {
 	GetStatus(context.Context, *connect.Request[v1.GetStatusRequest]) (*connect.Response[v1.GetStatusResponse], error)
 	SubmitPost(context.Context, *connect.Request[v1.SubmitPostRequest]) (*connect.Response[v1.SubmitPostResponse], error)
 	GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error)
+	GetCannedPost(context.Context, *connect.Request[v1.GetCannedPostRequest]) (*connect.Response[v1.GetCannedPostResponse], error)
 	CreateCannedPost(context.Context, *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error)
 	DeleteCannedPost(context.Context, *connect.Request[v1.DeleteCannedPostRequest]) (*connect.Response[v1.DeleteCannedPostResponse], error)
 	GetSocialAccounts(context.Context, *connect.Request[v1.GetSocialAccountsRequest]) (*connect.Response[v1.GetSocialAccountsResponse], error)
@@ -531,6 +548,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceGetCannedPostsProcedure,
 		svc.GetCannedPosts,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCannedPosts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetCannedPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetCannedPostProcedure,
+		svc.GetCannedPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCannedPost")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceCreateCannedPostHandler := connect.NewUnaryHandler(
@@ -679,6 +702,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceSubmitPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetCannedPostsProcedure:
 			japellaControlApiServiceGetCannedPostsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetCannedPostProcedure:
+			japellaControlApiServiceGetCannedPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceCreateCannedPostProcedure:
 			japellaControlApiServiceCreateCannedPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceDeleteCannedPostProcedure:
@@ -744,6 +769,10 @@ func (UnimplementedJapellaControlApiServiceHandler) SubmitPost(context.Context, 
 
 func (UnimplementedJapellaControlApiServiceHandler) GetCannedPosts(context.Context, *connect.Request[v1.GetCannedPostsRequest]) (*connect.Response[v1.GetCannedPostsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCannedPosts is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetCannedPost(context.Context, *connect.Request[v1.GetCannedPostRequest]) (*connect.Response[v1.GetCannedPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCannedPost is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) CreateCannedPost(context.Context, *connect.Request[v1.CreateCannedPostRequest]) (*connect.Response[v1.CreateCannedPostResponse], error) {

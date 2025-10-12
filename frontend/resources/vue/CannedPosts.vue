@@ -1,84 +1,79 @@
 <template>
-	<section class = "canned-posts">
-		<div class = "flex-row section-header">
-			<div class = "fg1">
-				<h2>Canned Posts</h2>
+	<Section
+		title="Canned Posts"
+		subtitle="Manage your canned posts here. You can create, edit, and delete canned posts."
+		classes="canned-posts"
+		:padding="false"
+	>
+		<template #toolbar>
+			<button @click="refreshPosts" :disabled="!clientReady" class="neutral">
+				<Icon icon="material-symbols:refresh" />
+			</button>
+			<button class="good" :disabled="!clientReady" @click="createCannedPost">
+				<Icon icon="material-symbols:add-rounded" />
+			</button>
+		</template>
 
-				<p>This page shows a list of social accounts that can be used in the chat.</p>
-			</div>
-			<div role = "toolbar">
-				<button @click = "refreshPosts" :disabled = "!clientReady" class = "neutral">
-					<Icon icon="material-symbols:refresh" />
-				</button>
-
-				<button class = "good" :disabled = "!clientReady" @click = "createCannedPost">
-					<Icon icon="material-symbols:add-rounded" />
-				</button>
-			</div>
-		</div>
-
-		<div v-if = "errorMessage">
-			<p class = "inline-notification error">{{ errorMessage }}</p>
+		<div v-if="errorMessage">
+			<p class="inline-notification error">{{ errorMessage }}</p>
 		</div>
 		<div v-else>
-			<div v-if = "posts.length === 0" class = "empty">
-				<p class = "inline-notification note">No posts available.</p>
+			<div v-if="posts.length === 0">
+				<p class="inline-notification note">No canned posts available. Please create a new canned post.</p>
 			</div>
-			<div v-else class = "empty">
-				<table>
-					<thead>
-						<tr>
-							<th>Content</th>
-							<th>Created</th>
-							<th class = "small"></th>
-						</tr>
-					</thead>
-					<tbody>
-					<tr class = "canned-post" v-for = "p in posts" :key = "p.id">
+			<table v-else>
+				<thead>
+					<tr>
+						<th>Content</th>
+						<th>Created</th>
+						<th class="medium" style="text-align: right">Actions</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="p in posts" :key="p.id">
 						<td>
-							<textarea :id = "'canned-post-' + p.id"
-							    v-model = "p.content"
-							    @click = "beginEditing(p)"
-							    @keyup.enter = "saveCannedPost(p)"
-							    @keyup.esc = "cancelEditing(p)"
-								:readonly = "!p.editing">{{ p.content }}</textarea>
+							<textarea
+								:id="'canned-post-' + p.id"
+								v-model="p.content"
+								@click="beginEditing(p)"
+								@keyup.enter="saveCannedPost(p)"
+								@keyup.esc="cancelEditing(p)"
+								:readonly="!p.editing"
+							>{{ p.content }}</textarea>
 						</td>
-						<td>
-							{{ p.createdAt }}
-						</td>
-
-						<td align = "right">
-							<button @click = "usePost(p)" class = "good">
+						<td>{{ p.createdAt }}</td>
+						<td align="right">
+							<button @click="usePost(p)" class="good">
 								<Icon icon="jam:write-f" />
 							</button>
-
 							&nbsp;
-
-							<button @click = "deleteCannedPost(p.id)" class = "bad">
+							<button @click="deleteCannedPost(p.id)" class="bad">
 								<Icon icon="material-symbols:delete" />
 							</button>
 						</td>
 					</tr>
-					</tbody>
-				</table>
-			</div>
+				</tbody>
+			</table>
 		</div>
-	</section>
+	</Section>
 </template>
 
 <script setup>
 	import { Icon } from '@iconify/vue';
 	import { ref, onMounted, inject } from 'vue';
 	import { waitForClient } from '../javascript/util';
+	import Section from 'picocrank/vue/components/Section.vue';
 
 	const posts = ref([])
 	const clientReady = ref(false)
 	const errorMessage = ref("")
-	const changeSection = inject('changeSection');
-	let startPost = () => {};
 
 	function usePost(p) {
-		changeSection('postBox')
+		// Navigate to post box using router with query parameter
+		window.router.push({
+			path: '/post',
+			query: { cannedPostId: p.id }
+		})
 	}
 
 	function beginEditing(post) {
@@ -130,8 +125,10 @@
 	}
 
 	async function getCannedPosts() {
+		console.log('Fetching canned posts...')
 		return await window.client.getCannedPosts()
 			.then((ret) => {
+				console.log('Received canned posts response:', ret)
 				ret.posts.forEach(post => {
 					post.editing = false
 				})
@@ -139,14 +136,16 @@
 				return ret.posts
 			})
 			.catch((error) => {
-				errorMessage.value = "Failed to fetch social accounts: " + error.message
-				console.error('Error fetching social accounts:', error)
+				errorMessage.value = "Failed to fetch canned posts: " + error.message
+				console.error('Error fetching canned posts:', error)
 				return []
 			})
 	}
 
 	function refreshPosts() {
+		console.log('Refreshing posts...')
 		getCannedPosts().then((fetchedPosts) => {
+			console.log('Setting posts to:', fetchedPosts)
 			posts.value = fetchedPosts
 		})
 	}
@@ -171,9 +170,6 @@
 	}
 
 	onMounted(async () => {
-		startPost = inject('startPost');
-		console.log('Start post function injected:', startPost)
-
 		await waitForClient()
 
 		clientReady.value = true
@@ -190,5 +186,9 @@
 	textarea[readonly] {
 		background-color: transparent;
 		border: 1px solid transparent;
+	}
+
+	th.medium {
+		width: 150px;
 	}
 </style>

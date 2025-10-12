@@ -6,6 +6,10 @@ section.small {
 	margin: auto;
 }
 
+th.actions {
+	width: 2000px;
+}
+
 section p:last-child {
 	margin-bottom: 0;
 }
@@ -156,4 +160,211 @@ aside ul li a {
 	.grid-wide {
 		grid-column: 1 / span 2;
 	}
+}
+
+/* Sidebar separator styling for dark background */
+.sidebar-separator {
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	margin: 0.5em 0;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+	height: 1px;
+}
+
+/* Alternative separator styling with subtle glow effect */
+.sidebar-separator-glow {
+	border-top: 1px solid rgba(255, 255, 255, 0.15);
+	margin: 0.75em 0;
+	background: linear-gradient(90deg,
+		transparent 0%,
+		rgba(255, 255, 255, 0.1) 20%,
+		rgba(255, 255, 255, 0.2) 50%,
+		rgba(255, 255, 255, 0.1) 80%,
+		transparent 100%
+	);
+	height: 1px;
+	box-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
+}
+
+/* Minimal separator styling */
+.sidebar-separator-minimal {
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	margin: 0.5em 1em;
+	height: 1px;
+}
+
+/* Target Picocrank sidebar separators specifically - subtle gray line */
+.sidebar hr,
+.sidebar .separator,
+.sidebar [class*="separator"],
+.sidebar [id*="separator"] {
+	border: none;
+	border-top: 1px solid #717171;
+	margin: 0.5em 0;
+	background: none;
+	background-color: transparent !important;
+	height: 1px;
+	box-shadow: none;
+}
+
+/* Dark theme specific separator styling - even more subtle */
+@media (prefers-color-scheme: dark) {
+	.sidebar hr,
+	.sidebar .separator,
+	.sidebar [class*="separator"],
+	.sidebar [id*="separator"] {
+		border-top: 1px solid rgba(128, 128, 128, 0.15);
+	}
+}
+
+/* Dark theme overrides for Picocrank Calendar */
+.calendar-wrapper {
+	background: #2a2a2a;
+	color: #ffffff;
+}
+
+.calendar-header-nav {
+	background: #3a3a3a !important;
+	border-radius: 8px;
+	border: 1px solid #555555;
+}
+
+.calendar-title {
+	color: #ffffff;
+}
+
+.calendar-nav-buttons .button {
+	background: #555555;
+	color: #ffffff;
+	border: 1px solid #666666;
+}
+
+.calendar-nav-buttons .button:hover {
+	background: #666666;
+	border-color: #777777;
+}
+
+.calendar-container {
+	background: #2a2a2a;
+	border: 1px solid #555555;
+}
+
+.calendar-grid {
+	background: #2a2a2a;
+}
+
+.day-header {
+	background: #3a3a3a !important;
+	color: #ffffff !important;
+	border-right: 1px solid #333333 !important;
+	border-bottom: 1px solid #333333 !important;
+}
+
+.day-header:last-child {
+	border-right: none !important;
+}
+
+.calendar-day {
+	border-right: 1px solid #333333 !important;
+	border-bottom: 1px solid #333333 !important;
+	background: #2a2a2a;
+}
+
+.calendar-day:hover {
+	background-color: #3a3a3a;
+}
+
+.calendar-day:nth-child(7n) {
+	border-right: none !important;
+}
+
+.calendar-day.weekend {
+	background: #333333 !important;
+}
+
+.calendar-day.weekend:hover {
+	background: #3a3a3a !important;
+}
+
+.calendar-day.next-month,
+.calendar-day.prev-month {
+	background: #333333;
+	opacity: 0.7;
+	color: #aaaaaa;
+}
+
+.calendar-day.next-month:hover,
+.calendar-day.prev-month:hover {
+	background: #3a3a3a;
+	opacity: 0.9;
+}
+
+.calendar-day.today {
+	background: #2d4a2d;
+	font-weight: bold;
+	color: #ffffff;
+}
+
+.calendar-day.today:hover {
+	background: #3a5a3a;
+}
+
+.day-number {
+	color: #ffffff !important;
+	font-weight: 500 !important;
+	font-size: 0.95rem !important;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+}
+
+.day-content:hover .day-number.clickable {
+	color: #4a9eff !important;
+}
+
+.calendar-day.today .day-number {
+	color: #ffffff !important;
+	font-weight: bold !important;
+	font-size: 1rem !important;
+}
+
+.calendar-day.next-month .day-number,
+.calendar-day.prev-month .day-number {
+	color: #888888 !important;
+	opacity: 0.7 !important;
+}
+
+.calendar-event {
+	background: #2d4a2d;
+	border: 1px solid #3a5a3a;
+	color: #ffffff;
+}
+
+.calendar-event:hover {
+	background: #3a5a3a;
+	border-color: #4a6a4a;
+}
+
+.event-title {
+	color: #ffffff;
+}
+
+.event-time {
+	color: #cccccc;
+}
+
+.more-events {
+	background: #3a3a3a;
+	color: #cccccc;
+}
+
+.calendar-error {
+	color: #ff6b6b;
+	background: #3a2a2a;
+	padding: 1rem;
+	border-radius: 4px;
+}
+
+.calendar-loading {
+	color: #cccccc;
+	background: #3a3a3a;
+	padding: 1rem;
+	border-radius: 4px;
 }
