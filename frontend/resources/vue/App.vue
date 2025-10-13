@@ -3,7 +3,7 @@
 		:username="isLoggedIn ? username : ''"
 		@toggleSidebar="toggleSidebar"
 		title="Japella"
-		logoUrl="../../logo.png"
+		:logoUrl="logoUrl"
 	>
 		<template #user-info>
 			<div class="user-info icon-and-text logo-with-title" v-if="isLoggedIn">
@@ -69,6 +69,7 @@
 	import ErrorDialog from './ErrorDialog.vue';
     import Header from 'picocrank/vue/components/Header.vue';
     import Sidebar from 'picocrank/vue/components/Sidebar.vue';
+	import logoUrl from '../../logo.png';
 
     const { t } = useI18n();
 

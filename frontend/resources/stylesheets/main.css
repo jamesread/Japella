@@ -1,6 +1,14 @@
 @import 'femtocrank/style.css';
 @import 'femtocrank/dark.css';
 
+.pagination {
+	flex-grow: 1;
+}
+
+.pagination-info {
+	padding: 1em;
+}
+
 section.small {
 	max-width: 720px;
 	margin: auto;
@@ -255,8 +263,8 @@ aside ul li a {
 .day-header {
 	background: #3a3a3a !important;
 	color: #ffffff !important;
-	border-right: 1px solid #333333 !important;
-	border-bottom: 1px solid #333333 !important;
+    border-right: 1px solid #555555 !important;
+    border-bottom: 1px solid #555555 !important;
 }
 
 .day-header:last-child {
@@ -264,8 +272,8 @@ aside ul li a {
 }
 
 .calendar-day {
-	border-right: 1px solid #333333 !important;
-	border-bottom: 1px solid #333333 !important;
+    border-right: 1px solid #555555 !important;
+    border-bottom: 1px solid #555555 !important;
 	background: #2a2a2a;
 }
 

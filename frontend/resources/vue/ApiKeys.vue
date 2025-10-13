@@ -2,6 +2,7 @@
 	import { ref, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
+    import Section from 'picocrank/vue/components/Section.vue';
 
 	const apiKeys = ref([]);
 	const newKeyDialog = ref(null);
@@ -60,49 +61,47 @@
 			<input type="text" readonly class="key-input" :value="newKeyValue" />
 			<button type="submit" class="good">OK</button>
 		</form>
-	</dialog>
-	<section>
-		<div class = "section-header">
-			<div class = "fg1">
-				<h2>API Keys</h2>
+    </dialog>
+    <Section
+        title="API Keys"
+        subtitle="View, revoke, and create API keys. Use Bearer token in Authorization header."
+        :padding="false"
+        classes="api-keys"
+    >
+        <template #toolbar>
+            <button @click="fetchApiKeys" class="neutral">
+                <Icon icon="material-symbols:refresh" />
+            </button>
 
-				<p>This page allows you to view active keys, revoke them, and create new keys. To use these keys you should use the Authorization header with the Bearer token.</p>
-			</div>
-			<div role = "toolbar">
-				<button @click="fetchApiKeys" class="neutral">
-					<Icon icon="material-symbols:refresh" />
-				</button>
+            <button @click="createNewKey" class="neutral">
+                <Icon icon="material-symbols:add" />
+            </button>
+        </template>
 
-				<button @click="createNewKey" class="neutral">
-					<Icon icon="material-symbols:add" />
-				</button>
-			</div>
-		</div>
-
-		<p v-if="apiKeys.length === 0" class="inline-notification note">No API keys available.</p>
-		<table v-else>
-			<thead>
-				<tr>
-					<th>ID</th>
-					<th>Key</th>
-					<th>User Account</th>
-					<th>Created At</th>
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr v-for="key in apiKeys" :key="key.id">
-					<td>{{ key.id }}</td>
-					<td>{{ key.keyValue }}</td>
-					<td>{{ key.username }}</td>
-					<td>{{ new Date(key.createdAt).toLocaleString() }}</td>
-					<td align="right">
-						<button @click="revokeKey(key.id)" class="bad">Revoke</button>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-	</section>
+        <p v-if="apiKeys.length === 0" class="inline-notification note">No API keys available.</p>
+        <table v-else>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Key</th>
+                    <th>User Account</th>
+                    <th>Created At</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="key in apiKeys" :key="key.id">
+                    <td>{{ key.id }}</td>
+                    <td>{{ key.keyValue }}</td>
+                    <td>{{ key.username }}</td>
+                    <td>{{ new Date(key.createdAt).toLocaleString() }}</td>
+                    <td align="right">
+                        <button @click="revokeKey(key.id)" class="bad">Revoke</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </Section>
 </template>
 
 <style scoped>

@@ -4,7 +4,7 @@
         <p>{{ t('section.postbox.intro') }}</p>
 
         <form @submit.prevent="submitPost" id = "submit-post">
-            <span class = "fake-label">{{ t('section.postbox.socialaccounts') }}</span>
+            <span class = "fake-label">{{ t('section.postbox.socialaccounts') }}:</span>
             <div v-if = "postMode == 'canned'">
                 <p>Canned posts just get saved.</p>
             </div>
@@ -43,7 +43,7 @@
                 </div>
             </div>
 
-			<label>Campaign ID</label>
+			<label>Campaign:</label>
 			<select v-if = "clientReady" v-model = "selectedCampaignId">
 				<option value = "0">None</option>
 				<option v-for = "campaign in campaigns" :key = "campaign.id" :value = "campaign.id">{{ campaign.name }}</option>
@@ -56,9 +56,10 @@
 
             <fieldset>
                 <button id = "submit" type = "submit">{{ t('section.postbox.submit') }}</button>
-				<div class = "fg1"></div>
-				<span ref = "postLengthCounter">{{ postLength }}</span>
             </fieldset>
+            <div style = "display: flex; justify-content: flex-end;">
+				<span ref = "postLengthCounter">{{ postLength }}</span>
+            </div>
         </form>
     </section>
 </template>
