@@ -331,7 +331,7 @@ func (db *DB) DeleteCannedPost(id uint32) error {
 }
 
 func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :dpop_key, NOW(), NOW())`, socialAccount)
+	_, err := db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, did, homeserver, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :did, :homeserver, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :dpop_key, NOW(), NOW())`, socialAccount)
 	if err != nil {
 		db.Logger().Errorf("Failed to register social account: %v", err)
 		return err
@@ -662,7 +662,7 @@ func (db *DB) CreateCampaign(campaign *Campaign) error {
 
 func (db *DB) SelectCampaigns() ([]*Campaign, error) {
 	ret := make([]*Campaign, 0)
-	err := db.ResilientSelect(&ret, "SELECT c.*, count(p.id) as post_count, max(p.created_at) AS last_post_date FROM campaigns c LEFT JOIN posts p ON p.campaign_id = c.id GROUP BY c.id ORDER BY id DESC")
+	err := db.ResilientSelect(&ret, "SELECT c.*, count(p.id) as post_count, max(p.created_at) AS last_post_date, (SELECT COUNT(*) FROM campaign_social_accounts ca WHERE ca.campaign = c.id) AS account_count FROM campaigns c LEFT JOIN posts p ON p.campaign_id = c.id GROUP BY c.id ORDER BY id DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select campaigns: %v", err)
 		return nil, err
@@ -687,6 +687,40 @@ func (db *DB) DeleteCampaign(id uint32) error {
 	}
 
 	return nil
+}
+
+func (db *DB) AddSocialAccountToCampaign(campaignId uint32, socialAccountId uint32) error {
+	_, err := db.ResilientExec("INSERT INTO campaign_social_accounts (campaign, social_account, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", campaignId, socialAccountId)
+	if err != nil {
+		db.Logger().Errorf("Failed to add social account %d to campaign %d: %v", socialAccountId, campaignId, err)
+		return err
+	}
+	return nil
+}
+
+func (db *DB) RemoveSocialAccountFromCampaign(campaignId uint32, socialAccountId uint32) error {
+	_, err := db.ResilientExec("DELETE FROM campaign_social_accounts WHERE campaign = ? AND social_account = ?", campaignId, socialAccountId)
+	if err != nil {
+		db.Logger().Errorf("Failed to remove social account %d from campaign %d: %v", socialAccountId, campaignId, err)
+		return err
+	}
+	return nil
+}
+
+func (db *DB) GetCampaignSocialAccountIDs(campaignId uint32) ([]uint32, error) {
+	ids := make([]uint32, 0)
+	rows := []struct {
+		SocialAccount uint32 `db:"social_account"`
+	}{}
+	err := db.ResilientSelect(&rows, "SELECT social_account FROM campaign_social_accounts WHERE campaign = ?", campaignId)
+	if err != nil {
+		db.Logger().Errorf("Failed to select social accounts for campaign %d: %v", campaignId, err)
+		return nil, err
+	}
+	for _, r := range rows {
+		ids = append(ids, r.SocialAccount)
+	}
+	return ids, nil
 }
 
 func (db *DB) GetCampaign(id uint32) (*Campaign, error) {

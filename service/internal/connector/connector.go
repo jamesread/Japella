@@ -27,6 +27,7 @@ type SocialAccount struct {
 	Id         uint32
 	Connector  string
 	Identity   string
+	Did        string
 	OAuthToken string
 	Homeserver string
 }

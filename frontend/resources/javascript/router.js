@@ -5,6 +5,7 @@ import { useI18n } from 'vue-i18n'
 import Welcome from '../vue/Welcome.vue'
 import Timeline from '../vue/Timeline.vue'
 import Campaigns from '../vue/Campaigns.vue'
+import CampaignDetails from '../vue/CampaignDetails.vue'
 import AppStatus from '../vue/AppStatus.vue'
 import PostBox from '../vue/PostBox.vue'
 import Calendar from '../vue/Calendar.vue'
@@ -12,6 +13,7 @@ import Settings from '../vue/Settings.vue'
 import CannedPosts from '../vue/CannedPosts.vue'
 import UserList from '../vue/UserList.vue'
 import SocialAccounts from '../vue/SocialAccounts.vue'
+import SocialAccountDetails from '../vue/SocialAccountDetails.vue'
 import OAuthServices from '../vue/OAuthServices.vue'
 import ApiKeys from '../vue/ApiKeys.vue'
 import Media from '../vue/Media.vue'
@@ -73,6 +75,15 @@ const routes = [
     }
   },
   {
+    path: '/campaigns/:id',
+    name: 'campaignDetails',
+    component: CampaignDetails,
+    meta: {
+      title: 'Campaign Details',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/canned-posts',
     name: 'cannedPosts',
     component: CannedPosts,
@@ -109,6 +120,15 @@ const routes = [
     meta: {
       icon: UserMultiple03Icon,
       title: 'Social Accounts',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/social-accounts/:id',
+    name: 'socialAccountDetails',
+    component: SocialAccountDetails,
+    meta: {
+      title: 'Social Account',
       requiresAuth: true
     }
   },

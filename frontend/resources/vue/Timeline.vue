@@ -37,7 +37,11 @@
 						</span>
 					</td>
 					<td>
-						<div v-if="post.campaignId != 0">{{ post.campaignName }}</div>
+						<div v-if="post.campaignId != 0">
+							<router-link :to="{ name: 'campaignDetails', params: { id: post.campaignId } }">
+								{{ post.campaignName }}
+							</router-link>
+						</div>
 						<div v-else>None</div>
 					</td>
 					<td>{{ post.content }}</td>

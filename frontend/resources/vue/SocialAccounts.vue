@@ -27,12 +27,12 @@
 				</thead>
 				<tbody>
 					<tr v-for="account in accounts" :key="account.id">
-						<td>
-							<span class="social-account">
-								<Icon :icon="account.icon" />
-								{{ account.identity }}
-							</span>
-						</td>
+					<td>
+						<router-link :to="{ name: 'socialAccountDetails', params: { id: account.id } }" class="social-account">
+							<Icon :icon="account.icon" />
+							{{ account.identity }}
+						</router-link>
+					</td>
 						<td align="right">
 						<button @click="refreshAccount(account.id)" class="good" :disabled="isAccountRefreshing(account.id)">
 							<Icon v-if="isAccountSuccess(account.id)" icon="material-symbols:check-circle" />
@@ -42,20 +42,9 @@
 
 							&nbsp;
 
-							<button @click="setAccountActive(account.id, true)" class="good" v-if="!account.active">
-								Enable
-								<Icon icon="material-symbols:toggle-on" />
-							</button>
-							<button @click="setAccountActive(account.id, false)" class="warning" v-else>
-								Disable
-								<Icon icon="material-symbols:toggle-off" />
-							</button>
 
-							&nbsp;
 
-							<button @click="deleteAccount(account.id)" class="bad">
-								<Icon icon="material-symbols:delete" />
-							</button>
+
 						</td>
 					</tr>
 				</tbody>
@@ -145,16 +134,7 @@
 			})
 	}
 
-	function setAccountActive(accountId, active) {
-		window.client.setSocialAccountActive({ "id": accountId, "active": active })
-			.then(() => {
-				refreshAccounts()
-			})
-			.catch((error) => {
-				errorMessage.value = "Failed to set social account active state: " + error.message
-				console.error('Error setting social account active state:', error)
-			})
-	}
+
 
 	onMounted(async () => {
 		await waitForClient()

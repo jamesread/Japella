@@ -289,7 +289,9 @@ func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
 		Id:         socialAccount.ID,
 		Connector:  socialAccount.Connector,
 		Identity:   socialAccount.Identity,
+		Did:        socialAccount.Did,
 		OAuthToken: socialAccount.OAuth2Token,
+		Homeserver: socialAccount.Homeserver,
 	}
 }
 
@@ -1024,11 +1026,12 @@ func (s *ControlApi) GetCampaigns(ctx context.Context, req *connect.Request[cont
 
 	for _, campaign := range campaigns {
 		pbcampaign := &controlv1.Campaign{
-			Id:          campaign.ID,
-			Name:        campaign.Name,
-			Description: campaign.Description,
-			CreatedAt:   campaign.CreatedAt.Format("2006-01-02 15:04:05"),
-			PostCount:   campaign.PostCount,
+			Id:           campaign.ID,
+			Name:         campaign.Name,
+			Description:  campaign.Description,
+			CreatedAt:    campaign.CreatedAt.Format("2006-01-02 15:04:05"),
+			PostCount:    campaign.PostCount,
+			AccountCount: campaign.AccountCount,
 		}
 
 		if campaign.LastPostDate != nil {
@@ -1092,6 +1095,37 @@ func (s *ControlApi) DeleteCampaign(ctx context.Context, req *connect.Request[co
 		},
 	})
 
+	return res, nil
+}
+
+func (s *ControlApi) AddSocialAccountToCampaign(ctx context.Context, req *connect.Request[controlv1.AddSocialAccountToCampaignRequest]) (*connect.Response[controlv1.AddSocialAccountToCampaignResponse], error) {
+	err := s.DB.AddSocialAccountToCampaign(req.Msg.CampaignId, req.Msg.SocialAccountId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to add social account to campaign: %w", err))
+	}
+	res := connect.NewResponse(&controlv1.AddSocialAccountToCampaignResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "OK"},
+	})
+	return res, nil
+}
+
+func (s *ControlApi) RemoveSocialAccountFromCampaign(ctx context.Context, req *connect.Request[controlv1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[controlv1.RemoveSocialAccountFromCampaignResponse], error) {
+	err := s.DB.RemoveSocialAccountFromCampaign(req.Msg.CampaignId, req.Msg.SocialAccountId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to remove social account from campaign: %w", err))
+	}
+	res := connect.NewResponse(&controlv1.RemoveSocialAccountFromCampaignResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "OK"},
+	})
+	return res, nil
+}
+
+func (s *ControlApi) GetCampaignSocialAccounts(ctx context.Context, req *connect.Request[controlv1.GetCampaignSocialAccountsRequest]) (*connect.Response[controlv1.GetCampaignSocialAccountsResponse], error) {
+	ids, err := s.DB.GetCampaignSocialAccountIDs(req.Msg.CampaignId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get campaign social accounts: %w", err))
+	}
+	res := connect.NewResponse(&controlv1.GetCampaignSocialAccountsResponse{SocialAccountIds: ids})
 	return res, nil
 }
 

@@ -307,6 +307,33 @@ message Campaign {
   string created_at = 4;
   int32 post_count = 5;
   string last_post_date = 6;
+  int32 account_count = 7;
+}
+
+message AddSocialAccountToCampaignRequest {
+  uint32 campaign_id = 1;
+  uint32 social_account_id = 2;
+}
+
+message AddSocialAccountToCampaignResponse {
+  StandardResponse standard_response = 1;
+}
+
+message RemoveSocialAccountFromCampaignRequest {
+  uint32 campaign_id = 1;
+  uint32 social_account_id = 2;
+}
+
+message RemoveSocialAccountFromCampaignResponse {
+  StandardResponse standard_response = 1;
+}
+
+message GetCampaignSocialAccountsRequest {
+  uint32 campaign_id = 1;
+}
+
+message GetCampaignSocialAccountsResponse {
+  repeated uint32 social_account_ids = 1;
 }
 
 message UpdateCampaignRequest {
@@ -381,4 +408,8 @@ service JapellaControlApiService {
     rpc DeleteCampaign(DeleteCampaignRequest) returns (DeleteCampaignResponse) {}
 
     rpc UpdateCannedPost(UpdateCannedPostRequest) returns (UpdateCannedPostResponse) {}
+
+    rpc AddSocialAccountToCampaign(AddSocialAccountToCampaignRequest) returns (AddSocialAccountToCampaignResponse) {}
+    rpc RemoveSocialAccountFromCampaign(RemoveSocialAccountFromCampaignRequest) returns (RemoveSocialAccountFromCampaignResponse) {}
+    rpc GetCampaignSocialAccounts(GetCampaignSocialAccountsRequest) returns (GetCampaignSocialAccountsResponse) {}
 }

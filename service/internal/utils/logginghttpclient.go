@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+
 	"github.com/google/uuid"
 
 	logp "github.com/sirupsen/logrus"
@@ -74,9 +75,9 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 	}
 
 	l.logger.WithFields(logp.Fields{
-		"status":     resp.Status,
-		"url":        req.URL.String(),
-		"method":     req.Method,
+		"status": resp.Status,
+		"url":    req.URL.String(),
+		"method": req.Method,
 	}).Infof("HTTP Response")
 
 	l.logResponseHeaders(resp)
@@ -133,13 +134,27 @@ func (l *ChainingHttpClient) logBodyContent(isJson bool, bodyString string) {
 	}
 }
 
+// ReadBodyNoChange returns the current response body as string without modifying l.Res
+func ReadBodyNoChange(r *http.Response) string {
+	if r == nil || r.Body == nil {
+		return ""
+	}
+	// Duplicate the body reader by reading it, but we cannot without consuming; rely on callers that just need a one-off
+	buf := new(bytes.Buffer)
+	io.Copy(buf, r.Body)
+	body := buf.String()
+	r.Body.Close()
+	r.Body = io.NopCloser(strings.NewReader(body))
+	return body
+}
+
 func NewLoggingTransport(rt http.RoundTripper, logger *logp.Entry) *ChainingHttpClient {
 	if rt == nil {
 		rt = http.DefaultTransport
 	}
 
 	return &ChainingHttpClient{
-		rt: rt,
+		rt:     rt,
 		logger: logger,
 	}
 }
@@ -148,7 +163,7 @@ func NewClient(logger *logp.Entry) *ChainingHttpClient {
 	logger = logger.WithField("client", uuid.New().String())
 
 	client := &ChainingHttpClient{
-		rt: http.DefaultTransport,
+		rt:     http.DefaultTransport,
 		logger: logger,
 		client: &http.Client{
 			Transport: NewLoggingTransport(nil, logger),
@@ -180,7 +195,7 @@ func (c *ChainingHttpClient) AsJson(v any) {
 	}
 }
 
-func (c *ChainingHttpClient) PostWithFormVars(requrl string, body map[string]string) (*ChainingHttpClient) {
+func (c *ChainingHttpClient) PostWithFormVars(requrl string, body map[string]string) *ChainingHttpClient {
 	c.url = requrl
 
 	form := url.Values{}
@@ -191,7 +206,7 @@ func (c *ChainingHttpClient) PostWithFormVars(requrl string, body map[string]str
 	c.req, c.Err = http.NewRequest("POST", c.url, strings.NewReader(form.Encode()))
 	c.req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	return c;
+	return c
 }
 
 func (c *ChainingHttpClient) Get(requrl string) *ChainingHttpClient {
@@ -212,7 +227,7 @@ func (c *ChainingHttpClient) WithBasicAuth(token string) *ChainingHttpClient {
 	return c
 }
 
-func (c *ChainingHttpClient) PostWithJson(requrl string, body any) (*ChainingHttpClient) {
+func (c *ChainingHttpClient) PostWithJson(requrl string, body any) *ChainingHttpClient {
 	jsonBody, err := json.MarshalIndent(body, "", "  ")
 
 	if err != nil {
@@ -221,6 +236,11 @@ func (c *ChainingHttpClient) PostWithJson(requrl string, body any) (*ChainingHtt
 	}
 
 	c.req, c.Err = http.NewRequest("POST", requrl, bytes.NewReader(jsonBody))
+	// Allow body to be recreated on retry (e.g., DPoP nonce retry)
+	reqBody := append([]byte(nil), jsonBody...)
+	c.req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(reqBody)), nil
+	}
 	c.req.Header.Set("Content-Type", "application/json")
 
 	if c.Err != nil {
@@ -231,7 +251,7 @@ func (c *ChainingHttpClient) PostWithJson(requrl string, body any) (*ChainingHtt
 	return c
 }
 
-func (c *ChainingHttpClient) WithBearerToken(token string) (*ChainingHttpClient) {
+func (c *ChainingHttpClient) WithBearerToken(token string) *ChainingHttpClient {
 	if token != "" {
 		c.req.Header.Set("Authorization", "Bearer "+token)
 	}

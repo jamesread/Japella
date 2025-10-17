@@ -4,7 +4,14 @@
         <p>{{ t('section.postbox.intro') }}</p>
 
         <form @submit.prevent="submitPost" id = "submit-post">
-            <span class = "fake-label">{{ t('section.postbox.socialaccounts') }}:</span>
+            <select v-if = "clientReady" v-model = "selectedCampaignId" @change="onCampaignChange" style = "grid-column: 1 / span 2;">
+                <option value = "0">Select a campaign...</option>
+                <option v-for = "campaign in campaigns" :key = "campaign.id" :value = "campaign.id">{{ campaign.name }}</option>
+            </select>
+            <div v-else>
+                <p>Loading campaigns...</p>
+            </div>
+
             <div v-if = "postMode == 'canned'">
                 <p>Canned posts just get saved.</p>
             </div>
@@ -16,7 +23,7 @@
                     <div v-else ref = "postingServiceCheckboxes">
                         <span v-for = "ps in items" :key = "ps.id" class = "check-list">
                             <label>
-                                <input type = "checkbox" :id = "ps.id" :name = "ps.id" :value = "ps.id" />
+                                <input type = "checkbox" :id = "ps.id" :name = "ps.id" :value = "ps.id" @change="onPostingServiceChange" />
 
                                 <span>
                                 <Icon :icon="ps.icon" />
@@ -43,26 +50,29 @@
                 </div>
             </div>
 
-			<label>Campaign:</label>
-			<select v-if = "clientReady" v-model = "selectedCampaignId">
-				<option value = "0">None</option>
-				<option v-for = "campaign in campaigns" :key = "campaign.id" :value = "campaign.id">{{ campaign.name }}</option>
-			</select>
-			<div v-else>
-				<p>Loading campaigns...</p>
-			</div>
 
-            <textarea ref = "postTextarea" id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!" @keyup = "recountLength" ></textarea>
 
-            <label for="scheduledAt">Schedule (optional):</label>
-            <input id="scheduledAt" type="datetime-local" v-model="scheduledAt" />
+            <textarea ref = "postTextarea" id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!" @keyup = "recountLength" @input="recountLength"></textarea>
 
             <fieldset>
-                <button id = "submit" type = "submit">{{ t('section.postbox.submit') }}</button>
+                <button id = "submit" type = "button" class="good" @click="submitPost" :disabled="!canSubmit">Post now</button>
+                <button id = "open-schedule" type = "button" class="good" @click="openScheduleDialog" :disabled="!canSchedule">Post Later</button>
             </fieldset>
             <div style = "display: flex; justify-content: flex-end;">
 				<span ref = "postLengthCounter">{{ postLength }}</span>
             </div>
+            <div v-if="showScheduleDialog" class="modal-overlay" @click.self="cancelScheduleDialog">
+                <div class="modal">
+                    <h3>Schedule Post</h3>
+                    <label for="scheduledAtDialog">Scheduled time</label>
+                    <input id="scheduledAtDialog" type="datetime-local" v-model="scheduledAtDialog" />
+                    <div class="dialog-actions">
+                        <button class="neutral" @click="cancelScheduleDialog">Cancel</button>
+                        <button class="good" @click="confirmScheduleDialog" :disabled="!scheduledAtDialog">Schedule</button>
+                    </div>
+                </div>
+            </div>
+
         </form>
     </section>
 </template>
@@ -71,29 +81,34 @@
     import { useI18n } from 'vue-i18n'
     const { t } = useI18n()
 
-    import { ref, onMounted, onActivated } from 'vue';
-    import { useRoute } from 'vue-router';
+import { ref, onMounted, onActivated, computed, nextTick } from 'vue';
+	import { useRoute } from 'vue-router';
     import { Icon } from '@iconify/vue';
     import InlineNotification from './InlineNotification.vue';
 
     const clientReady = ref(false);
     const items = ref([]);
 	const postLength = ref(0);
+const contentLength = ref(0);
 	const postLengthCounter = ref(null);
 	const postTextarea = ref('');
 	const campaigns = ref([]);
 	const selectedCampaignId = ref(0);
-	const saveAsCannedPost = ref(true);
+	const saveAsCannedPost = ref(false);
     const scheduledAt = ref("");
+    const showScheduleDialog = ref(false);
+    const scheduledAtDialog = ref("");
+const selectedServiceCount = ref(0);
 
 	const route = useRoute();
 
-	const recountLength = (e) => {
-	    const length = e.target.value.length;
+const recountLength = (e) => {
+    const length = e.target.value.length;
 
-		postLength.value = post.value.length;
+    postLength.value = length;
+    contentLength.value = length;
 
-		if (length > 280) {
+    if (length > 280) {
 			postLengthCounter.value.classList.add('bad');
 		} else {
 			postLengthCounter.value.classList.remove('bad');
@@ -134,37 +149,113 @@
       await waitForClient();
       clientReady.value = true;
 
-		refreshAccounts()
+        await refreshAccounts()
 
 		// Check for canned post ID in query parameters
 		if (route.query.cannedPostId) {
 			await startPost(route.query.cannedPostId);
+		}
+
+		// Preselect campaign if passed from navigation
+        if (route.query.campaignId) {
+			const cid = parseInt(route.query.campaignId, 10);
+			if (!isNaN(cid)) {
+				selectedCampaignId.value = cid;
+                await applyCampaignMembership(cid)
+			}
 		}
     });
 
-	onActivated(async () => {
-		refreshAccounts()
+    onActivated(async () => {
+        await refreshAccounts()
 
 		// Check for canned post ID in query parameters
 		if (route.query.cannedPostId) {
 			await startPost(route.query.cannedPostId);
 		}
+
+		// Preselect campaign if passed when returning
+        if (route.query.campaignId) {
+			const cid = parseInt(route.query.campaignId, 10);
+			if (!isNaN(cid)) {
+				selectedCampaignId.value = cid;
+                await applyCampaignMembership(cid)
+			}
+		}
 	})
 
-	async function refreshAccounts() {
+    async function refreshAccounts() {
       const ret = await window.client.getSocialAccounts({"onlyActive": true});
-	  const campaignsRet = await window.client.getCampaigns();
+      const campaignsRet = await window.client.getCampaigns();
 
       items.value = ret.accounts
 
-	  campaigns.value = campaignsRet.campaigns || [];
-	}
+      campaigns.value = campaignsRet.campaigns || [];
+
+      if (selectedCampaignId.value && selectedCampaignId.value !== 0) {
+    await applyCampaignMembership(selectedCampaignId.value)
+      }
+  await nextTick()
+  updateSelectedServiceCount()
+    }
+
+    async function onCampaignChange() {
+      if (!selectedCampaignId.value || selectedCampaignId.value === 0) {
+        if (postingServiceCheckboxes.value) {
+          const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
+          for (let x of boxes) {
+            if (x.id !== 'canned-post') x.checked = false;
+          }
+        }
+    updateSelectedServiceCount()
+        return
+      }
+  await applyCampaignMembership(selectedCampaignId.value)
+  await nextTick()
+  updateSelectedServiceCount()
+    }
+
+    async function applyCampaignMembership(campaignId) {
+      try {
+        const res = await window.client.getCampaignSocialAccounts({ campaignId })
+        const memberIds = new Set(res.socialAccountIds || [])
+        if (!postingServiceCheckboxes.value) return
+        const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
+        for (let x of boxes) {
+          if (x.id === 'canned-post') continue;
+          const idNum = Number(x.value)
+          x.checked = memberIds.has(idNum)
+        }
+    await nextTick()
+    updateSelectedServiceCount()
+      } catch (e) {
+        console.error('Failed to fetch campaign memberships', e)
+      }
+    }
 
     const postMode = ref('live');
 
     const postingServiceCheckboxes = ref(null);
 
     import Notification from './../javascript/notification.js'
+
+function updateSelectedServiceCount() {
+  if (!postingServiceCheckboxes.value) { selectedServiceCount.value = 0; return }
+  const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
+  let count = 0;
+  for (let x of boxes) {
+    if (x.id === 'canned-post') continue;
+    if (x.checked) count++
+  }
+  selectedServiceCount.value = count;
+}
+
+function onPostingServiceChange() {
+  updateSelectedServiceCount()
+}
+
+const canSubmit = computed(() => contentLength.value > 0 && (selectedServiceCount.value > 0 || saveAsCannedPost.value))
+const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCount.value > 0)
 
 	async function startPost(cannedPostId) {
 		if (!cannedPostId) {
@@ -186,6 +277,7 @@
 				postTextarea.value.value = response.post.content;
 				// Update the character count
 				postLength.value = response.post.content.length;
+				contentLength.value = response.post.content.length;
 				if (postLengthCounter.value) {
 					if (response.post.content.length > 280) {
 						postLengthCounter.value.classList.add('bad');
@@ -242,6 +334,7 @@
                 // Clear the textarea
                 document.getElementById('post').value = '';
                 postLength.value = 0;
+                contentLength.value = 0;
                 if (postLengthCounter.value) {
                     postLengthCounter.value.classList.remove('bad');
                 }
@@ -281,6 +374,7 @@
                 // Clear the textarea
                 document.getElementById('post').value = '';
                 postLength.value = 0;
+                contentLength.value = 0;
                 if (postLengthCounter.value) {
                     postLengthCounter.value.classList.remove('bad');
                 }
@@ -306,6 +400,21 @@
                 submit.innerText = "Post";
                 submit.disabled = false;
             });
+    }
+
+    function openScheduleDialog() {
+        showScheduleDialog.value = true;
+        scheduledAtDialog.value = scheduledAt.value || "";
+    }
+
+    function cancelScheduleDialog() {
+        showScheduleDialog.value = false;
+    }
+
+    function confirmScheduleDialog() {
+        scheduledAt.value = scheduledAtDialog.value;
+        showScheduleDialog.value = false;
+        submitPost();
     }
 
 	defineExpose({

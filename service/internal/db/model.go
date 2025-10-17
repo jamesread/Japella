@@ -27,6 +27,8 @@ type SocialAccount struct {
 
 	Connector          string         `db:"connector"`
 	Identity           string         `db:"identity"`
+	Did                string         `db:"did"`
+	Homeserver         string         `db:"homeserver"`
 	OAuth2Token        string         `db:"oauth2_token"`
 	OAuth2TokenExpiry  time.Time      `db:"oauth2_token_expiry"`
 	OAuth2RefreshToken string         `db:"oauth2_refresh_token"`
@@ -126,4 +128,5 @@ type Campaign struct {
 	LastPostDate *time.Time `db:"last_post_date"`
 	StartDate    time.Time  `db:"start_date"`
 	EndDate      time.Time  `db:"end_date"`
+	AccountCount int32      `db:"account_count"`
 }

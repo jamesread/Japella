@@ -114,6 +114,15 @@ const (
 	// JapellaControlApiServiceUpdateCannedPostProcedure is the fully-qualified name of the
 	// JapellaControlApiService's UpdateCannedPost RPC.
 	JapellaControlApiServiceUpdateCannedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateCannedPost"
+	// JapellaControlApiServiceAddSocialAccountToCampaignProcedure is the fully-qualified name of the
+	// JapellaControlApiService's AddSocialAccountToCampaign RPC.
+	JapellaControlApiServiceAddSocialAccountToCampaignProcedure = "/japella.controlapi.v1.JapellaControlApiService/AddSocialAccountToCampaign"
+	// JapellaControlApiServiceRemoveSocialAccountFromCampaignProcedure is the fully-qualified name of
+	// the JapellaControlApiService's RemoveSocialAccountFromCampaign RPC.
+	JapellaControlApiServiceRemoveSocialAccountFromCampaignProcedure = "/japella.controlapi.v1.JapellaControlApiService/RemoveSocialAccountFromCampaign"
+	// JapellaControlApiServiceGetCampaignSocialAccountsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetCampaignSocialAccounts RPC.
+	JapellaControlApiServiceGetCampaignSocialAccountsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCampaignSocialAccounts"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -146,6 +155,9 @@ type JapellaControlApiServiceClient interface {
 	UpdateCampaign(context.Context, *connect.Request[v1.UpdateCampaignRequest]) (*connect.Response[v1.UpdateCampaignResponse], error)
 	DeleteCampaign(context.Context, *connect.Request[v1.DeleteCampaignRequest]) (*connect.Response[v1.DeleteCampaignResponse], error)
 	UpdateCannedPost(context.Context, *connect.Request[v1.UpdateCannedPostRequest]) (*connect.Response[v1.UpdateCannedPostResponse], error)
+	AddSocialAccountToCampaign(context.Context, *connect.Request[v1.AddSocialAccountToCampaignRequest]) (*connect.Response[v1.AddSocialAccountToCampaignResponse], error)
+	RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error)
+	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -322,38 +334,59 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateCannedPost")),
 			connect.WithClientOptions(opts...),
 		),
+		addSocialAccountToCampaign: connect.NewClient[v1.AddSocialAccountToCampaignRequest, v1.AddSocialAccountToCampaignResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceAddSocialAccountToCampaignProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("AddSocialAccountToCampaign")),
+			connect.WithClientOptions(opts...),
+		),
+		removeSocialAccountFromCampaign: connect.NewClient[v1.RemoveSocialAccountFromCampaignRequest, v1.RemoveSocialAccountFromCampaignResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRemoveSocialAccountFromCampaignProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RemoveSocialAccountFromCampaign")),
+			connect.WithClientOptions(opts...),
+		),
+		getCampaignSocialAccounts: connect.NewClient[v1.GetCampaignSocialAccountsRequest, v1.GetCampaignSocialAccountsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetCampaignSocialAccountsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCampaignSocialAccounts")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // japellaControlApiServiceClient implements JapellaControlApiServiceClient.
 type japellaControlApiServiceClient struct {
-	getStatus                    *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	submitPost                   *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
-	getCannedPosts               *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
-	getCannedPost                *connect.Client[v1.GetCannedPostRequest, v1.GetCannedPostResponse]
-	createCannedPost             *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
-	deleteCannedPost             *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
-	getSocialAccounts            *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
-	deleteSocialAccount          *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
-	refreshSocialAccount         *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
-	getConnectors                *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
-	startOAuth                   *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
-	getTimeline                  *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
-	setSocialAccountActive       *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
-	loginWithUsernameAndPassword *connect.Client[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse]
-	getUsers                     *connect.Client[v1.GetUsersRequest, v1.GetUsersResponse]
-	getApiKeys                   *connect.Client[v1.GetApiKeysRequest, v1.GetApiKeysResponse]
-	getCvars                     *connect.Client[v1.GetCvarsRequest, v1.GetCvarsResponse]
-	saveUserPreferences          *connect.Client[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse]
-	createApiKey                 *connect.Client[v1.CreateApiKeyRequest, v1.CreateApiKeyResponse]
-	revokeApiKey                 *connect.Client[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse]
-	setCvar                      *connect.Client[v1.SetCvarRequest, v1.SetCvarResponse]
-	registerConnector            *connect.Client[v1.RegisterConnectorRequest, v1.RegisterConnectorResponse]
-	createCampaign               *connect.Client[v1.CreateCampaignRequest, v1.CreateCampaignResponse]
-	getCampaigns                 *connect.Client[v1.GetCampaignsRequest, v1.GetCampaignsResponse]
-	updateCampaign               *connect.Client[v1.UpdateCampaignRequest, v1.UpdateCampaignResponse]
-	deleteCampaign               *connect.Client[v1.DeleteCampaignRequest, v1.DeleteCampaignResponse]
-	updateCannedPost             *connect.Client[v1.UpdateCannedPostRequest, v1.UpdateCannedPostResponse]
+	getStatus                       *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	submitPost                      *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
+	getCannedPosts                  *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
+	getCannedPost                   *connect.Client[v1.GetCannedPostRequest, v1.GetCannedPostResponse]
+	createCannedPost                *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
+	deleteCannedPost                *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
+	getSocialAccounts               *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
+	deleteSocialAccount             *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
+	refreshSocialAccount            *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
+	getConnectors                   *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
+	startOAuth                      *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
+	getTimeline                     *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
+	setSocialAccountActive          *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
+	loginWithUsernameAndPassword    *connect.Client[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse]
+	getUsers                        *connect.Client[v1.GetUsersRequest, v1.GetUsersResponse]
+	getApiKeys                      *connect.Client[v1.GetApiKeysRequest, v1.GetApiKeysResponse]
+	getCvars                        *connect.Client[v1.GetCvarsRequest, v1.GetCvarsResponse]
+	saveUserPreferences             *connect.Client[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse]
+	createApiKey                    *connect.Client[v1.CreateApiKeyRequest, v1.CreateApiKeyResponse]
+	revokeApiKey                    *connect.Client[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse]
+	setCvar                         *connect.Client[v1.SetCvarRequest, v1.SetCvarResponse]
+	registerConnector               *connect.Client[v1.RegisterConnectorRequest, v1.RegisterConnectorResponse]
+	createCampaign                  *connect.Client[v1.CreateCampaignRequest, v1.CreateCampaignResponse]
+	getCampaigns                    *connect.Client[v1.GetCampaignsRequest, v1.GetCampaignsResponse]
+	updateCampaign                  *connect.Client[v1.UpdateCampaignRequest, v1.UpdateCampaignResponse]
+	deleteCampaign                  *connect.Client[v1.DeleteCampaignRequest, v1.DeleteCampaignResponse]
+	updateCannedPost                *connect.Client[v1.UpdateCannedPostRequest, v1.UpdateCannedPostResponse]
+	addSocialAccountToCampaign      *connect.Client[v1.AddSocialAccountToCampaignRequest, v1.AddSocialAccountToCampaignResponse]
+	removeSocialAccountFromCampaign *connect.Client[v1.RemoveSocialAccountFromCampaignRequest, v1.RemoveSocialAccountFromCampaignResponse]
+	getCampaignSocialAccounts       *connect.Client[v1.GetCampaignSocialAccountsRequest, v1.GetCampaignSocialAccountsResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -493,6 +526,24 @@ func (c *japellaControlApiServiceClient) UpdateCannedPost(ctx context.Context, r
 	return c.updateCannedPost.CallUnary(ctx, req)
 }
 
+// AddSocialAccountToCampaign calls
+// japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign.
+func (c *japellaControlApiServiceClient) AddSocialAccountToCampaign(ctx context.Context, req *connect.Request[v1.AddSocialAccountToCampaignRequest]) (*connect.Response[v1.AddSocialAccountToCampaignResponse], error) {
+	return c.addSocialAccountToCampaign.CallUnary(ctx, req)
+}
+
+// RemoveSocialAccountFromCampaign calls
+// japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign.
+func (c *japellaControlApiServiceClient) RemoveSocialAccountFromCampaign(ctx context.Context, req *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error) {
+	return c.removeSocialAccountFromCampaign.CallUnary(ctx, req)
+}
+
+// GetCampaignSocialAccounts calls
+// japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts.
+func (c *japellaControlApiServiceClient) GetCampaignSocialAccounts(ctx context.Context, req *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error) {
+	return c.getCampaignSocialAccounts.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -523,6 +574,9 @@ type JapellaControlApiServiceHandler interface {
 	UpdateCampaign(context.Context, *connect.Request[v1.UpdateCampaignRequest]) (*connect.Response[v1.UpdateCampaignResponse], error)
 	DeleteCampaign(context.Context, *connect.Request[v1.DeleteCampaignRequest]) (*connect.Response[v1.DeleteCampaignResponse], error)
 	UpdateCannedPost(context.Context, *connect.Request[v1.UpdateCannedPostRequest]) (*connect.Response[v1.UpdateCannedPostResponse], error)
+	AddSocialAccountToCampaign(context.Context, *connect.Request[v1.AddSocialAccountToCampaignRequest]) (*connect.Response[v1.AddSocialAccountToCampaignResponse], error)
+	RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error)
+	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -694,6 +748,24 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateCannedPost")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceAddSocialAccountToCampaignHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceAddSocialAccountToCampaignProcedure,
+		svc.AddSocialAccountToCampaign,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("AddSocialAccountToCampaign")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceRemoveSocialAccountFromCampaignHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRemoveSocialAccountFromCampaignProcedure,
+		svc.RemoveSocialAccountFromCampaign,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RemoveSocialAccountFromCampaign")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetCampaignSocialAccountsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetCampaignSocialAccountsProcedure,
+		svc.GetCampaignSocialAccounts,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCampaignSocialAccounts")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -750,6 +822,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceDeleteCampaignHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceUpdateCannedPostProcedure:
 			japellaControlApiServiceUpdateCannedPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceAddSocialAccountToCampaignProcedure:
+			japellaControlApiServiceAddSocialAccountToCampaignHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRemoveSocialAccountFromCampaignProcedure:
+			japellaControlApiServiceRemoveSocialAccountFromCampaignHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetCampaignSocialAccountsProcedure:
+			japellaControlApiServiceGetCampaignSocialAccountsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -865,4 +943,16 @@ func (UnimplementedJapellaControlApiServiceHandler) DeleteCampaign(context.Conte
 
 func (UnimplementedJapellaControlApiServiceHandler) UpdateCannedPost(context.Context, *connect.Request[v1.UpdateCannedPostRequest]) (*connect.Response[v1.UpdateCannedPostResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) AddSocialAccountToCampaign(context.Context, *connect.Request[v1.AddSocialAccountToCampaignRequest]) (*connect.Response[v1.AddSocialAccountToCampaignResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts is not implemented"))
 }

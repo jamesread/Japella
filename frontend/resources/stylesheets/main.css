@@ -170,37 +170,6 @@ aside ul li a {
 	}
 }
 
-/* Sidebar separator styling for dark background */
-.sidebar-separator {
-	border-top: 1px solid rgba(255, 255, 255, 0.1);
-	margin: 0.5em 0;
-	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-	height: 1px;
-}
-
-/* Alternative separator styling with subtle glow effect */
-.sidebar-separator-glow {
-	border-top: 1px solid rgba(255, 255, 255, 0.15);
-	margin: 0.75em 0;
-	background: linear-gradient(90deg,
-		transparent 0%,
-		rgba(255, 255, 255, 0.1) 20%,
-		rgba(255, 255, 255, 0.2) 50%,
-		rgba(255, 255, 255, 0.1) 80%,
-		transparent 100%
-	);
-	height: 1px;
-	box-shadow: 0 0 4px rgba(255, 255, 255, 0.1);
-}
-
-/* Minimal separator styling */
-.sidebar-separator-minimal {
-	border-top: 1px solid rgba(255, 255, 255, 0.08);
-	margin: 0.5em 1em;
-	height: 1px;
-}
-
-/* Target Picocrank sidebar separators specifically - subtle gray line */
 .sidebar hr,
 .sidebar .separator,
 .sidebar [class*="separator"],
@@ -212,16 +181,6 @@ aside ul li a {
 	background-color: transparent !important;
 	height: 1px;
 	box-shadow: none;
-}
-
-/* Dark theme specific separator styling - even more subtle */
-@media (prefers-color-scheme: dark) {
-	.sidebar hr,
-	.sidebar .separator,
-	.sidebar [class*="separator"],
-	.sidebar [id*="separator"] {
-		border-top: 1px solid rgba(128, 128, 128, 0.15);
-	}
 }
 
 /* Dark theme overrides for Picocrank Calendar */
