@@ -1,8 +1,8 @@
 package db
 
 import (
-	"time"
 	"database/sql"
+	"time"
 )
 
 type Model struct {
@@ -25,13 +25,13 @@ type Model struct {
 type SocialAccount struct {
 	Model
 
-	Connector          string    `db:"connector"`
-	Identity           string    `db:"identity"`
-	OAuth2Token        string    `db:"oauth2_token"`
-	OAuth2TokenExpiry  time.Time `db:"oauth2_token_expiry"`
-	OAuth2RefreshToken string    `db:"oauth2_refresh_token"`
+	Connector          string         `db:"connector"`
+	Identity           string         `db:"identity"`
+	OAuth2Token        string         `db:"oauth2_token"`
+	OAuth2TokenExpiry  time.Time      `db:"oauth2_token_expiry"`
+	OAuth2RefreshToken string         `db:"oauth2_refresh_token"`
 	DpopKey            sql.NullString `db:"dpop_key"`
-	Active             bool      `db:"active"`
+	Active             bool           `db:"active"`
 }
 
 type CannedPost struct {
@@ -45,12 +45,14 @@ type Post struct {
 
 	SocialAccountID uint32 `db:"social_account_id"`
 	SocialAccount   *SocialAccount
-	Status          bool   `db:"status"`
-	Content         string `db:"content"`
-	PostURL         string `db:"post_url"`
-	RemoteID        string `db:"remote_id"`
-	CampaignID      sql.NullInt32 `db:"campaign_id"`
-	CampaignName   sql.NullString `db:"campaign_name"`
+	Status          bool           `db:"status"`
+	State           string         `db:"state"`
+	Content         string         `db:"content"`
+	PostURL         string         `db:"post_url"`
+	RemoteID        string         `db:"remote_id"`
+	ScheduledAt     sql.NullTime   `db:"scheduled_at"`
+	CampaignID      sql.NullInt32  `db:"campaign_id"`
+	CampaignName    sql.NullString `db:"campaign_name"`
 }
 
 type UserAccount struct {
@@ -118,10 +120,10 @@ type UserPreferences struct {
 type Campaign struct {
 	Model
 
-	Name        string `db:"name"`
-	Description string `db:"description"`
-	PostCount   int32  `db:"post_count"`
+	Name         string     `db:"name"`
+	Description  string     `db:"description"`
+	PostCount    int32      `db:"post_count"`
 	LastPostDate *time.Time `db:"last_post_date"`
-	StartDate   time.Time `db:"start_date"`
-	EndDate     time.Time `db:"end_date"`
+	StartDate    time.Time  `db:"start_date"`
+	EndDate      time.Time  `db:"end_date"`
 }

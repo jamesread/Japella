@@ -11,6 +11,7 @@ import (
 
 	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/rs/cors"
 
@@ -63,6 +64,43 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 	s.cc = connectorcontroller.New(s.DB)
 
 	log.Infof("ControlAPI started")
+
+	// Start background scheduler for due posts
+	go func() {
+		ticker := time.NewTicker(1 * time.Minute)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			s.processDueScheduledPosts()
+		}
+	}()
+}
+func (s *ControlApi) processDueScheduledPosts() {
+	due, err := s.DB.SelectDueScheduledPosts(50)
+	if err != nil {
+		log.Errorf("Scheduler: failed to load due posts: %v", err)
+		return
+	}
+
+	for _, p := range due {
+		sa, err := s.DB.GetSocialAccount(p.SocialAccountID)
+		if err != nil || sa == nil {
+			log.Errorf("Scheduler: failed to load social account %d for post %d: %v", p.SocialAccountID, p.ID, err)
+			continue
+		}
+
+		status := &controlv1.PostStatus{SocialAccountId: p.SocialAccountID, Content: p.Content}
+		s.tryPostStatus(p.Content, sa, status)
+
+		if status.Success {
+			if err := s.DB.MarkPostCompleted(p.ID, status.PostUrl, true); err != nil {
+				log.Errorf("Scheduler: failed to mark post %d completed: %v", p.ID, err)
+			}
+		} else {
+			// leave state as scheduled; could add retries/failure state later
+			log.Warnf("Scheduler: posting failed for post %d, will retry next tick", p.ID)
+		}
+	}
 }
 
 func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[controlv1.GetCannedPostsRequest]) (*connect.Response[controlv1.GetCannedPostsResponse], error) {
@@ -163,6 +201,18 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 	log.Infof("Received post request for social accounts: %+v", req.Msg.SocialAccounts)
 
+	var scheduledTime *time.Time
+	if req.Msg.ScheduledAt != "" {
+		// Accept RFC3339 or 'YYYY-MM-DDTHH:MM'
+		if t, err := time.Parse(time.RFC3339, req.Msg.ScheduledAt); err == nil {
+			scheduledTime = &t
+		} else if t2, err2 := time.Parse("2006-01-02T15:04", req.Msg.ScheduledAt); err2 == nil {
+			scheduledTime = &t2
+		} else {
+			log.Warnf("Invalid scheduled_at format: %s", req.Msg.ScheduledAt)
+		}
+	}
+
 	for _, accountId := range req.Msg.SocialAccounts {
 		log.Infof("Processing post for account: %v", accountId)
 
@@ -174,15 +224,29 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 		socialAccount, _ := s.DB.GetSocialAccount(accountId)
 
-		s.tryPostStatus(req.Msg.Content, socialAccount, postStatus)
+		// If scheduled in the future, enqueue without posting now
+		if scheduledTime != nil && scheduledTime.After(time.Now().Add(5*time.Second)) {
+			_ = s.DB.CreatePost(&db.Post{
+				SocialAccountID: socialAccount.ID,
+				Content:         req.Msg.Content,
+				Status:          false,
+				State:           "scheduled",
+				ScheduledAt:     sql.NullTime{Time: *scheduledTime, Valid: true},
+				CampaignID:      sql.NullInt32{Int32: int32(req.Msg.CampaignId)},
+			})
+			postStatus.Success = true
+		} else {
+			s.tryPostStatus(req.Msg.Content, socialAccount, postStatus)
 
-		s.DB.CreatePost(&db.Post{
-			SocialAccountID: socialAccount.ID,
-			Content:         req.Msg.Content,
-			Status:          postStatus.Success,
-			PostURL:         postStatus.PostUrl,
-			CampaignID:      sql.NullInt32{Int32: int32(req.Msg.CampaignId)},
-		})
+			_ = s.DB.CreatePost(&db.Post{
+				SocialAccountID: socialAccount.ID,
+				Content:         req.Msg.Content,
+				Status:          postStatus.Success,
+				State:           "completed",
+				PostURL:         postStatus.PostUrl,
+				CampaignID:      sql.NullInt32{Int32: int32(req.Msg.CampaignId)},
+			})
+		}
 
 		res.Posts = append(res.Posts, postStatus)
 	}
@@ -436,9 +500,9 @@ func redirect(redirectUrl string, w http.ResponseWriter, message string, msgType
 	url := fmt.Sprintf("%v/?notification=%v&type=%v", redirectUrl, message, msgType)
 
 	w.Header().Set("Location", url)
-	w.Write([]byte(fmt.Sprintf("<html><head><meta http-equiv = \"Refresh\" content = \"0; URL=" + url + "\" /></head>")))
-	w.Write([]byte(fmt.Sprintf("<body><style type = \"text/css\">body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; }</style>")))
-	w.Write([]byte(fmt.Sprintf("<h1>Redirecting...</h1><p>%s</p><a href = \"%v\">click here</a></body></html>", message, url)))
+	w.Write([]byte("<html><head><meta http-equiv = \"Refresh\" content = \"0; URL=" + url + "\" /></head>"))
+	w.Write([]byte("<body><style type = \"text/css\">body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; }</style>"))
+	w.Write([]byte("<h1>Redirecting...</h1><p>" + message + "</p><a href = \"" + url + "\">click here</a></body></html>"))
 
 	log.Infof("Redirecting with message: %v", message)
 }
@@ -785,11 +849,6 @@ func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[cont
 		},
 		NewKeyValue: newKeyValue,
 	})
-
-	if err != nil {
-		log.Errorf("Error creating API key: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create API key: %w", err))
-	}
 
 	log.Infof("API key created successfully: %s", apiKey.KeyValue)
 

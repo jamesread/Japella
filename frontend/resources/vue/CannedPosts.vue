@@ -21,7 +21,7 @@
 			<div v-if="posts.length === 0">
 				<p class="inline-notification note">No canned posts available. Please create a new canned post.</p>
 			</div>
-			<table v-else>
+			<table class = "data-table" v-else>
 				<thead>
 					<tr>
 						<th>Content</th>

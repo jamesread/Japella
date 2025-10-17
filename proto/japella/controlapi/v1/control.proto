@@ -8,6 +8,7 @@ message SubmitPostRequest {
 	string content = 1;
 	repeated uint32 social_accounts = 2;
     uint32 campaign_id = 3;
+    string scheduled_at = 4; // RFC3339 or 'YYYY-MM-DDTHH:MM' local time
 }
 
 message SubmitPostResponse {

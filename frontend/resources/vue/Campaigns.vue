@@ -17,7 +17,7 @@
 		<div v-if="!campaignList || campaignList.length === 0">
 			<p class="inline-notification note">No campaigns available. Please create a new campaign.</p>
 		</div>
-		<table v-else>
+		<table class = "data-table" v-else>
 			<thead>
 				<tr>
 					<th>Name</th>

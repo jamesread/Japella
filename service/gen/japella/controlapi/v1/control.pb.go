@@ -26,6 +26,7 @@ type SubmitPostRequest struct {
 	Content        string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
 	SocialAccounts []uint32               `protobuf:"varint,2,rep,packed,name=social_accounts,json=socialAccounts,proto3" json:"social_accounts,omitempty"`
 	CampaignId     uint32                 `protobuf:"varint,3,opt,name=campaign_id,json=campaignId,proto3" json:"campaign_id,omitempty"`
+	ScheduledAt    string                 `protobuf:"bytes,4,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"` // RFC3339 or 'YYYY-MM-DDTHH:MM' local time
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
@@ -79,6 +80,13 @@ func (x *SubmitPostRequest) GetCampaignId() uint32 {
 		return x.CampaignId
 	}
 	return 0
+}
+
+func (x *SubmitPostRequest) GetScheduledAt() string {
+	if x != nil {
+		return x.ScheduledAt
+	}
+	return ""
 }
 
 type SubmitPostResponse struct {
@@ -3389,12 +3397,13 @@ var File_japella_controlapi_v1_control_proto protoreflect.FileDescriptor
 
 const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\n" +
-	"#japella/controlapi/v1/control.proto\x12\x15japella.controlapi.v1\"w\n" +
+	"#japella/controlapi/v1/control.proto\x12\x15japella.controlapi.v1\"\x9a\x01\n" +
 	"\x11SubmitPostRequest\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12'\n" +
 	"\x0fsocial_accounts\x18\x02 \x03(\rR\x0esocialAccounts\x12\x1f\n" +
 	"\vcampaign_id\x18\x03 \x01(\rR\n" +
-	"campaignId\"M\n" +
+	"campaignId\x12!\n" +
+	"\fscheduled_at\x18\x04 \x01(\tR\vscheduledAt\"M\n" +
 	"\x12SubmitPostResponse\x127\n" +
 	"\x05posts\x18\x01 \x03(\v2!.japella.controlapi.v1.PostStatusR\x05posts\"\xdf\x02\n" +
 	"\n" +

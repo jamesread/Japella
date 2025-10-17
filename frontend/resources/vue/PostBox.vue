@@ -54,6 +54,9 @@
 
             <textarea ref = "postTextarea" id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!" @keyup = "recountLength" ></textarea>
 
+            <label for="scheduledAt">Schedule (optional):</label>
+            <input id="scheduledAt" type="datetime-local" v-model="scheduledAt" />
+
             <fieldset>
                 <button id = "submit" type = "submit">{{ t('section.postbox.submit') }}</button>
             </fieldset>
@@ -81,6 +84,7 @@
 	const campaigns = ref([]);
 	const selectedCampaignId = ref(0);
 	const saveAsCannedPost = ref(true);
+    const scheduledAt = ref("");
 
 	const route = useRoute();
 
@@ -263,6 +267,10 @@
 			campaignId: selectedCampaignId.value,
         }
 
+        if (scheduledAt.value) {
+            req.scheduledAt = scheduledAt.value;
+        }
+
         console.log(req)
 
         window.client.submitPost(req)
@@ -276,6 +284,9 @@
                 if (postLengthCounter.value) {
                     postLengthCounter.value.classList.remove('bad');
                 }
+
+                // Clear scheduling input
+                scheduledAt.value = "";
 
                 for (let x of res.posts) {
                     let status = ""

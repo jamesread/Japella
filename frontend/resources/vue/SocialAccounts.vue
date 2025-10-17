@@ -18,7 +18,7 @@
 			<div v-if="accounts.length === 0">
 				<p class="inline-notification note">No social accounts connected yet.</p>
 			</div>
-			<table v-else>
+			<table class = "data-table" v-else>
 				<thead>
 					<tr>
 						<th>Identity</th>
@@ -34,9 +34,11 @@
 							</span>
 						</td>
 						<td align="right">
-							<button @click="refreshAccount(account.id)" class="good">
-								<Icon icon="material-symbols:refresh" />
-							</button>
+						<button @click="refreshAccount(account.id)" class="good" :disabled="isAccountRefreshing(account.id)">
+							<Icon v-if="isAccountSuccess(account.id)" icon="material-symbols:check-circle" />
+							<Icon v-else-if="isAccountRefreshing(account.id)" icon="material-symbols:hourglass-top" />
+							<Icon v-else icon="material-symbols:refresh" />
+						</button>
 
 							&nbsp;
 
@@ -74,6 +76,16 @@
 	const errorMessage = ref("")
 	const accounts = ref([])
 	const showErrorDialog = inject('showSectionError')
+	const refreshingAccounts = ref(new Set())
+	const successAccounts = ref(new Set())
+
+	function isAccountRefreshing(accountId) {
+		return refreshingAccounts.value.has(accountId)
+	}
+
+	function isAccountSuccess(accountId) {
+		return successAccounts.value.has(accountId)
+	}
 
 	function deleteAccount(accountId) {
 		if (!confirm("Are you sure you want to delete this account?")) {
@@ -91,6 +103,8 @@
 	}
 
 	function refreshAccount(accountId) {
+		refreshingAccounts.value.add(accountId)
+
 		window.client.refreshSocialAccount({ "id": accountId })
 			.then((ret) => {
 				if (!ret.standardResponse.success) {
@@ -98,11 +112,22 @@
 				    showErrorDialog?.(ret.standardResponse.message)
 				}
 
+				// Mark success briefly when the refresh call succeeds at the transport level
+				if (ret.standardResponse.success) {
+					successAccounts.value.add(accountId)
+					setTimeout(() => {
+						successAccounts.value.delete(accountId)
+					}, 1500)
+				}
+
 				refreshAccounts()
 			})
 			.catch((error) => {
 				errorMessage.value = "Failed to refresh social account: " + error.message
 				console.error('Error refreshing social account:', error)
+			})
+			.finally(() => {
+				refreshingAccounts.value.delete(accountId)
 			})
 	}
 

@@ -349,7 +349,7 @@ func (db *DB) DeleteSocialAccount(id uint32) error {
 }
 
 func (db *DB) CreatePost(post *Post) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO posts (social_account_id, status, content, post_url, remote_id, created_at, updated_at) VALUES (:social_account_id, :status, :content, :post_url, :remote_id, NOW(), NOW())`, post)
+	_, err := db.ResilientNamedExec(`INSERT INTO posts (social_account_id, status, state, content, post_url, remote_id, scheduled_at, created_at, updated_at, campaign_id) VALUES (:social_account_id, :status, :state, :content, :post_url, :remote_id, :scheduled_at, NOW(), NOW(), :campaign_id)`, post)
 	if err != nil {
 		db.Logger().Errorf("Failed to create post: %v", err)
 		return err
@@ -359,12 +359,31 @@ func (db *DB) CreatePost(post *Post) error {
 
 func (db *DB) SelectPosts() ([]*Post, error) {
 	ret := make([]*Post, 0)
-	err := db.ResilientSelect(&ret, "SELECT p.id, p.social_account_id, p.status, p.content, p.post_url, p.remote_id, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name FROM posts p LEFT JOIN campaigns c ON p.campaign_id = c.id ORDER BY p.id DESC")
+	err := db.ResilientSelect(&ret, "SELECT p.id, p.social_account_id, p.status, p.state, p.content, p.post_url, p.remote_id, p.scheduled_at, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name FROM posts p LEFT JOIN campaigns c ON p.campaign_id = c.id ORDER BY p.id DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select posts: %v", err)
 		return nil, err
 	}
 	return ret, nil
+}
+
+func (db *DB) SelectDueScheduledPosts(limit int) ([]*Post, error) {
+	ret := make([]*Post, 0)
+	err := db.ResilientSelect(&ret, "SELECT * FROM posts WHERE state = 'scheduled' AND scheduled_at IS NOT NULL AND scheduled_at <= NOW() ORDER BY scheduled_at ASC LIMIT ?", limit)
+	if err != nil {
+		db.Logger().Errorf("Failed to select due scheduled posts: %v", err)
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (db *DB) MarkPostCompleted(id uint32, postURL string, success bool) error {
+	_, err := db.ResilientExec("UPDATE posts SET state = 'completed', status = ?, post_url = ?, updated_at = NOW() WHERE id = ?", success, postURL, id)
+	if err != nil {
+		db.Logger().Errorf("Failed to mark post completed: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {

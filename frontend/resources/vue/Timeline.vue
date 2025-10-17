@@ -14,19 +14,20 @@
 		<div v-if="timeline.length === 0">
 			<p class="inline-notification note">No posts available.</p>
 		</div>
-		<table v-else>
+		<table class = "data-table" v-else>
 			<thead>
 				<tr>
 					<th>Social Account</th>
 					<th>Campaign</th>
 					<th>Content</th>
 					<th>Date</th>
+					<th>Status</th>
 					<th class="medium" style="text-align: right">URL</th>
 				</tr>
 			</thead>
 			<tbody>
 				<tr v-if="!clientReady">
-					<td colspan="5">Loading timeline...</td>
+					<td colspan="6">Loading timeline...</td>
 				</tr>
 				<tr v-else v-for="post in pagedTimeline" :key="post.id">
 					<td>
@@ -41,8 +42,12 @@
 					</td>
 					<td>{{ post.content }}</td>
 					<td>{{ post.created }}</td>
+					<td>
+						<span :class="statusClass(post)">{{ statusText(post) }}</span>
+					</td>
 					<td align="right">
-						<a :href="post.postUrl" target="_blank">link</a>
+						<a v-if="post.postUrl" :href="post.postUrl" target="_blank">link</a>
+						<span v-else>-</span>
 					</td>
 				</tr>
 			</tbody>
@@ -74,6 +79,20 @@
 		const start = (currentPage.value - 1) * pageSize.value;
 		return timeline.value.slice(start, start + pageSize.value);
 	});
+
+	function statusClass(post) {
+		// Preferred order: error -> bad, pending/scheduled -> note, completed/success -> good
+		if (post.state === 'error') return 'bad';
+		if (post.state === 'pending' || post.state === 'scheduled') return 'note';
+		if (post.success) return 'good';
+		return '';
+	}
+
+	function statusText(post) {
+		if (post.state === 'error') return 'Error';
+		if (post.state === 'pending' || post.state === 'scheduled') return 'Scheduled';
+		return post.success ? 'Completed' : 'Unknown';
+	}
 
 	async function getTimeline() {
 		if (!window.client) {
