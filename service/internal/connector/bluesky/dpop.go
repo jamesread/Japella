@@ -17,7 +17,13 @@ func base64urlEncode(data []byte) string {
 	return base64.RawURLEncoding.EncodeToString(data)
 }
 
-func createDPoPProof(privKey *ecdsa.PrivateKey, httpMethod, httpUrl, serverNonce string) (string, error) {
+// calculateAccessTokenHash calculates the SHA-256 hash of the access token for the "ath" claim
+func calculateAccessTokenHash(accessToken string) string {
+	hash := sha256.Sum256([]byte(accessToken))
+	return base64urlEncode(hash[:])
+}
+
+func createDPoPProof(privKey *ecdsa.PrivateKey, httpMethod, httpUrl, serverNonce, accessTokenHash string) (string, error) {
 	// JWT header
 	header := map[string]interface{}{
 		"typ": "dpop+jwt",
@@ -37,7 +43,16 @@ func createDPoPProof(privKey *ecdsa.PrivateKey, httpMethod, httpUrl, serverNonce
 		"htm": httpMethod,
 		"iat": now,
 		"jti": uuid.NewString(),
-		"nonce": serverNonce,
+	}
+
+	// Include access token hash if provided
+	if accessTokenHash != "" {
+		payload["ath"] = accessTokenHash
+	}
+
+	// Only include nonce if provided (not empty)
+	if serverNonce != "" {
+		payload["nonce"] = serverNonce
 	}
 
 	// Encode parts

@@ -14,7 +14,9 @@
 			</button>
 		</template>
 
-		<div v-if="!campaignList || campaignList.length === 0">
+		<Loading v-if="campaignsLoading" message="Loading campaigns..." :centered="true" />
+
+		<div v-else-if="!campaignList || campaignList.length === 0">
 			<p class="inline-notification note">No campaigns available. Please create a new campaign.</p>
 		</div>
 		<table class = "data-table" v-else>
@@ -27,7 +29,7 @@
 				</tr>
 			</thead>
 			<tbody>
-				<tr v-for="campaign in campaignList" :key="campaign.id">
+				<tr v-for="campaign in paginatedCampaigns" :key="campaign.id">
 					<td>
 					<template v-if="!campaign.editing">
 						<router-link :to="{ name: 'campaignDetails', params: { id: campaign.id } }">{{ campaign.name }}</router-link>
@@ -42,19 +44,29 @@
 					/>
 					</td>
 					<td>{{ campaign.postCount }}</td>
-					<td>{{ campaign.lastPostDate }}</td>
+					<td :title="getFullDate(campaign.lastPostDate)">{{ formatRelativeDate(campaign.lastPostDate) }}</td>
 					<td align="right">
-					<button @click="usePost(campaign)" class="good">
-							<Icon icon="jam:write-f" />
-						</button>
-					&nbsp;
 					<button @click="openAccountsDialog(campaign)" class="neutral">
 						<Icon icon="jam:users" /> {{ campaign.accountCount ?? 0 }}
 					</button>
+					&nbsp;
+					<button @click="usePost(campaign)" class="good">
+							<Icon icon="jam:write-f" />
+						</button>
 					</td>
 				</tr>
 			</tbody>
 		</table>
+
+		<!-- Pagination Controls -->
+		<div>
+			<Pagination
+				:total="campaignList.length"
+				:page="currentPage"
+				:page-size="pageSize"
+				@change="onPageChange"
+			/>
+		</div>
 
 	<!-- Campaign Accounts Dialog -->
 	<div v-if="showAccountsDialog" class="modal-overlay" @click.self="cancelAccountsDialog">
@@ -91,8 +103,26 @@
 		width: 95%;
 	}
 
+	.data-table {
+		width: 100%;
+		table-layout: fixed;
+	}
+
 	.larger {
-		min-width: 400px;;
+		width: 100%;
+		min-width: 200px;
+	}
+
+	th:nth-child(2) {
+		width: 80px;
+	}
+
+	th:nth-child(3) {
+		width: 120px;
+	}
+
+	th.actions {
+		width: 140px;
 	}
 
 	input.editable {
@@ -144,11 +174,23 @@
 <script setup>
 	import { waitForClient } from '../javascript/util.js'
 	import { Icon } from '@iconify/vue';
-	import { ref, onMounted } from 'vue';
+	import { ref, onMounted, computed } from 'vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import Loading from './Loading.vue';
+	import Pagination from 'picocrank/vue/components/Pagination.vue';
 
 	const campaignList = ref([]);
-	const clientReady = ref(false)
+	const clientReady = ref(false);
+	const campaignsLoading = ref(true);
+	const currentPage = ref(1);
+	const pageSize = ref(10);
+
+	// Computed properties
+	const totalPages = computed(() => Math.ceil(campaignList.value.length / pageSize.value));
+	const paginatedCampaigns = computed(() => {
+		const start = (currentPage.value - 1) * pageSize.value;
+		return campaignList.value.slice(start, start + pageSize.value);
+	});
 
 // Accounts dialog state
 const showAccountsDialog = ref(false)
@@ -190,6 +232,7 @@ const accountsSaving = ref(false)
 	}
 
 function refreshCampaigns() {
+    campaignsLoading.value = true;
     window.client.getCampaigns().then(res => {
         let campaigns = []
 
@@ -198,16 +241,93 @@ function refreshCampaigns() {
                 id: campaign.id,
                 name: campaign.name,
                 postCount: campaign.postCount || 0,
-                lastPostDate: campaign.lastPostDate || 'Never',
+                lastPostDate: campaign.lastPostDate || null,
 						accountCount: campaign.accountCount || 0,
                 originalName: campaign.name, // Store original name for comparison
             });
         }
 
         campaignList.value = campaigns;
+        currentPage.value = 1; // Reset to first page when data changes
     }).catch(error => {
         console.error("Error fetching campaigns:", error);
+        campaignList.value = [];
+        currentPage.value = 1; // Reset to first page on error
+    }).finally(() => {
+        campaignsLoading.value = false;
     });
+}
+
+function formatRelativeDate(dateString) {
+    if (!dateString || dateString === 'Never') {
+        return 'Never';
+    }
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+        
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSeconds = Math.floor(diffMs / 1000);
+        const diffMinutes = Math.floor(diffSeconds / 60);
+        const diffHours = Math.floor(diffMinutes / 60);
+        const diffDays = Math.floor(diffHours / 24);
+        const diffWeeks = Math.floor(diffDays / 7);
+        const diffMonths = Math.floor(diffDays / 30);
+        const diffYears = Math.floor(diffDays / 365);
+        
+        if (diffSeconds < 60) {
+            return 'Just now';
+        } else if (diffMinutes < 60) {
+            return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+        } else if (diffHours < 24) {
+            return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+        } else if (diffDays < 7) {
+            return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+        } else if (diffWeeks < 4) {
+            return `${diffWeeks} week${diffWeeks !== 1 ? 's' : ''} ago`;
+        } else if (diffMonths < 12) {
+            return `${diffMonths} month${diffMonths !== 1 ? 's' : ''} ago`;
+        } else {
+            return `${diffYears} year${diffYears !== 1 ? 's' : ''} ago`;
+        }
+    } catch (error) {
+        console.error('Error formatting date:', error);
+        return 'Invalid date';
+    }
+}
+
+function getFullDate(dateString) {
+    if (!dateString || dateString === 'Never') {
+        return 'No posts yet';
+    }
+    
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) {
+            return 'Invalid date';
+        }
+        
+        return date.toLocaleString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZoneName: 'short'
+        });
+    } catch (error) {
+        console.error('Error formatting full date:', error);
+        return 'Invalid date';
+    }
+}
+
+function onPageChange(newPage) {
+    currentPage.value = newPage;
 }
 
 async function openAccountsDialog(campaign) {

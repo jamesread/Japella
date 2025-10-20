@@ -18,6 +18,8 @@ import OAuthServices from '../vue/OAuthServices.vue'
 import ApiKeys from '../vue/ApiKeys.vue'
 import Media from '../vue/Media.vue'
 import ControlPanel from '../vue/ControlPanel.vue'
+import UserControlPanel from '../vue/UserControlPanel.vue'
+import PostDetails from '../vue/PostDetails.vue'
 
 import {
   SettingsIcon,
@@ -100,6 +102,15 @@ const routes = [
     meta: {
       icon: ClockIcon,
       title: 'Timeline',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/timeline/:id',
+    name: 'postDetails',
+    component: PostDetails,
+    meta: {
+      title: 'Post Details',
       requiresAuth: true
     }
   },
@@ -188,6 +199,15 @@ const routes = [
     meta: {
       icon: HomeIcon,
       title: 'Control Panel',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user-control-panel',
+    name: 'userControlPanel',
+    component: UserControlPanel,
+    meta: {
+      title: 'User Control Panel',
       requiresAuth: true
     }
   },

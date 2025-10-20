@@ -11,6 +11,7 @@ import (
 
 	"database/sql"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/rs/cors"
@@ -97,8 +98,11 @@ func (s *ControlApi) processDueScheduledPosts() {
 				log.Errorf("Scheduler: failed to mark post %d completed: %v", p.ID, err)
 			}
 		} else {
-			// leave state as scheduled; could add retries/failure state later
-			log.Warnf("Scheduler: posting failed for post %d, will retry next tick", p.ID)
+			// Mark failed posts as error state to prevent infinite retries
+			if err := s.DB.MarkPostCompleted(p.ID, "", false); err != nil {
+				log.Errorf("Scheduler: failed to mark post %d as error: %v", p.ID, err)
+			}
+			log.Warnf("Scheduler: posting failed for post %d, marked as error", p.ID)
 		}
 	}
 }
@@ -163,16 +167,32 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 
 	log.Infof("GetStatus called by user: %s.", username)
 
+	// Get the current listening address
+	listenAddress := os.Getenv("JAPELLA_LISTEN_ADDRESS")
+	if listenAddress == "" {
+		// Determine if we're using HTTPS or HTTP based on TLS certs
+		crt := os.Getenv("JAPELLA_TLS_CRT_PATH")
+		key := os.Getenv("JAPELLA_TLS_KEY_PATH")
+		if crt != "" && key != "" {
+			listenAddress = "0.0.0.0:443"
+		} else {
+			listenAddress = "0.0.0.0:8080"
+		}
+	}
+
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
-		Status:            "OK!",
-		Nanoservices:      nanoservice.GetNanoservices(),
-		Version:           buildinfo.Version,
-		Username:          username,
-		IsLoggedIn:        authenticatedUser != nil,
-		StatusMessages:    s.statusMessages,
-		UsesSecureCookies: os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
-		DatabaseHost:      s.DB.GetDatabaseHost(),
-		DatabaseName:      s.DB.GetDatabaseName(),
+		Status:                "OK!",
+		Nanoservices:          nanoservice.GetNanoservices(),
+		Version:               buildinfo.Version,
+		Username:              username,
+		IsLoggedIn:            authenticatedUser != nil,
+		StatusMessages:        s.statusMessages,
+		UsesSecureCookies:     os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
+		DatabaseHost:          s.DB.GetDatabaseHost(),
+		DatabaseName:          s.DB.GetDatabaseName(),
+		ListenAddress:         listenAddress,
+		DatabaseSchemaVersion: s.DB.GetCurrentSchemaVersion(),
+		DatabaseSchemaDirty:   s.DB.GetCurrentSchemaDirty(),
 	})
 
 	return res, nil
@@ -238,11 +258,17 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		} else {
 			s.tryPostStatus(req.Msg.Content, socialAccount, postStatus)
 
+			// Determine the appropriate state based on success
+			state := "completed"
+			if !postStatus.Success {
+				state = "error"
+			}
+
 			_ = s.DB.CreatePost(&db.Post{
 				SocialAccountID: socialAccount.ID,
 				Content:         req.Msg.Content,
 				Status:          postStatus.Success,
-				State:           "completed",
+				State:           state,
 				PostURL:         postStatus.PostUrl,
 				CampaignID:      sql.NullInt32{Int32: int32(req.Msg.CampaignId)},
 			})
@@ -259,6 +285,7 @@ func (s *ControlApi) tryPostStatus(content string, socialAccount *db.SocialAccou
 
 	if postingService == nil {
 		log.Errorf("Posting service not found for connector: %s", socialAccount.Connector)
+		postStatus.Success = false
 		return
 	}
 
@@ -272,6 +299,7 @@ func (s *ControlApi) tryPostStatus(content string, socialAccount *db.SocialAccou
 
 		if postResult.Err != nil {
 			log.Errorf("Error posting to wall: %v", postResult.Err)
+			postStatus.Success = false
 			return
 		}
 
@@ -280,6 +308,7 @@ func (s *ControlApi) tryPostStatus(content string, socialAccount *db.SocialAccou
 
 	} else {
 		log.Warnf("Posting service does not support wall posting: %s", postingService.GetProtocol())
+		postStatus.Success = false
 		return
 	}
 }
@@ -609,11 +638,148 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 			PostUrl:               post.PostURL,
 			CampaignId:            uint32(post.CampaignID.Int32),
 			CampaignName:          post.CampaignName.String,
+			State:                 post.State,
 		})
 	}
 
 	res := connect.NewResponse(&controlv1.GetTimelineResponse{
 		Posts: timeline,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) UpdatePostCampaign(ctx context.Context, req *connect.Request[controlv1.UpdatePostCampaignRequest]) (*connect.Response[controlv1.UpdatePostCampaignResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	log.Infof("Updating post campaign for post ID: %d to campaign ID: %d", req.Msg.PostId, req.Msg.CampaignId)
+
+	// Update the post's campaign
+	err := s.DB.UpdatePostCampaign(req.Msg.PostId, req.Msg.CampaignId)
+	if err != nil {
+		log.Errorf("Error updating post campaign: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update post campaign: %w", err))
+	}
+
+	log.Infof("Successfully updated post campaign for post ID: %d", req.Msg.PostId)
+
+	res := connect.NewResponse(&controlv1.UpdatePostCampaignResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Post campaign updated successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) ForgetPost(ctx context.Context, req *connect.Request[controlv1.ForgetPostRequest]) (*connect.Response[controlv1.ForgetPostResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	log.Infof("Forgetting (deleting) post ID: %d", req.Msg.PostId)
+
+	// Delete the post
+	err := s.DB.DeletePost(req.Msg.PostId)
+	if err != nil {
+		log.Errorf("Error deleting post: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete post: %w", err))
+	}
+
+	log.Infof("Successfully deleted post ID: %d", req.Msg.PostId)
+
+	res := connect.NewResponse(&controlv1.ForgetPostResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Post deleted successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) RetryPost(ctx context.Context, req *connect.Request[controlv1.RetryPostRequest]) (*connect.Response[controlv1.RetryPostResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	log.Infof("Retrying post ID: %d", req.Msg.PostId)
+
+	// Get the post from database
+	post, err := s.DB.GetPost(req.Msg.PostId)
+	if err != nil {
+		log.Errorf("Error getting post: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get post: %w", err))
+	}
+
+	if post == nil {
+		log.Errorf("Post not found: %d", req.Msg.PostId)
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("post not found"))
+	}
+
+	// Only allow retrying posts in error state
+	if post.State != "error" {
+		log.Warnf("Cannot retry post %d with state: %s", req.Msg.PostId, post.State)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("can only retry posts in error state"))
+	}
+
+	// Get the social account
+	socialAccount, err := s.DB.GetSocialAccount(post.SocialAccountID)
+	if err != nil || socialAccount == nil {
+		log.Errorf("Error getting social account %d for post %d: %v", post.SocialAccountID, req.Msg.PostId, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get social account: %w", err))
+	}
+
+	// Create post status for retry attempt
+	postStatus := &controlv1.PostStatus{
+		Id:              post.ID,
+		SocialAccountId: post.SocialAccountID,
+		Content:         post.Content,
+		Success:         false,
+	}
+
+	// Try to post again
+	s.tryPostStatus(post.Content, socialAccount, postStatus)
+
+	// Update the post with the retry result
+	state := "completed"
+	if !postStatus.Success {
+		state = "error"
+	}
+
+	err = s.DB.MarkPostCompleted(post.ID, postStatus.PostUrl, postStatus.Success)
+	if err != nil {
+		log.Errorf("Error updating post after retry: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update post: %w", err))
+	}
+
+	// Set the post status fields for response
+	postStatus.Id = post.ID
+	postStatus.Created = post.CreatedAt.Format("2006-01-02 15:04:05")
+	postStatus.CampaignId = uint32(post.CampaignID.Int32)
+	postStatus.CampaignName = post.CampaignName.String
+
+	// Get social account info for response
+	if svc := s.cc.Get(socialAccount.Connector); svc != nil {
+		postStatus.SocialAccountIcon = svc.GetIcon()
+	}
+	postStatus.SocialAccountIdentity = socialAccount.Identity
+	postStatus.State = state
+
+	log.Infof("Post retry completed for post ID: %d, success: %v", req.Msg.PostId, postStatus.Success)
+
+	res := connect.NewResponse(&controlv1.RetryPostResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: fmt.Sprintf("Post retry %s", map[bool]string{true: "succeeded", false: "failed"}[postStatus.Success]),
+		},
+		PostStatus: postStatus,
 	})
 
 	return res, nil
@@ -699,6 +865,130 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 	}
 
 	log.Infof("Setting session cookie: %v", c.String())
+	res.Header().Add("Set-Cookie", c.String())
+
+	return res, nil
+}
+
+func (s *ControlApi) ChangePassword(ctx context.Context, req *connect.Request[controlv1.ChangePasswordRequest]) (*connect.Response[controlv1.ChangePasswordResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	user := authenticatedUser.User
+	log.Infof("Password change requested for user: %s", user.Username)
+
+	// Verify current password
+	if user.PasswordHash == "" {
+		log.Warnf("User has no password set: %s", user.Username)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user has no password set"))
+	}
+
+	match, err := utils.VerifyPassword(user.PasswordHash, req.Msg.CurrentPassword)
+	if err != nil || !match {
+		log.Warnf("Invalid current password for user: %s", user.Username)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid current password"))
+	}
+
+	// Validate new password
+	if len(req.Msg.NewPassword) < 8 {
+		log.Warnf("New password too short for user: %s", user.Username)
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("new password must be at least 8 characters long"))
+	}
+
+	// Hash new password
+	newPasswordHash, err := utils.HashPassword(req.Msg.NewPassword)
+	if err != nil {
+		log.Errorf("Error hashing new password for user %s: %v", user.Username, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash new password"))
+	}
+
+	// Update password in database
+	err = s.DB.UpdateUserPassword(user.ID, newPasswordHash)
+	if err != nil {
+		log.Errorf("Error updating password for user %s: %v", user.Username, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update password"))
+	}
+
+	log.Infof("Password successfully changed for user: %s", user.Username)
+
+	res := connect.NewResponse(&controlv1.ChangePasswordResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Password changed successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) Logout(ctx context.Context, req *connect.Request[controlv1.LogoutRequest]) (*connect.Response[controlv1.LogoutResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	user := authenticatedUser.User
+	log.Infof("Logout requested for user: %s", user.Username)
+
+	// Get the session ID from the request context
+	// We need to extract it from the cookie or request headers
+	cookie := req.Header().Get("Cookie")
+	if cookie == "" {
+		log.Warnf("No cookie found in logout request for user: %s", user.Username)
+	}
+
+	var sessionID string
+	if cookie != "" {
+		// Parse the cookie to extract the session ID
+		// Cookie format: "japella-sid=session_id"
+		cookieParts := strings.Split(cookie, ";")
+		for _, part := range cookieParts {
+			part = strings.TrimSpace(part)
+			if strings.HasPrefix(part, "japella-sid=") {
+				sessionID = strings.TrimPrefix(part, "japella-sid=")
+				break
+			}
+		}
+	}
+
+	if sessionID != "" {
+		// Delete the session from the database
+		err := s.DB.DeleteSession(sessionID)
+		if err != nil {
+			log.Errorf("Error deleting session for user %s: %v", user.Username, err)
+			// Don't return error here - we still want to clear the cookie
+		} else {
+			log.Infof("Session deleted for user: %s", user.Username)
+		}
+	}
+
+	// Create response with cookie clearing
+	res := connect.NewResponse(&controlv1.LogoutResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Logged out successfully",
+		},
+	})
+
+	// Clear the session cookie by setting it to expire immediately
+	c := http.Cookie{
+		Name:     "japella-sid",
+		Value:    "",
+		HttpOnly: true,
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1, // Expire immediately
+	}
+
+	if os.Getenv("JAPELLA_SECURE_COOKIES") == "false" {
+		c.Secure = false
+	} else {
+		c.Secure = true
+	}
+
+	log.Infof("Clearing session cookie: %v", c.String())
 	res.Header().Add("Set-Cookie", c.String())
 
 	return res, nil
@@ -939,7 +1229,7 @@ func (s *ControlApi) OAuthClientMetadataHandler(w http.ResponseWriter, r *http.R
 		GrantTypes:              []string{"authorization_code", "refresh_token"},
 		RedirectURIs:            []string{s.DB.GetCvarString(db.CvarKeys.BaseUrl) + "/oauth2callback"},
 		ResponseTypes:           []string{"code"},
-		Scope:                   "atproto transition:generic",
+		Scope:                   "atproto transition:generic repo:app.bsky.feed.post?action=create",
 		TokenEndpointAuthMethod: "none",
 	}
 

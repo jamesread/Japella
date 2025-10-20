@@ -26,6 +26,7 @@ message PostStatus {
 	string content = 8;
     uint32 campaign_id = 9;
     string campaign_name = 10;
+    string state = 11;
 }
 
 message GetStatusRequest {}
@@ -40,6 +41,9 @@ message GetStatusResponse {
     bool uses_secure_cookies = 8;
     string database_host = 9;
     string database_name = 10;
+    string listen_address = 11;
+    uint32 database_schema_version = 12;
+    bool database_schema_dirty = 13;
 }
 
 message StatusMessage {
@@ -164,6 +168,32 @@ message GetTimelineResponse {
 	repeated PostStatus posts = 1;
 }
 
+message UpdatePostCampaignRequest {
+	uint32 post_id = 1;
+	uint32 campaign_id = 2;
+}
+
+message UpdatePostCampaignResponse {
+	StandardResponse standard_response = 1;
+}
+
+message ForgetPostRequest {
+	uint32 post_id = 1;
+}
+
+message ForgetPostResponse {
+	StandardResponse standard_response = 1;
+}
+
+message RetryPostRequest {
+	uint32 post_id = 1;
+}
+
+message RetryPostResponse {
+	StandardResponse standard_response = 1;
+	PostStatus post_status = 2;
+}
+
 message SetSocialAccountActiveRequest {
 	uint32 id = 1;
 	bool active = 2;
@@ -182,6 +212,22 @@ message LoginWithUsernameAndPasswordResponse {
 	StandardResponse standard_response = 1;
 	string username = 2;
 	string token = 3;
+}
+
+message ChangePasswordRequest {
+	string current_password = 1;
+	string new_password = 2;
+}
+
+message ChangePasswordResponse {
+	StandardResponse standard_response = 1;
+}
+
+message LogoutRequest {
+}
+
+message LogoutResponse {
+	StandardResponse standard_response = 1;
 }
 
 message GetUsersRequest {
@@ -379,9 +425,19 @@ service JapellaControlApiService {
 
 	rpc GetTimeline(GetTimelineRequest) returns (GetTimelineResponse) {}
 
+	rpc UpdatePostCampaign(UpdatePostCampaignRequest) returns (UpdatePostCampaignResponse) {}
+
+	rpc ForgetPost(ForgetPostRequest) returns (ForgetPostResponse) {}
+
+	rpc RetryPost(RetryPostRequest) returns (RetryPostResponse) {}
+
 	rpc SetSocialAccountActive(SetSocialAccountActiveRequest) returns (SetSocialAccountActiveResponse) {}
 
 	rpc LoginWithUsernameAndPassword(LoginWithUsernameAndPasswordRequest) returns (LoginWithUsernameAndPasswordResponse) {}
+
+	rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {}
+
+	rpc Logout(LogoutRequest) returns (LogoutResponse) {}
 
 	rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {}
 

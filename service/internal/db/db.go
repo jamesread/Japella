@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -55,6 +56,14 @@ func (db *DB) GetDatabaseHost() string {
 
 func (db *DB) GetDatabaseName() string {
 	return db.dbconfig.Name
+}
+
+func (db *DB) GetCurrentSchemaVersion() uint32 {
+	return uint32(db.currentSchemaVersion)
+}
+
+func (db *DB) GetCurrentSchemaDirty() bool {
+	return db.currentSchemaDirty
 }
 
 func (db *DB) ReconnectLoop() {
@@ -204,6 +213,36 @@ func (db *DB) reconnectDatabase() error {
 }
 
 func (db *DB) initAdminUser(chain *ConnectionChain) {
+	// Check if admin password reset is requested via environment variable
+	if os.Getenv("JAPELLA_RESET_ADMIN_PASSWORD") != "" {
+		db.Logger().Warn("JAPELLA_RESET_ADMIN_PASSWORD environment variable is set, resetting admin password to 'admin'")
+
+		// Find the admin user
+		adminUser := db.GetUserByUsername("admin")
+		if adminUser != nil {
+			// Hash the new password
+			passwordHash, err := utils.HashPassword("admin")
+			if err != nil {
+				db.Logger().Errorf("Error hashing admin password: %v", err)
+				chain.err = err
+				return
+			}
+
+			// Update the admin password
+			err = db.UpdateUserPassword(adminUser.ID, passwordHash)
+			if err != nil {
+				db.Logger().Errorf("Failed to reset admin password: %v", err)
+				chain.err = err
+				return
+			}
+
+			db.Logger().Infof("Admin password successfully reset to 'admin'")
+		} else {
+			db.Logger().Warn("Admin user not found, creating new admin user")
+			// Fall through to create admin user
+		}
+	}
+
 	if !db.HasAnyUsers() {
 		db.Logger().Warn("No users found in the database, creating default admin user")
 
@@ -378,12 +417,44 @@ func (db *DB) SelectDueScheduledPosts(limit int) ([]*Post, error) {
 }
 
 func (db *DB) MarkPostCompleted(id uint32, postURL string, success bool) error {
-	_, err := db.ResilientExec("UPDATE posts SET state = 'completed', status = ?, post_url = ?, updated_at = NOW() WHERE id = ?", success, postURL, id)
+	state := "completed"
+	if !success {
+		state = "error"
+	}
+	_, err := db.ResilientExec("UPDATE posts SET state = ?, status = ?, post_url = ?, updated_at = NOW() WHERE id = ?", state, success, postURL, id)
 	if err != nil {
 		db.Logger().Errorf("Failed to mark post completed: %v", err)
 		return err
 	}
 	return nil
+}
+
+func (db *DB) UpdatePostCampaign(postID uint32, campaignID uint32) error {
+	_, err := db.ResilientExec("UPDATE posts SET campaign_id = ?, updated_at = NOW() WHERE id = ?", campaignID, postID)
+	if err != nil {
+		db.Logger().Errorf("Failed to update post campaign: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (db *DB) DeletePost(postID uint32) error {
+	_, err := db.ResilientExec("DELETE FROM posts WHERE id = ?", postID)
+	if err != nil {
+		db.Logger().Errorf("Failed to delete post: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (db *DB) GetPost(postID uint32) (*Post, error) {
+	var post Post
+	err := db.ResilientGet(&post, "SELECT p.id, p.social_account_id, p.status, p.state, p.content, p.post_url, p.remote_id, p.scheduled_at, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name FROM posts p LEFT JOIN campaigns c ON p.campaign_id = c.id WHERE p.id = ?", postID)
+	if err != nil {
+		db.Logger().Errorf("Failed to get post: %v", err)
+		return nil, err
+	}
+	return &post, nil
 }
 
 func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {
@@ -446,6 +517,15 @@ func (db *DB) CreateUserAccount(username, passwordHash string) (*UserAccount, er
 		Username:     username,
 		PasswordHash: passwordHash,
 	}, nil
+}
+
+func (db *DB) UpdateUserPassword(userID uint32, newPasswordHash string) error {
+	_, err := db.ResilientExec("UPDATE user_accounts SET password_hash = ?, updated_at = NOW() WHERE id = ?", newPasswordHash, userID)
+	if err != nil {
+		db.Logger().Errorf("Failed to update user password: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (db *DB) CreateApiKey(user *UserAccount, keyValue string) (*ApiKey, error) {
@@ -514,6 +594,15 @@ func (db *DB) GetSessionByID(sessionID string) *Session {
 	}
 
 	return &session
+}
+
+func (db *DB) DeleteSession(sessionID string) error {
+	_, err := db.ResilientExec("DELETE FROM sessions WHERE sid = ?", sessionID)
+	if err != nil {
+		db.Logger().Errorf("Failed to delete session: %v", err)
+		return err
+	}
+	return nil
 }
 
 func (db *DB) SelectUsers() ([]*UserAccount, error) {
@@ -662,7 +751,7 @@ func (db *DB) CreateCampaign(campaign *Campaign) error {
 
 func (db *DB) SelectCampaigns() ([]*Campaign, error) {
 	ret := make([]*Campaign, 0)
-	err := db.ResilientSelect(&ret, "SELECT c.*, count(p.id) as post_count, max(p.created_at) AS last_post_date, (SELECT COUNT(*) FROM campaign_social_accounts ca WHERE ca.campaign = c.id) AS account_count FROM campaigns c LEFT JOIN posts p ON p.campaign_id = c.id GROUP BY c.id ORDER BY id DESC")
+	err := db.ResilientSelect(&ret, "SELECT c.*, count(p.id) as post_count, max(p.created_at) AS last_post_date, (SELECT COUNT(*) FROM campaign_social_accounts ca WHERE ca.campaign = c.id) AS account_count FROM campaigns c LEFT JOIN posts p ON p.campaign_id = c.id GROUP BY c.id ORDER BY max(p.created_at) IS NULL, max(p.created_at) DESC, c.id DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select campaigns: %v", err)
 		return nil, err

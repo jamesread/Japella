@@ -69,12 +69,27 @@ const (
 	// JapellaControlApiServiceGetTimelineProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetTimeline RPC.
 	JapellaControlApiServiceGetTimelineProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetTimeline"
+	// JapellaControlApiServiceUpdatePostCampaignProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdatePostCampaign RPC.
+	JapellaControlApiServiceUpdatePostCampaignProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdatePostCampaign"
+	// JapellaControlApiServiceForgetPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ForgetPost RPC.
+	JapellaControlApiServiceForgetPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/ForgetPost"
+	// JapellaControlApiServiceRetryPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's RetryPost RPC.
+	JapellaControlApiServiceRetryPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/RetryPost"
 	// JapellaControlApiServiceSetSocialAccountActiveProcedure is the fully-qualified name of the
 	// JapellaControlApiService's SetSocialAccountActive RPC.
 	JapellaControlApiServiceSetSocialAccountActiveProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetSocialAccountActive"
 	// JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure is the fully-qualified name of the
 	// JapellaControlApiService's LoginWithUsernameAndPassword RPC.
 	JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure = "/japella.controlapi.v1.JapellaControlApiService/LoginWithUsernameAndPassword"
+	// JapellaControlApiServiceChangePasswordProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ChangePassword RPC.
+	JapellaControlApiServiceChangePasswordProcedure = "/japella.controlapi.v1.JapellaControlApiService/ChangePassword"
+	// JapellaControlApiServiceLogoutProcedure is the fully-qualified name of the
+	// JapellaControlApiService's Logout RPC.
+	JapellaControlApiServiceLogoutProcedure = "/japella.controlapi.v1.JapellaControlApiService/Logout"
 	// JapellaControlApiServiceGetUsersProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetUsers RPC.
 	JapellaControlApiServiceGetUsersProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUsers"
@@ -140,8 +155,13 @@ type JapellaControlApiServiceClient interface {
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
+	UpdatePostCampaign(context.Context, *connect.Request[v1.UpdatePostCampaignRequest]) (*connect.Response[v1.UpdatePostCampaignResponse], error)
+	ForgetPost(context.Context, *connect.Request[v1.ForgetPostRequest]) (*connect.Response[v1.ForgetPostResponse], error)
+	RetryPost(context.Context, *connect.Request[v1.RetryPostRequest]) (*connect.Response[v1.RetryPostResponse], error)
 	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
 	LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error)
+	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
+	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error)
 	GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error)
 	GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error)
@@ -244,6 +264,24 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
 			connect.WithClientOptions(opts...),
 		),
+		updatePostCampaign: connect.NewClient[v1.UpdatePostCampaignRequest, v1.UpdatePostCampaignResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdatePostCampaignProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePostCampaign")),
+			connect.WithClientOptions(opts...),
+		),
+		forgetPost: connect.NewClient[v1.ForgetPostRequest, v1.ForgetPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceForgetPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ForgetPost")),
+			connect.WithClientOptions(opts...),
+		),
+		retryPost: connect.NewClient[v1.RetryPostRequest, v1.RetryPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRetryPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RetryPost")),
+			connect.WithClientOptions(opts...),
+		),
 		setSocialAccountActive: connect.NewClient[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceSetSocialAccountActiveProcedure,
@@ -254,6 +292,18 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("LoginWithUsernameAndPassword")),
+			connect.WithClientOptions(opts...),
+		),
+		changePassword: connect.NewClient[v1.ChangePasswordRequest, v1.ChangePasswordResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceChangePasswordProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ChangePassword")),
+			connect.WithClientOptions(opts...),
+		),
+		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceLogoutProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("Logout")),
 			connect.WithClientOptions(opts...),
 		),
 		getUsers: connect.NewClient[v1.GetUsersRequest, v1.GetUsersResponse](
@@ -369,8 +419,13 @@ type japellaControlApiServiceClient struct {
 	getConnectors                   *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
 	startOAuth                      *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
 	getTimeline                     *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
+	updatePostCampaign              *connect.Client[v1.UpdatePostCampaignRequest, v1.UpdatePostCampaignResponse]
+	forgetPost                      *connect.Client[v1.ForgetPostRequest, v1.ForgetPostResponse]
+	retryPost                       *connect.Client[v1.RetryPostRequest, v1.RetryPostResponse]
 	setSocialAccountActive          *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
 	loginWithUsernameAndPassword    *connect.Client[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse]
+	changePassword                  *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	logout                          *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 	getUsers                        *connect.Client[v1.GetUsersRequest, v1.GetUsersResponse]
 	getApiKeys                      *connect.Client[v1.GetApiKeysRequest, v1.GetApiKeysResponse]
 	getCvars                        *connect.Client[v1.GetCvarsRequest, v1.GetCvarsResponse]
@@ -449,6 +504,21 @@ func (c *japellaControlApiServiceClient) GetTimeline(ctx context.Context, req *c
 	return c.getTimeline.CallUnary(ctx, req)
 }
 
+// UpdatePostCampaign calls japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign.
+func (c *japellaControlApiServiceClient) UpdatePostCampaign(ctx context.Context, req *connect.Request[v1.UpdatePostCampaignRequest]) (*connect.Response[v1.UpdatePostCampaignResponse], error) {
+	return c.updatePostCampaign.CallUnary(ctx, req)
+}
+
+// ForgetPost calls japella.controlapi.v1.JapellaControlApiService.ForgetPost.
+func (c *japellaControlApiServiceClient) ForgetPost(ctx context.Context, req *connect.Request[v1.ForgetPostRequest]) (*connect.Response[v1.ForgetPostResponse], error) {
+	return c.forgetPost.CallUnary(ctx, req)
+}
+
+// RetryPost calls japella.controlapi.v1.JapellaControlApiService.RetryPost.
+func (c *japellaControlApiServiceClient) RetryPost(ctx context.Context, req *connect.Request[v1.RetryPostRequest]) (*connect.Response[v1.RetryPostResponse], error) {
+	return c.retryPost.CallUnary(ctx, req)
+}
+
 // SetSocialAccountActive calls
 // japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive.
 func (c *japellaControlApiServiceClient) SetSocialAccountActive(ctx context.Context, req *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error) {
@@ -459,6 +529,16 @@ func (c *japellaControlApiServiceClient) SetSocialAccountActive(ctx context.Cont
 // japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword.
 func (c *japellaControlApiServiceClient) LoginWithUsernameAndPassword(ctx context.Context, req *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error) {
 	return c.loginWithUsernameAndPassword.CallUnary(ctx, req)
+}
+
+// ChangePassword calls japella.controlapi.v1.JapellaControlApiService.ChangePassword.
+func (c *japellaControlApiServiceClient) ChangePassword(ctx context.Context, req *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
+	return c.changePassword.CallUnary(ctx, req)
+}
+
+// Logout calls japella.controlapi.v1.JapellaControlApiService.Logout.
+func (c *japellaControlApiServiceClient) Logout(ctx context.Context, req *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {
+	return c.logout.CallUnary(ctx, req)
 }
 
 // GetUsers calls japella.controlapi.v1.JapellaControlApiService.GetUsers.
@@ -559,8 +639,13 @@ type JapellaControlApiServiceHandler interface {
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
+	UpdatePostCampaign(context.Context, *connect.Request[v1.UpdatePostCampaignRequest]) (*connect.Response[v1.UpdatePostCampaignResponse], error)
+	ForgetPost(context.Context, *connect.Request[v1.ForgetPostRequest]) (*connect.Response[v1.ForgetPostResponse], error)
+	RetryPost(context.Context, *connect.Request[v1.RetryPostRequest]) (*connect.Response[v1.RetryPostResponse], error)
 	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
 	LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error)
+	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
+	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error)
 	GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error)
 	GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error)
@@ -658,6 +743,24 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceUpdatePostCampaignHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdatePostCampaignProcedure,
+		svc.UpdatePostCampaign,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePostCampaign")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceForgetPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceForgetPostProcedure,
+		svc.ForgetPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ForgetPost")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceRetryPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRetryPostProcedure,
+		svc.RetryPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RetryPost")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceSetSocialAccountActiveHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceSetSocialAccountActiveProcedure,
 		svc.SetSocialAccountActive,
@@ -668,6 +771,18 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure,
 		svc.LoginWithUsernameAndPassword,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("LoginWithUsernameAndPassword")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceChangePasswordHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceChangePasswordProcedure,
+		svc.ChangePassword,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ChangePassword")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceLogoutHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceLogoutProcedure,
+		svc.Logout,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("Logout")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceGetUsersHandler := connect.NewUnaryHandler(
@@ -792,10 +907,20 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceStartOAuthHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetTimelineProcedure:
 			japellaControlApiServiceGetTimelineHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdatePostCampaignProcedure:
+			japellaControlApiServiceUpdatePostCampaignHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceForgetPostProcedure:
+			japellaControlApiServiceForgetPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRetryPostProcedure:
+			japellaControlApiServiceRetryPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceSetSocialAccountActiveProcedure:
 			japellaControlApiServiceSetSocialAccountActiveHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceLoginWithUsernameAndPasswordProcedure:
 			japellaControlApiServiceLoginWithUsernameAndPasswordHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceChangePasswordProcedure:
+			japellaControlApiServiceChangePasswordHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceLogoutProcedure:
+			japellaControlApiServiceLogoutHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetUsersProcedure:
 			japellaControlApiServiceGetUsersHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetApiKeysProcedure:
@@ -885,12 +1010,32 @@ func (UnimplementedJapellaControlApiServiceHandler) GetTimeline(context.Context,
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetTimeline is not implemented"))
 }
 
+func (UnimplementedJapellaControlApiServiceHandler) UpdatePostCampaign(context.Context, *connect.Request[v1.UpdatePostCampaignRequest]) (*connect.Response[v1.UpdatePostCampaignResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ForgetPost(context.Context, *connect.Request[v1.ForgetPostRequest]) (*connect.Response[v1.ForgetPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ForgetPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) RetryPost(context.Context, *connect.Request[v1.RetryPostRequest]) (*connect.Response[v1.RetryPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RetryPost is not implemented"))
+}
+
 func (UnimplementedJapellaControlApiServiceHandler) SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ChangePassword is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.Logout is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error) {

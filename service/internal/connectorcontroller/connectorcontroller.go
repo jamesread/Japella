@@ -4,6 +4,8 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connector/bluesky"
 	"github.com/jamesread/japella/internal/connector/discord"
+	"github.com/jamesread/japella/internal/connector/facebook"
+	"github.com/jamesread/japella/internal/connector/instagram"
 	"github.com/jamesread/japella/internal/connector/mastodon"
 	"github.com/jamesread/japella/internal/connector/telegram"
 	"github.com/jamesread/japella/internal/connector/x"
@@ -34,6 +36,8 @@ func New(dbc *db.DB) *ConnectionController {
 	cc.setupConnector(&mastodon.MastodonConnector{}, nil)
 	cc.setupConnector(&x.XConnector{}, nil)
 	cc.setupConnector(&bluesky.BlueskyConnector{}, nil)
+	cc.setupConnector(&facebook.FacebookConnector{}, nil)
+	cc.setupConnector(&instagram.InstagramConnector{}, nil)
 
 	return cc
 }
@@ -75,6 +79,10 @@ func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig
 		cc.setupConnector(&discord.DiscordConnector{}, wrapper.ConnectorConfig)
 	case "bluesky":
 		cc.setupConnector(&bluesky.BlueskyConnector{}, wrapper.ConnectorConfig)
+	case "facebook":
+		cc.setupConnector(&facebook.FacebookConnector{}, wrapper.ConnectorConfig)
+	case "instagram":
+		cc.setupConnector(&instagram.InstagramConnector{}, wrapper.ConnectorConfig)
 	default:
 		log.Errorf("Unknown controller type: " + wrapper.ConnectorType)
 	}
@@ -101,11 +109,9 @@ func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config
 	if ok {
 		cvars := configProvider.GetCvars()
 
-		if cvars != nil {
-			for _, cvar := range cvars {
-				if err := cc.db.InsertCvarIfNotExists(cvar); err != nil {
-					log.Errorf("Error creating cvar %s: %v", cvar.KeyName, err)
-				}
+		for _, cvar := range cvars {
+			if err := cc.db.InsertCvarIfNotExists(cvar); err != nil {
+				log.Errorf("Error creating cvar %s: %v", cvar.KeyName, err)
 			}
 		}
 	}

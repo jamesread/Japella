@@ -77,6 +77,36 @@
 						{{ systemStatus.databaseName || 'Unknown' }}
 					</div>
 				</div>
+
+				<div class="status-card">
+					<div class="status-header">
+						<Icon icon="material-symbols:settings-ethernet" />
+						<span>Listen Address</span>
+					</div>
+					<div class="status-value">
+						{{ systemStatus.listenAddress || 'Unknown' }}
+					</div>
+				</div>
+
+				<div class="status-card">
+					<div class="status-header">
+						<Icon icon="material-symbols:format-list-numbered" />
+						<span>Schema Version</span>
+					</div>
+					<div class="status-value">
+						{{ systemStatus.databaseSchemaVersion || 0 }}
+					</div>
+				</div>
+
+				<div class="status-card">
+					<div class="status-header">
+						<Icon icon="material-symbols:warning" />
+						<span>Schema Dirty</span>
+					</div>
+					<div class="status-value" :class="systemStatus.databaseSchemaDirty ? 'bad' : 'good'">
+						{{ systemStatus.databaseSchemaDirty ? 'Yes' : 'No' }}
+					</div>
+				</div>
 			</div>
 		</div>
 

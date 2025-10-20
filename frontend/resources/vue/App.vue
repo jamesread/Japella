@@ -7,7 +7,9 @@
 	>
 		<template #user-info>
 			<div class="user-info icon-and-text logo-with-title" v-if="isLoggedIn">
-				<span id="user-name">{{ username }}</span>
+				<router-link to="/user-control-panel" class="username-link">
+					<span id="user-name">{{ username }}</span>
+				</router-link>
 				<Icon icon="mdi:user" width="24" height="24" />
 			</div>
 		</template>
@@ -57,6 +59,22 @@
     footer span {
         display: inline-block;
         margin-right: 10px;
+    }
+
+    .username-link {
+        color: white;
+        text-decoration: none;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+
+    .username-link:hover {
+        color: #4CAF50;
+        text-decoration: underline;
+    }
+
+    .username-link:visited {
+        color: white;
     }
 </style>
 
