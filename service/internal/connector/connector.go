@@ -1,6 +1,8 @@
 package connector
 
 import (
+	"time"
+
 	"github.com/jamesread/japella/internal/db"
 )
 
@@ -21,6 +23,15 @@ type ConnectorWithWall interface {
 	BaseConnector
 
 	PostToWall(sa *SocialAccount, message string) *PostResult
+	FetchRecentPosts(sa *SocialAccount) ([]*FeedPost, error)
+}
+
+type FeedPost struct {
+	Content    string
+	PostedDate time.Time
+	AuthorID   uint32
+	RemoteURL  string
+	RemoteID   string
 }
 
 type SocialAccount struct {

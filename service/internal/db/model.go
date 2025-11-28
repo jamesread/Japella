@@ -130,3 +130,16 @@ type Campaign struct {
 	EndDate      time.Time  `db:"end_date"`
 	AccountCount int32      `db:"account_count"`
 }
+
+type Feed struct {
+	Model
+
+	SocialAccountID        uint32    `db:"social_account_id"`
+	Content                string    `db:"content"`
+	PostedDate             time.Time `db:"posted_date"`
+	AuthorID               uint32    `db:"author_id"`
+	RemoteURL              string    `db:"remote_url"`
+	RemoteID               string    `db:"remote_id"`
+	SocialAccountIdentity  string    `db:"social_account_identity"`
+	SocialAccountConnector string    `db:"social_account_connector"`
+}

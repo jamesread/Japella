@@ -194,6 +194,25 @@ message RetryPostResponse {
 	PostStatus post_status = 2;
 }
 
+message GetFeedRequest {
+}
+
+message GetFeedResponse {
+	repeated FeedPost posts = 1;
+}
+
+message FeedPost {
+	uint32 id = 1;
+	uint32 social_account_id = 2;
+	string social_account_icon = 3;
+	string social_account_identity = 4;
+	string content = 5;
+	string posted_date = 6;
+	uint32 author_id = 7;
+	string remote_url = 8;
+	string remote_id = 9;
+}
+
 message SetSocialAccountActiveRequest {
 	uint32 id = 1;
 	bool active = 2;
@@ -424,6 +443,8 @@ service JapellaControlApiService {
 	rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse) {}
 
 	rpc GetTimeline(GetTimelineRequest) returns (GetTimelineResponse) {}
+
+	rpc GetFeed(GetFeedRequest) returns (GetFeedResponse) {}
 
 	rpc UpdatePostCampaign(UpdatePostCampaignRequest) returns (UpdatePostCampaignResponse) {}
 

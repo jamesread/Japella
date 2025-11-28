@@ -20,6 +20,7 @@ import Media from '../vue/Media.vue'
 import ControlPanel from '../vue/ControlPanel.vue'
 import UserControlPanel from '../vue/UserControlPanel.vue'
 import PostDetails from '../vue/PostDetails.vue'
+import Feed from '../vue/Feed.vue'
 
 import {
   SettingsIcon,
@@ -111,6 +112,16 @@ const routes = [
     component: PostDetails,
     meta: {
       title: 'Post Details',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/feed',
+    name: 'feed',
+    component: Feed,
+    meta: {
+      icon: ActivityIcon,
+      title: 'Feed',
       requiresAuth: true
     }
   },

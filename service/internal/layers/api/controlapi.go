@@ -75,6 +75,16 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 			s.processDueScheduledPosts()
 		}
 	}()
+
+	// Start background scheduler for fetching recent posts
+	go func() {
+		ticker := time.NewTicker(5 * time.Minute) // Fetch every 5 minutes
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			s.processFeedFetching()
+		}
+	}()
 }
 func (s *ControlApi) processDueScheduledPosts() {
 	due, err := s.DB.SelectDueScheduledPosts(50)
@@ -105,6 +115,75 @@ func (s *ControlApi) processDueScheduledPosts() {
 			log.Warnf("Scheduler: posting failed for post %d, marked as error", p.ID)
 		}
 	}
+}
+
+func (s *ControlApi) processFeedFetching() {
+	log.Infof("FeedFetcher: starting feed fetch cycle")
+
+	// Get all social accounts
+	socialAccounts := s.DB.SelectSocialAccounts(true) // Only active accounts
+
+	for _, sa := range socialAccounts {
+		connectorService := s.cc.Get(sa.Connector)
+
+		if connectorService == nil {
+			log.Warnf("FeedFetcher: no connector found for %s", sa.Connector)
+			continue
+		}
+
+		// Check if connector supports wall operations
+		if wallConnector, ok := connectorService.(connector.ConnectorWithWall); ok {
+			log.Infof("FeedFetcher: fetching recent posts for %s account %d", sa.Connector, sa.ID)
+
+			// Convert db.SocialAccount to connector.SocialAccount
+			connectorSA := &connector.SocialAccount{
+				Id:         sa.ID,
+				Connector:  sa.Connector,
+				Identity:   sa.Identity,
+				Did:        sa.Did,
+				OAuthToken: sa.OAuth2Token,
+				Homeserver: sa.Homeserver,
+			}
+
+			// Fetch recent posts with panic recovery
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						log.Errorf("FeedFetcher: panic while fetching posts for %s account %d: %v", sa.Connector, sa.ID, r)
+					}
+				}()
+
+				posts, err := wallConnector.FetchRecentPosts(connectorSA)
+				if err != nil {
+					log.Errorf("FeedFetcher: failed to fetch posts for %s account %d: %v", sa.Connector, sa.ID, err)
+					return
+				}
+
+				// Insert posts into feed table
+				for _, post := range posts {
+					feedEntry := &db.Feed{
+						SocialAccountID: sa.ID,
+						Content:         post.Content,
+						PostedDate:      post.PostedDate,
+						AuthorID:        post.AuthorID,
+						RemoteURL:       post.RemoteURL,
+						RemoteID:        post.RemoteID,
+					}
+
+					err := s.DB.InsertFeedEntry(feedEntry)
+					if err != nil {
+						log.Errorf("FeedFetcher: failed to insert feed entry: %v", err)
+					} else {
+						log.Infof("FeedFetcher: inserted feed entry for %s post %s", sa.Connector, post.RemoteID)
+					}
+				}
+			}()
+		} else {
+			log.Debugf("FeedFetcher: connector %s does not support wall operations", sa.Connector)
+		}
+	}
+
+	log.Infof("FeedFetcher: completed feed fetch cycle")
 }
 
 func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[controlv1.GetCannedPostsRequest]) (*connect.Response[controlv1.GetCannedPostsResponse], error) {
@@ -204,11 +283,18 @@ func (s *ControlApi) marshalSocialAccounts(onlyActive bool) []*controlv1.SocialA
 	for _, socialAccount := range s.DB.SelectSocialAccounts(onlyActive) {
 		connectorService := s.cc.Get(socialAccount.Connector)
 
+		icon := "mdi:question-mark-circle" // Default icon
+		if connectorService != nil {
+			icon = connectorService.GetIcon()
+		} else {
+			log.Warnf("SocialAccounts: connector service not found for connector '%s' (account ID: %d)", socialAccount.Connector, socialAccount.ID)
+		}
+
 		accounts = append(accounts, &controlv1.SocialAccount{
 			Id:        socialAccount.ID,
 			Connector: socialAccount.Connector,
 			Identity:  socialAccount.Identity,
-			Icon:      connectorService.GetIcon(),
+			Icon:      icon,
 			Active:    socialAccount.Active,
 		})
 	}
@@ -624,6 +710,8 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 			socialAccountIdentity = sa.Identity
 			if svc := s.cc.Get(sa.Connector); svc != nil {
 				socialAccountIcon = svc.GetIcon()
+			} else {
+				log.Warnf("Timeline: connector service not found for connector '%s' (account ID: %d)", sa.Connector, sa.ID)
 			}
 		}
 
@@ -644,6 +732,54 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 
 	res := connect.NewResponse(&controlv1.GetTimelineResponse{
 		Posts: timeline,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) GetFeed(ctx context.Context, req *connect.Request[controlv1.GetFeedRequest]) (*connect.Response[controlv1.GetFeedResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	log.Infof("GetFeed called by user: %s", authenticatedUser.User.Username)
+
+	feedEntries, err := s.DB.SelectFeedEntries()
+	if err != nil {
+		log.Errorf("Error selecting feed entries: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve feed entries: %w", err))
+	}
+
+	feed := make([]*controlv1.FeedPost, 0, len(feedEntries))
+
+	for _, entry := range feedEntries {
+		socialAccountIcon := "mdi:question-mark-circle"
+		socialAccountIdentity := entry.SocialAccountIdentity
+		if socialAccountIdentity == "" {
+			socialAccountIdentity = "Unknown"
+		}
+
+		// Get the connector icon
+		if svc := s.cc.Get(entry.SocialAccountConnector); svc != nil {
+			socialAccountIcon = svc.GetIcon()
+		}
+
+		feed = append(feed, &controlv1.FeedPost{
+			Id:                    entry.ID,
+			SocialAccountId:       entry.SocialAccountID,
+			SocialAccountIcon:     socialAccountIcon,
+			SocialAccountIdentity: socialAccountIdentity,
+			Content:               entry.Content,
+			PostedDate:            entry.PostedDate.Format("2006-01-02 15:04:05"),
+			AuthorId:              entry.AuthorID,
+			RemoteUrl:             entry.RemoteURL,
+			RemoteId:              entry.RemoteID,
+		})
+	}
+
+	res := connect.NewResponse(&controlv1.GetFeedResponse{
+		Posts: feed,
 	})
 
 	return res, nil

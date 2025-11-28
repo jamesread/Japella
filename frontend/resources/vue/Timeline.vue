@@ -6,9 +6,29 @@
 		:padding="false"
 	>
 		<template #toolbar>
-			<button @click="refreshTimeline" :disabled="!clientReady" class="neutral">
-				<Icon icon="material-symbols:refresh" />
-			</button>
+			<div class="toolbar-controls">
+				<div class="filters">
+					<select v-model="selectedSocialAccountId" @change="applyFilters" class="filter-select">
+						<option value="">All Social Accounts</option>
+						<option v-for="account in socialAccounts" :key="account.id" :value="account.id">
+							{{ account.identity }}
+						</option>
+					</select>
+					<select v-model="selectedCampaignFilterId" @change="applyFilters" class="filter-select">
+						<option value="">All Campaigns</option>
+						<option v-for="campaign in campaigns" :key="campaign.id" :value="campaign.id">
+							{{ campaign.name }}
+						</option>
+					</select>
+					<button v-if="hasActiveFilters" @click="clearFilters" class="neutral small" title="Clear Filters">
+						<Icon icon="mdi:filter-remove" width="16" height="16" />
+						Clear
+					</button>
+				</div>
+				<button @click="refreshTimeline" :disabled="!clientReady" class="neutral">
+					<Icon icon="material-symbols:refresh" />
+				</button>
+			</div>
 		</template>
 
 		<Loading v-if="timelineLoading" message="Loading timeline..." :centered="true" />
@@ -33,10 +53,10 @@
 				</tr>
 				<tr v-else v-for="post in pagedTimeline" :key="post.id">
 					<td>
-						<span class="social-account">
+						<router-link :to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" class="social-account">
 							<Icon :icon="post.socialAccountIcon" />
 							{{ post.socialAccountIdentity }}
-						</span>
+						</router-link>
 					</td>
 					<td>
 						<div v-if="post.campaignId != 0">
@@ -74,7 +94,7 @@
 			</tbody>
 		</table>
 		<Pagination
-			:total="timeline.length"
+			:total="filteredTimeline.length"
 			:page="currentPage"
 			:page-size="pageSize"
 			@change="onPageChange"
@@ -125,10 +145,15 @@
 	const pageSize = ref(10);
 	const timelineLoading = ref(true);
 
+	// Filter state
+	const selectedSocialAccountId = ref('');
+	const selectedCampaignFilterId = ref('');
+	const socialAccounts = ref([]);
+	const campaigns = ref([]);
+
 	// Campaign dialog state
 	const showCampaignDialog = ref(false);
 	const selectedPost = ref(null);
-	const campaigns = ref([]);
 	const selectedCampaignId = ref(0);
 	const campaignsLoading = ref(false);
 	const campaignsSaving = ref(false);
@@ -138,9 +163,29 @@
 	// Retry state
 	const retryingPosts = ref(new Set());
 
+	const filteredTimeline = computed(() => {
+		let filtered = timeline.value;
+
+		// Filter by social account
+		if (selectedSocialAccountId.value) {
+			filtered = filtered.filter(post => post.socialAccountId == selectedSocialAccountId.value);
+		}
+
+		// Filter by campaign
+		if (selectedCampaignFilterId.value) {
+			filtered = filtered.filter(post => post.campaignId == selectedCampaignFilterId.value);
+		}
+
+		return filtered;
+	});
+
+	const hasActiveFilters = computed(() => {
+		return selectedSocialAccountId.value !== '' || selectedCampaignFilterId.value !== '';
+	});
+
 	const pagedTimeline = computed(() => {
 		const start = (currentPage.value - 1) * pageSize.value;
-		return timeline.value.slice(start, start + pageSize.value);
+		return filteredTimeline.value.slice(start, start + pageSize.value);
 	});
 
 	function statusClass(post) {
@@ -189,6 +234,31 @@
 
 	function onPageChange(newPage) {
 		currentPage.value = newPage;
+	}
+
+	// Filter functions
+	function applyFilters() {
+		currentPage.value = 1; // Reset to first page when filters change
+	}
+
+	function clearFilters() {
+		selectedSocialAccountId.value = '';
+		selectedCampaignFilterId.value = '';
+		currentPage.value = 1;
+	}
+
+	async function loadFilterData() {
+		try {
+			// Load social accounts
+			const socialAccountsResponse = await window.client.getSocialAccounts({ onlyActive: true });
+			socialAccounts.value = socialAccountsResponse.accounts || [];
+
+			// Load campaigns
+			const campaignsResponse = await window.client.getCampaigns();
+			campaigns.value = campaignsResponse.campaigns || [];
+		} catch (error) {
+			console.error('Error loading filter data:', error);
+		}
 	}
 
 	// Navigation functions
@@ -339,18 +409,49 @@
 		await waitForClient();
 		clientReady.value = true;
 
+		await loadFilterData();
 		refreshTimeline();
 	});
 </script>
 
 <style scoped>
+	.toolbar-controls {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		width: 100%;
+	}
+
+	.filters {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex: 1;
+	}
+
+	.filter-select {
+		padding: 0.5rem;
+		border: 1px solid #ddd;
+		border-radius: 0.25rem;
+		font-size: 0.9rem;
+		min-width: 150px;
+		background: white;
+	}
+
+	.filter-select:focus {
+		outline: none;
+		border-color: #4CAF50;
+		box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+	}
+
 	.data-table {
 		width: 100%;
 		table-layout: fixed;
 	}
 
 	th:nth-child(1) {
-		width: 150px;
+		width: 220px;
+		min-width: 200px;
 	}
 
 	th:nth-child(2) {
@@ -522,13 +623,19 @@
 	border: 1px solid #f5c6cb;
 }
 
+/* Use global .social-account styling from main.css */
 .social-account {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	overflow: hidden;
-	white-space: nowrap;
-	text-overflow: ellipsis;
+	text-decoration: none;
+	color: var(--link-color, #fff);
+}
+
+.social-account:hover {
+	text-decoration: underline;
+}
+
+/* Override table hover effect for social account links */
+table.data-table tr:hover td .social-account {
+	color: var(--link-color, #fff) !important;
 }
 
 .no-campaign {
@@ -550,9 +657,28 @@
 	color: #333;
 }
 
-.no-campaign button.small:hover {
-	background-color: #e0e0e0;
-	transform: translateY(-1px);
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
+	.no-campaign button.small:hover {
+		background-color: #e0e0e0;
+		transform: translateY(-1px);
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+	}
+
+	/* Responsive design */
+	@media (max-width: 768px) {
+		.toolbar-controls {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.5rem;
+		}
+
+		.filters {
+			flex-direction: column;
+			gap: 0.5rem;
+		}
+
+		.filter-select {
+			min-width: auto;
+			width: 100%;
+		}
+	}
 </style>

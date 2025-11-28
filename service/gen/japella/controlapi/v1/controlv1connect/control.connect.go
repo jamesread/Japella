@@ -69,6 +69,9 @@ const (
 	// JapellaControlApiServiceGetTimelineProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetTimeline RPC.
 	JapellaControlApiServiceGetTimelineProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetTimeline"
+	// JapellaControlApiServiceGetFeedProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetFeed RPC.
+	JapellaControlApiServiceGetFeedProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetFeed"
 	// JapellaControlApiServiceUpdatePostCampaignProcedure is the fully-qualified name of the
 	// JapellaControlApiService's UpdatePostCampaign RPC.
 	JapellaControlApiServiceUpdatePostCampaignProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdatePostCampaign"
@@ -155,6 +158,7 @@ type JapellaControlApiServiceClient interface {
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
+	GetFeed(context.Context, *connect.Request[v1.GetFeedRequest]) (*connect.Response[v1.GetFeedResponse], error)
 	UpdatePostCampaign(context.Context, *connect.Request[v1.UpdatePostCampaignRequest]) (*connect.Response[v1.UpdatePostCampaignResponse], error)
 	ForgetPost(context.Context, *connect.Request[v1.ForgetPostRequest]) (*connect.Response[v1.ForgetPostResponse], error)
 	RetryPost(context.Context, *connect.Request[v1.RetryPostRequest]) (*connect.Response[v1.RetryPostResponse], error)
@@ -262,6 +266,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceGetTimelineProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
+			connect.WithClientOptions(opts...),
+		),
+		getFeed: connect.NewClient[v1.GetFeedRequest, v1.GetFeedResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetFeedProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetFeed")),
 			connect.WithClientOptions(opts...),
 		),
 		updatePostCampaign: connect.NewClient[v1.UpdatePostCampaignRequest, v1.UpdatePostCampaignResponse](
@@ -419,6 +429,7 @@ type japellaControlApiServiceClient struct {
 	getConnectors                   *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
 	startOAuth                      *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
 	getTimeline                     *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
+	getFeed                         *connect.Client[v1.GetFeedRequest, v1.GetFeedResponse]
 	updatePostCampaign              *connect.Client[v1.UpdatePostCampaignRequest, v1.UpdatePostCampaignResponse]
 	forgetPost                      *connect.Client[v1.ForgetPostRequest, v1.ForgetPostResponse]
 	retryPost                       *connect.Client[v1.RetryPostRequest, v1.RetryPostResponse]
@@ -502,6 +513,11 @@ func (c *japellaControlApiServiceClient) StartOAuth(ctx context.Context, req *co
 // GetTimeline calls japella.controlapi.v1.JapellaControlApiService.GetTimeline.
 func (c *japellaControlApiServiceClient) GetTimeline(ctx context.Context, req *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error) {
 	return c.getTimeline.CallUnary(ctx, req)
+}
+
+// GetFeed calls japella.controlapi.v1.JapellaControlApiService.GetFeed.
+func (c *japellaControlApiServiceClient) GetFeed(ctx context.Context, req *connect.Request[v1.GetFeedRequest]) (*connect.Response[v1.GetFeedResponse], error) {
+	return c.getFeed.CallUnary(ctx, req)
 }
 
 // UpdatePostCampaign calls japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign.
@@ -639,6 +655,7 @@ type JapellaControlApiServiceHandler interface {
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
+	GetFeed(context.Context, *connect.Request[v1.GetFeedRequest]) (*connect.Response[v1.GetFeedResponse], error)
 	UpdatePostCampaign(context.Context, *connect.Request[v1.UpdatePostCampaignRequest]) (*connect.Response[v1.UpdatePostCampaignResponse], error)
 	ForgetPost(context.Context, *connect.Request[v1.ForgetPostRequest]) (*connect.Response[v1.ForgetPostResponse], error)
 	RetryPost(context.Context, *connect.Request[v1.RetryPostRequest]) (*connect.Response[v1.RetryPostResponse], error)
@@ -741,6 +758,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceGetTimelineProcedure,
 		svc.GetTimeline,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetTimeline")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetFeedHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetFeedProcedure,
+		svc.GetFeed,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetFeed")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceUpdatePostCampaignHandler := connect.NewUnaryHandler(
@@ -907,6 +930,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceStartOAuthHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetTimelineProcedure:
 			japellaControlApiServiceGetTimelineHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetFeedProcedure:
+			japellaControlApiServiceGetFeedHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceUpdatePostCampaignProcedure:
 			japellaControlApiServiceUpdatePostCampaignHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceForgetPostProcedure:
@@ -1008,6 +1033,10 @@ func (UnimplementedJapellaControlApiServiceHandler) StartOAuth(context.Context, 
 
 func (UnimplementedJapellaControlApiServiceHandler) GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetTimeline is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetFeed(context.Context, *connect.Request[v1.GetFeedRequest]) (*connect.Response[v1.GetFeedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetFeed is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) UpdatePostCampaign(context.Context, *connect.Request[v1.UpdatePostCampaignRequest]) (*connect.Response[v1.UpdatePostCampaignResponse], error) {

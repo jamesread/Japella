@@ -8,6 +8,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"context"
+	"strconv"
+	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -33,6 +35,17 @@ type Status struct {
 	URI string `json:"uri"`
 }
 
+type TimelineStatus struct {
+	ID        string    `json:"id"`
+	URI       string    `json:"uri"`
+	Content   string    `json:"content"`
+	CreatedAt time.Time `json:"created_at"`
+	Account   struct {
+		ID       string `json:"id"`
+		Username string `json:"username"`
+	} `json:"account"`
+}
+
 const CFG_MASTODON_CLIENT_ID = "mastodon.client_id"
 const CFG_MASTODON_CLIENT_SECRET = "mastodon.client_secret"
 
@@ -42,7 +55,6 @@ func (c *MastodonConnector) IsRegistered() bool {
 
 	return clientID != "" || clientSecret != ""
 }
-
 
 func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
 	return map[string]*db.Cvar{
@@ -90,10 +102,10 @@ func (c *MastodonConnector) SetStartupConfiguration(startup *connector.Controlle
 }
 
 type AppConfig struct {
-	Server string `json:"server"`
-	ClientName string `json:"client_name"`
-	Scopes string `json:"scopes"`
-	Website string `json:"website"`
+	Server       string `json:"server"`
+	ClientName   string `json:"client_name"`
+	Scopes       string `json:"scopes"`
+	Website      string `json:"website"`
 	RedirectURIs string `json:"redirect_uris"`
 }
 
@@ -148,7 +160,13 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 		Status: content,
 	}
 
-	client := utils.NewClient(c.Logger()).PostWithJson("https://mastodon.social/api/v1/statuses", toot).WithBearerToken(socialAccount.OAuthToken)
+	// Use the homeserver URL from the social account
+	instanceURL := socialAccount.Homeserver
+	if instanceURL == "" {
+		instanceURL = "https://mastodon.social"
+	}
+
+	client := utils.NewClient(c.Logger()).PostWithJson(instanceURL+"/api/v1/statuses", toot).WithBearerToken(socialAccount.OAuthToken)
 
 	if client.Err != nil {
 		res.Err = client.Err
@@ -167,6 +185,57 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 	res.URL = postResult.URI
 
 	return res
+}
+
+func (c *MastodonConnector) FetchRecentPosts(socialAccount *connector.SocialAccount) ([]*connector.FeedPost, error) {
+	log.Infof("Fetching recent posts for Mastodon account %d", socialAccount.Id)
+
+	posts := make([]*connector.FeedPost, 0)
+
+	// Get user's home timeline (recent posts from accounts they follow)
+	// Use the homeserver URL from the social account
+	instanceURL := socialAccount.Homeserver
+	if instanceURL == "" {
+		instanceURL = "https://mastodon.social"
+	}
+
+	client := utils.NewClient(c.Logger()).Get(instanceURL + "/api/v1/timelines/home?limit=20").WithBearerToken(socialAccount.OAuthToken)
+
+	if client.Err != nil {
+		log.Errorf("Error creating request for Mastodon timeline: %v", client.Err)
+		return posts, client.Err
+	}
+
+	var timelineStatuses []TimelineStatus
+	client.AsJson(&timelineStatuses)
+
+	if client.Err != nil {
+		log.Errorf("Error parsing Mastodon timeline response: %v", client.Err)
+		return posts, client.Err
+	}
+
+	// Convert timeline statuses to feed posts
+	for _, status := range timelineStatuses {
+		// Parse author ID as uint32
+		authorID, err := strconv.ParseUint(status.Account.ID, 10, 32)
+		if err != nil {
+			log.Warnf("Failed to parse author ID %s: %v", status.Account.ID, err)
+			continue
+		}
+
+		feedPost := &connector.FeedPost{
+			Content:    status.Content,
+			PostedDate: status.CreatedAt,
+			AuthorID:   uint32(authorID),
+			RemoteURL:  status.URI,
+			RemoteID:   status.ID, // Keep as string for now since FeedPost expects string
+		}
+
+		posts = append(posts, feedPost)
+	}
+
+	log.Infof("Fetched %d recent posts from Mastodon timeline", len(posts))
+	return posts, nil
 }
 
 func (c *MastodonConnector) GetIcon() string {
@@ -198,7 +267,13 @@ type VerifyCredentialsResponse struct {
 }
 
 func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
-	client := utils.NewClient(c.Logger()).Get("https://mastodon.social/api/v1/accounts/verify_credentials").WithBearerToken(socialAccount.OAuth2Token)
+	// Use the homeserver URL from the social account
+	instanceURL := socialAccount.Homeserver
+	if instanceURL == "" {
+		instanceURL = "https://mastodon.social"
+	}
+
+	client := utils.NewClient(c.Logger()).Get(instanceURL + "/api/v1/accounts/verify_credentials").WithBearerToken(socialAccount.OAuth2Token)
 
 	if client.Err != nil {
 		log.Errorf("Error creating request: %v", client.Err)
