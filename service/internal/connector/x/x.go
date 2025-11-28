@@ -2,6 +2,8 @@ package x
 
 import (
 	"encoding/base64"
+	"fmt"
+
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/utils"
@@ -9,6 +11,8 @@ import (
 	"golang.org/x/oauth2/endpoints"
 
 	"context"
+	"strconv"
+	"time"
 )
 
 type XConnector struct {
@@ -151,10 +155,8 @@ func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
 	client := utils.NewClient(x.Logger())
 	client.Get("https://api.x.com/2/users/me").WithBearerToken(socialAccount.OAuth2Token)
 
-	//client, req, err := utils.NewHttpClientAndGetReq("https://api.x.com/2/users/me", socialAccount.OAuth2Token)
-
 	if client.Err != nil {
-		x.Logger().Errorf("Error creating request: %v", client.Err)
+		x.Logger().Errorf("Error creating whoami request: %v", client.Err)
 		return
 	}
 
@@ -162,6 +164,17 @@ func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
 
 	client.AsJson(whoamiResult)
 
+	if client.Err != nil {
+		x.Logger().Errorf("Error parsing whoami response: %v", client.Err)
+		return
+	}
+
+	if whoamiResult.Data.Username == "" {
+		x.Logger().Warnf("X API returned empty username for account %d", socialAccount.ID)
+		return
+	}
+
+	x.Logger().Infof("Updated X account identity to: %s", whoamiResult.Data.Username)
 	x.db.UpdateSocialAccountIdentity(socialAccount.ID, whoamiResult.Data.Username)
 }
 
@@ -176,6 +189,7 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 	client.PostWithJson("https://api.x.com/2/tweets", t).WithBearerToken(sa.OAuthToken)
 
 	if client.Err != nil {
+		x.Logger().Errorf("Error creating POST request to X API: %v", client.Err)
 		res.Err = client.Err
 		return res
 	}
@@ -184,6 +198,21 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 
 	client.AsJson(tweetResult)
 
+	// Check for errors after JSON parsing
+	if client.Err != nil {
+		x.Logger().Errorf("Error parsing X API response: %v", client.Err)
+		res.Err = client.Err
+		return res
+	}
+
+	// Validate that we received a valid tweet ID
+	if tweetResult.Data.ID == "" {
+		x.Logger().Errorf("X API returned empty tweet ID - post may have failed")
+		res.Err = fmt.Errorf("X API returned empty tweet ID")
+		return res
+	}
+
+	x.Logger().Infof("Successfully posted to X, tweet ID: %s", tweetResult.Data.ID)
 	res.URL = "https://x.com/user/status/" + tweetResult.Data.ID
 
 	return res
@@ -213,7 +242,61 @@ func (x *XConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 	return x.RefreshToken(socialAccount)
 }
 
-func (x *XConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) (error) {
+func (x *XConnector) FetchRecentPosts(socialAccount *connector.SocialAccount) ([]*connector.FeedPost, error) {
+	x.Logger().Infof("Fetching recent posts for X account %d", socialAccount.Id)
+
+	posts := make([]*connector.FeedPost, 0)
+
+	// Get user's timeline (recent tweets)
+	client := utils.NewClient(x.Logger())
+	client.Get("https://api.x.com/2/users/me/tweets?max_results=20").WithBearerToken(socialAccount.OAuthToken)
+
+	if client.Err != nil {
+		x.Logger().Errorf("Error creating request for X timeline: %v", client.Err)
+		return posts, client.Err
+	}
+
+	var timelineResponse struct {
+		Data []struct {
+			ID        string    `json:"id"`
+			Text      string    `json:"text"`
+			CreatedAt time.Time `json:"created_at"`
+			AuthorID  string    `json:"author_id"`
+		} `json:"data"`
+	}
+
+	client.AsJson(&timelineResponse)
+
+	if client.Err != nil {
+		x.Logger().Errorf("Error parsing X timeline response: %v", client.Err)
+		return posts, client.Err
+	}
+
+	// Convert timeline tweets to feed posts
+	for _, tweet := range timelineResponse.Data {
+		// Parse author ID as uint32
+		authorID, err := strconv.ParseUint(tweet.AuthorID, 10, 32)
+		if err != nil {
+			x.Logger().Warnf("Failed to parse author ID %s: %v", tweet.AuthorID, err)
+			continue
+		}
+
+		feedPost := &connector.FeedPost{
+			Content:    tweet.Text,
+			PostedDate: tweet.CreatedAt,
+			AuthorID:   uint32(authorID),
+			RemoteURL:  "https://x.com/user/status/" + tweet.ID,
+			RemoteID:   tweet.ID,
+		}
+
+		posts = append(posts, feedPost)
+	}
+
+	x.Logger().Infof("Fetched %d recent posts from X timeline", len(posts))
+	return posts, nil
+}
+
+func (x *XConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) error {
 	client := utils.NewClient(x.Logger())
 
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, client)
