@@ -139,7 +139,7 @@ func (db *DB) checkConnNotNil(chain *ConnectionChain) {
 }
 
 func (db *DB) buildDsn(chain *ConnectionChain) {
-	db.dsn = fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8&parseTime=True", db.dbconfig.User, db.dbconfig.Pass, db.dbconfig.Host, db.dbconfig.Name)
+	db.dsn = fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8mb4&parseTime=True", db.dbconfig.User, db.dbconfig.Pass, db.dbconfig.Host, db.dbconfig.Name)
 }
 
 func (db *DB) connectToDatabase(chain *ConnectionChain) {
@@ -835,4 +835,25 @@ func (db *DB) UpdateCannedPost(cannedPost *CannedPost) error {
 	}
 
 	return nil
+}
+
+func (db *DB) InsertFeedEntry(feedEntry *Feed) error {
+	_, err := db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, remote_url, remote_id, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :remote_url, :remote_id, NOW(), NOW())`, feedEntry)
+
+	if err != nil {
+		db.Logger().Errorf("Failed to insert feed entry: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) SelectFeedEntries() ([]*Feed, error) {
+	ret := make([]*Feed, 0)
+	err := db.ResilientSelect(&ret, "SELECT f.*, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
+	if err != nil {
+		db.Logger().Errorf("Failed to select feed entries: %v", err)
+		return nil, err
+	}
+	return ret, nil
 }
