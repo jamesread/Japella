@@ -148,3 +148,15 @@
 		refreshAccounts()
 	})
 </script>
+
+<style scoped>
+	.social-account {
+		color: #fff;
+		text-decoration: none;
+	}
+
+	.social-account:hover {
+		text-decoration: underline;
+	}
+		
+</style>

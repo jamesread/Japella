@@ -6,7 +6,7 @@
 	>
 		<template #toolbar>
 			<button @click="refreshAll" :disabled="!clientReady" class="neutral">
-				<Icon icon="material-symbols:refresh" />
+				<HugeiconsIcon :icon="RefreshIcon" />
 			</button>
 		</template>
 
@@ -18,92 +18,92 @@
 		<div class="status-overview">
 			<h3>System Status</h3>
 			<div class="status-grid">
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:check-circle" />
+						<HugeiconsIcon :icon="CheckmarkCircle01Icon" />
 						<span>Server Status</span>
 					</div>
-					<div class="status-value" :class="systemStatus.status === 'ok' ? 'good' : 'bad'">
+					<div class="stat" :class="systemStatus.status === 'OK!' ? 'fg-success' : 'fg-warning'">
 						{{ systemStatus.status || 'Unknown' }}
 					</div>
 				</div>
 
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:apps" />
+						<HugeiconsIcon :icon="GridViewIcon" />
 						<span>Nanoservices</span>
 					</div>
-					<div class="status-value">
+					<div class="stat">
 						{{ systemStatus.nanoservices?.length || 0 }} active
 					</div>
 				</div>
 
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:info" />
+						<HugeiconsIcon :icon="InfoCircleIcon" />
 						<span>Version</span>
 					</div>
-					<div class="status-value">
+					<div class="stat">
 						{{ systemStatus.version || 'Unknown' }}
 					</div>
 				</div>
 
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:person" />
+						<HugeiconsIcon :icon="UserMultiple02Icon" />
 						<span>Current User</span>
 					</div>
-					<div class="status-value">
+					<div class="stat">
 						{{ systemStatus.username || 'Not logged in' }}
 					</div>
 				</div>
 
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:storage" />
+						<HugeiconsIcon :icon="HardDriveIcon" />
 						<span>Database Host</span>
 					</div>
-					<div class="status-value">
+					<div class="stat">
 						{{ systemStatus.databaseHost || 'Unknown' }}
 					</div>
 				</div>
 
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:database" />
+						<HugeiconsIcon :icon="Database01Icon" />
 						<span>Database Name</span>
 					</div>
-					<div class="status-value">
+					<div class="stat">
 						{{ systemStatus.databaseName || 'Unknown' }}
 					</div>
 				</div>
 
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:settings-ethernet" />
+						<HugeiconsIcon :icon="Settings01Icon" />
 						<span>Listen Address</span>
 					</div>
-					<div class="status-value">
+					<div class="stat">
 						{{ systemStatus.listenAddress || 'Unknown' }}
 					</div>
 				</div>
 
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:format-list-numbered" />
+						<HugeiconsIcon :icon="LeftToRightListNumberIcon" />
 						<span>Schema Version</span>
 					</div>
-					<div class="status-value">
+					<div class="stat">
 						{{ systemStatus.databaseSchemaVersion || 0 }}
 					</div>
 				</div>
 
-				<div class="status-card">
+				<div class="stat-display">
 					<div class="status-header">
-						<Icon icon="material-symbols:warning" />
+						<HugeiconsIcon :icon="AlertCircleIcon" />
 						<span>Schema Dirty</span>
 					</div>
-					<div class="status-value" :class="systemStatus.databaseSchemaDirty ? 'bad' : 'good'">
+					<div class="stat" :class="systemStatus.databaseSchemaDirty ? 'fg-error' : 'fg-success'">
 						{{ systemStatus.databaseSchemaDirty ? 'Yes' : 'No' }}
 					</div>
 				</div>
@@ -112,35 +112,30 @@
 
 		<!-- Quick Actions -->
 		<div class="quick-actions">
-			<h3>Quick Actions</h3>
+			<h3>Administration Actions</h3>
 			<div class="action-grid">
-				<button @click="goToRoute('/social-accounts')" class="action-button">
-					<Icon icon="jam:users" />
-					<span>Manage Social Accounts</span>
-				</button>
-
 				<button @click="goToRoute('/api-keys')" class="action-button">
-					<Icon icon="jam:key" />
+					<HugeiconsIcon :icon="Key01Icon" />
 					<span>API Keys</span>
 				</button>
 
 				<button @click="goToRoute('/users')" class="action-button">
-					<Icon icon="material-symbols:people" />
+					<HugeiconsIcon :icon="UserMultiple02Icon" />
 					<span>User Management</span>
 				</button>
 
 				<button @click="goToRoute('/settings')" class="action-button">
-					<Icon icon="jam:settings-alt" />
+					<HugeiconsIcon :icon="Settings01Icon" :size = 24 />
 					<span>System Settings</span>
 				</button>
 
 				<button @click="refreshConnectors" class="action-button" :disabled="!clientReady">
-					<Icon icon="material-symbols:refresh" />
+					<HugeiconsIcon :icon="RefreshIcon" />
 					<span>Refresh Connectors</span>
 				</button>
 
 				<button @click="showCvars" class="action-button" :disabled="!clientReady">
-					<Icon icon="material-symbols:tune" />
+					<HugeiconsIcon :icon="Settings01Icon" />
 					<span>System Variables</span>
 				</button>
 			</div>
@@ -152,32 +147,11 @@
 			<div v-for="message in systemStatus.statusMessages" :key="message.id || message.message"
 				 class="message-item" :class="message.type">
 				<div class="message-content">
-					<Icon :icon="getMessageIcon(message.type)" />
+					<HugeIcon :icon="getMessageIcon(message.type)" />
 					<span>{{ message.message }}</span>
 					<a v-if="message.url" :href="message.url" target="_blank" class="message-link">
-						<Icon icon="material-symbols:open-in-new" />
+						<HugeIcon :icon="LinkSquare01Icon" />
 					</a>
-				</div>
-			</div>
-		</div>
-
-		<!-- Connectors Status -->
-		<div v-if="connectors.length > 0" class="connectors-section">
-			<h3>Connectors</h3>
-			<div class="connectors-grid">
-				<div v-for="connector in connectors" :key="connector.name" class="connector-card">
-					<div class="connector-header">
-						<Icon :icon="connector.icon" />
-						<span>{{ connector.name }}</span>
-					</div>
-					<div class="connector-status">
-						<span :class="connector.isRegistered ? 'good' : 'bad'">
-							{{ connector.isRegistered ? 'Registered' : 'Not Registered' }}
-						</span>
-					</div>
-					<div v-if="connector.issues && connector.issues.length > 0" class="connector-issues">
-						<small>Issues: {{ connector.issues.length }}</small>
-					</div>
 				</div>
 			</div>
 		</div>
@@ -186,7 +160,7 @@
 		<dialog ref="cvarsDialog" class="cvars-dialog">
 			<h2>System Variables (CVars)</h2>
 			<div v-if="cvarsLoading" class="loading">
-				<Icon icon="eos-icons:loading" />
+				<HugeIcon :icon="Loading01Icon" />
 				<span>Loading system variables...</span>
 			</div>
 			<div v-else-if="cvars.length > 0" class="cvars-content">
@@ -233,11 +207,28 @@
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import { HugeiconsIcon} from '@hugeicons/vue';
+	import { 
+		RefreshIcon,
+		CheckmarkCircle01Icon,
+		GridViewIcon,
+		InformationCircleIcon,
+		UserMultiple02Icon,
+		HardDriveIcon,
+		Database01Icon,
+		LeftToRightListNumberIcon,
+		AlertCircleIcon,
+		Key01Icon,
+		Settings01Icon,
+		LinkSquare01Icon,
+		Loading01Icon,
+		CancelCircleIcon,
+		ApproximatelyEqualCircleIcon
+	} from '@hugeicons/core-free-icons';
 
 	const clientReady = ref(false);
 	const errorMessage = ref('');
 	const systemStatus = ref({});
-	const connectors = ref([]);
 	const cvars = ref([]);
 	const cvarsLoading = ref(false);
 	const cvarsDialog = ref(null);
@@ -245,7 +236,6 @@
 	async function refreshAll() {
 		await Promise.all([
 			refreshSystemStatus(),
-			refreshConnectors(),
 		]);
 	}
 
@@ -257,15 +247,6 @@
 		} catch (error) {
 			errorMessage.value = `Failed to fetch system status: ${error.message}`;
 			console.error('Error fetching system status:', error);
-		}
-	}
-
-	async function refreshConnectors() {
-		try {
-			const response = await window.client.getConnectors({});
-			connectors.value = response.connectors || [];
-		} catch (error) {
-			console.error('Error fetching connectors:', error);
 		}
 	}
 
@@ -312,12 +293,12 @@
 
 	function getMessageIcon(type) {
 		const iconMap = {
-			'error': 'material-symbols:error',
-			'warning': 'material-symbols:warning',
-			'info': 'material-symbols:info',
-			'success': 'material-symbols:check-circle',
+			'error': CancelCircleIcon,
+			'warning': AlertCircleIcon,
+			'info': ApproximatelyEqualCircleIcon,
+			'success': CheckmarkCircle01Icon,
 		};
-		return iconMap[type] || 'material-symbols:info';
+		return iconMap[type] || InformationCircleIcon;
 	}
 
 	onMounted(async () => {
@@ -339,32 +320,12 @@
 		margin-top: 1rem;
 	}
 
-	.status-card {
-		background: #242424;
-		border-radius: 0.5rem;
-		padding: 1rem;
-		border: 1px solid #444;
-	}
-
 	.status-header {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		margin-bottom: 0.5rem;
 		font-weight: bold;
-	}
-
-	.status-value {
-		font-size: 1.2em;
-		font-weight: bold;
-	}
-
-	.status-value.good {
-		color: #4caf50;
-	}
-
-	.status-value.bad {
-		color: #f44336;
 	}
 
 	.quick-actions {
@@ -379,23 +340,9 @@
 	}
 
 	.action-button {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 1rem;
-		background: #242424;
-		border: 1px solid #444;
-		border-radius: 0.5rem;
-		color: white;
-		cursor: pointer;
-		transition: background-color 0.2s;
+		height: 5em;
 	}
-
-	.action-button:hover:not(:disabled) {
-		background: #333;
-	}
-
+	
 	.action-button:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
@@ -442,41 +389,6 @@
 	.message-link {
 		margin-left: auto;
 		color: inherit;
-	}
-
-	.connectors-section {
-		margin-bottom: 2rem;
-	}
-
-	.connectors-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-		gap: 1rem;
-		margin-top: 1rem;
-	}
-
-	.connector-card {
-		background: #242424;
-		border-radius: 0.5rem;
-		padding: 1rem;
-		border: 1px solid #444;
-	}
-
-	.connector-header {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin-bottom: 0.5rem;
-		font-weight: bold;
-	}
-
-	.connector-status {
-		margin-bottom: 0.5rem;
-	}
-
-	.connector-issues {
-		font-size: 0.9em;
-		color: #ff9800;
 	}
 
 	.cvars-dialog {

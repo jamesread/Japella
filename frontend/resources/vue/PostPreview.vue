@@ -2,8 +2,10 @@
 	<div class="post-preview">
 		<div class="post-header">
 			<div class="social-account-info">
-				<Icon :icon="post.socialAccountIcon" />
-				<span class="account-name">{{ post.socialAccountIdentity }}</span>
+				<router-link :to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" class="social-account-link">
+					<Icon :icon="post.socialAccountIcon" />
+					<span class="account-name">{{ post.socialAccountIdentity }}</span>
+				</router-link>
 			</div>
 		</div>
 
@@ -12,6 +14,13 @@
 			<div class="post-message">
 				{{ post.content }}
 			</div>
+		</div>
+
+		<div v-if="post.remoteUrl" class="post-actions">
+			<a :href="post.remoteUrl" target="_blank" rel="noopener noreferrer" class="original-post-link">
+				<Icon icon="mdi:open-in-new" width="16" height="16" />
+				<span>View Original Post</span>
+			</a>
 		</div>
 
 	</div>
@@ -62,6 +71,18 @@
 	font-weight: 500;
 }
 
+.social-account-link {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	text-decoration: none;
+	color: var(--link-color, #007bff);
+}
+
+.social-account-link:hover {
+	text-decoration: underline;
+}
+
 .account-name {
     font-weight: bold;
 }
@@ -78,6 +99,27 @@
 	margin: 0 0 1rem 0;
 	color: var(--text-primary, #333);
 	font-size: 1.2rem;
+}
+
+.post-actions {
+	margin-top: 1rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--border-color, #4e5965);
+}
+
+.original-post-link {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: var(--link-color, #007bff);
+	text-decoration: none;
+	font-size: 0.9rem;
+	transition: color 0.2s ease;
+}
+
+.original-post-link:hover {
+	color: var(--link-hover-color, #0056b3);
+	text-decoration: underline;
 }
 
 </style>

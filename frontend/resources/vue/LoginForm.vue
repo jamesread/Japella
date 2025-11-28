@@ -13,8 +13,8 @@
 		<br />
 
 		<div class = "flex-row button-group">
-			<button class = "neutral" @click = "forgotPassword">{{ t('section.login.forgot-password') }}</button>
-			<button class = "neutral">{{ t('section.login.create-account') }}</button>
+			<button class = "" @click = "forgotPassword">{{ t('section.login.forgot-password') }}</button>
+			<button class = "">{{ t('section.login.create-account') }}</button>
 		</div>
 	</section>
 </template>

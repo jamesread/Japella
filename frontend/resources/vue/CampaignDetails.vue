@@ -19,11 +19,38 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="campaign">
-			<h3>{{ campaign?.name || 'Unknown Campaign' }}</h3>
+			<div class="campaign-header">
+				<div v-if="!editingCampaign" class="campaign-title">
+					<h3>{{ campaign?.name || 'Unknown Campaign' }}</h3>
+					<button @click="startEditingCampaign" class="neutral small" title="Edit Campaign Name">
+						<Icon icon="mdi:pencil" />
+						Edit
+					</button>
+				</div>
+				<div v-else class="campaign-edit">
+					<input
+						v-model="editingName"
+						class="campaign-name-input"
+						@keyup.enter="saveCampaign"
+						@keyup.esc="cancelEditingCampaign"
+						@blur="cancelEditingCampaign"
+						ref="campaignNameInput"
+					/>
+					<button @click="saveCampaign" class="good small" :disabled="!editingName.trim()">
+						<Icon icon="mdi:check" />
+						Save
+					</button>
+					<button @click="cancelEditingCampaign" class="neutral small">
+						<Icon icon="mdi:close" />
+						Cancel
+					</button>
+				</div>
+			</div>
+
 			<p>ID: {{ campaignId }}</p>
 			<p>Posts: {{ campaign?.postCount ?? 0 }}</p>
 			<p>Last Post: {{ campaign?.lastPostDate || 'Never' }}</p>
-			
+
 			<div class="toolbar">
 				<router-link class="button good" :to="{ name: 'postBox', query: { campaignId: campaignId } }">
 					<Icon icon="jam:write-f" />
@@ -67,7 +94,7 @@
 
 <script setup>
 	import { Icon } from '@iconify/vue';
-	import { ref, onMounted, computed } from 'vue';
+	import { ref, onMounted, computed, nextTick } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Loading from './Loading.vue';
@@ -79,6 +106,9 @@
 	const campaign = ref(null)
 	const campaignPosts = ref([])
 	const campaignPostsLoading = ref(true)
+	const editingCampaign = ref(false)
+	const editingName = ref('')
+	const campaignNameInput = ref(null)
 
 	async function refresh() {
 		if (!window.client || !campaignId.value) return
@@ -111,6 +141,43 @@
 
 	function goBack() {
 		router.push({ name: 'campaigns' })
+	}
+
+	function startEditingCampaign() {
+		editingName.value = campaign.value?.name || ''
+		editingCampaign.value = true
+		// Focus the input field after the next DOM update
+		nextTick(() => {
+			if (campaignNameInput.value) {
+				campaignNameInput.value.focus()
+				campaignNameInput.value.select()
+			}
+		})
+	}
+
+	function cancelEditingCampaign() {
+		editingCampaign.value = false
+		editingName.value = ''
+	}
+
+	async function saveCampaign() {
+		if (!window.client || !campaign.value) return
+
+		try {
+			await window.client.updateCampaign({
+				id: campaign.value.id,
+				name: editingName.value,
+				description: campaign.value.description || ''
+			})
+
+			// Update local campaign data
+			campaign.value.name = editingName.value
+			editingCampaign.value = false
+			editingName.value = ''
+		} catch (error) {
+			console.error('Error updating campaign:', error)
+			alert('Failed to update campaign: ' + error.message)
+		}
 	}
 
 	function getPostStatusClass(post) {
@@ -154,6 +221,48 @@
 .campaign-actions .good:hover {
 	transform: translateY(-1px);
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Campaign Editing Styles */
+.campaign-header {
+	margin-bottom: 1.5rem;
+}
+
+.campaign-title {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	justify-content: space-between;
+}
+
+.campaign-title h3 {
+	margin: 0;
+	color: var(--text-primary, #333);
+	font-size: 1.5rem;
+}
+
+.campaign-edit {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+}
+
+.campaign-name-input {
+	padding: 0.5rem;
+	border: 1px solid var(--border-color, #ddd);
+	border-radius: 0.25rem;
+	font-size: 1.5rem;
+	font-weight: 500;
+	min-width: 200px;
+	background-color: var(--background-primary, white);
+	color: var(--text-primary, #333);
+}
+
+.campaign-name-input:focus {
+	outline: none;
+	border-color: var(--primary-color, #007bff);
+	box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
 
