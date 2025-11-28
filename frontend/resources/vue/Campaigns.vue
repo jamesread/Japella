@@ -6,7 +6,7 @@
 		:padding="false"
 	>
 		<template #toolbar>
-			<button @click="refreshCampaigns()" :disabled="!clientReady" class="neutral">
+			<button @click="refreshCampaigns()" :disabled="!clientReady" class="">
 				<Icon icon="material-symbols:refresh" />
 			</button>
 			<button class="good" @click="createCampaign">
@@ -46,7 +46,7 @@
 					<td>{{ campaign.postCount }}</td>
 					<td :title="getFullDate(campaign.lastPostDate)">{{ formatRelativeDate(campaign.lastPostDate) }}</td>
 					<td align="right">
-					<button @click="openAccountsDialog(campaign)" class="neutral">
+					<button @click="openAccountsDialog(campaign)" class="">
 						<Icon icon="jam:users" /> {{ campaign.accountCount ?? 0 }}
 					</button>
 					&nbsp;

@@ -1,6 +1,3 @@
-@import 'femtocrank/style.css';
-@import 'femtocrank/dark.css';
-
 .pagination {
 	flex-grow: 1;
 }
@@ -106,31 +103,11 @@ section p:last-child {
 	padding: .5em;
 }
 
-table.data-table tr:hover td {
-	background-color: #1d345c;
-	color: white;
-}
-
 input:disabled {
 	cursor: not-allowed !important;
 }
 
 input[type="checkbox"] {
-}
-
-button.neutral {
-	background-color: transparent;
-	color: white;
-	border: #666 solid 1px;
-}
-
-button.neutral:hover {
-	background-color: #666;
-	color: white;
-}
-
-aside {
-	background-color: black;
 }
 
 #app {

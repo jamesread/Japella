@@ -1,3 +1,6 @@
+import 'femtocrank/style.css';
+import 'femtocrank/dark.css';
+
 import { createClient } from '@connectrpc/connect'
 import { createConnectTransport } from "@connectrpc/connect-web"
 
