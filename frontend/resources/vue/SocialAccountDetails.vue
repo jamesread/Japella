@@ -29,12 +29,16 @@
 		<div v-else-if="!account">
 			<p class="inline-notification note">Account not found.</p>
 		</div>
-		<div v-else class="details-grid">
-			<p><strong>ID:</strong> {{ account.id }}</p>
-			<p><strong>Connector:</strong> {{ account.connector }}</p>
-			<p><strong>Identity:</strong> {{ account.identity }}</p>
-			<p><strong>Active:</strong> {{ account.active ? 'Yes' : 'No' }}</p>
-		</div>
+		<dl v-else class="details-grid">
+			<dt>ID</dt>
+			<dd>{{ account.id }}</dd>
+			<dt>Connector</dt>
+			<dd>{{ account.connector }}</dd>
+			<dt>Identity</dt>
+			<dd>{{ account.identity }}</dd>
+			<dt>Active</dt>
+			<dd>{{ account.active ? 'Yes' : 'No' }}</dd>
+		</dl>
 	</Section>
 </template>
 
