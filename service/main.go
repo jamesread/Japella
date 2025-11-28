@@ -40,6 +40,11 @@ func main() {
 	initServiceRegistry()
 	startNanoservices()
 
+	listenAddress := httpserver.GetListenAddress()
+	log.WithFields(log.Fields{
+		"listenAddress": listenAddress,
+	}).Infof("japella started")
+
 	httpserver.Start()
 }
 
@@ -67,8 +72,6 @@ func startNanoservices() {
 
 		startService(serviceName)
 	}
-
-	log.Infof("japella started")
 }
 
 func startService(serviceName string) {

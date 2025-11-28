@@ -1,11 +1,12 @@
 package runtimeconfig
 
 import (
-	log "github.com/sirupsen/logrus"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
@@ -137,6 +138,9 @@ func loadEnvVars(cfg *CommonConfig) {
 	loadEnvVarStr(&cfg.Database.Pass, "JAPELLA_DB_PASS")
 	loadEnvVarInt(&cfg.Database.Port, "JAPELLA_DB_PORT")
 	loadEnvVarStr(&cfg.Database.Name, "JAPELLA_DB_NAME")
+	loadEnvVarStr(&cfg.TLS.CrtPath, "JAPELLA_TLS_CRT_PATH")
+	loadEnvVarStr(&cfg.TLS.KeyPath, "JAPELLA_TLS_KEY_PATH")
+	loadEnvVarStr(&cfg.ListenAddress, "JAPELLA_LISTEN_ADDRESS")
 }
 
 func loadEnvVarInt(variable *int, envVar string) {

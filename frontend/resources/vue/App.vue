@@ -131,6 +131,8 @@
 
 		sidebar.value.addRouterLink('timeline');
 
+		sidebar.value.addRouterLink('feed');
+
 		sidebar.value.addRouterLink('calendar');
 
 		sidebar.value.addSeparator('connections-separator');
@@ -140,12 +142,6 @@
 		sidebar.value.addRouterLink('oauthServices');
 
 		sidebar.value.addSeparator('system-separator');
-
-		sidebar.value.addRouterLink('settings');
-
-		sidebar.value.addRouterLink('settingsApiKeys');
-
-		sidebar.value.addRouterLink('settingsUsers');
 
 		sidebar.value.addRouterLink('controlPanel');
 
@@ -175,6 +171,16 @@
             statusMessages.value = st.statusMessages || [];
 
             checkSecureContext(st)
+
+            // Check if database schema is dirty and show error
+            if (st.databaseSchemaDirty) {
+                statusMessages.value.push({
+                    id: Date.now() + '_dirty_db',
+                    type: 'error',
+                    message: 'Database schema is in a dirty state. Please run database migrations to fix this issue.',
+                    url: 'https://jamesread.github.io/Japella/troubleshooting/database-migrations.html'
+                });
+            }
 
             if (st.isLoggedIn) {
                 onLogin(st)

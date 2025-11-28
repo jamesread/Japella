@@ -12,6 +12,7 @@ import (
 	"github.com/jamesread/japella/internal/layers/api"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/layers/healthcheck"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -111,11 +112,12 @@ func CreateServer(endpoint string) (*http.Server, error) {
 }
 
 func findCerts() (string, string) {
-	crtPath := os.Getenv("JAPELLA_TLS_CRT_PATH")
-	keyPath := os.Getenv("JAPELLA_TLS_KEY_PATH")
+	cfg := runtimeconfig.Get()
+	crtPath := cfg.TLS.CrtPath
+	keyPath := cfg.TLS.KeyPath
 
 	if crtPath == "" || keyPath == "" {
-		log.Warn("TLS_CRT_PATH or TLS_KEY_PATH environment variables not set, using HTTP instead of HTTPS")
+		log.Warn("TLS crtPath or keyPath not set in config, using HTTP instead of HTTPS")
 		return "", ""
 	}
 
@@ -128,10 +130,28 @@ func findCerts() (string, string) {
 		log.Errorf("TLS key file not found at %s", keyPath)
 		return "", ""
 	}
-	
+
 	log.Infof("Using TLS certificates: %s (crt), %s (key)", crtPath, keyPath)
 
 	return crtPath, keyPath
+}
+
+// GetListenAddress returns the effective listen address that will be used
+func GetListenAddress() string {
+	cfg := runtimeconfig.Get()
+	listenAddress := cfg.ListenAddress
+
+	if listenAddress != "" {
+		return listenAddress
+	}
+
+	// Determine default based on TLS certificate availability
+	crt, key := findCerts()
+	if crt != "" && key != "" {
+		return "0.0.0.0:443"
+	}
+
+	return "0.0.0.0:8080"
 }
 
 func Start() {
@@ -145,10 +165,11 @@ func Start() {
 }
 
 func startHttpsServer(crt string, key string) {
-	listenAddress := os.Getenv("JAPELLA_LISTEN_ADDRESS")
+	cfg := runtimeconfig.Get()
+	listenAddress := cfg.ListenAddress
 
 	if listenAddress == "" {
-		listenAddress =  "0.0.0.0:443"
+		listenAddress = "0.0.0.0:443"
 	}
 
 	server, err := CreateServer(listenAddress)
@@ -166,10 +187,11 @@ func startHttpsServer(crt string, key string) {
 }
 
 func startHttpServer() {
-	listenAddress := os.Getenv("JAPELLA_LISTEN_ADDRESS")
+	cfg := runtimeconfig.Get()
+	listenAddress := cfg.ListenAddress
 
 	if listenAddress == "" {
-		listenAddress  = "0.0.0.0:8080"
+		listenAddress = "0.0.0.0:8080"
 	}
 
 	server, err := CreateServer(listenAddress)

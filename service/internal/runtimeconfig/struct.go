@@ -3,10 +3,12 @@ package runtimeconfig
 type CommonConfig struct {
 	ConfigVersion int `yaml:"configVersion"`
 
-	Amqp         AmqpConfig
-	Connectors   []*ConnectorConfigWrapper
-	Database     DatabaseConfig
-	Nanoservices []NanoserviceConfig
+	Amqp          AmqpConfig
+	Connectors    []*ConnectorConfigWrapper
+	Database      DatabaseConfig
+	Nanoservices  []NanoserviceConfig
+	TLS           TLSConfig
+	ListenAddress string `yaml:"listenAddress"`
 }
 
 type ConnectorConfig interface {
@@ -57,4 +59,9 @@ type WhatsAppConfig struct {
 	AccessToken       string
 	PhoneNumberID     string
 	BusinessAccountID string
+}
+
+type TLSConfig struct {
+	CrtPath string `yaml:"crtPath"`
+	KeyPath string `yaml:"keyPath"`
 }
