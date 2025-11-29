@@ -10,171 +10,190 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="error-section">
+		<div v-if="errorMessage">
 			<p class="inline-notification error">{{ errorMessage }}</p>
 		</div>
 
-		<div v-if="loading" class="loading-section">
-			<div class="icon-and-text">
-				<Icon icon="eos-icons:loading" width="24" height="24" />
-				<span>Loading user data...</span>
-			</div>
+		<div v-if="loading" class="icon-and-text">
+			<Icon icon="eos-icons:loading" width="24" height="24" />
+			<span>Loading user data...</span>
 		</div>
 
-		<div v-else-if="userData" class="user-profile">
+		<div v-else-if="userData">
 			<!-- User Profile Card -->
-			<div class="profile-card">
-				<div class="profile-header">
-					<div class="profile-avatar">
-						<Icon icon="mdi:account-circle" width="64" height="64" />
-					</div>
-					<div class="profile-info">
-						<h3>{{ userData.username }}</h3>
-						<p class="profile-email">{{ userData.email || 'No email provided' }}</p>
-						<p class="profile-role">{{ userData.role || 'User' }}</p>
-					</div>
+			<div class="icon-and-text" style="margin-bottom: 2em;">
+				<Icon icon="mdi:account-circle" width="64" height="64" />
+				<div>
+					<h3 style="margin: 0 0 0.5em 0;">{{ userData.username }}</h3>
+					<p style="margin: 0 0 0.25em 0;">{{ userData.email || 'No email provided' }}</p>
+					<p style="margin: 0; font-size: 0.9em;">{{ userData.role || 'User' }}</p>
 				</div>
 			</div>
 
 			<!-- Account Information -->
-			<div class="account-section">
-				<h4>Account Information</h4>
-				<div class="info-grid">
-					<div class="info-item">
-						<label>Username:</label>
-						<span>{{ userData.username }}</span>
-					</div>
-					<div class="info-item">
-						<label>Email:</label>
-						<span>{{ userData.email || 'Not provided' }}</span>
-					</div>
-					<div class="info-item">
-						<label>Role:</label>
-						<span>{{ userData.role || 'User' }}</span>
-					</div>
-					<div class="info-item">
-						<label>Account Created:</label>
-						<span>{{ formatDate(userData.createdAt) }}</span>
-					</div>
-					<div class="info-item">
-						<label>Last Login:</label>
-						<span>{{ formatDate(userData.lastLoginAt) }}</span>
-					</div>
-				</div>
+			<div>
+				<table class="data-table">
+					<tbody>
+						<tr>
+							<td><strong>Username:</strong></td>
+							<td>{{ userData.username }}</td>
+						</tr>
+						<tr>
+							<td><strong>Email:</strong></td>
+							<td>{{ userData.email || 'Not provided' }}</td>
+						</tr>
+						<tr>
+							<td><strong>Role:</strong></td>
+							<td>{{ userData.role || 'User' }}</td>
+						</tr>
+						<tr>
+							<td><strong>Account Created:</strong></td>
+							<td>{{ formatDate(userData.createdAt) }}</td>
+						</tr>
+						<tr>
+							<td><strong>Last Login:</strong></td>
+							<td>{{ formatDate(userData.lastLoginAt) }}</td>
+						</tr>
+					</tbody>
+				</table>
 			</div>
+		</div>
+	</Section>
 
-			<!-- Social Accounts -->
-			<div class="social-accounts-section">
-				<h4>Connected Social Accounts</h4>
-				<div v-if="socialAccounts.length === 0" class="no-accounts">
-					<p class="inline-notification note">No social accounts connected.</p>
-				</div>
-				<div v-else class="social-accounts-grid">
-					<div v-for="account in socialAccounts" :key="account.id" class="social-account-card">
-						<div class="account-header">
+	<Section
+		v-if="!loading && userData"
+		title="Connected Social Accounts"
+		subtitle="Social media accounts linked to your profile"
+	>
+		<div v-if="socialAccounts.length === 0">
+			<p class="inline-notification note">No social accounts connected.</p>
+		</div>
+		<table v-else class="data-table">
+			<thead>
+				<tr>
+					<th>Platform</th>
+					<th>Handle</th>
+					<th>Status</th>
+					<th>Connected</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="account in socialAccounts" :key="account.id">
+					<td>
+						<div class="icon-and-text">
 							<Icon :icon="getSocialIcon(account.platform)" width="24" height="24" />
-							<span class="account-platform">{{ account.platform }}</span>
-							<span class="account-status" :class="account.isActive ? 'active' : 'inactive'">
-								{{ account.isActive ? 'Active' : 'Inactive' }}
-							</span>
+							<span>{{ account.platform }}</span>
 						</div>
-						<div class="account-details">
-							<p><strong>Handle:</strong> {{ account.handle || account.identity || 'Unknown' }}</p>
-							<p><strong>Connected:</strong> {{ formatDate(account.createdAt) }}</p>
-						</div>
-					</div>
-				</div>
-			</div>
+					</td>
+					<td>{{ account.handle || account.identity || 'Unknown' }}</td>
+					<td>
+						<span :class="account.isActive ? 'good' : 'bad'">
+							{{ account.isActive ? 'Active' : 'Inactive' }}
+						</span>
+					</td>
+					<td>{{ formatDate(account.createdAt) }}</td>
+				</tr>
+			</tbody>
+		</table>
+	</Section>
 
-			<!-- Password Change Section -->
-			<div class="password-change-section">
-				<h4>Change Password</h4>
-				<form @submit.prevent="changePassword" class="password-form">
-					<div class="form-group">
-						<label for="current-password">Current Password:</label>
-						<input 
-							type="password" 
-							id="current-password" 
-							v-model="passwordForm.currentPassword" 
-							required 
-							:disabled="passwordChanging"
-						/>
-					</div>
-					<div class="form-group">
-						<label for="new-password">New Password:</label>
-						<input 
-							type="password" 
-							id="new-password" 
-							v-model="passwordForm.newPassword" 
-							required 
-							minlength="8"
-							:disabled="passwordChanging"
-						/>
-						<small class="password-hint">Password must be at least 8 characters long</small>
-					</div>
-					<div class="form-group">
-						<label for="confirm-password">Confirm New Password:</label>
-						<input 
-							type="password" 
-							id="confirm-password" 
-							v-model="passwordForm.confirmPassword" 
-							required 
-							:disabled="passwordChanging"
-						/>
-					</div>
-					<div class="form-actions">
-						<button type="submit" :disabled="passwordChanging || !isPasswordFormValid" class="change-password-btn">
-							<Icon v-if="passwordChanging" icon="eos-icons:loading" width="16" height="16" />
-							<Icon v-else icon="mdi:lock-reset" width="16" height="16" />
-							<span>{{ passwordChanging ? 'Changing...' : 'Change Password' }}</span>
-						</button>
-						<button type="button" @click="resetPasswordForm" :disabled="passwordChanging" class="reset-btn">
-							Reset
-						</button>
-					</div>
-					<div v-if="passwordMessage" class="password-message" :class="passwordMessageType">
+	<Section
+		v-if="!loading && userData"
+		title="Change Password"
+		subtitle="Update your account password"
+	>
+		<form @submit.prevent="changePassword">
+			<div class="password-form-grid">
+				<label for="current-password">Current Password:</label>
+				<input 
+					type="password" 
+					id="current-password" 
+					v-model="passwordForm.currentPassword" 
+					required 
+					:disabled="passwordChanging"
+				/>
+				
+				<label for="new-password">New Password:</label>
+				<div>
+					<input 
+						type="password" 
+						id="new-password" 
+						v-model="passwordForm.newPassword" 
+						required 
+						minlength="8"
+						:disabled="passwordChanging"
+					/>
+					<small style="display: block; margin-top: 0.25em; font-size: 0.8em;">Password must be at least 8 characters long</small>
+				</div>
+				
+				<label for="confirm-password">Confirm New Password:</label>
+				<input 
+					type="password" 
+					id="confirm-password" 
+					v-model="passwordForm.confirmPassword" 
+					required 
+					:disabled="passwordChanging"
+				/>
+				
+				<div class="password-form-buttons">
+					<button type="submit" :disabled="passwordChanging || !isPasswordFormValid" class="good">
+						<Icon v-if="passwordChanging" icon="eos-icons:loading" width="16" height="16" />
+						<Icon v-else icon="mdi:lock-reset" width="16" height="16" />
+						<span>{{ passwordChanging ? 'Changing...' : 'Change Password' }}</span>
+					</button>
+					<button type="button" @click="resetPasswordForm" :disabled="passwordChanging" class="neutral">
+						Reset
+					</button>
+				</div>
+				
+				<div v-if="passwordMessage" class="password-form-message">
+					<div class="inline-notification" :class="passwordMessageType">
 						{{ passwordMessage }}
 					</div>
-				</form>
-			</div>
-
-			<!-- Quick Actions -->
-			<div class="quick-actions-section">
-				<h4>Quick Actions</h4>
-				<div class="actions-grid">
-					<button @click="goToSocialAccounts" class="action-button">
-						<Icon icon="mdi:account-multiple" />
-						<span>Manage Social Accounts</span>
-					</button>
-					<button @click="goToSettings" class="action-button">
-						<Icon icon="mdi:cog" />
-						<span>Account Settings</span>
-					</button>
-					<button @click="goToApiKeys" class="action-button">
-						<Icon icon="mdi:key" />
-						<span>API Keys</span>
-					</button>
 				</div>
 			</div>
+		</form>
+	</Section>
 
-			<!-- Logout Section -->
-			<div class="logout-section">
-				<h4>Session Management</h4>
-				<div class="logout-card">
-					<div class="logout-info">
-						<Icon icon="mdi:logout" width="24" height="24" />
-						<div class="logout-text">
-							<h5>Sign Out</h5>
-							<p>End your current session and return to the login page.</p>
-						</div>
-					</div>
-					<button @click="logout" :disabled="loggingOut" class="logout-button">
-						<Icon v-if="loggingOut" icon="eos-icons:loading" width="16" height="16" />
-						<Icon v-else icon="mdi:logout" width="16" height="16" />
-						<span>{{ loggingOut ? 'Signing Out...' : 'Sign Out' }}</span>
-					</button>
+	<Section
+		v-if="!loading && userData"
+		title="Quick Actions"
+		subtitle="Quick navigation to common tasks"
+	>
+		<div style="display: flex; gap: 1em; flex-wrap: wrap;">
+			<button @click="goToSocialAccounts" class="neutral">
+				<Icon icon="mdi:account-multiple" />
+				<span>Manage Social Accounts</span>
+			</button>
+			<button @click="goToSettings" class="neutral">
+				<Icon icon="mdi:cog" />
+				<span>Account Settings</span>
+			</button>
+			<button @click="goToApiKeys" class="neutral">
+				<Icon icon="mdi:key" />
+				<span>API Keys</span>
+			</button>
+		</div>
+	</Section>
+
+	<Section
+		v-if="!loading && userData"
+		title="Session Management"
+		subtitle="Manage your current session"
+	>
+		<div class="icon-and-text" style="align-items: center; justify-content: space-between;">
+			<div class="icon-and-text">
+				<Icon icon="mdi:logout" width="24" height="24" />
+				<div>
+					<h5 style="margin: 0 0 0.25em 0;">Sign Out</h5>
+					<p style="margin: 0; font-size: 0.9em;">End your current session and return to the login page.</p>
 				</div>
 			</div>
+			<button @click="logout" :disabled="loggingOut" class="bad">
+				<Icon v-if="loggingOut" icon="eos-icons:loading" width="16" height="16" />
+				<Icon v-else icon="mdi:logout" width="16" height="16" />
+				<span>{{ loggingOut ? 'Signing Out...' : 'Sign Out' }}</span>
+			</button>
 		</div>
 	</Section>
 </template>
@@ -371,341 +390,28 @@
 </script>
 
 <style scoped>
-	.user-control-panel {
-		max-width: 1000px;
-		margin: 0 auto;
-	}
-
-	.loading-section {
-		text-align: center;
-		padding: 2em;
-	}
-
-	.profile-card {
-		background-color: #2a2a2a;
-		border-radius: 0.5em;
-		padding: 1.5em;
-		margin-bottom: 2em;
-	}
-
-	.profile-header {
-		display: flex;
-		align-items: center;
+	.password-form-grid {
+		display: grid;
+		grid-template-columns: 200px 1fr;
 		gap: 1em;
+		align-items: start;
 	}
 
-	.profile-avatar {
-		color: #666;
+	.password-form-grid label {
+		padding-top: 0.75em;
 	}
 
-	.profile-info h3 {
-		margin: 0 0 0.5em 0;
-		color: white;
-		font-size: 1.5em;
-	}
-
-	.profile-email {
-		margin: 0 0 0.25em 0;
-		color: #ccc;
-	}
-
-	.profile-role {
-		margin: 0;
-		color: #999;
-		font-size: 0.9em;
-	}
-
-	.account-section,
-	.social-accounts-section,
-	.password-change-section,
-	.quick-actions-section,
-	.logout-section {
-		margin-bottom: 2em;
-	}
-
-	.account-section h4,
-	.social-accounts-section h4,
-	.password-change-section h4,
-	.quick-actions-section h4,
-	.logout-section h4 {
-		color: white;
-		margin-bottom: 1em;
-		border-bottom: 1px solid #444;
-		padding-bottom: 0.5em;
-	}
-
-	.password-form {
-		background-color: #2a2a2a;
-		border-radius: 0.5em;
-		padding: 1.5em;
-	}
-
-	.form-group {
-		margin-bottom: 1em;
-	}
-
-	.form-group label {
-		display: block;
-		margin-bottom: 0.5em;
-		color: #ccc;
-		font-weight: bold;
-	}
-
-	.form-group input {
+	.password-form-grid input {
 		width: 100%;
-		padding: 0.75em;
-		border: 1px solid #666;
-		border-radius: 0.25em;
-		background-color: #1a1a1a;
-		color: white;
-		font-size: 1em;
 	}
 
-	.form-group input:focus {
-		outline: none;
-		border-color: #4CAF50;
-		box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-	}
-
-	.form-group input:disabled {
-		background-color: #333;
-		color: #666;
-		cursor: not-allowed;
-	}
-
-	.password-hint {
-		display: block;
-		margin-top: 0.25em;
-		color: #999;
-		font-size: 0.8em;
-	}
-
-	.form-actions {
+	.password-form-buttons {
+		grid-column: 1 / -1;
 		display: flex;
 		gap: 1em;
-		margin-top: 1.5em;
 	}
 
-	.change-password-btn {
-		display: flex;
-		align-items: center;
-		gap: 0.5em;
-		padding: 0.75em 1.5em;
-		background-color: #4CAF50;
-		border: none;
-		border-radius: 0.25em;
-		color: white;
-		font-weight: bold;
-		cursor: pointer;
-		transition: background-color 0.2s ease;
-	}
-
-	.change-password-btn:hover:not(:disabled) {
-		background-color: #45a049;
-	}
-
-	.change-password-btn:disabled {
-		background-color: #666;
-		cursor: not-allowed;
-	}
-
-	.reset-btn {
-		padding: 0.75em 1.5em;
-		background-color: transparent;
-		border: 1px solid #666;
-		border-radius: 0.25em;
-		color: white;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.reset-btn:hover:not(:disabled) {
-		background-color: #666;
-	}
-
-	.reset-btn:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	.password-message {
-		margin-top: 1em;
-		padding: 0.75em;
-		border-radius: 0.25em;
-		font-weight: bold;
-	}
-
-	.password-message.success {
-		background-color: #4CAF50;
-		color: white;
-	}
-
-	.password-message.error {
-		background-color: #f44336;
-		color: white;
-	}
-
-	.logout-card {
-		background-color: #2a2a2a;
-		border-radius: 0.5em;
-		padding: 1.5em;
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		border-left: 4px solid #f44336;
-	}
-
-	.logout-info {
-		display: flex;
-		align-items: center;
-		gap: 1em;
-		flex-grow: 1;
-	}
-
-	.logout-info svg {
-		color: #f44336;
-		flex-shrink: 0;
-	}
-
-	.logout-text h5 {
-		margin: 0 0 0.25em 0;
-		color: white;
-		font-size: 1.1em;
-	}
-
-	.logout-text p {
-		margin: 0;
-		color: #ccc;
-		font-size: 0.9em;
-	}
-
-	.logout-button {
-		display: flex;
-		align-items: center;
-		gap: 0.5em;
-		padding: 0.75em 1.5em;
-		background-color: #f44336;
-		border: none;
-		border-radius: 0.25em;
-		color: white;
-		font-weight: bold;
-		cursor: pointer;
-		transition: background-color 0.2s ease;
-		flex-shrink: 0;
-	}
-
-	.logout-button:hover:not(:disabled) {
-		background-color: #d32f2f;
-	}
-
-	.logout-button:disabled {
-		background-color: #666;
-		cursor: not-allowed;
-	}
-
-	.info-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-		gap: 1em;
-	}
-
-	.info-item {
-		display: flex;
-		justify-content: space-between;
-		padding: 0.75em;
-		background-color: #2a2a2a;
-		border-radius: 0.25em;
-	}
-
-	.info-item label {
-		font-weight: bold;
-		color: #ccc;
-	}
-
-	.info-item span {
-		color: white;
-	}
-
-	.social-accounts-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-		gap: 1em;
-	}
-
-	.social-account-card {
-		background-color: #2a2a2a;
-		border-radius: 0.5em;
-		padding: 1em;
-		border-left: 4px solid #666;
-	}
-
-	.account-header {
-		display: flex;
-		align-items: center;
-		gap: 0.5em;
-		margin-bottom: 0.75em;
-	}
-
-	.account-platform {
-		font-weight: bold;
-		color: white;
-		text-transform: capitalize;
-	}
-
-	.account-status {
-		margin-left: auto;
-		padding: 0.25em 0.5em;
-		border-radius: 0.25em;
-		font-size: 0.8em;
-		font-weight: bold;
-	}
-
-	.account-status.active {
-		background-color: #4caf50;
-		color: white;
-	}
-
-	.account-status.inactive {
-		background-color: #f44336;
-		color: white;
-	}
-
-	.account-details p {
-		margin: 0.25em 0;
-		color: #ccc;
-		font-size: 0.9em;
-	}
-
-	.actions-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1em;
-	}
-
-	.action-button {
-		display: flex;
-		align-items: center;
-		gap: 0.5em;
-		padding: 1em;
-		background-color: #2a2a2a;
-		border: 1px solid #666;
-		border-radius: 0.5em;
-		color: white;
-		cursor: pointer;
-		transition: all 0.2s ease;
-	}
-
-	.action-button:hover {
-		background-color: #3a3a3a;
-		border-color: #888;
-	}
-
-	.action-button svg {
-		flex-shrink: 0;
-	}
-
-	.no-accounts {
-		text-align: center;
-		padding: 2em;
+	.password-form-message {
+		grid-column: 1 / -1;
 	}
 </style>
