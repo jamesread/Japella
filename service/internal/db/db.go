@@ -370,7 +370,54 @@ func (db *DB) DeleteCannedPost(id uint32) error {
 }
 
 func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, did, homeserver, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :did, :homeserver, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :dpop_key, NOW(), NOW())`, socialAccount)
+	// Check if an account with the same connector and identity (or DID) already exists
+	existingAccount, err := db.GetSocialAccountByConnectorAndIdentity(socialAccount.Connector, socialAccount.Identity, socialAccount.Did)
+	if err == nil && existingAccount != nil {
+		// Account exists, update it with new tokens
+		db.Logger().Infof("Updating existing social account (ID: %d) for connector: %s, identity: %s", existingAccount.ID, socialAccount.Connector, socialAccount.Identity)
+		
+		// Preserve existing homeserver if new one is empty (for Mastodon instances)
+		homeserver := socialAccount.Homeserver
+		if homeserver == "" && existingAccount.Homeserver != "" {
+			homeserver = existingAccount.Homeserver
+		}
+		
+		// Update the account with new OAuth tokens and other fields
+		_, err = db.ResilientNamedExec(`UPDATE social_accounts SET 
+			identity = :identity,
+			did = :did,
+			homeserver = :homeserver,
+			oauth2_token = :oauth2_token,
+			oauth2_token_expiry = :oauth2_token_expiry,
+			oauth2_refresh_token = :oauth2_refresh_token,
+			dpop_key = :dpop_key,
+			active = :active,
+			updated_at = NOW()
+			WHERE id = :id`, map[string]interface{}{
+			"id":                  existingAccount.ID,
+			"identity":            socialAccount.Identity,
+			"did":                 socialAccount.Did,
+			"homeserver":          homeserver,
+			"oauth2_token":        socialAccount.OAuth2Token,
+			"oauth2_token_expiry": socialAccount.OAuth2TokenExpiry,
+			"oauth2_refresh_token": socialAccount.OAuth2RefreshToken,
+			"dpop_key":            socialAccount.DpopKey,
+			"active":             socialAccount.Active,
+		})
+		if err != nil {
+			db.Logger().Errorf("Failed to update existing social account: %v", err)
+			return err
+		}
+		return nil
+	} else if err != nil && err != sql.ErrNoRows {
+		// Error other than "not found"
+		db.Logger().Errorf("Error checking for existing social account: %v", err)
+		return err
+	}
+	
+	// Account doesn't exist, insert a new one
+	db.Logger().Infof("Registering new social account for connector: %s, identity: %s", socialAccount.Connector, socialAccount.Identity)
+	_, err = db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, did, homeserver, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :did, :homeserver, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :dpop_key, NOW(), NOW())`, socialAccount)
 	if err != nil {
 		db.Logger().Errorf("Failed to register social account: %v", err)
 		return err
@@ -465,6 +512,39 @@ func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {
 		return nil, err
 	}
 	return &account, nil
+}
+
+// GetSocialAccountByConnectorAndIdentity finds a social account by connector and identity (or DID if identity is empty)
+func (db *DB) GetSocialAccountByConnectorAndIdentity(connector string, identity string, did string) (*SocialAccount, error) {
+	var account SocialAccount
+	var err error
+	
+	// Try to find by connector and identity first
+	if identity != "" {
+		err = db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE connector = ? AND identity = ? LIMIT 1", connector, identity)
+		if err == nil {
+			return &account, nil
+		}
+		if err != sql.ErrNoRows {
+			db.Logger().Errorf("Error querying social account by connector and identity: %v", err)
+			return nil, err
+		}
+	}
+	
+	// If not found and we have a DID, try to find by connector and DID
+	if did != "" {
+		err = db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE connector = ? AND did = ? LIMIT 1", connector, did)
+		if err == nil {
+			return &account, nil
+		}
+		if err != sql.ErrNoRows {
+			db.Logger().Errorf("Error querying social account by connector and DID: %v", err)
+			return nil, err
+		}
+	}
+	
+	// Not found
+	return nil, sql.ErrNoRows
 }
 
 func (db *DB) SetSocialAccountActive(id uint32, active bool) error {

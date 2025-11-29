@@ -34,18 +34,16 @@
 						</router-link>
 					</td>
 						<td align="right">
+						<button @click="openProfile(account)" class="neutral" :title="'Open ' + account.identity + ' profile'">
+							<Icon icon="material-symbols:open-in-new" />
+						</button>
+						&nbsp;
 						<button @click="refreshAccount(account.id)" class="good" :disabled="isAccountRefreshing(account.id)">
 							<Icon v-if="isAccountSuccess(account.id)" icon="material-symbols:check-circle" />
 							<Icon v-else-if="isAccountRefreshing(account.id)" icon="material-symbols:hourglass-top" />
 							<Icon v-else icon="material-symbols:refresh" />
 						</button>
-
-							&nbsp;
-
-
-
-
-						</td>
+					</td>
 					</tr>
 				</tbody>
 			</table>
@@ -76,6 +74,41 @@
 		return successAccounts.value.has(accountId)
 	}
 
+	function getProfileUrl(account) {
+		if (!account || !account.identity) {
+			return null
+		}
+
+		const identity = account.identity
+		const connector = account.connector
+
+		switch (connector) {
+			case 'bluesky':
+				// Bluesky profile URL format: https://bsky.app/profile/{handle}
+				return `https://bsky.app/profile/${identity}`
+			case 'x':
+				// X/Twitter profile URL format: https://x.com/{username}
+				return `https://x.com/${identity}`
+			case 'mastodon':
+				// Mastodon profile URL format: {homeserver}/@{username}
+				// Note: We don't have homeserver in the account object from the API
+				// Default to mastodon.social, but ideally we'd get this from the account
+				const homeserver = 'https://mastodon.social' // Default, could be improved
+				return `${homeserver}/@${identity}`
+			default:
+				return null
+		}
+	}
+
+	function openProfile(account) {
+		const profileUrl = getProfileUrl(account)
+		if (profileUrl) {
+			window.open(profileUrl, '_blank', 'noopener,noreferrer')
+		} else {
+			showErrorDialog?.('Unable to determine profile URL for this account type.')
+		}
+	}
+
 	function deleteAccount(accountId) {
 		if (!confirm("Are you sure you want to delete this account?")) {
 			return
@@ -98,7 +131,33 @@
 			.then((ret) => {
 				if (!ret.standardResponse.success) {
 				    console.log('Error refreshing social account:', ret.standardResponse.message)
-				    showErrorDialog?.(ret.standardResponse.message)
+				    
+				    // Check if the error indicates re-authentication is required
+				    const errorMessage = ret.standardResponse.message.toLowerCase()
+				    if (errorMessage.includes('re-authentication required') || errorMessage.includes('reauthentication required')) {
+				    	// Find the account to get its connector
+				    	const account = accounts.value.find(a => a.id === accountId)
+				    	if (account && account.connector) {
+				    		// Start OAuth flow for re-authentication
+				    		console.log('Starting OAuth flow for re-authentication:', account.connector)
+				    		window.client.startOAuth({ connectorId: account.connector })
+				    			.then((oauthRes) => {
+				    				console.log('OAuth URL received, redirecting...')
+				    				window.location.href = oauthRes.url
+				    			})
+				    			.catch((oauthError) => {
+				    				console.error('Error starting OAuth flow:', oauthError)
+				    				showErrorDialog?.('Failed to start re-authentication. Please try connecting the account again from the OAuth Services section.')
+				    				refreshingAccounts.value.delete(accountId)
+				    			})
+				    		// Note: We don't delete from refreshingAccounts here because we're redirecting
+				    		return // Don't show error dialog, we're redirecting
+				    	} else {
+				    		showErrorDialog?.('Re-authentication required, but could not determine connector. Please reconnect the account from the OAuth Services section.')
+				    	}
+				    } else {
+				    	showErrorDialog?.(ret.standardResponse.message)
+				    }
 				}
 
 				// Mark success briefly when the refresh call succeeds at the transport level

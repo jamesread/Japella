@@ -311,11 +311,26 @@ func (x *XConnector) OnOAuth2Callback(code string, verifier string, headers map[
 
 	x.Logger().Debugf("Received token on exchange: %+v", token)
 
+	// Get identity (username) before registering to match existing accounts
+	identity := ""
+	whoamiClient := utils.NewClient(x.Logger())
+	whoamiClient.Get("https://api.x.com/2/users/me").WithBearerToken(token.AccessToken)
+	if whoamiClient.Err == nil {
+		whoamiResult := &WhoamiResult{}
+		whoamiClient.AsJson(whoamiResult)
+		if whoamiClient.Err == nil && whoamiResult.Data.Username != "" {
+			identity = whoamiResult.Data.Username
+			x.Logger().Infof("Retrieved X account identity: %s", identity)
+		}
+	}
+
 	err = x.db.RegisterAccount(&db.SocialAccount{
 		Connector:          "x",
+		Identity:           identity,
 		OAuth2Token:        token.AccessToken,
 		OAuth2TokenExpiry:  token.Expiry,
 		OAuth2RefreshToken: token.RefreshToken,
+		Active:             true,
 	})
 
 	return err

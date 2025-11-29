@@ -22,6 +22,8 @@ import (
 	"io"
 	"math/big"
 	"net/http"
+	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -81,9 +83,30 @@ type BlueskyCreatePostRequest struct {
 }
 
 type BlueskyPostRecord struct {
-	Type      string `json:"$type"`
-	Text      string `json:"text"`
-	CreatedAt string `json:"createdAt"`
+	Type      string         `json:"$type"`
+	Text      string         `json:"text"`
+	CreatedAt string         `json:"createdAt"`
+	Facets    []BlueskyFacet `json:"facets,omitempty"`
+}
+
+type BlueskyFacet struct {
+	Index    BlueskyFacetIndex     `json:"index"`
+	Features []BlueskyFacetFeature `json:"features"`
+}
+
+type BlueskyFacetIndex struct {
+	ByteStart int `json:"byteStart"`
+	ByteEnd   int `json:"byteEnd"`
+}
+
+type BlueskyFacetFeature struct {
+	Type string `json:"$type"`
+	// For links
+	URI string `json:"uri,omitempty"`
+	// For mentions
+	DID string `json:"did,omitempty"`
+	// For hashtags
+	Tag string `json:"tag,omitempty"`
 }
 
 type BlueskyCreatePostResponse struct {
@@ -99,6 +122,9 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 		return &connector.PostResult{Err: fmt.Errorf("failed to get social account: %v", err), URL: ""}
 	}
 
+	// Parse facets from content
+	facets := b.parseFacets(content)
+
 	req := BlueskyCreatePostRequest{
 		Repo:       dbSocialAccount.Did,
 		Collection: "app.bsky.feed.post",
@@ -106,6 +132,7 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 			Type:      "app.bsky.feed.post",
 			Text:      content,
 			CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+			Facets:    facets,
 		},
 	}
 
@@ -188,6 +215,171 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 	ret := &connector.PostResult{Err: nil, URL: "https://bsky.app/profile/" + profileHandle + "/post/" + rkey}
 
 	return ret
+}
+
+// parseFacets parses URLs, mentions, and hashtags from text and returns Bluesky facets
+func (b *BlueskyConnector) parseFacets(text string) []BlueskyFacet {
+	if text == "" {
+		return nil
+	}
+
+	facets := []BlueskyFacet{}
+
+	// Regular expressions for matching
+	// URLs: http:// or https:// followed by non-whitespace characters
+	urlRegex := regexp.MustCompile(`https?://[^\s]+`)
+	// Mentions: @ followed by a valid domain (e.g., @alice.bsky.social)
+	// Bluesky handles are domain names, so we match @domain.tld format
+	mentionRegex := regexp.MustCompile(`@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?`)
+	// Hashtags: # followed by letters, numbers, and underscores
+	hashtagRegex := regexp.MustCompile(`#([\p{L}\p{N}_]+)`)
+
+	// Track used byte ranges to avoid overlaps
+	usedRanges := make(map[int]bool)
+
+	// Find URLs
+	urlMatches := urlRegex.FindAllStringIndex(text, -1)
+	for _, match := range urlMatches {
+		start, end := match[0], match[1]
+
+		// Check if this range overlaps with any existing facet
+		overlaps := false
+		for i := start; i < end; i++ {
+			if usedRanges[i] {
+				overlaps = true
+				break
+			}
+		}
+
+		if !overlaps {
+			// Calculate byte offsets
+			byteStart := len([]byte(text[:start]))
+			byteEnd := len([]byte(text[:end]))
+
+			// Extract URL
+			urlStr := text[start:end]
+
+			// Validate URL
+			if parsedURL, err := url.Parse(urlStr); err == nil && (parsedURL.Scheme == "http" || parsedURL.Scheme == "https") {
+				facet := BlueskyFacet{
+					Index: BlueskyFacetIndex{
+						ByteStart: byteStart,
+						ByteEnd:   byteEnd,
+					},
+					Features: []BlueskyFacetFeature{
+						{
+							Type: "app.bsky.richtext.facet#link",
+							URI:  urlStr,
+						},
+					},
+				}
+				facets = append(facets, facet)
+
+				// Mark range as used
+				for i := start; i < end; i++ {
+					usedRanges[i] = true
+				}
+			}
+		}
+	}
+
+	// Find mentions (@handle)
+	mentionMatches := mentionRegex.FindAllStringIndex(text, -1)
+	for _, match := range mentionMatches {
+		start, end := match[0], match[1]
+
+		// Check if this range overlaps with any existing facet
+		overlaps := false
+		for i := start; i < end; i++ {
+			if usedRanges[i] {
+				overlaps = true
+				break
+			}
+		}
+
+		if !overlaps {
+			// Calculate byte offsets
+			byteStart := len([]byte(text[:start]))
+			byteEnd := len([]byte(text[:end]))
+
+			// Extract handle (without @)
+			handle := text[start+1 : end]
+
+			// Try to resolve handle to DID
+			did, err := b.resolveHandleToDID(handle)
+			if err != nil {
+				b.Logger().Warnf("Failed to resolve handle %s to DID: %v", handle, err)
+				// Continue without DID - Bluesky may still accept the mention
+				did = ""
+			}
+
+			feature := BlueskyFacetFeature{
+				Type: "app.bsky.richtext.facet#mention",
+			}
+			if did != "" {
+				feature.DID = did
+			}
+
+			facet := BlueskyFacet{
+				Index: BlueskyFacetIndex{
+					ByteStart: byteStart,
+					ByteEnd:   byteEnd,
+				},
+				Features: []BlueskyFacetFeature{feature},
+			}
+			facets = append(facets, facet)
+
+			// Mark range as used
+			for i := start; i < end; i++ {
+				usedRanges[i] = true
+			}
+		}
+	}
+
+	// Find hashtags
+	hashtagMatches := hashtagRegex.FindAllStringIndex(text, -1)
+	for _, match := range hashtagMatches {
+		start, end := match[0], match[1]
+
+		// Check if this range overlaps with any existing facet
+		overlaps := false
+		for i := start; i < end; i++ {
+			if usedRanges[i] {
+				overlaps = true
+				break
+			}
+		}
+
+		if !overlaps {
+			// Calculate byte offsets
+			byteStart := len([]byte(text[:start]))
+			byteEnd := len([]byte(text[:end]))
+
+			// Extract tag (without #)
+			tag := text[start+1 : end]
+
+			facet := BlueskyFacet{
+				Index: BlueskyFacetIndex{
+					ByteStart: byteStart,
+					ByteEnd:   byteEnd,
+				},
+				Features: []BlueskyFacetFeature{
+					{
+						Type: "app.bsky.richtext.facet#tag",
+						Tag:  tag,
+					},
+				},
+			}
+			facets = append(facets, facet)
+
+			// Mark range as used
+			for i := start; i < end; i++ {
+				usedRanges[i] = true
+			}
+		}
+	}
+
+	return facets
 }
 
 func (b *BlueskyConnector) GetIcon() string {
@@ -278,7 +470,7 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 	baseURL := b.db.GetCvarString(db.CvarKeys.BaseUrl)
 	clientId := baseURL + "/oauth/client-metadata.json"
 	if clientId == "" {
-		return fmt.Errorf("Bluesky BASE_URL not configured")
+		return fmt.Errorf("bluesky BASE_URL not configured")
 	}
 
 	b.Logger().Infof("Using client_id for token refresh: %s", clientId)
@@ -307,7 +499,62 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 		"client_assertion":      clientAssertion,
 	}
 
-	// Make the refresh request to Bluesky's token endpoint
+	// Build form data
+	form := url.Values{}
+	for key, value := range refreshData {
+		form.Add(key, value)
+	}
+
+	// Create HTTP request manually so we can read error responses
+	req, err := http.NewRequest("POST", "https://bsky.social/oauth/token", strings.NewReader(form.Encode()))
+	if err != nil {
+		b.Logger().Errorf("Failed to create refresh token request: %v", err)
+		return fmt.Errorf("token refresh failed: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Execute the request using the DPoP client
+	resp, err := client.UnderlyingClient().Do(req)
+	if err != nil {
+		b.Logger().Errorf("Failed to execute refresh token request: %v", err)
+		return fmt.Errorf("token refresh failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Read the response body
+	bodyBytes, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		b.Logger().Errorf("Failed to read response body: %v", readErr)
+		return fmt.Errorf("token refresh failed: failed to read response: %v", readErr)
+	}
+
+	// Check status code
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		bodyStr := string(bodyBytes)
+		b.Logger().Errorf("Token refresh failed with status %d. Response body: %s", resp.StatusCode, bodyStr)
+
+		// Try to parse error response as JSON
+		var errorResponse map[string]interface{}
+		if json.Unmarshal(bodyBytes, &errorResponse) == nil {
+			if errorMsg, ok := errorResponse["error"].(string); ok {
+				errorDesc := ""
+				if desc, ok := errorResponse["error_description"].(string); ok {
+					errorDesc = ": " + desc
+				}
+
+				// Check for invalid refresh token - this requires re-authentication
+				if errorMsg == "invalid_grant" && strings.Contains(strings.ToLower(errorDesc), "refresh token") {
+					b.Logger().Warnf("Refresh token is invalid or expired for account ID %d. User needs to re-authenticate.", socialAccount.ID)
+					return fmt.Errorf("refresh token invalid or expired - re-authentication required%s", errorDesc)
+				}
+
+				return fmt.Errorf("token refresh failed: %s%s", errorMsg, errorDesc)
+			}
+		}
+		return fmt.Errorf("token refresh failed: unexpected status code: %d", resp.StatusCode)
+	}
+
+	// Parse successful response
 	var tokenResponse struct {
 		AccessToken  string `json:"access_token"`
 		RefreshToken string `json:"refresh_token"`
@@ -315,12 +562,9 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 		TokenType    string `json:"token_type"`
 		Scope        string `json:"scope"`
 	}
-
-	client.PostWithFormVars("https://bsky.social/oauth/token", refreshData).AsJson(&tokenResponse)
-
-	if client.Err != nil {
-		b.Logger().Errorf("Failed to refresh token: %v", client.Err)
-		return fmt.Errorf("token refresh failed: %v", client.Err)
+	if err := json.Unmarshal(bodyBytes, &tokenResponse); err != nil {
+		b.Logger().Errorf("Failed to parse token response: %v", err)
+		return fmt.Errorf("token refresh failed: failed to parse response: %v", err)
 	}
 
 	if tokenResponse.AccessToken == "" {

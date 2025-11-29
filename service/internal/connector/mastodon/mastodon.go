@@ -309,11 +309,30 @@ func (c *MastodonConnector) OnOAuth2Callback(code string, verifier string, heade
 
 	c.Logger().Debugf("OAuth2 token received: %+v", token)
 
-	c.db.RegisterAccount(&db.SocialAccount{
+	// Get identity (username) before registering to match existing accounts
+	// Use default instance URL (homeserver will be set from the account if updating)
+	instanceURL := "https://mastodon.social"
+
+	identity := ""
+	whoamiClient := utils.NewClient(c.Logger())
+	whoamiClient.Get(instanceURL + "/api/v1/accounts/verify_credentials").WithBearerToken(token.AccessToken)
+	if whoamiClient.Err == nil {
+		whoamiData := &VerifyCredentialsResponse{}
+		whoamiClient.AsJson(whoamiData)
+		if whoamiClient.Err == nil && whoamiData.Username != "" {
+			identity = whoamiData.Username
+			c.Logger().Infof("Retrieved Mastodon account identity: %s", identity)
+		}
+	}
+
+	err = c.db.RegisterAccount(&db.SocialAccount{
 		Connector:          "mastodon",
+		Identity:           identity,
+		Homeserver:         instanceURL,
 		OAuth2Token:        token.AccessToken,
 		OAuth2TokenExpiry:  token.Expiry,
 		OAuth2RefreshToken: token.RefreshToken,
+		Active:             true,
 	})
 
 	return err

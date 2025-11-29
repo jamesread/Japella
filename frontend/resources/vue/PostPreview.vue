@@ -58,8 +58,6 @@
 	margin: 0 auto;
 	padding: 1rem;
 	border-radius: 0.5rem;
-	border: 2px solid var(--border-color, #4e5965);
-    background-color: var(--background-secondary, #242424);
     line-height: 2;;
 }
 
