@@ -31,128 +31,23 @@
 			</div>
 
 			<!-- Account Information -->
-			<div>
-				<table class="data-table">
-					<tbody>
-						<tr>
-							<td><strong>Username:</strong></td>
-							<td>{{ userData.username }}</td>
-						</tr>
-						<tr>
-							<td><strong>Email:</strong></td>
-							<td>{{ userData.email || 'Not provided' }}</td>
-						</tr>
-						<tr>
-							<td><strong>Role:</strong></td>
-							<td>{{ userData.role || 'User' }}</td>
-						</tr>
-						<tr>
-							<td><strong>Account Created:</strong></td>
-							<td>{{ formatDate(userData.createdAt) }}</td>
-						</tr>
-						<tr>
-							<td><strong>Last Login:</strong></td>
-							<td>{{ formatDate(userData.lastLoginAt) }}</td>
-						</tr>
-					</tbody>
-				</table>
-			</div>
-		</div>
-	</Section>
+			<dl class="account-info">
+				<dt>Username</dt>
+				<dd>{{ userData.username }}</dd>
 
-	<Section
-		v-if="!loading && userData"
-		title="Connected Social Accounts"
-		subtitle="Social media accounts linked to your profile"
-	>
-		<div v-if="socialAccounts.length === 0">
-			<p class="inline-notification note">No social accounts connected.</p>
-		</div>
-		<table v-else class="data-table">
-			<thead>
-				<tr>
-					<th>Platform</th>
-					<th>Handle</th>
-					<th>Status</th>
-					<th>Connected</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr v-for="account in socialAccounts" :key="account.id">
-					<td>
-						<div class="icon-and-text">
-							<Icon :icon="getSocialIcon(account.platform)" width="24" height="24" />
-							<span>{{ account.platform }}</span>
-						</div>
-					</td>
-					<td>{{ account.handle || account.identity || 'Unknown' }}</td>
-					<td>
-						<span :class="account.isActive ? 'good' : 'bad'">
-							{{ account.isActive ? 'Active' : 'Inactive' }}
-						</span>
-					</td>
-					<td>{{ formatDate(account.createdAt) }}</td>
-				</tr>
-			</tbody>
-		</table>
-	</Section>
+				<dt>Email</dt>
+				<dd>{{ userData.email || 'Not provided' }}</dd>
 
-	<Section
-		v-if="!loading && userData"
-		title="Change Password"
-		subtitle="Update your account password"
-	>
-		<form @submit.prevent="changePassword">
-			<div class="password-form-grid">
-				<label for="current-password">Current Password:</label>
-				<input 
-					type="password" 
-					id="current-password" 
-					v-model="passwordForm.currentPassword" 
-					required 
-					:disabled="passwordChanging"
-				/>
-				
-				<label for="new-password">New Password:</label>
-				<div>
-					<input 
-						type="password" 
-						id="new-password" 
-						v-model="passwordForm.newPassword" 
-						required 
-						minlength="8"
-						:disabled="passwordChanging"
-					/>
-					<small style="display: block; margin-top: 0.25em; font-size: 0.8em;">Password must be at least 8 characters long</small>
-				</div>
-				
-				<label for="confirm-password">Confirm New Password:</label>
-				<input 
-					type="password" 
-					id="confirm-password" 
-					v-model="passwordForm.confirmPassword" 
-					required 
-					:disabled="passwordChanging"
-				/>
-				
-				<div class="password-form-buttons">
-					<button type="submit" :disabled="passwordChanging || !isPasswordFormValid" class="good">
-						<Icon v-if="passwordChanging" icon="eos-icons:loading" width="16" height="16" />
-						<Icon v-else icon="mdi:lock-reset" width="16" height="16" />
-						<span>{{ passwordChanging ? 'Changing...' : 'Change Password' }}</span>
-					</button>
-					<button type="button" @click="resetPasswordForm" :disabled="passwordChanging" class="neutral">
-						Reset
-					</button>
-				</div>
-				
-				<div v-if="passwordMessage" class="password-form-message">
-					<div class="inline-notification" :class="passwordMessageType">
-						{{ passwordMessage }}
-					</div>
-				</div>
-			</div>
-		</form>
+				<dt>Role</dt>
+				<dd>{{ userData.role || 'User' }}</dd>
+
+				<dt>Account Created</dt>
+				<dd>{{ formatDate(userData.createdAt) }}</dd>
+
+				<dt>Last Login</dt>
+				<dd>{{ formatDate(userData.lastLoginAt) }}</dd>
+			</dl>
+		</div>
 	</Section>
 
 	<Section
@@ -172,6 +67,10 @@
 			<button @click="goToApiKeys" class="neutral">
 				<Icon icon="mdi:key" />
 				<span>API Keys</span>
+			</button>
+			<button @click="goToChangePassword" class="neutral">
+				<Icon icon="mdi:lock-reset" />
+				<span>Change Password</span>
 			</button>
 		</div>
 	</Section>
@@ -199,7 +98,7 @@
 </template>
 
 <script setup>
-	import { ref, computed, onMounted } from 'vue';
+	import { ref, onMounted } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
@@ -211,28 +110,9 @@
 	const loading = ref(true);
 	const errorMessage = ref('');
 	const userData = ref(null);
-	const socialAccounts = ref([]);
-
-	// Password change form
-	const passwordForm = ref({
-		currentPassword: '',
-		newPassword: '',
-		confirmPassword: ''
-	});
-	const passwordChanging = ref(false);
-	const passwordMessage = ref('');
-	const passwordMessageType = ref('');
 
 	// Logout state
 	const loggingOut = ref(false);
-
-	// Computed property for form validation
-	const isPasswordFormValid = computed(() => {
-		return passwordForm.value.currentPassword.length > 0 &&
-			   passwordForm.value.newPassword.length >= 8 &&
-			   passwordForm.value.confirmPassword.length > 0 &&
-			   passwordForm.value.newPassword === passwordForm.value.confirmPassword;
-	});
 
 	async function refreshUserData() {
 		loading.value = true;
@@ -251,10 +131,6 @@
 				lastLoginAt: status.lastLoginAt || null
 			};
 
-			// Get social accounts
-			const socialAccountsResponse = await window.client.getSocialAccounts();
-			socialAccounts.value = socialAccountsResponse.socialAccounts || [];
-			
 		} catch (error) {
 			console.error('Error fetching user data:', error);
 			errorMessage.value = 'Failed to load user data: ' + error.message;
@@ -272,21 +148,6 @@
 		}
 	}
 
-	function getSocialIcon(platform) {
-		const iconMap = {
-			'bluesky': 'bi:bluesky',
-			'mastodon': 'mdi:mastodon',
-			'x': 'mdi:twitter',
-			'twitter': 'mdi:twitter',
-			'facebook': 'mdi:facebook',
-			'instagram': 'mdi:instagram',
-			'linkedin': 'mdi:linkedin',
-			'youtube': 'mdi:youtube',
-			'tiktok': 'mdi:tiktok'
-		};
-		return iconMap[platform?.toLowerCase()] || 'mdi:account';
-	}
-
 	function goToSocialAccounts() {
 		router.push('/social-accounts');
 	}
@@ -299,50 +160,8 @@
 		router.push('/api-keys');
 	}
 
-	async function changePassword() {
-		if (!isPasswordFormValid.value) {
-			passwordMessage.value = 'Please fill in all fields correctly';
-			passwordMessageType.value = 'error';
-			return;
-		}
-
-		passwordChanging.value = true;
-		passwordMessage.value = '';
-		passwordMessageType.value = '';
-
-		try {
-			await waitForClient();
-			
-			const response = await window.client.changePassword({
-				currentPassword: passwordForm.value.currentPassword,
-				newPassword: passwordForm.value.newPassword
-			});
-
-			if (response.standardResponse.success) {
-				passwordMessage.value = 'Password changed successfully!';
-				passwordMessageType.value = 'success';
-				resetPasswordForm();
-			} else {
-				passwordMessage.value = response.standardResponse.message || 'Failed to change password';
-				passwordMessageType.value = 'error';
-			}
-		} catch (error) {
-			console.error('Error changing password:', error);
-			passwordMessage.value = 'Failed to change password: ' + error.message;
-			passwordMessageType.value = 'error';
-		} finally {
-			passwordChanging.value = false;
-		}
-	}
-
-	function resetPasswordForm() {
-		passwordForm.value = {
-			currentPassword: '',
-			newPassword: '',
-			confirmPassword: ''
-		};
-		passwordMessage.value = '';
-		passwordMessageType.value = '';
+	function goToChangePassword() {
+		router.push('/change-password');
 	}
 
 	async function logout() {
@@ -390,28 +209,19 @@
 </script>
 
 <style scoped>
-	.password-form-grid {
+	.account-info {
 		display: grid;
 		grid-template-columns: 200px 1fr;
-		gap: 1em;
-		align-items: start;
+		column-gap: 1em;
+		row-gap: 0.25em;
+		margin: 0;
 	}
 
-	.password-form-grid label {
-		padding-top: 0.75em;
+	.account-info dt {
+		font-weight: bold;
 	}
 
-	.password-form-grid input {
-		width: 100%;
-	}
-
-	.password-form-buttons {
-		grid-column: 1 / -1;
-		display: flex;
-		gap: 1em;
-	}
-
-	.password-form-message {
-		grid-column: 1 / -1;
+	.account-info dd {
+		margin: 0;
 	}
 </style>

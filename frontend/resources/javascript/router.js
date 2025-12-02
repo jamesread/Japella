@@ -18,6 +18,7 @@ import ApiKeys from '../vue/ApiKeys.vue'
 import Media from '../vue/Media.vue'
 import ControlPanel from '../vue/ControlPanel.vue'
 import UserControlPanel from '../vue/UserControlPanel.vue'
+import ChangePassword from '../vue/ChangePassword.vue'
 import PostDetails from '../vue/PostDetails.vue'
 import Feed from '../vue/Feed.vue'
 
@@ -189,6 +190,15 @@ const routes = [
     meta: {
       icon: UserGroupIcon,
       title: 'Users',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/change-password',
+    name: 'changePassword',
+    component: ChangePassword,
+    meta: {
+      title: 'Change Password',
       requiresAuth: true
     }
   },
