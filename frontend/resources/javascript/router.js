@@ -6,7 +6,6 @@ import Welcome from '../vue/Welcome.vue'
 import Timeline from '../vue/Timeline.vue'
 import Campaigns from '../vue/Campaigns.vue'
 import CampaignDetails from '../vue/CampaignDetails.vue'
-import AppStatus from '../vue/AppStatus.vue'
 import PostBox from '../vue/PostBox.vue'
 import Calendar from '../vue/Calendar.vue'
 import Settings from '../vue/Settings.vue'
@@ -190,16 +189,6 @@ const routes = [
     meta: {
       icon: UserGroupIcon,
       title: 'Users',
-      requiresAuth: true
-    }
-  },
-  {
-    path: '/status',
-    name: 'appStatus',
-    component: AppStatus,
-    meta: {
-      icon: ActivityIcon,
-      title: 'Status',
       requiresAuth: true
     }
   },
