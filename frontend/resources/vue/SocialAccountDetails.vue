@@ -6,17 +6,8 @@
 		:padding="false"
 	>
 		<template #toolbar>
-			<button @click="refresh" class="neutral" :disabled="!clientReady || loading">
-				<Icon icon="material-symbols:refresh" />
-			</button>
-			<button @click="refreshAccount" class="good" :disabled="!clientReady || loading">
-				<Icon icon="material-symbols:sync" />
-			</button>
-			<button @click="toggleActive" :class="account?.active ? 'warning' : 'good'" :disabled="!clientReady || loading">
-				<Icon :icon="account?.active ? 'material-symbols:toggle-off' : 'material-symbols:toggle-on'" />
-			</button>
-			<button @click="deleteAccount" class="bad" :disabled="!clientReady || loading">
-				<Icon icon="material-symbols:delete" />
+			<button v-if="getProfileUrl(account)" @click="openProfile" class="neutral" :disabled="!clientReady || loading" title="Open Profile">
+				<Icon icon="mdi:open-in-new" />
 			</button>
 		</template>
 
@@ -29,7 +20,7 @@
 		<div v-else-if="!account">
 			<p class="inline-notification note">Account not found.</p>
 		</div>
-		<dl v-else class="details-grid">
+		<dl v-else>
 			<dt>ID</dt>
 			<dd>{{ account.id }}</dd>
 			<dt>Connector</dt>
@@ -38,7 +29,57 @@
 			<dd>{{ account.identity }}</dd>
 			<dt>Active</dt>
 			<dd>{{ account.active ? 'Yes' : 'No' }}</dd>
+			<dt>Last Posted</dt>
+			<dd>{{ lastPosted || 'Never' }}</dd>
 		</dl>
+	</Section>
+
+	<Section
+		v-if="!loading && account"
+		title="Account Actions"
+		subtitle="Manage this social account"
+	>
+		<div class="action-item">
+			<div class="action-description">
+				<Icon icon="material-symbols:sync" width="24" height="24" />
+				<div>
+					<h5 style="margin: 0 0 0.25em 0;">Refresh Account</h5>
+					<p style="margin: 0; font-size: 0.9em;">Sync and refresh the account with the social media service.</p>
+				</div>
+			</div>
+			<button @click="refreshAccount" class="good" :disabled="!clientReady || loading">
+				<Icon icon="material-symbols:sync" width="16" height="16" />
+				<span>Refresh</span>
+			</button>
+		</div>
+
+		<div class="action-item">
+			<div class="action-description">
+				<Icon :icon="account?.active ? 'material-symbols:toggle-off' : 'material-symbols:toggle-on'" width="24" height="24" />
+				<div>
+					<h5 style="margin: 0 0 0.25em 0;">Toggle Active Status</h5>
+					<p style="margin: 0; font-size: 0.9em;">{{ account?.active ? 'Deactivate this account to prevent it from being used for posting.' : 'Activate this account to enable posting.' }}</p>
+				</div>
+			</div>
+			<button @click="toggleActive" :class="account?.active ? 'warning' : 'good'" :disabled="!clientReady || loading">
+				<Icon :icon="account?.active ? 'material-symbols:toggle-off' : 'material-symbols:toggle-on'" width="16" height="16" />
+				<span>{{ account?.active ? 'Deactivate' : 'Activate' }}</span>
+			</button>
+		</div>
+
+		<div class="action-item">
+			<div class="action-description">
+				<Icon icon="material-symbols:delete" width="24" height="24" />
+				<div>
+					<h5 style="margin: 0 0 0.25em 0;">Delete Account</h5>
+					<p style="margin: 0; font-size: 0.9em;">Permanently remove this social account. This action cannot be undone.</p>
+				</div>
+			</div>
+			<button @click="deleteAccount" class="bad" :disabled="!clientReady || loading">
+				<Icon icon="material-symbols:delete" width="16" height="16" />
+				<span>Delete</span>
+			</button>
+		</div>
 	</Section>
 </template>
 
@@ -56,6 +97,7 @@ const router = useRouter();
 	const error = ref('')
 	const accountId = ref(0)
 	const account = ref(null)
+	const lastPosted = ref(null)
 
 	function waitForClient() {
 		return new Promise((resolve) => {
@@ -75,11 +117,40 @@ const router = useRouter();
 			account.value = list.find(a => a.id === accountId.value) || null
 			if (!account.value) {
 				error.value = 'Account not found.'
+			} else {
+				await fetchLastPosted()
 			}
 		} catch (e) {
 			error.value = `Failed to load account: ${e.message || e}`
 		} finally {
 			loading.value = false
+		}
+	}
+
+	async function fetchLastPosted() {
+		if (!accountId.value) return
+		
+		try {
+			const timelineRes = await window.client.getTimeline()
+			const posts = timelineRes.posts || []
+			
+			// Filter posts for this social account and find the most recent one
+			const accountPosts = posts.filter(post => post.socialAccountId === accountId.value)
+			
+			if (accountPosts.length > 0) {
+				// Sort by created date (most recent first) and get the first one
+				const sortedPosts = accountPosts.sort((a, b) => {
+					const dateA = new Date(a.created)
+					const dateB = new Date(b.created)
+					return dateB - dateA
+				})
+				lastPosted.value = sortedPosts[0].created
+			} else {
+				lastPosted.value = null
+			}
+		} catch (e) {
+			console.error('Error fetching last posted date:', e)
+			lastPosted.value = null
 		}
 	}
 
@@ -106,7 +177,40 @@ async function toggleActive() {
 	}
 }
 
-async function deleteAccount() {
+	function getProfileUrl(account) {
+		if (!account || !account.identity) {
+			return null
+		}
+
+		const identity = account.identity
+		const connector = account.connector
+
+		switch (connector) {
+			case 'bluesky':
+				// Bluesky profile URL format: https://bsky.app/profile/{handle}
+				return `https://bsky.app/profile/${identity}`
+			case 'x':
+				// X/Twitter profile URL format: https://x.com/{username}
+				return `https://x.com/${identity}`
+			case 'mastodon':
+				// Mastodon profile URL format: {homeserver}/@{username}
+				// Note: We don't have homeserver in the account object from the API
+				// Default to mastodon.social, but ideally we'd get this from the account
+				const homeserver = 'https://mastodon.social' // Default, could be improved
+				return `${homeserver}/@${identity}`
+			default:
+				return null
+		}
+	}
+
+	function openProfile() {
+		const profileUrl = getProfileUrl(account.value)
+		if (profileUrl) {
+			window.open(profileUrl, '_blank', 'noopener,noreferrer')
+		}
+	}
+
+	async function deleteAccount() {
 	if (!confirm('Are you sure you want to delete this account?')) return
 	try {
 		await window.client.deleteSocialAccount({ id: accountId.value })
@@ -125,9 +229,30 @@ async function deleteAccount() {
 </script>
 
 <style scoped>
-	.details-grid {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 0.5rem 1rem;
+	.action-item {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 1rem 0;
+		border-bottom: 1px solid #e0e0e0;
+	}
+
+	.action-item:last-child {
+		border-bottom: none;
+	}
+
+	.action-description {
+		display: flex;
+		align-items: flex-start;
+		gap: 1rem;
+		flex: 1;
+	}
+
+	.action-description h5 {
+		color: #333;
+	}
+
+	.action-description p {
+		color: #666;
 	}
 </style>

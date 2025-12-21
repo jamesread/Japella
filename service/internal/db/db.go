@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -917,10 +918,37 @@ func (db *DB) UpdateCannedPost(cannedPost *CannedPost) error {
 	return nil
 }
 
+func (db *DB) FeedEntryExists(socialAccountID uint32, remoteID string) (bool, error) {
+	var count int
+	err := db.ResilientGet(&count, "SELECT COUNT(*) FROM feed WHERE social_account_id = ? AND remote_id = ?", socialAccountID, remoteID)
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
 func (db *DB) InsertFeedEntry(feedEntry *Feed) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, remote_url, remote_id, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :remote_url, :remote_id, NOW(), NOW())`, feedEntry)
+	// Check if entry already exists
+	exists, err := db.FeedEntryExists(feedEntry.SocialAccountID, feedEntry.RemoteID)
+	if err != nil {
+		db.Logger().Errorf("Failed to check if feed entry exists: %v", err)
+		return err
+	}
+	
+	if exists {
+		db.Logger().Debugf("Feed entry already exists for social_account_id=%d, remote_id=%s, skipping insert", feedEntry.SocialAccountID, feedEntry.RemoteID)
+		return nil // Not an error, just skip the duplicate
+	}
+
+	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, remote_url, remote_id, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :remote_url, :remote_id, NOW(), NOW())`, feedEntry)
 
 	if err != nil {
+		// Check if error is due to duplicate key (unique constraint violation)
+		// MySQL error code 1062 is ER_DUP_ENTRY
+		if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "1062") {
+			db.Logger().Debugf("Feed entry already exists (duplicate key) for social_account_id=%d, remote_id=%s, skipping insert", feedEntry.SocialAccountID, feedEntry.RemoteID)
+			return nil // Not an error, just skip the duplicate
+		}
 		db.Logger().Errorf("Failed to insert feed entry: %v", err)
 		return err
 	}
@@ -930,10 +958,35 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) error {
 
 func (db *DB) SelectFeedEntries() ([]*Feed, error) {
 	ret := make([]*Feed, 0)
-	err := db.ResilientSelect(&ret, "SELECT f.*, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
+	err := db.ResilientSelect(&ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.remote_url, f.remote_id, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select feed entries: %v", err)
 		return nil, err
 	}
 	return ret, nil
+}
+
+func (db *DB) CleanupOldFeedPosts(keepCount int) error {
+	// Delete feed posts older than the newest keepCount posts per social account
+	// This query keeps the newest keepCount posts per social_account_id and deletes the rest
+	// Uses window function (MySQL 8.0+) to rank posts, then deletes those ranked beyond keepCount
+	query := `
+		DELETE f FROM feed f
+		INNER JOIN (
+			SELECT id,
+				   ROW_NUMBER() OVER (PARTITION BY social_account_id ORDER BY posted_date DESC, id DESC) as rn
+			FROM feed
+		) ranked ON f.id = ranked.id
+		WHERE ranked.rn > ?
+	`
+	
+	result, err := db.ResilientExec(query, keepCount)
+	if err != nil {
+		db.Logger().Errorf("Failed to cleanup old feed posts: %v", err)
+		return err
+	}
+	
+	rowsAffected, _ := result.RowsAffected()
+	db.Logger().Infof("Cleaned up %d old feed posts (kept newest %d per social account)", rowsAffected, keepCount)
+	return nil
 }

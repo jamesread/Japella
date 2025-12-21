@@ -13,14 +13,6 @@
 
 		<Loading v-if="feedLoading" message="Loading feed..." :centered="true" />
 
-		<div v-else-if="feed.length === 0">
-			<p class="inline-notification note">No posts available in your feed.</p>
-		</div>
-		<div v-else class="feed-container">
-			<div v-for="post in pagedFeed" :key="post.id" class="feed-post">
-				<PostPreview :post="post" />
-			</div>
-		</div>
 		<Pagination
 			:total="feed.length"
 			:page="currentPage"
@@ -28,6 +20,11 @@
 			@change="onPageChange"
 		/>
 	</Section>
+
+	<section class="small" v-for="post in pagedFeed" :key="post.id">
+		<PostPreview :post="post" />
+	</section>
+
 </template>
 
 <script setup>
@@ -94,6 +91,10 @@
 	}
 
 	.feed-post {
+		margin-bottom: 1rem;
+	}
+
+	section {
 		margin-bottom: 1rem;
 	}
 </style>

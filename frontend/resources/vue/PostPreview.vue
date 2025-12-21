@@ -4,16 +4,14 @@
 			<div class="social-account-info">
 				<router-link :to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" class="social-account-link">
 					<Icon :icon="post.socialAccountIcon" />
-					<span class="account-name">{{ post.socialAccountIdentity }}</span>
+					<span class="account-name">{{ post.authorName || post.socialAccountIdentity }}</span>
 				</router-link>
 			</div>
 		</div>
 
 
 		<div class="post-content-section">
-			<div class="post-message">
-				{{ post.content }}
-			</div>
+			<div class="post-message" v-html="post.content"></div>
 		</div>
 
 		<div v-if="post.remoteUrl" class="post-actions">
@@ -87,6 +85,28 @@
 
 .post-message {
 	font-weight: 500;
+	word-wrap: break-word;
+}
+
+.post-message :deep(a) {
+	color: var(--link-color, #007bff);
+	text-decoration: underline;
+}
+
+.post-message :deep(a:hover) {
+	color: var(--link-hover-color, #0056b3);
+}
+
+.post-message :deep(p) {
+	margin: 0.5em 0;
+}
+
+.post-message :deep(p:first-child) {
+	margin-top: 0;
+}
+
+.post-message :deep(p:last-child) {
+	margin-bottom: 0;
 }
 
 .post-content-section {

@@ -216,8 +216,8 @@ func (c *MastodonConnector) FetchRecentPosts(socialAccount *connector.SocialAcco
 
 	// Convert timeline statuses to feed posts
 	for _, status := range timelineStatuses {
-		// Parse author ID as uint32
-		authorID, err := strconv.ParseUint(status.Account.ID, 10, 32)
+		// Parse author ID; allow full Mastodon ID range, then cast down to uint32 for storage
+		authorID, err := strconv.ParseUint(status.Account.ID, 10, 64)
 		if err != nil {
 			log.Warnf("Failed to parse author ID %s: %v", status.Account.ID, err)
 			continue
@@ -227,6 +227,7 @@ func (c *MastodonConnector) FetchRecentPosts(socialAccount *connector.SocialAcco
 			Content:    status.Content,
 			PostedDate: status.CreatedAt,
 			AuthorID:   uint32(authorID),
+			AuthorName: status.Account.Username,
 			RemoteURL:  status.URI,
 			RemoteID:   status.ID, // Keep as string for now since FeedPost expects string
 		}

@@ -30,6 +30,7 @@ type FeedPost struct {
 	Content    string
 	PostedDate time.Time
 	AuthorID   uint32
+	AuthorName string
 	RemoteURL  string
 	RemoteID   string
 }

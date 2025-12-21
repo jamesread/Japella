@@ -209,8 +209,9 @@ message FeedPost {
 	string content = 5;
 	string posted_date = 6;
 	uint32 author_id = 7;
-	string remote_url = 8;
-	string remote_id = 9;
+	string author_name = 8;
+	string remote_url = 9;
+	string remote_id = 10;
 }
 
 message SetSocialAccountActiveRequest {
@@ -219,6 +220,13 @@ message SetSocialAccountActiveRequest {
 }
 
 message SetSocialAccountActiveResponse {
+	StandardResponse standard_response = 1;
+}
+
+message CleanupFeedPostsRequest {
+}
+
+message CleanupFeedPostsResponse {
 	StandardResponse standard_response = 1;
 }
 
@@ -489,4 +497,6 @@ service JapellaControlApiService {
     rpc AddSocialAccountToCampaign(AddSocialAccountToCampaignRequest) returns (AddSocialAccountToCampaignResponse) {}
     rpc RemoveSocialAccountFromCampaign(RemoveSocialAccountFromCampaignRequest) returns (RemoveSocialAccountFromCampaignResponse) {}
     rpc GetCampaignSocialAccounts(GetCampaignSocialAccountsRequest) returns (GetCampaignSocialAccountsResponse) {}
+    
+    rpc CleanupFeedPosts(CleanupFeedPostsRequest) returns (CleanupFeedPostsResponse) {}
 }

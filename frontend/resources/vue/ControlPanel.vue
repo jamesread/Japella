@@ -138,6 +138,11 @@
 					<HugeiconsIcon :icon="Settings01Icon" />
 					<span>System Variables</span>
 				</button>
+
+				<button @click="cleanupFeedPosts" class="action-button" :disabled="!clientReady || cleaningFeed" title="Clean up old feed posts (keeps newest 100 per social account)">
+					<HugeiconsIcon :icon="RefreshIcon" />
+					<span>{{ cleaningFeed ? 'Cleaning...' : 'Cleanup Feed Posts' }}</span>
+				</button>
 			</div>
 		</div>
 
@@ -232,6 +237,7 @@
 	const cvars = ref([]);
 	const cvarsLoading = ref(false);
 	const cvarsDialog = ref(null);
+	const cleaningFeed = ref(false);
 
 	async function refreshAll() {
 		await Promise.all([
@@ -289,6 +295,29 @@
 
 	function goToRoute(route) {
 		window.router.push(route);
+	}
+
+	async function cleanupFeedPosts() {
+		if (!confirm('This will delete old feed posts, keeping only the newest 100 per social account. Continue?')) {
+			return;
+		}
+
+		cleaningFeed.value = true;
+		errorMessage.value = '';
+
+		try {
+			const response = await window.client.cleanupFeedPosts({});
+			if (response.standardResponse?.success) {
+				alert('Feed cleanup completed successfully: ' + (response.standardResponse.message || ''));
+			} else {
+				errorMessage.value = 'Feed cleanup failed: ' + (response.standardResponse?.message || 'Unknown error');
+			}
+		} catch (error) {
+			errorMessage.value = `Failed to cleanup feed posts: ${error.message}`;
+			console.error('Error cleaning up feed posts:', error);
+		} finally {
+			cleaningFeed.value = false;
+		}
 	}
 
 	function getMessageIcon(type) {

@@ -141,6 +141,9 @@ const (
 	// JapellaControlApiServiceGetCampaignSocialAccountsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetCampaignSocialAccounts RPC.
 	JapellaControlApiServiceGetCampaignSocialAccountsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCampaignSocialAccounts"
+	// JapellaControlApiServiceCleanupFeedPostsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CleanupFeedPosts RPC.
+	JapellaControlApiServiceCleanupFeedPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/CleanupFeedPosts"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -182,6 +185,7 @@ type JapellaControlApiServiceClient interface {
 	AddSocialAccountToCampaign(context.Context, *connect.Request[v1.AddSocialAccountToCampaignRequest]) (*connect.Response[v1.AddSocialAccountToCampaignResponse], error)
 	RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error)
 	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
+	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -412,6 +416,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCampaignSocialAccounts")),
 			connect.WithClientOptions(opts...),
 		),
+		cleanupFeedPosts: connect.NewClient[v1.CleanupFeedPostsRequest, v1.CleanupFeedPostsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCleanupFeedPostsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CleanupFeedPosts")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -453,6 +463,7 @@ type japellaControlApiServiceClient struct {
 	addSocialAccountToCampaign      *connect.Client[v1.AddSocialAccountToCampaignRequest, v1.AddSocialAccountToCampaignResponse]
 	removeSocialAccountFromCampaign *connect.Client[v1.RemoveSocialAccountFromCampaignRequest, v1.RemoveSocialAccountFromCampaignResponse]
 	getCampaignSocialAccounts       *connect.Client[v1.GetCampaignSocialAccountsRequest, v1.GetCampaignSocialAccountsResponse]
+	cleanupFeedPosts                *connect.Client[v1.CleanupFeedPostsRequest, v1.CleanupFeedPostsResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -640,6 +651,11 @@ func (c *japellaControlApiServiceClient) GetCampaignSocialAccounts(ctx context.C
 	return c.getCampaignSocialAccounts.CallUnary(ctx, req)
 }
 
+// CleanupFeedPosts calls japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts.
+func (c *japellaControlApiServiceClient) CleanupFeedPosts(ctx context.Context, req *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error) {
+	return c.cleanupFeedPosts.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -679,6 +695,7 @@ type JapellaControlApiServiceHandler interface {
 	AddSocialAccountToCampaign(context.Context, *connect.Request[v1.AddSocialAccountToCampaignRequest]) (*connect.Response[v1.AddSocialAccountToCampaignResponse], error)
 	RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error)
 	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
+	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -904,6 +921,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCampaignSocialAccounts")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceCleanupFeedPostsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCleanupFeedPostsProcedure,
+		svc.CleanupFeedPosts,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CleanupFeedPosts")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -978,6 +1001,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceRemoveSocialAccountFromCampaignHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetCampaignSocialAccountsProcedure:
 			japellaControlApiServiceGetCampaignSocialAccountsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCleanupFeedPostsProcedure:
+			japellaControlApiServiceCleanupFeedPostsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1129,4 +1154,8 @@ func (UnimplementedJapellaControlApiServiceHandler) RemoveSocialAccountFromCampa
 
 func (UnimplementedJapellaControlApiServiceHandler) GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts is not implemented"))
 }

@@ -65,7 +65,7 @@
 							</router-link>
 						</div>
 						<div v-else class="no-campaign">
-							<span>None</span>
+							<span @click="openCampaignDialog(post)" class="no-campaign-text" title="Assign Campaign">None</span>
 							<button @click="openCampaignDialog(post)" class="neutral small" title="Assign Campaign">
 								<Icon icon="mdi:folder-edit" width="14" height="14" />
 							</button>
@@ -642,6 +642,15 @@ table.data-table tr:hover td .social-account {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
+}
+
+.no-campaign-text {
+	cursor: pointer;
+	color: var(--link-color);
+}
+
+.no-campaign-text:hover {
+	color: var(--link-hover-color);
 }
 
 .no-campaign button.small {

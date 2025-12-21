@@ -85,6 +85,16 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 			s.processFeedFetching()
 		}
 	}()
+
+	// Start background scheduler for cleaning up old feed posts
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour) // Cleanup every hour
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			s.processFeedCleanup()
+		}
+	}()
 }
 func (s *ControlApi) processDueScheduledPosts() {
 	due, err := s.DB.SelectDueScheduledPosts(50)
@@ -166,6 +176,7 @@ func (s *ControlApi) processFeedFetching() {
 						Content:         post.Content,
 						PostedDate:      post.PostedDate,
 						AuthorID:        post.AuthorID,
+						AuthorName:       post.AuthorName,
 						RemoteURL:       post.RemoteURL,
 						RemoteID:        post.RemoteID,
 					}
@@ -184,6 +195,18 @@ func (s *ControlApi) processFeedFetching() {
 	}
 
 	log.Infof("FeedFetcher: completed feed fetch cycle")
+}
+
+func (s *ControlApi) processFeedCleanup() {
+	log.Infof("FeedCleanup: starting feed cleanup cycle")
+	
+	// Clean up old feed posts, keeping only the newest 100 per social account
+	err := s.DB.CleanupOldFeedPosts(100)
+	if err != nil {
+		log.Errorf("FeedCleanup: failed to cleanup old feed posts: %v", err)
+	} else {
+		log.Infof("FeedCleanup: completed feed cleanup cycle")
+	}
 }
 
 func (s *ControlApi) GetCannedPosts(ctx context.Context, req *connect.Request[controlv1.GetCannedPostsRequest]) (*connect.Response[controlv1.GetCannedPostsResponse], error) {
@@ -765,6 +788,11 @@ func (s *ControlApi) GetFeed(ctx context.Context, req *connect.Request[controlv1
 			socialAccountIcon = svc.GetIcon()
 		}
 
+		// Log for debugging - check if AuthorName is being populated
+		if entry.AuthorName == "" {
+			log.Debugf("Feed entry %d has empty AuthorName, AuthorID: %d", entry.ID, entry.AuthorID)
+		}
+
 		feed = append(feed, &controlv1.FeedPost{
 			Id:                    entry.ID,
 			SocialAccountId:       entry.SocialAccountID,
@@ -773,6 +801,7 @@ func (s *ControlApi) GetFeed(ctx context.Context, req *connect.Request[controlv1
 			Content:               entry.Content,
 			PostedDate:            entry.PostedDate.Format("2006-01-02 15:04:05"),
 			AuthorId:              entry.AuthorID,
+			AuthorName:            entry.AuthorName, // This will be empty string if column doesn't exist or value is NULL
 			RemoteUrl:             entry.RemoteURL,
 			RemoteId:              entry.RemoteID,
 		})
@@ -916,6 +945,33 @@ func (s *ControlApi) RetryPost(ctx context.Context, req *connect.Request[control
 			Message: fmt.Sprintf("Post retry %s", map[bool]string{true: "succeeded", false: "failed"}[postStatus.Success]),
 		},
 		PostStatus: postStatus,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) CleanupFeedPosts(ctx context.Context, req *connect.Request[controlv1.CleanupFeedPostsRequest]) (*connect.Response[controlv1.CleanupFeedPostsResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	log.Infof("Manually triggering feed cleanup")
+
+	// Run the cleanup process
+	err := s.DB.CleanupOldFeedPosts(100)
+	if err != nil {
+		log.Errorf("Error cleaning up feed posts: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to cleanup feed posts: %w", err))
+	}
+
+	log.Infof("Successfully completed feed cleanup")
+
+	res := connect.NewResponse(&controlv1.CleanupFeedPostsResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Feed cleanup completed successfully",
+		},
 	})
 
 	return res, nil
