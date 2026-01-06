@@ -209,13 +209,6 @@
 </script>
 
 <style scoped>
-	.social-account {
-		color: #fff;
-		text-decoration: none;
-	}
-
-	.social-account:hover {
-		text-decoration: underline;
-	}
+	/* Use global .social-account styling from main.css */
 		
 </style>

@@ -33,7 +33,7 @@
 						class="campaign-name-input"
 						@keyup.enter="saveCampaign"
 						@keyup.esc="cancelEditingCampaign"
-						@blur="cancelEditingCampaign"
+						@blur="handleBlur"
 						ref="campaignNameInput"
 					/>
 					<button @click="saveCampaign" class="good small" :disabled="!editingName.trim()">
@@ -109,6 +109,7 @@
 	const editingCampaign = ref(false)
 	const editingName = ref('')
 	const campaignNameInput = ref(null)
+	const isSaving = ref(false)
 
 	async function refresh() {
 		if (!window.client || !campaignId.value) return
@@ -160,9 +161,24 @@
 		editingName.value = ''
 	}
 
+	function handleBlur(event) {
+		// Don't cancel if we're in the process of saving
+		if (isSaving.value) {
+			return
+		}
+		// Don't cancel if the blur is caused by clicking a button
+		// The relatedTarget will be the element receiving focus
+		const relatedTarget = event.relatedTarget
+		if (relatedTarget && (relatedTarget.tagName === 'BUTTON' || relatedTarget.closest('button'))) {
+			return
+		}
+		cancelEditingCampaign()
+	}
+
 	async function saveCampaign() {
 		if (!window.client || !campaign.value) return
 
+		isSaving.value = true
 		try {
 			await window.client.updateCampaign({
 				id: campaign.value.id,
@@ -177,6 +193,8 @@
 		} catch (error) {
 			console.error('Error updating campaign:', error)
 			alert('Failed to update campaign: ' + error.message)
+		} finally {
+			isSaving.value = false
 		}
 	}
 

@@ -72,7 +72,7 @@
 						</div>
 					</td>
 					<td>{{ post.content }}</td>
-					<td>{{ post.created }}</td>
+					<td>{{ formatFuzzyDate(post.postedDate || post.created) }}</td>
 					<td>
 						<span :class="['annotation', statusClass(post)]">{{ statusText(post) }}</span>
 					</td>
@@ -202,6 +202,69 @@
 		if (post.state === 'pending' || post.state === 'scheduled') return 'Scheduled';
 		if (post.state === 'completed') return 'Completed';
 		return 'Unknown';
+	}
+
+	function formatFuzzyDate(dateString) {
+		if (!dateString) {
+			return '';
+		}
+
+		try {
+			// Parse the date string (format: "2006-01-02 15:04:05")
+			// Try replacing space with T for ISO format, or parse directly
+			let date = new Date(dateString.replace(' ', 'T'));
+			if (isNaN(date.getTime())) {
+				date = new Date(dateString);
+			}
+			if (isNaN(date.getTime())) {
+				return dateString; // Return original if can't parse
+			}
+
+			const now = new Date();
+			const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+			const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+			const diffDays = Math.round((targetDate - today) / (1000 * 60 * 60 * 24));
+
+			// Format time (e.g., "4pm", "2:30pm", "11:15am")
+			const hours = date.getHours();
+			const minutes = date.getMinutes();
+			const ampm = hours >= 12 ? 'pm' : 'am';
+			const displayHours = hours % 12 || 12;
+			const timeStr = minutes > 0 
+				? `${displayHours}:${minutes.toString().padStart(2, '0')}${ampm}`
+				: `${displayHours}${ampm}`;
+
+			if (diffDays === 0) {
+				return `Today at ${timeStr}`;
+			} else if (diffDays === 1) {
+				return `Tomorrow at ${timeStr}`;
+			} else if (diffDays === -1) {
+				return `Yesterday at ${timeStr}`;
+			} else if (diffDays > 1 && diffDays <= 7) {
+				// Within next week
+				const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+				return `${dayNames[date.getDay()]} at ${timeStr}`;
+			} else if (diffDays < -1 && diffDays >= -7) {
+				// Within past week
+				const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+				return `Last ${dayNames[date.getDay()]} at ${timeStr}`;
+			} else {
+				// Further away - show date
+				const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+				const month = monthNames[date.getMonth()];
+				const day = date.getDate();
+				
+				// If same year, don't show year
+				if (date.getFullYear() === now.getFullYear()) {
+					return `${month} ${day} at ${timeStr}`;
+				} else {
+					return `${month} ${day}, ${date.getFullYear()} at ${timeStr}`;
+				}
+			}
+		} catch (error) {
+			console.error('Error formatting fuzzy date:', error);
+			return dateString;
+		}
 	}
 
 	async function getTimeline() {
@@ -624,19 +687,7 @@
 }
 
 /* Use global .social-account styling from main.css */
-.social-account {
-	text-decoration: none;
-	color: var(--link-color, #fff);
-}
-
-.social-account:hover {
-	text-decoration: underline;
-}
-
-/* Override table hover effect for social account links */
-table.data-table tr:hover td .social-account {
-	color: var(--link-color, #fff) !important;
-}
+/* No overrides needed - using global styles */
 
 .no-campaign {
 	display: flex;

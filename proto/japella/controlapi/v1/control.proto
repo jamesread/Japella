@@ -27,6 +27,7 @@ message PostStatus {
     uint32 campaign_id = 9;
     string campaign_name = 10;
     string state = 11;
+    string posted_date = 12; // The date the post was/will be posted (scheduled_at if set, otherwise created_at)
 }
 
 message GetStatusRequest {}

@@ -8,12 +8,12 @@ export default defineConfig({
     allowedHosts: ['baneling.teratan.net'],
     proxy: {
       '/api': {
-        target: 'https://localhost:8234',
+        target: 'http://localhost:8234',
         changeOrigin: true,
         secure: false,
       },
       '/lang': {
-        target: 'https://localhost:8234',
+        target: 'http://localhost:8234',
         changeOrigin: true,
         secure: false,
       }

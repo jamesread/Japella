@@ -21,6 +21,7 @@ import UserControlPanel from '../vue/UserControlPanel.vue'
 import ChangePassword from '../vue/ChangePassword.vue'
 import PostDetails from '../vue/PostDetails.vue'
 import Feed from '../vue/Feed.vue'
+import BrowserDiagnostics from '../vue/BrowserDiagnostics.vue'
 
 import {
   SettingsIcon,
@@ -218,6 +219,15 @@ const routes = [
     component: UserControlPanel,
     meta: {
       title: 'User Control Panel',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/browser-diagnostics',
+    name: 'browserDiagnostics',
+    component: BrowserDiagnostics,
+    meta: {
+      title: 'Browser Diagnostics',
       requiresAuth: true
     }
   },

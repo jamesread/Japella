@@ -63,6 +63,7 @@ function createTheApp(i18n: any): void {
 	//setupApi()
 
 	displayNotifications()
+	registerServiceWorker()
 }
 
 function createApiClient(): void {
@@ -95,5 +96,24 @@ function displayNotifications(): void {
 		// Clear the notification from the URL
 		params.delete('notification');
 		window.history.replaceState({}, '', window.location.pathname + '?' + params.toString());
+	}
+}
+
+function registerServiceWorker(): void {
+	if ('serviceWorker' in navigator) {
+		window.addEventListener('load', () => {
+			navigator.serviceWorker.register('/sw.js')
+				.then((registration) => {
+					console.log('[Service Worker] Registration successful:', registration.scope);
+					
+					// Check for updates periodically
+					setInterval(() => {
+						registration.update();
+					}, 60000); // Check every minute
+				})
+				.catch((error) => {
+					console.error('[Service Worker] Registration failed:', error);
+				});
+		});
 	}
 }

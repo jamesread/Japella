@@ -430,4 +430,78 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
 	fieldset {
         align-items: center;
 	}
+
+	.check-list {
+		display: inline-block;
+		margin: 0.25em 0.5em 0.25em 0;
+	}
+
+	.check-list label {
+		cursor: pointer;
+		display: inline-block;
+	}
+
+	.check-list label > span {
+		white-space: nowrap;
+		border-radius: 0.5em;
+		background-color: #f5f5f5;
+		color: #333;
+		border: 1px solid #e0e0e0;
+		font-weight: 500;
+		padding: 0.4em 0.6em;
+		display: inline-flex;
+		align-items: center;
+		gap: .4em;
+		user-select: none;
+		transition: all 0.2s ease;
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	}
+
+	.check-list input[type="checkbox"]:checked + span {
+		background-color: #e3f2fd;
+		border-color: #2196f3;
+		color: #1565c0;
+		box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
+	}
+
+	.check-list label:hover > span {
+		background-color: #e8e8e8;
+		border-color: #d0d0d0;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		transform: translateY(-1px);
+	}
+
+	.check-list input[type="checkbox"]:checked + span:hover {
+		background-color: #bbdefb;
+		border-color: #1976d2;
+		box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.check-list label > span {
+			background-color: #2a2a2a;
+			color: #e0e0e0;
+			border-color: #404040;
+			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+		}
+
+		.check-list input[type="checkbox"]:checked + span {
+			background-color: #1e3a5f;
+			border-color: #2196f3;
+			color: #90caf9;
+			box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
+		}
+
+		.check-list label:hover > span {
+			background-color: #353535;
+			border-color: #505050;
+			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+		}
+
+		.check-list input[type="checkbox"]:checked + span:hover {
+			background-color: #2a4a6f;
+			border-color: #42a5f5;
+			box-shadow: 0 2px 4px rgba(33, 150, 243, 0.4);
+		}
+	}
 </style>

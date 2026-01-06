@@ -15,44 +15,47 @@
 		</template>
 	</Header>
 
-	<div id="layout">
-		<Sidebar ref="sidebar" />
+	<Navigation ref="navigation">
+		<div id="layout">
+			<Sidebar ref="sidebar" />
 
-		<div id="loading" v-if="!clientReady" class="icon-and-text" style="margin: auto; margin-top: 5em;">
-			<Icon icon="eos-icons:loading" width="48" height="48" />
-			<div>
-				Loading...
-				<div v-if="loadingWarning"><br />
-					<div class="error">{{ loadingWarning }}</div>
-				</div>
-			</div>
-		</div>
-		<div id="content" v-else>
-			<main>
-				<div v-if="statusMessages.length > 0" class="messages">
-					<div v-for="message in statusMessages" :key="message.id" :class="message.type + ' notification'">
-						<strong>Server Message: </strong> {{ message.message }}
-						<a v-if="message.url" :href="message.url" target="_blank">More info</a>
+			<div id="loading" v-if="!clientReady" class="icon-and-text" style="margin: auto; margin-top: 5em;">
+				<Icon icon="eos-icons:loading" width="48" height="48" />
+				<div>
+					Loading...
+					<div v-if="loadingWarning"><br />
+						<div class="error">{{ loadingWarning }}</div>
 					</div>
 				</div>
+			</div>
+			<div id="content" v-else>
+				<main>
+					<div v-if="statusMessages.length > 0" class="messages">
+						<div v-for="message in statusMessages" :key="message.id" :class="message.type + ' notification'">
+							<strong>Server Message: </strong> {{ message.message }}
+							<a v-if="message.url" :href="message.url" target="_blank">More info</a>
+						</div>
+					</div>
 
-				<div v-if="!isLoggedIn">
-					<LoginForm @login-success="onLogin" />
-				</div>
-				<div v-else>
-					<router-view />
-				</div>
-				<ErrorDialog ref="errorDialogRef" />
-			</main>
-			<footer>
-				<small>
-					<span><a href="https://github.com/jamesread/Japella">Japella on GitHub</a></span>
-					<span><a href="https://jamesread.github.io/Japella/">Documentation</a></span>
-					<span id="currentVersion" v-if="isLoggedIn">{{ currentVersion }}</span>
-				</small>
-			</footer>
+					<div v-if="!isLoggedIn">
+						<LoginForm @login-success="onLogin" />
+					</div>
+					<div v-else>
+						<router-view />
+					</div>
+					<ErrorDialog ref="errorDialogRef" />
+					<PWAInstallPrompt />
+				</main>
+				<footer>
+					<small>
+						<span><a href="https://github.com/jamesread/Japella">Japella on GitHub</a></span>
+						<span><a href="https://jamesread.github.io/Japella/">Documentation</a></span>
+						<span id="currentVersion" v-if="isLoggedIn">{{ currentVersion }}</span>
+					</small>
+				</footer>
+			</div>
 		</div>
-	</div>
+	</Navigation>
 </template>
 
 <style scoped>
@@ -85,7 +88,9 @@
     import { useI18n } from 'vue-i18n';
 	import LoginForm from './LoginForm.vue';
 	import ErrorDialog from './ErrorDialog.vue';
+	import PWAInstallPrompt from './PWAInstallPrompt.vue';
     import Header from 'picocrank/vue/components/Header.vue';
+    import Navigation from 'picocrank/vue/components/Navigation.vue';
     import Sidebar from 'picocrank/vue/components/Sidebar.vue';
 	import logoUrl from '../../logo.png';
 
@@ -99,6 +104,7 @@
 
     // Router will handle component loading
     const loadingWarning = ref('');
+    const navigation = ref(null);
     const sidebar = ref(null);
     const errorDialogRef = ref();
 
@@ -113,42 +119,50 @@
 	}
 
 	function setupNavigation() {
-		if (!sidebar.value) return;
+		if (!navigation.value) return;
 
 		// Clear existing navigation
-		sidebar.value.clearNavigationLinks();
+		navigation.value.clearNavigationLinks();
+
+		navigation.value.addHtml('<h2 style = "padding-left: .5em; margin-top: 1em; margin-bottom: .5em;">Write</h2>', {
+			name: 'title-post',
+		});
 
 		// Add router links
-		sidebar.value.addRouterLink('postBox');
+		navigation.value.addRouterLink('postBox');
 
-		sidebar.value.addRouterLink('media');
+		navigation.value.addRouterLink('media');
 
-		sidebar.value.addSeparator('schedule-separator');
+		navigation.value.addRouterLink('campaigns');
 
-		sidebar.value.addRouterLink('campaigns');
+		navigation.value.addRouterLink('cannedPosts');
 
-		sidebar.value.addRouterLink('cannedPosts');
+		navigation.value.addRouterLink('calendar');
 
-		sidebar.value.addRouterLink('timeline');
+		navigation.value.addRouterLink('timeline');
 
-		sidebar.value.addRouterLink('feed');
+		navigation.value.addHtml('<h2 style = "padding-left: .5em; margin-top: 1em; margin-bottom: .5em;">Read</h2>', {
+			name: 'title-read',
+		})
 
-		sidebar.value.addRouterLink('calendar');
+		navigation.value.addRouterLink('feed');
 
-		sidebar.value.addSeparator('connections-separator');
+		navigation.value.addSeparator('connections-separator');
 
-		sidebar.value.addRouterLink('socialAccounts');
+		navigation.value.addHtml('<h2 style = "padding-left: .5em; margin-top: 1em; margin-bottom: .5em;">Settings</h2>', {
+			name: 'title-shared',
+		});
 
-		sidebar.value.addRouterLink('oauthServices');
+		navigation.value.addRouterLink('socialAccounts');
 
-		sidebar.value.addSeparator('system-separator');
+		navigation.value.addRouterLink('oauthServices');
 
-		sidebar.value.addRouterLink('controlPanel');
+		navigation.value.addRouterLink('controlPanel');
 
-		sidebar.value.addRouterLink('appStatus');
+		navigation.value.addRouterLink('appStatus');
 
 		// Open and stick the sidebar for logged-in users
-		if (isLoggedIn.value) {
+		if (isLoggedIn.value && sidebar.value) {
 			sidebar.value.open();
 			sidebar.value.stick();
 		}

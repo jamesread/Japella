@@ -55,24 +55,9 @@
 		title="Quick Actions"
 		subtitle="Quick navigation to common tasks"
 	>
-		<div style="display: flex; gap: 1em; flex-wrap: wrap;">
-			<button @click="goToSocialAccounts" class="neutral">
-				<Icon icon="mdi:account-multiple" />
-				<span>Manage Social Accounts</span>
-			</button>
-			<button @click="goToSettings" class="neutral">
-				<Icon icon="mdi:cog" />
-				<span>Account Settings</span>
-			</button>
-			<button @click="goToApiKeys" class="neutral">
-				<Icon icon="mdi:key" />
-				<span>API Keys</span>
-			</button>
-			<button @click="goToChangePassword" class="neutral">
-				<Icon icon="mdi:lock-reset" />
-				<span>Change Password</span>
-			</button>
-		</div>
+		<Navigation ref="localNavigation">
+			<NavigationGrid />
+		</Navigation>
 	</Section>
 
 	<Section
@@ -103,6 +88,9 @@
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import Navigation from 'picocrank/vue/components/Navigation.vue';
+	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
+	import { UserMultiple03Icon, SettingsIcon, KeyIcon, SecurityValidationIcon, ActivityIcon } from '@hugeicons/core-free-icons';
 
 	const router = useRouter();
 	
@@ -110,6 +98,7 @@
 	const loading = ref(true);
 	const errorMessage = ref('');
 	const userData = ref(null);
+	const localNavigation = ref(null);
 
 	// Logout state
 	const loggingOut = ref(false);
@@ -164,6 +153,10 @@
 		router.push('/change-password');
 	}
 
+	function goToBrowserDiagnostics() {
+		router.push('/browser-diagnostics');
+	}
+
 	async function logout() {
 		if (loggingOut.value) return;
 
@@ -205,6 +198,39 @@
 		await waitForClient();
 		clientReady.value = true;
 		await refreshUserData();
+
+		// Setup quick actions navigation
+		if (localNavigation.value) {
+			localNavigation.value.addCallback('Manage Social Accounts', goToSocialAccounts, {
+				icon: UserMultiple03Icon,
+				name: 'social-accounts',
+				description: 'Manage your connected social media accounts'
+			});
+
+			localNavigation.value.addCallback('Account Settings', goToSettings, {
+				icon: SettingsIcon,
+				name: 'account-settings',
+				description: 'Manage your account configuration'
+			});
+
+			localNavigation.value.addCallback('API Keys', goToApiKeys, {
+				icon: KeyIcon,
+				name: 'api-keys',
+				description: 'View and manage your API keys'
+			});
+
+			localNavigation.value.addCallback('Change Password', goToChangePassword, {
+				icon: SecurityValidationIcon,
+				name: 'change-password',
+				description: 'Change your account password'
+			});
+
+			localNavigation.value.addCallback('Browser Diagnostics', goToBrowserDiagnostics, {
+				icon: ActivityIcon,
+				name: 'browser-diagnostics',
+				description: 'View browser and system information for troubleshooting'
+			});
+		}
 	});
 </script>
 

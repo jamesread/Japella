@@ -14,9 +14,80 @@
 			<p class="inline-notification error">{{ errorMessage }}</p>
 		</div>
 
-		<!-- System Status Overview -->
+		<!-- Quick Actions -->
+		<div class="quick-actions">
+			<h3>Administration Actions</h3>
+			<Navigation ref="localNavigation">
+				<NavigationGrid />
+			</Navigation>
+		</div>
+
+		<!-- System Messages -->
+		<div v-if="systemStatus.statusMessages && systemStatus.statusMessages.length > 0" class="system-messages">
+			<h3>System Messages</h3>
+			<div v-for="message in systemStatus.statusMessages" :key="message.id || message.message"
+				 class="message-item" :class="message.type">
+				<div class="message-content">
+					<HugeIcon :icon="getMessageIcon(message.type)" />
+					<span>{{ message.message }}</span>
+					<a v-if="message.url" :href="message.url" target="_blank" class="message-link">
+						<HugeIcon :icon="LinkSquare01Icon" />
+					</a>
+				</div>
+			</div>
+		</div>
+
+		<!-- System Variables Dialog -->
+		<dialog ref="cvarsDialog" class="cvars-dialog">
+			<h2>System Variables (CVars)</h2>
+			<div v-if="cvarsLoading" class="loading">
+				<HugeIcon :icon="Loading01Icon" />
+				<span>Loading system variables...</span>
+			</div>
+			<div v-else-if="cvars.length > 0" class="cvars-content">
+				<div v-for="category in cvars" :key="category.name" class="cvar-category">
+					<h4>{{ category.name }}</h4>
+					<div class="cvar-list">
+						<div v-for="cvar in category.cvars" :key="cvar.keyName" class="cvar-item">
+							<div class="cvar-info">
+								<strong>{{ cvar.title || cvar.keyName }}</strong>
+								<p v-if="cvar.description">{{ cvar.description }}</p>
+								<div class="cvar-meta">
+									<span class="cvar-type">{{ cvar.type }}</span>
+									<span v-if="cvar.isReadOnly" class="readonly">Read Only</span>
+								</div>
+							</div>
+							<div class="cvar-value">
+								<input
+									v-if="!cvar.isReadOnly"
+									:type="cvar.type === 'int' ? 'number' : 'text'"
+									:value="cvar.valueString || cvar.valueInt"
+									@change="updateCvar(cvar, $event)"
+									:maxlength="cvar.maxLength"
+								/>
+								<span v-else class="readonly-value">
+									{{ cvar.valueString || cvar.valueInt }}
+								</span>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div v-else>
+				<p>No system variables found.</p>
+			</div>
+			<form method="dialog">
+				<button type="submit" class="good">Close</button>
+			</form>
+		</dialog>
+	</Section>
+
+	<Section
+		title="System Diagnostics"
+		subtitle="System status and diagnostic information"
+		classes="system-diagnostics"
+	>
 		<div class="status-overview">
-			<h3>System Status</h3>
 			<div class="status-grid">
 				<div class="stat-display">
 					<div class="status-header">
@@ -109,101 +180,6 @@
 				</div>
 			</div>
 		</div>
-
-		<!-- Quick Actions -->
-		<div class="quick-actions">
-			<h3>Administration Actions</h3>
-			<div class="action-grid">
-				<button @click="goToRoute('/api-keys')" class="action-button">
-					<HugeiconsIcon :icon="Key01Icon" />
-					<span>API Keys</span>
-				</button>
-
-				<button @click="goToRoute('/users')" class="action-button">
-					<HugeiconsIcon :icon="UserMultiple02Icon" />
-					<span>User Management</span>
-				</button>
-
-				<button @click="goToRoute('/settings')" class="action-button">
-					<HugeiconsIcon :icon="Settings01Icon" :size = 24 />
-					<span>System Settings</span>
-				</button>
-
-				<button @click="refreshConnectors" class="action-button" :disabled="!clientReady">
-					<HugeiconsIcon :icon="RefreshIcon" />
-					<span>Refresh Connectors</span>
-				</button>
-
-				<button @click="showCvars" class="action-button" :disabled="!clientReady">
-					<HugeiconsIcon :icon="Settings01Icon" />
-					<span>System Variables</span>
-				</button>
-
-				<button @click="cleanupFeedPosts" class="action-button" :disabled="!clientReady || cleaningFeed" title="Clean up old feed posts (keeps newest 100 per social account)">
-					<HugeiconsIcon :icon="RefreshIcon" />
-					<span>{{ cleaningFeed ? 'Cleaning...' : 'Cleanup Feed Posts' }}</span>
-				</button>
-			</div>
-		</div>
-
-		<!-- System Messages -->
-		<div v-if="systemStatus.statusMessages && systemStatus.statusMessages.length > 0" class="system-messages">
-			<h3>System Messages</h3>
-			<div v-for="message in systemStatus.statusMessages" :key="message.id || message.message"
-				 class="message-item" :class="message.type">
-				<div class="message-content">
-					<HugeIcon :icon="getMessageIcon(message.type)" />
-					<span>{{ message.message }}</span>
-					<a v-if="message.url" :href="message.url" target="_blank" class="message-link">
-						<HugeIcon :icon="LinkSquare01Icon" />
-					</a>
-				</div>
-			</div>
-		</div>
-
-		<!-- System Variables Dialog -->
-		<dialog ref="cvarsDialog" class="cvars-dialog">
-			<h2>System Variables (CVars)</h2>
-			<div v-if="cvarsLoading" class="loading">
-				<HugeIcon :icon="Loading01Icon" />
-				<span>Loading system variables...</span>
-			</div>
-			<div v-else-if="cvars.length > 0" class="cvars-content">
-				<div v-for="category in cvars" :key="category.name" class="cvar-category">
-					<h4>{{ category.name }}</h4>
-					<div class="cvar-list">
-						<div v-for="cvar in category.cvars" :key="cvar.keyName" class="cvar-item">
-							<div class="cvar-info">
-								<strong>{{ cvar.title || cvar.keyName }}</strong>
-								<p v-if="cvar.description">{{ cvar.description }}</p>
-								<div class="cvar-meta">
-									<span class="cvar-type">{{ cvar.type }}</span>
-									<span v-if="cvar.isReadOnly" class="readonly">Read Only</span>
-								</div>
-							</div>
-							<div class="cvar-value">
-								<input
-									v-if="!cvar.isReadOnly"
-									:type="cvar.type === 'int' ? 'number' : 'text'"
-									:value="cvar.valueString || cvar.valueInt"
-									@change="updateCvar(cvar, $event)"
-									:maxlength="cvar.maxLength"
-								/>
-								<span v-else class="readonly-value">
-									{{ cvar.valueString || cvar.valueInt }}
-								</span>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div v-else>
-				<p>No system variables found.</p>
-			</div>
-			<form method="dialog">
-				<button type="submit" class="good">Close</button>
-			</form>
-		</dialog>
 	</Section>
 </template>
 
@@ -212,6 +188,8 @@
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import Navigation from 'picocrank/vue/components/Navigation.vue';
+	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 	import { HugeiconsIcon} from '@hugeicons/vue';
 	import { 
 		RefreshIcon,
@@ -238,6 +216,7 @@
 	const cvarsLoading = ref(false);
 	const cvarsDialog = ref(null);
 	const cleaningFeed = ref(false);
+	const localNavigation = ref(null);
 
 	async function refreshAll() {
 		await Promise.all([
@@ -330,10 +309,74 @@
 		return iconMap[type] || InformationCircleIcon;
 	}
 
+	async function refreshConnectors() {
+		if (!clientReady.value) return;
+		
+		try {
+			// Refresh connectors by fetching them
+			const response = await window.client.getConnectors({});
+			alert('Connectors refreshed successfully');
+		} catch (error) {
+			console.error('Error refreshing connectors:', error);
+			errorMessage.value = `Failed to refresh connectors: ${error.message}`;
+		}
+	}
+
 	onMounted(async () => {
 		await waitForClient();
 		clientReady.value = true;
 		await refreshAll();
+
+		// Setup administration actions navigation
+		if (localNavigation.value) {
+			localNavigation.value.addCallback('API Keys', () => goToRoute('/api-keys'), {
+				icon: Key01Icon,
+				name: 'api-keys',
+				description: 'View and manage API keys'
+			});
+
+			localNavigation.value.addCallback('User Management', () => goToRoute('/users'), {
+				icon: UserMultiple02Icon,
+				name: 'user-management',
+				description: 'Manage system users and permissions'
+			});
+
+			localNavigation.value.addCallback('System Settings', () => goToRoute('/settings'), {
+				icon: Settings01Icon,
+				name: 'system-settings',
+				description: 'Configure system settings'
+			});
+
+			localNavigation.value.addCallback('Refresh Connectors', () => {
+				if (clientReady.value) {
+					refreshConnectors();
+				}
+			}, {
+				icon: RefreshIcon,
+				name: 'refresh-connectors',
+				description: 'Refresh connector services'
+			});
+
+			localNavigation.value.addCallback('System Variables', () => {
+				if (clientReady.value) {
+					showCvars();
+				}
+			}, {
+				icon: Settings01Icon,
+				name: 'system-variables',
+				description: 'View and edit system configuration variables'
+			});
+
+			localNavigation.value.addCallback('Cleanup Feed Posts', () => {
+				if (clientReady.value && !cleaningFeed.value) {
+					cleanupFeedPosts();
+				}
+			}, {
+				icon: RefreshIcon,
+				name: 'cleanup-feed',
+				description: 'Clean up old feed posts (keeps newest 100 per social account)'
+			});
+		}
 	});
 </script>
 

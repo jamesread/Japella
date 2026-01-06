@@ -2,10 +2,18 @@
 	<div class="post-preview">
 		<div class="post-header">
 			<div class="social-account-info">
-				<router-link :to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" class="social-account-link">
-					<Icon :icon="post.socialAccountIcon" />
+				<router-link 
+					v-if="post.socialAccountId" 
+					:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" 
+					class="social-account-link"
+				>
+					<Icon :icon="post.socialAccountIcon || 'mdi:account'" />
 					<span class="account-name">{{ post.authorName || post.socialAccountIdentity }}</span>
 				</router-link>
+				<div v-else class="social-account-link canned-post-label">
+					<Icon icon="jam:box" />
+					<span class="account-name">Canned Post</span>
+				</div>
 			</div>
 		</div>
 
@@ -77,6 +85,14 @@
 
 .social-account-link:hover {
 	text-decoration: underline;
+}
+
+.canned-post-label {
+	cursor: default;
+}
+
+.canned-post-label:hover {
+	text-decoration: none;
 }
 
 .account-name {

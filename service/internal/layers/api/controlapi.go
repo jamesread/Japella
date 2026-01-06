@@ -738,6 +738,12 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 			}
 		}
 
+		// Determine posted date: use ScheduledAt if set, otherwise use CreatedAt
+		postedDate := post.CreatedAt
+		if post.ScheduledAt.Valid {
+			postedDate = post.ScheduledAt.Time
+		}
+
 		timeline = append(timeline, &controlv1.PostStatus{
 			Id:                    post.ID,
 			Created:               post.CreatedAt.Format("2006-01-02 15:04:05"),
@@ -750,6 +756,7 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 			CampaignId:            uint32(post.CampaignID.Int32),
 			CampaignName:          post.CampaignName.String,
 			State:                 post.State,
+			PostedDate:            postedDate.Format("2006-01-02 15:04:05"),
 		})
 	}
 
