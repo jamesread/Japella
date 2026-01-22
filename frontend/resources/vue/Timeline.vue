@@ -33,72 +33,76 @@
 
 		<Loading v-if="timelineLoading" message="Loading timeline..." :centered="true" />
 
-		<div v-else-if="timeline.length === 0">
-			<p class="inline-notification note">No posts available.</p>
-		</div>
-		<table class = "data-table" v-else>
-			<thead>
-				<tr>
-					<th>Social Account</th>
-					<th>Campaign</th>
-					<th>Content</th>
-					<th>Date</th>
-					<th>Status</th>
-					<th class="actions" style="text-align: right">Actions</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr v-if="!clientReady">
-					<td colspan="6">Loading timeline...</td>
-				</tr>
-				<tr v-else v-for="post in pagedTimeline" :key="post.id">
-					<td>
-						<router-link :to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" class="social-account">
-							<Icon :icon="post.socialAccountIcon" />
-							{{ post.socialAccountIdentity }}
-						</router-link>
-					</td>
-					<td>
-						<div v-if="post.campaignId != 0">
-							<router-link :to="{ name: 'campaignDetails', params: { id: post.campaignId } }">
-								{{ post.campaignName }}
-							</router-link>
-						</div>
-						<div v-else class="no-campaign">
-							<span @click="openCampaignDialog(post)" class="no-campaign-text" title="Assign Campaign">None</span>
-							<button @click="openCampaignDialog(post)" class="neutral small" title="Assign Campaign">
-								<Icon icon="mdi:folder-edit" width="14" height="14" />
-							</button>
-						</div>
-					</td>
-					<td>{{ post.content }}</td>
-					<td>{{ formatFuzzyDate(post.postedDate || post.created) }}</td>
-					<td>
-						<span :class="['annotation', statusClass(post)]">{{ statusText(post) }}</span>
-					</td>
-					<td align="right">
-						<div class="post-actions">
-							<button v-if="post.postUrl" @click="openPostUrl(post.postUrl)" class="button neutral" title="Open Post URL">
-								<Icon icon="mdi:open-in-new" width="16" height="16" />
-							</button>
-							<button @click="openPostDetails(post)" class="button neutral" title="View Post Details">
-								<Icon icon="mdi:eye" width="16" height="16" />
-							</button>
-							<button v-if="post.state === 'error'" @click="retryPost(post)" class="button good" title="Retry Post" :disabled="retryingPosts.has(post.id)">
-								<Icon v-if="retryingPosts.has(post.id)" icon="eos-icons:loading" width="16" height="16" />
-								<Icon v-else icon="mdi:refresh" width="16" height="16" />
-							</button>
-						</div>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-		<Pagination
-			:total="filteredTimeline.length"
-			:page="currentPage"
-			:page-size="pageSize"
-			@change="onPageChange"
-		/>
+		<template v-else>
+			<div v-if="filteredTimeline.length === 0">
+				<p class="inline-notification note">No posts available.</p>
+			</div>
+			<template v-else>
+				<table class = "data-table">
+					<thead>
+						<tr>
+							<th>Social Account</th>
+							<th>Campaign</th>
+							<th>Content</th>
+							<th>Date</th>
+							<th>Status</th>
+							<th class="actions" style="text-align: right">Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-if="!clientReady">
+							<td colspan="6">Loading timeline...</td>
+						</tr>
+						<tr v-else v-for="post in pagedTimeline" :key="post.id">
+							<td>
+								<router-link :to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" class="social-account">
+									<Icon :icon="post.socialAccountIcon" />
+									{{ post.socialAccountIdentity }}
+								</router-link>
+							</td>
+							<td>
+								<div v-if="post.campaignId != 0">
+									<router-link :to="{ name: 'campaignDetails', params: { id: post.campaignId } }">
+										{{ post.campaignName }}
+									</router-link>
+								</div>
+								<div v-else class="no-campaign">
+									<span @click="openCampaignDialog(post)" class="no-campaign-text" title="Assign Campaign">None</span>
+									<button @click="openCampaignDialog(post)" class="neutral small" title="Assign Campaign">
+										<Icon icon="mdi:folder-edit" width="14" height="14" />
+									</button>
+								</div>
+							</td>
+							<td>{{ post.content }}</td>
+							<td>{{ formatFuzzyDate(post.postedDate || post.created) }}</td>
+							<td>
+								<span :class="['annotation', statusClass(post)]">{{ statusText(post) }}</span>
+							</td>
+							<td align="right">
+								<div class="post-actions">
+									<button v-if="post.postUrl" @click="openPostUrl(post.postUrl)" class="button neutral" title="Open Post URL">
+										<Icon icon="mdi:open-in-new" width="16" height="16" />
+									</button>
+									<button @click="openPostDetails(post)" class="button neutral" title="View Post Details">
+										<Icon icon="mdi:eye" width="16" height="16" />
+									</button>
+									<button v-if="post.state === 'error'" @click="retryPost(post)" class="button good" title="Retry Post" :disabled="retryingPosts.has(post.id)">
+										<Icon v-if="retryingPosts.has(post.id)" icon="eos-icons:loading" width="16" height="16" />
+										<Icon v-else icon="mdi:refresh" width="16" height="16" />
+									</button>
+								</div>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+				<Pagination
+					v-if="totalPosts > 0"
+					:total="totalPosts"
+					v-model:page="currentPage"
+					v-model:pageSize="pageSize"
+				/>
+			</template>
+		</template>
 	</Section>
 
 	<!-- Campaign Update Dialog -->
@@ -129,7 +133,7 @@
 </template>
 
 <script setup>
-	import { ref, onMounted, computed } from 'vue';
+	import { ref, onMounted, computed, watch } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
@@ -144,6 +148,7 @@
 	const currentPage = ref(1);
 	const pageSize = ref(10);
 	const timelineLoading = ref(true);
+	const totalPosts = ref(0);
 
 	// Filter state
 	const selectedSocialAccountId = ref('');
@@ -184,8 +189,9 @@
 	});
 
 	const pagedTimeline = computed(() => {
-		const start = (currentPage.value - 1) * pageSize.value;
-		return filteredTimeline.value.slice(start, start + pageSize.value);
+		// With server-side pagination, the timeline already contains only the
+		// posts for the current page. We still apply client-side filters.
+		return filteredTimeline.value;
 	});
 
 	function statusClass(post) {
@@ -267,37 +273,57 @@
 		}
 	}
 
-	async function getTimeline() {
+	async function getTimeline(page = currentPage.value, pageSizeVal = pageSize.value) {
 		if (!window.client) {
-			return [];
+			return { posts: [], total: 0 };
 		}
 
-		return await window.client.getTimeline()
+		return await window.client.getTimeline({ page, pageSize: pageSizeVal })
 			.then((ret) => {
-				return ret.posts || [];
+				return {
+					posts: ret.posts || [],
+					total: ret.total ?? (ret.posts ? ret.posts.length : 0),
+				};
 			})
 			.catch((error) => {
 				console.error('Error fetching timeline:', error);
-				return [];
+				return { posts: [], total: 0 };
 			});
 	}
 
 	function refreshTimeline() {
 		timelineLoading.value = true;
-		getTimeline().then((posts) => {
+		const firstPage = 1;
+		getTimeline(firstPage, pageSize.value).then(({ posts, total }) => {
 			timeline.value = posts;
-			currentPage.value = 1;
+			totalPosts.value = total;
+			currentPage.value = firstPage;
 		}).catch(error => {
 			console.error("Error fetching timeline:", error);
 			timeline.value = [];
+			totalPosts.value = 0;
 		}).finally(() => {
 			timelineLoading.value = false;
 		});
 	}
 
-	function onPageChange(newPage) {
-		currentPage.value = newPage;
-	}
+	// When the current page or page size changes via the Pagination component,
+	// fetch the corresponding page from the backend.
+	watch([currentPage, pageSize], ([newPage, newPageSize]) => {
+		if (!clientReady.value) {
+			return;
+		}
+		timelineLoading.value = true;
+		getTimeline(newPage, newPageSize).then(({ posts, total }) => {
+			timeline.value = posts;
+			totalPosts.value = total;
+		}).catch(error => {
+			console.error("Error fetching timeline page:", error);
+			timeline.value = [];
+		}).finally(() => {
+			timelineLoading.value = false;
+		});
+	});
 
 	// Filter functions
 	function applyFilters() {

@@ -12,6 +12,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/rs/cors"
@@ -44,6 +45,10 @@ type ControlApi struct {
 	statusMessages []*controlv1.StatusMessage
 
 	cc *connectorcontroller.ConnectionController
+
+	// Job tracking
+	lastJobRunTimes map[string]time.Time
+	jobRunMutex     sync.RWMutex
 }
 
 type oauth2State struct {
@@ -64,7 +69,17 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 	s.oauth2states = make(map[string]*oauth2State)
 	s.cc = connectorcontroller.New(s.DB)
 
+	s.lastJobRunTimes = make(map[string]time.Time)
+	s.jobRunMutex = sync.RWMutex{}
+
 	log.Infof("ControlAPI started")
+
+	// Helper function to record job execution time
+	recordJobRun := func(jobName string) {
+		s.jobRunMutex.Lock()
+		defer s.jobRunMutex.Unlock()
+		s.lastJobRunTimes[jobName] = time.Now()
+	}
 
 	// Start background scheduler for due posts
 	go func() {
@@ -72,6 +87,7 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 		defer ticker.Stop()
 		for {
 			<-ticker.C
+			recordJobRun("scheduled_posts")
 			s.processDueScheduledPosts()
 		}
 	}()
@@ -82,6 +98,7 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 		defer ticker.Stop()
 		for {
 			<-ticker.C
+			recordJobRun("feed_fetching")
 			s.processFeedFetching()
 		}
 	}()
@@ -92,7 +109,19 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 		defer ticker.Stop()
 		for {
 			<-ticker.C
+			recordJobRun("feed_cleanup")
 			s.processFeedCleanup()
+		}
+	}()
+
+	// Start background scheduler for refreshing expiring social account tokens
+	go func() {
+		ticker := time.NewTicker(15 * time.Minute) // Run every 15 minutes
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			recordJobRun("token_refresh")
+			s.processTokenRefresh()
 		}
 	}()
 }
@@ -172,13 +201,17 @@ func (s *ControlApi) processFeedFetching() {
 				// Insert posts into feed table
 				for _, post := range posts {
 					feedEntry := &db.Feed{
-						SocialAccountID: sa.ID,
-						Content:         post.Content,
-						PostedDate:      post.PostedDate,
-						AuthorID:        post.AuthorID,
-						AuthorName:       post.AuthorName,
-						RemoteURL:       post.RemoteURL,
-						RemoteID:        post.RemoteID,
+						SocialAccountID:    sa.ID,
+						Content:            post.Content,
+						PostedDate:         post.PostedDate,
+						AuthorID:           post.AuthorID,
+						AuthorName:         post.AuthorName,
+						RemoteURL:          post.RemoteURL,
+						RemoteID:           post.RemoteID,
+						PreviewURL:         post.PreviewURL,
+						PreviewTitle:       post.PreviewTitle,
+						PreviewDescription: post.PreviewDescription,
+						PreviewImageURL:    post.PreviewImageURL,
 					}
 
 					err := s.DB.InsertFeedEntry(feedEntry)
@@ -197,9 +230,67 @@ func (s *ControlApi) processFeedFetching() {
 	log.Infof("FeedFetcher: completed feed fetch cycle")
 }
 
+func (s *ControlApi) processTokenRefresh() {
+	log.Infof("TokenRefresh: starting token refresh cycle")
+
+	// Log that the job is running
+	s.DB.InsertTableLog("Token refresh job started", "info", nil)
+
+	// Get social accounts expiring within 1 hour
+	expiringAccounts := s.DB.SelectSocialAccountsExpiringSoon(1)
+
+	if len(expiringAccounts) == 0 {
+		log.Infof("TokenRefresh: no accounts expiring within 1 hour")
+		s.DB.InsertTableLog("Token refresh job completed: no accounts need refreshing", "info", nil)
+		return
+	}
+
+	log.Infof("TokenRefresh: found %d account(s) expiring within 1 hour", len(expiringAccounts))
+
+	refreshedCount := 0
+	failedCount := 0
+
+	for _, sa := range expiringAccounts {
+		log.Infof("TokenRefresh: refreshing account %d (%s) - expires at %v", sa.ID, sa.Identity, sa.OAuth2TokenExpiry)
+
+		connectorService := s.cc.Get(sa.Connector)
+		if connectorService == nil {
+			log.Warnf("TokenRefresh: no connector found for %s account %d", sa.Connector, sa.ID)
+			s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: connector service not found (%s)", sa.Connector), "error", &sa.ID)
+			failedCount++
+			continue
+		}
+
+		// Refresh the account with panic recovery
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					log.Errorf("TokenRefresh: panic while refreshing %s account %d: %v", sa.Connector, sa.ID, r)
+					s.DB.InsertTableLog(fmt.Sprintf("Panic while refreshing social account: %v", r), "error", &sa.ID)
+					failedCount++
+				}
+			}()
+
+			err := connectorService.OnRefresh(sa)
+			if err != nil {
+				log.Errorf("TokenRefresh: failed to refresh %s account %d: %v", sa.Connector, sa.ID, err)
+				s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: %v", err), "error", &sa.ID)
+				failedCount++
+			} else {
+				log.Infof("TokenRefresh: successfully refreshed %s account %d", sa.Connector, sa.ID)
+				s.DB.InsertTableLog("Social account refreshed successfully", "info", &sa.ID)
+				refreshedCount++
+			}
+		}()
+	}
+
+	log.Infof("TokenRefresh: completed token refresh cycle - refreshed: %d, failed: %d", refreshedCount, failedCount)
+	s.DB.InsertTableLog(fmt.Sprintf("Token refresh job completed: refreshed %d account(s), %d failed", refreshedCount, failedCount), "info", nil)
+}
+
 func (s *ControlApi) processFeedCleanup() {
 	log.Infof("FeedCleanup: starting feed cleanup cycle")
-	
+
 	// Clean up old feed posts, keeping only the newest 100 per social account
 	err := s.DB.CleanupOldFeedPosts(100)
 	if err != nil {
@@ -313,12 +404,18 @@ func (s *ControlApi) marshalSocialAccounts(onlyActive bool) []*controlv1.SocialA
 			log.Warnf("SocialAccounts: connector service not found for connector '%s' (account ID: %d)", socialAccount.Connector, socialAccount.ID)
 		}
 
+		tokenExpiry := ""
+		if !socialAccount.OAuth2TokenExpiry.IsZero() {
+			tokenExpiry = socialAccount.OAuth2TokenExpiry.Format(time.RFC3339)
+		}
+
 		accounts = append(accounts, &controlv1.SocialAccount{
-			Id:        socialAccount.ID,
-			Connector: socialAccount.Connector,
-			Identity:  socialAccount.Identity,
-			Icon:      icon,
-			Active:    socialAccount.Active,
+			Id:          socialAccount.ID,
+			Connector:   socialAccount.Connector,
+			Identity:    socialAccount.Identity,
+			Icon:        icon,
+			Active:      socialAccount.Active,
+			TokenExpiry: tokenExpiry,
 		})
 	}
 
@@ -408,6 +505,22 @@ func (s *ControlApi) tryPostStatus(content string, socialAccount *db.SocialAccou
 
 		if postResult.Err != nil {
 			log.Errorf("Error posting to wall: %v", postResult.Err)
+
+			// Also persist this error into the logs table so it is visible in the UI
+			if socialAccount != nil {
+				_ = s.DB.InsertTableLog(
+					fmt.Sprintf("Error posting to wall for connector %s (account %d): %v", socialAccount.Connector, socialAccount.ID, postResult.Err),
+					"error",
+					&socialAccount.ID,
+				)
+			} else {
+				_ = s.DB.InsertTableLog(
+					fmt.Sprintf("Error posting to wall: %v", postResult.Err),
+					"error",
+					nil,
+				)
+			}
+
 			postStatus.Success = false
 			return
 		}
@@ -673,6 +786,7 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 
 	if socialAccount == nil {
 		log.Errorf("Social account not found: %v", req.Msg.Id)
+		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: account not found (ID: %v)", req.Msg.Id), "error", &req.Msg.Id)
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %v", req.Msg.Id))
 	}
 
@@ -680,6 +794,7 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 
 	if connectorService == nil {
 		log.Errorf("Connector service not found for connector: %s", socialAccount.Connector)
+		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: connector service not found (%s)", socialAccount.Connector), "error", &req.Msg.Id)
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector service not found for connector: %s", socialAccount.Connector))
 	}
 
@@ -688,8 +803,12 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 	if err != nil {
 		log.Errorf("Error refreshing social account: %v", err)
 		errMsg = fmt.Sprintf("Error refreshing social account: %v", err)
+		// Log the failure to table_logs
+		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: %v", err), "error", &req.Msg.Id)
 	} else {
 		log.Infof("Social account refreshed successfully: %v", req.Msg.Id)
+		// Log the success to table_logs
+		s.DB.InsertTableLog("Social account refreshed successfully", "info", &req.Msg.Id)
 	}
 
 	res := connect.NewResponse(&controlv1.RefreshSocialAccountResponse{
@@ -703,11 +822,45 @@ func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Requ
 }
 
 func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[controlv1.GetTimelineRequest]) (*connect.Response[controlv1.GetTimelineResponse], error) {
-	posts, err := s.DB.SelectPosts()
+	// If no pagination parameters are provided, preserve existing behavior (return all posts).
+	page := req.Msg.GetPage()
+	pageSize := req.Msg.GetPageSize()
 
-	if err != nil {
-		log.Errorf("Error selecting posts: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve posts: %w", err))
+	var (
+		posts []*db.Post
+		total int
+		err   error
+	)
+
+	if page == 0 && pageSize == 0 {
+		// Legacy behavior: return the full timeline.
+		posts, err = s.DB.SelectPosts()
+		if err != nil {
+			log.Errorf("Error selecting posts: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve posts: %w", err))
+		}
+		total = len(posts)
+	} else {
+		// Paginated behavior.
+		if page == 0 {
+			page = 1
+		}
+		if pageSize == 0 {
+			pageSize = 10
+		}
+
+		// Apply sane upper bound to page size.
+		const maxPageSize = 100
+		if pageSize > maxPageSize {
+			pageSize = maxPageSize
+		}
+
+		offset := int((page - 1) * pageSize)
+		posts, total, err = s.DB.SelectPostsPaginated(int(pageSize), offset)
+		if err != nil {
+			log.Errorf("Error selecting paginated posts: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve posts: %w", err))
+		}
 	}
 
 	timeline := make([]*controlv1.PostStatus, 0, len(posts))
@@ -762,6 +915,7 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 
 	res := connect.NewResponse(&controlv1.GetTimelineResponse{
 		Posts: timeline,
+		Total: uint32(total),
 	})
 
 	return res, nil
@@ -811,6 +965,10 @@ func (s *ControlApi) GetFeed(ctx context.Context, req *connect.Request[controlv1
 			AuthorName:            entry.AuthorName, // This will be empty string if column doesn't exist or value is NULL
 			RemoteUrl:             entry.RemoteURL,
 			RemoteId:              entry.RemoteID,
+			PreviewUrl:            entry.PreviewURL,
+			PreviewTitle:          entry.PreviewTitle,
+			PreviewDescription:    entry.PreviewDescription,
+			PreviewImageUrl:       entry.PreviewImageURL,
 		})
 	}
 
@@ -982,6 +1140,104 @@ func (s *ControlApi) CleanupFeedPosts(ctx context.Context, req *connect.Request[
 	})
 
 	return res, nil
+}
+
+func (s *ControlApi) GetLogs(ctx context.Context, req *connect.Request[controlv1.GetLogsRequest]) (*connect.Response[controlv1.GetLogsResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	log.Infof("GetLogs called by user: %s", authenticatedUser.User.Username)
+
+	limit := int(req.Msg.Limit)
+	if limit <= 0 || limit > 1000 {
+		limit = 100 // Default limit
+	}
+
+	logEntries, err := s.DB.SelectTableLogs(limit)
+	if err != nil {
+		log.Errorf("Error selecting table logs: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve logs: %w", err))
+	}
+
+	logs := make([]*controlv1.LogEntry, 0, len(logEntries))
+
+	for _, entry := range logEntries {
+		logEntry := &controlv1.LogEntry{
+			Id:        entry.ID,
+			Message:   entry.Message,
+			Level:     entry.Level,
+			CreatedAt: entry.CreatedAt.Format(time.RFC3339),
+		}
+
+		if entry.RelatedSocialAccountID.Valid {
+			logEntry.RelatedSocialAccountId = uint32(entry.RelatedSocialAccountID.Int32)
+			if entry.RelatedSocialAccount != nil {
+				logEntry.RelatedSocialAccountIdentity = entry.RelatedSocialAccount.Identity
+			}
+		}
+
+		logs = append(logs, logEntry)
+	}
+
+	res := connect.NewResponse(&controlv1.GetLogsResponse{
+		Logs: logs,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) GetJobsStatus(ctx context.Context, req *connect.Request[controlv1.GetJobsStatusRequest]) (*connect.Response[controlv1.GetJobsStatusResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	log.Infof("GetJobsStatus called by user: %s", authenticatedUser.User.Username)
+
+	s.jobRunMutex.RLock()
+	defer s.jobRunMutex.RUnlock()
+
+	jobs := []*controlv1.JobStatus{
+		{
+			Name:        "scheduled_posts",
+			DisplayName: "Scheduled Posts",
+			Schedule:    "Every 1 minute",
+			LastRun:     s.getJobLastRun("scheduled_posts"),
+		},
+		{
+			Name:        "feed_fetching",
+			DisplayName: "Feed Fetching",
+			Schedule:    "Every 5 minutes",
+			LastRun:     s.getJobLastRun("feed_fetching"),
+		},
+		{
+			Name:        "feed_cleanup",
+			DisplayName: "Feed Cleanup",
+			Schedule:    "Every 1 hour",
+			LastRun:     s.getJobLastRun("feed_cleanup"),
+		},
+		{
+			Name:        "token_refresh",
+			DisplayName: "Token Refresh",
+			Schedule:    "Every 15 minutes",
+			LastRun:     s.getJobLastRun("token_refresh"),
+		},
+	}
+
+	res := connect.NewResponse(&controlv1.GetJobsStatusResponse{
+		Jobs: jobs,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) getJobLastRun(jobName string) string {
+	if lastRun, exists := s.lastJobRunTimes[jobName]; exists {
+		return lastRun.Format(time.RFC3339)
+	}
+	return ""
 }
 
 func (s *ControlApi) SetSocialAccountActive(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountActiveRequest]) (*connect.Response[controlv1.SetSocialAccountActiveResponse], error) {

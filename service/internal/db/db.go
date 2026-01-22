@@ -328,6 +328,21 @@ func (db *DB) SelectSocialAccounts(onlyActive bool) []*SocialAccount {
 	return ret
 }
 
+func (db *DB) SelectSocialAccountsExpiringSoon(withinHours int) []*SocialAccount {
+	ret := make([]*SocialAccount, 0)
+	// Select active accounts where token expiry is within the specified hours and not null
+	query := `SELECT * FROM social_accounts 
+		WHERE active = 1 
+		AND oauth2_token_expiry IS NOT NULL 
+		AND oauth2_token_expiry > NOW() 
+		AND oauth2_token_expiry <= DATE_ADD(NOW(), INTERVAL ? HOUR)`
+	err := db.ResilientSelect(&ret, query, withinHours)
+	if err != nil {
+		db.Logger().Errorf("Failed to select social accounts expiring soon: %v", err)
+	}
+	return ret
+}
+
 func (db *DB) SelectCannedPosts() []*CannedPost {
 	ret := make([]*CannedPost, 0)
 	err := db.ResilientSelect(&ret, "SELECT * FROM canned_posts")
@@ -452,6 +467,28 @@ func (db *DB) SelectPosts() ([]*Post, error) {
 		return nil, err
 	}
 	return ret, nil
+}
+
+// SelectPostsPaginated returns a page of posts and the total count.
+func (db *DB) SelectPostsPaginated(limit int, offset int) ([]*Post, int, error) {
+	posts := make([]*Post, 0)
+
+	// Fetch the requested page.
+	err := db.ResilientSelect(&posts, "SELECT p.id, p.social_account_id, p.status, p.state, p.content, p.post_url, p.remote_id, p.scheduled_at, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name FROM posts p LEFT JOIN campaigns c ON p.campaign_id = c.id ORDER BY p.id DESC LIMIT ? OFFSET ?", limit, offset)
+	if err != nil {
+		db.Logger().Errorf("Failed to select paginated posts: %v", err)
+		return nil, 0, err
+	}
+
+	// Fetch total count.
+	var total int
+	err = db.ResilientGet(&total, "SELECT COUNT(*) FROM posts")
+	if err != nil {
+		db.Logger().Errorf("Failed to count posts: %v", err)
+		return nil, 0, err
+	}
+
+	return posts, total, nil
 }
 
 func (db *DB) SelectDueScheduledPosts(limit int) ([]*Post, error) {
@@ -940,7 +977,7 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) error {
 		return nil // Not an error, just skip the duplicate
 	}
 
-	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, remote_url, remote_id, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :remote_url, :remote_id, NOW(), NOW())`, feedEntry)
+	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, NOW(), NOW())`, feedEntry)
 
 	if err != nil {
 		// Check if error is due to duplicate key (unique constraint violation)
@@ -989,4 +1026,53 @@ func (db *DB) CleanupOldFeedPosts(keepCount int) error {
 	rowsAffected, _ := result.RowsAffected()
 	db.Logger().Infof("Cleaned up %d old feed posts (kept newest %d per social account)", rowsAffected, keepCount)
 	return nil
+}
+
+func (db *DB) InsertTableLog(message string, level string, relatedSocialAccountID *uint32) error {
+	logEntry := &TableLog{
+		Message: message,
+		Level:   level,
+	}
+
+	if relatedSocialAccountID != nil {
+		logEntry.RelatedSocialAccountID = sql.NullInt32{
+			Int32: int32(*relatedSocialAccountID),
+			Valid: true,
+		}
+	} else {
+		logEntry.RelatedSocialAccountID = sql.NullInt32{Valid: false}
+	}
+
+	_, err := db.ResilientNamedExec(`INSERT INTO table_logs (message, level, related_social_account_id, created_at, updated_at) VALUES (:message, :level, :related_social_account_id, NOW(), NOW())`, logEntry)
+
+	if err != nil {
+		db.Logger().Errorf("Failed to insert table log: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+func (db *DB) SelectTableLogs(limit int) ([]*TableLog, error) {
+	logs := make([]*TableLog, 0)
+
+	query := `SELECT id, message, level, related_social_account_id, created_at, updated_at FROM table_logs ORDER BY created_at DESC LIMIT ?`
+	
+	err := db.ResilientSelect(&logs, query, limit)
+	if err != nil {
+		db.Logger().Errorf("Failed to select table logs: %v", err)
+		return nil, err
+	}
+
+	// Load related social accounts if present
+	for _, log := range logs {
+		if log.RelatedSocialAccountID.Valid {
+			socialAccount, err := db.GetSocialAccount(uint32(log.RelatedSocialAccountID.Int32))
+			if err == nil && socialAccount != nil {
+				log.RelatedSocialAccount = socialAccount
+			}
+		}
+	}
+
+	return logs, nil
 }

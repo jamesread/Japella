@@ -114,6 +114,7 @@ message SocialAccount {
 	string connector = 5;
 	string icon = 6;
 	bool active = 7;
+	string token_expiry = 8; // RFC3339 timestamp, empty if token doesn't expire
 }
 
 message GetConnectorsRequest {
@@ -163,10 +164,19 @@ message StandardResponse {
 }
 
 message GetTimelineRequest {
+	// Optional page number for paginated timeline requests (1-based).
+	uint32 page = 1;
+
+	// Optional page size for paginated timeline requests.
+	uint32 page_size = 2;
 }
 
 message GetTimelineResponse {
+	// The posts for the requested page (or all posts if no pagination specified).
 	repeated PostStatus posts = 1;
+
+	// Total number of posts available across all pages.
+	uint32 total = 2;
 }
 
 message UpdatePostCampaignRequest {
@@ -213,6 +223,10 @@ message FeedPost {
 	string author_name = 8;
 	string remote_url = 9;
 	string remote_id = 10;
+	string preview_url = 11;
+	string preview_title = 12;
+	string preview_description = 13;
+	string preview_image_url = 14;
 }
 
 message SetSocialAccountActiveRequest {
@@ -428,6 +442,37 @@ message DeleteCampaignResponse {
   StandardResponse standard_response = 1;
 }
 
+message GetLogsRequest {
+	uint32 limit = 1; // Maximum number of logs to return, default 100
+}
+
+message GetLogsResponse {
+	repeated LogEntry logs = 1;
+}
+
+message LogEntry {
+	uint32 id = 1;
+	string message = 2;
+	string level = 3;
+	uint32 related_social_account_id = 4; // 0 if not set
+	string related_social_account_identity = 5; // Empty if not set
+	string created_at = 6; // RFC3339 timestamp
+}
+
+message GetJobsStatusRequest {
+}
+
+message GetJobsStatusResponse {
+	repeated JobStatus jobs = 1;
+}
+
+message JobStatus {
+	string name = 1;
+	string display_name = 2;
+	string last_run = 3; // RFC3339 timestamp, empty if never run
+	string schedule = 4; // Human-readable schedule description
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -500,4 +545,8 @@ service JapellaControlApiService {
     rpc GetCampaignSocialAccounts(GetCampaignSocialAccountsRequest) returns (GetCampaignSocialAccountsResponse) {}
     
     rpc CleanupFeedPosts(CleanupFeedPostsRequest) returns (CleanupFeedPostsResponse) {}
+    
+    rpc GetLogs(GetLogsRequest) returns (GetLogsResponse) {}
+    
+    rpc GetJobsStatus(GetJobsStatusRequest) returns (GetJobsStatusResponse) {}
 }

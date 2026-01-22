@@ -3,7 +3,6 @@
 		title="Campaign Details"
 		subtitle="View and manage a single campaign"
 		classes="campaign-details"
-		:padding="false"
 	>
 		<template #toolbar>
 			<button @click="goBack" class="neutral">
@@ -72,21 +71,23 @@
 				</div>
 
 				<div v-else class="posts-list">
-					<div v-for="post in campaignPosts.slice(0, 5)" :key="post.id" class="post-item">
+					<div v-for="post in campaignPosts.slice(0, 5)" :key="post.id">
 
-						<PostPreview :post="post" />
+						<section class = "small">
+							<PostPreview :post="post" />
 
-						<div class="post-meta">
-							<div class="post-status">
-								<span :class="['annotation', getPostStatusClass(post)]">{{ getPostStatusText(post) }}</span>
+							<div class="post-meta">
+								<div class="post-status">
+									<span :class="['annotation', getPostStatusClass(post)]">{{ getPostStatusText(post) }}</span>
+								</div>
+		
+								<span class="post-date">{{ post.created }}</span>
+								<button @click="viewPost(post)" class="neutral small">
+									<Icon icon="mdi:eye" />
+									View Details
+								</button>
 							</div>
-	
-							<span class="post-date">{{ post.created }}</span>
-							<button @click="viewPost(post)" class="neutral small">
-								<Icon icon="mdi:eye" />
-								View Details
-							</button>
-						</div>
+						</section>
 					</div>
 				</div>
 			</div>
@@ -294,13 +295,6 @@
 	display: flex;
 	flex-direction: column;
 	gap: 1.5rem;
-}
-
-.post-item {
-	padding: 1.5rem;
-	border-radius: 0.5rem;
-	border: 2px solid var(--border-color, #33373b);
-	transition: all 0.2s ease;
 }
 
 .post-header {

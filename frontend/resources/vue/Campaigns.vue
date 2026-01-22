@@ -62,9 +62,8 @@
 		<div>
 			<Pagination
 				:total="campaignList.length"
-				:page="currentPage"
-				:page-size="pageSize"
-				@change="onPageChange"
+				v-model:page="currentPage"
+				v-model:pageSize="pageSize"
 			/>
 		</div>
 
@@ -403,10 +402,6 @@ function getFullDate(dateString) {
         console.error('Error formatting full date:', error);
         return 'Invalid date';
     }
-}
-
-function onPageChange(newPage) {
-    currentPage.value = newPage;
 }
 
 function getCampaignDisplayName(campaign) {

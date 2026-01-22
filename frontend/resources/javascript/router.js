@@ -21,6 +21,7 @@ import UserControlPanel from '../vue/UserControlPanel.vue'
 import ChangePassword from '../vue/ChangePassword.vue'
 import PostDetails from '../vue/PostDetails.vue'
 import Feed from '../vue/Feed.vue'
+import Logs from '../vue/Logs.vue'
 import BrowserDiagnostics from '../vue/BrowserDiagnostics.vue'
 
 import {
@@ -123,6 +124,16 @@ const routes = [
     meta: {
       icon: ActivityIcon,
       title: 'Feed',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/logs',
+    name: 'logs',
+    component: Logs,
+    meta: {
+      icon: ActivityIcon,
+      title: 'Logs',
       requiresAuth: true
     }
   },

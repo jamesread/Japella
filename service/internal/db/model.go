@@ -141,6 +141,19 @@ type Feed struct {
 	AuthorName             string    `db:"author_name"`
 	RemoteURL              string    `db:"remote_url"`
 	RemoteID               string    `db:"remote_id"`
+	PreviewURL             string    `db:"preview_url"`
+	PreviewTitle           string    `db:"preview_title"`
+	PreviewDescription     string    `db:"preview_description"`
+	PreviewImageURL        string    `db:"preview_image_url"`
 	SocialAccountIdentity  string    `db:"social_account_identity"`
 	SocialAccountConnector string    `db:"social_account_connector"`
+}
+
+type TableLog struct {
+	Model
+
+	Message              string         `db:"message"`
+	Level                string         `db:"level"`
+	RelatedSocialAccountID sql.NullInt32 `db:"related_social_account_id"`
+	RelatedSocialAccount   *SocialAccount
 }

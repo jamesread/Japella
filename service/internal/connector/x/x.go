@@ -190,6 +190,14 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 
 	if client.Err != nil {
 		x.Logger().Errorf("Error creating POST request to X API: %v", client.Err)
+
+		// Persist the failure to the logs table so it can be inspected from the UI
+		_ = x.db.InsertTableLog(
+			fmt.Sprintf("Error creating POST request to X API for account %d: %v", sa.Id, client.Err),
+			"error",
+			&sa.Id,
+		)
+
 		res.Err = client.Err
 		return res
 	}
@@ -201,6 +209,14 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 	// Check for errors after JSON parsing
 	if client.Err != nil {
 		x.Logger().Errorf("Error parsing X API response: %v", client.Err)
+
+		// Also record this error in the logs table (commonly contains "unexpected status code: 403")
+		_ = x.db.InsertTableLog(
+			fmt.Sprintf("Error parsing X API response for account %d: %v", sa.Id, client.Err),
+			"error",
+			&sa.Id,
+		)
+
 		res.Err = client.Err
 		return res
 	}
@@ -208,7 +224,15 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 	// Validate that we received a valid tweet ID
 	if tweetResult.Data.ID == "" {
 		x.Logger().Errorf("X API returned empty tweet ID - post may have failed")
-		res.Err = fmt.Errorf("X API returned empty tweet ID")
+
+		err := fmt.Errorf("X API returned empty tweet ID")
+		_ = x.db.InsertTableLog(
+			fmt.Sprintf("X API returned empty tweet ID for account %d", sa.Id),
+			"error",
+			&sa.Id,
+		)
+
+		res.Err = err
 		return res
 	}
 

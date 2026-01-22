@@ -27,12 +27,16 @@ type ConnectorWithWall interface {
 }
 
 type FeedPost struct {
-	Content    string
-	PostedDate time.Time
-	AuthorID   uint32
-	AuthorName string
-	RemoteURL  string
-	RemoteID   string
+	Content          string
+	PostedDate       time.Time
+	AuthorID         uint32
+	AuthorName       string
+	RemoteURL        string
+	RemoteID         string
+	PreviewURL       string
+	PreviewTitle     string
+	PreviewDescription string
+	PreviewImageURL  string
 }
 
 type SocialAccount struct {

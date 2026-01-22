@@ -1,19 +1,21 @@
 <template>
-	<div class="post-preview">
-		<div class="post-header">
-			<div class="social-account-info">
+	<div class="post-boost">
+		<div class="boost-header">
+			<div class="boost-info">
+				<Icon icon="mdi:repeat" class="boost-icon" />
 				<router-link 
 					v-if="post.socialAccountId" 
 					:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" 
 					class="social-account-link"
 				>
 					<Icon :icon="post.socialAccountIcon || 'mdi:account'" />
-					<span class="account-name">{{ post.authorName || post.socialAccountIdentity }}</span>
+					<span class="account-name">{{ boostActor || post.authorName || post.socialAccountIdentity }}</span>
 				</router-link>
-				<div v-else class="social-account-link canned-post-label">
-					<Icon icon="jam:box" />
-					<span class="account-name">Canned Post</span>
+				<div v-else class="social-account-link">
+					<Icon icon="mdi:account" />
+					<span class="account-name">{{ boostActor || 'Unknown' }}</span>
 				</div>
+				<span class="boost-text">boosted</span>
 			</div>
 			<button 
 				v-if="post.id || post.remoteId" 
@@ -25,50 +27,29 @@
 			</button>
 		</div>
 
-
-		<div class="post-content-section">
-			<div class="post-message" v-html="post.content"></div>
-		</div>
-
-		<div v-if="post.previewUrl || post.previewImageUrl" class="preview-card">
-			<a 
-				v-if="post.previewUrl" 
-				:href="post.previewUrl" 
-				target="_blank" 
-				rel="noopener noreferrer" 
-				class="preview-card-link"
-			>
-				<div v-if="post.previewImageUrl" class="preview-image">
-					<img :src="post.previewImageUrl" :alt="post.previewTitle || 'Preview image'" />
-				</div>
-				<div class="preview-content">
-					<div v-if="post.previewTitle" class="preview-title">{{ post.previewTitle }}</div>
-					<div v-if="post.previewDescription" class="preview-description">{{ post.previewDescription }}</div>
-					<div v-if="post.previewUrl" class="preview-url">{{ getDomainFromUrl(post.previewUrl) }}</div>
-				</div>
-			</a>
-			<div v-else class="preview-card-static">
-				<div v-if="post.previewImageUrl" class="preview-image">
-					<img :src="post.previewImageUrl" :alt="post.previewTitle || 'Preview image'" />
-				</div>
-				<div class="preview-content">
-					<div v-if="post.previewTitle" class="preview-title">{{ post.previewTitle }}</div>
-					<div v-if="post.previewDescription" class="preview-description">{{ post.previewDescription }}</div>
-				</div>
+		<div class="boosted-content">
+			<div v-if="boostedObjectUrl" class="boosted-object-link">
+				<a :href="boostedObjectUrl" target="_blank" rel="noopener noreferrer" class="boosted-link">
+					<Icon icon="mdi:open-in-new" width="16" height="16" />
+					<span>View Boosted Post</span>
+				</a>
+			</div>
+			<div v-else class="boosted-object-info">
+				<span class="boosted-object-label">Boosted Object:</span>
+				<span class="boosted-object-value">{{ boostedObjectUrl || 'Unknown' }}</span>
 			</div>
 		</div>
 
 		<div v-if="post.remoteUrl" class="post-actions">
 			<a :href="post.remoteUrl" target="_blank" rel="noopener noreferrer" class="original-post-link">
 				<Icon icon="mdi:open-in-new" width="16" height="16" />
-				<span>View Original Post</span>
+				<span>View Boost Activity</span>
 			</a>
 		</div>
 
 		<div v-if="post.postedDate || post.created" class="post-datetime">
 			{{ formatDateTime(post.postedDate || post.created) }}
 		</div>
-
 	</div>
 
 	<!-- Diagnostic Info Dialog -->
@@ -89,7 +70,7 @@
 </template>
 
 <script setup>
-	import { ref } from 'vue';
+	import { ref, computed } from 'vue';
 	import { Icon } from '@iconify/vue';
 
 	// Props
@@ -146,55 +127,172 @@
 		}
 	}
 
-	function getDomainFromUrl(url) {
-		if (!url) return '';
-		try {
-			const urlObj = new URL(url);
-			return urlObj.hostname.replace('www.', '');
-		} catch (e) {
-			return url;
+	// Parse ActivityStreams JSON from remoteId
+	const activityStreams = computed(() => {
+		if (!props.post.remoteId) {
+			return null;
 		}
-	}
 
-	function statusClass(post) {
-		if (post.state === 'error') return 'bad';
-		if (post.state === 'pending' || post.state === 'scheduled') return 'note';
-		if (post.state === 'completed') return 'good';
-		return '';
-	}
+		try {
+			// Try to parse as JSON
+			const parsed = JSON.parse(props.post.remoteId);
+			if (parsed && parsed['@context'] && parsed.type) {
+				return parsed;
+			}
+		} catch (e) {
+			// Not JSON, return null
+			return null;
+		}
 
-	function statusText(post) {
-		if (post.state === 'error') return 'Error';
-		if (post.state === 'pending' || post.state === 'scheduled') return 'Scheduled';
-		if (post.state === 'completed') return 'Completed';
-		return 'Unknown';
-	}
+		return null;
+	});
+
+	// Extract actor from remoteUrl if remoteId doesn't contain JSON
+	const actorFromUrl = computed(() => {
+		if (activityStreams.value) {
+			return null; // Already extracted from JSON
+		}
+
+		if (!props.post.remoteUrl) {
+			return null;
+		}
+
+		// Extract username from URL like "https://fosstodon.org/users/jimsalter/statuses/..."
+		const match = props.post.remoteUrl.match(/\/users\/([^\/]+)/);
+		if (match) {
+			return match[1];
+		}
+
+		// Try ActivityPub actor format
+		const actorMatch = props.post.remoteUrl.match(/@([^\/@]+)@([^\/]+)/);
+		if (actorMatch) {
+			return actorMatch[1];
+		}
+
+		return null;
+	});
+
+	// Check if this is a boost (Announce type)
+	const isBoost = computed(() => {
+		return activityStreams.value && activityStreams.value.type === 'Announce';
+	});
+
+	// Extract boost actor (who boosted)
+	const boostActor = computed(() => {
+		// First try to get from ActivityStreams JSON
+		if (activityStreams.value) {
+			const actor = activityStreams.value.actor;
+			if (typeof actor === 'string') {
+				// Extract username from URL like "https://fosstodon.org/users/jimsalter"
+				const match = actor.match(/\/users\/([^\/]+)/);
+				if (match) {
+					return match[1];
+				}
+				return actor;
+			}
+		}
+
+		// Fall back to extracting from remoteUrl
+		if (actorFromUrl.value) {
+			return actorFromUrl.value;
+		}
+
+		// Fall back to author name from post
+		return props.post.authorName || props.post.socialAccountIdentity;
+	});
+
+	// Extract boosted object URL
+	const boostedObjectUrl = computed(() => {
+		// First try to get from ActivityStreams JSON
+		if (activityStreams.value) {
+			const obj = activityStreams.value.object;
+			if (typeof obj === 'string') {
+				return obj;
+			}
+		}
+
+		// If remoteUrl is an activity URL, try to extract the object URL
+		// Activity URLs often look like: .../statuses/123/activity
+		// The object would be: .../statuses/123
+		if (props.post.remoteUrl && props.post.remoteUrl.endsWith('/activity')) {
+			return props.post.remoteUrl.replace('/activity', '');
+		}
+
+		return null;
+	});
+
+	// Display remote ID (shortened if it's a URL)
+	const displayRemoteId = computed(() => {
+		if (!props.post.remoteId) {
+			return '';
+		}
+
+		// If it's JSON, show a shortened version
+		if (activityStreams.value) {
+			return `${activityStreams.value.type} activity`;
+		}
+
+		// If it's a URL, show just the last part
+		if (props.post.remoteId.startsWith('http')) {
+			const parts = props.post.remoteId.split('/');
+			return parts[parts.length - 1] || props.post.remoteId;
+		}
+
+		return props.post.remoteId;
+	});
 </script>
 
 <style scoped>
-.post-preview {
+.post-boost {
 	max-width: 800px;
 	margin: 0 auto;
 	padding: 1rem;
 	border-radius: 0.5rem;
-    line-height: 2;
+	border-left: 3px solid var(--boost-color, #6366f1);
+	background-color: var(--bg-secondary, #f9fafb);
 	position: relative;
 }
 
-.post-header {
+.boost-header {
 	display: flex;
 	align-items: start;
 	justify-content: space-between;
 	gap: 0.5rem;
-	margin-bottom: 0.5rem;
+	margin-bottom: 1rem;
 }
 
-.social-account-info {
+.boost-info {
 	display: flex;
 	align-items: center;
 	gap: 0.5rem;
-	font-size: 1.1rem;
+	font-size: 1rem;
 	font-weight: 500;
+}
+
+.boost-icon {
+	color: var(--boost-color, #6366f1);
+}
+
+.social-account-link {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	text-decoration: none;
+	color: var(--link-color, #007bff);
+}
+
+.social-account-link:hover {
+	text-decoration: underline;
+}
+
+.account-name {
+	font-weight: bold;
+}
+
+.boost-text {
+	color: var(--text-secondary, #666);
+	font-weight: normal;
+	font-style: italic;
 }
 
 .diagnostic-button {
@@ -239,64 +337,50 @@
 	display: inline-block;
 }
 
-.social-account-link {
-	display: flex;
+.boosted-content {
+	margin: 1rem 0;
+	padding: 1rem;
+	background-color: var(--bg-primary, #ffffff);
+	border-radius: 0.25rem;
+	border: 1px solid var(--border-color, #e5e7eb);
+}
+
+.boosted-object-link {
+	margin-bottom: 0.5rem;
+}
+
+.boosted-link {
+	display: inline-flex;
 	align-items: center;
 	gap: 0.5rem;
-	text-decoration: none;
 	color: var(--link-color, #007bff);
-}
-
-.social-account-link:hover {
-	text-decoration: underline;
-}
-
-.canned-post-label {
-	cursor: default;
-}
-
-.canned-post-label:hover {
 	text-decoration: none;
+	font-size: 0.9rem;
+	transition: color 0.2s ease;
 }
 
-.account-name {
-    font-weight: bold;
-}
-
-.post-message {
-	font-weight: 500;
-	word-wrap: break-word;
-}
-
-.post-message :deep(a) {
-	color: var(--link-color, #007bff);
-	text-decoration: underline;
-}
-
-.post-message :deep(a:hover) {
+.boosted-link:hover {
 	color: var(--link-hover-color, #0056b3);
+	text-decoration: underline;
 }
 
-.post-message :deep(p) {
-	margin: 0.5em 0;
+.boosted-object-info {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
 }
 
-.post-message :deep(p:first-child) {
-	margin-top: 0;
+.boosted-object-label {
+	font-size: 0.875rem;
+	color: var(--text-secondary, #666);
+	font-weight: 500;
 }
 
-.post-message :deep(p:last-child) {
-	margin-bottom: 0;
-}
-
-.post-content-section {
-	margin-bottom: 2rem;
-}
-
-.post-content-section h3 {
-	margin: 0 0 1rem 0;
+.boosted-object-value {
+	font-family: monospace;
+	font-size: 0.875rem;
 	color: var(--text-primary, #333);
-	font-size: 1.2rem;
+	word-break: break-all;
 }
 
 .post-actions {
@@ -384,86 +468,4 @@
 	color: var(--text-secondary, #666);
 	font-style: italic;
 }
-
-.preview-card {
-	margin: 1rem 0;
-	border: 1px solid var(--border-color, #e5e7eb);
-	border-radius: 0.5rem;
-	overflow: hidden;
-	background-color: var(--bg-primary, #ffffff);
-}
-
-.preview-card-link {
-	display: flex;
-	text-decoration: none;
-	color: inherit;
-	transition: opacity 0.2s ease;
-}
-
-.preview-card-link:hover {
-	opacity: 0.8;
-}
-
-.preview-card-static {
-	display: flex;
-}
-
-.preview-image {
-	flex-shrink: 0;
-	width: 200px;
-	height: 150px;
-	overflow: hidden;
-	background-color: var(--bg-secondary, #f5f5f5);
-}
-
-.preview-image img {
-	width: 100%;
-	height: 100%;
-	object-fit: cover;
-}
-
-.preview-content {
-	flex: 1;
-	padding: 1rem;
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.preview-title {
-	font-weight: 600;
-	font-size: 1rem;
-	color: var(--text-primary, #333);
-	line-height: 1.4;
-}
-
-.preview-description {
-	font-size: 0.875rem;
-	color: var(--text-secondary, #666);
-	line-height: 1.5;
-	display: -webkit-box;
-	-webkit-line-clamp: 2;
-	-webkit-box-orient: vertical;
-	overflow: hidden;
-}
-
-.preview-url {
-	font-size: 0.75rem;
-	color: var(--text-secondary, #999);
-	text-transform: uppercase;
-	letter-spacing: 0.5px;
-	margin-top: auto;
-}
-
-@media (max-width: 600px) {
-	.preview-image {
-		width: 120px;
-		height: 90px;
-	}
-	
-	.preview-content {
-		padding: 0.75rem;
-	}
-}
-
 </style>

@@ -26,11 +26,26 @@
 			<dt>Connector</dt>
 			<dd>{{ account.connector }}</dd>
 			<dt>Identity</dt>
-			<dd>{{ account.identity }}</dd>
+			<dd>
+				<span>{{ account.identity }}</span>
+				<button 
+					v-if="getProfileUrl(account)" 
+					@click="openProfile" 
+					class="profile-link-button" 
+					:title="'Open ' + account.identity + ' profile'"
+				>
+					<Icon icon="mdi:open-in-new" width="16" height="16" />
+				</button>
+			</dd>
 			<dt>Active</dt>
 			<dd>{{ account.active ? 'Yes' : 'No' }}</dd>
 			<dt>Last Posted</dt>
 			<dd>{{ lastPosted || 'Never' }}</dd>
+			<dt>Token Expiry</dt>
+			<dd>
+				<span v-if="account.tokenExpiry" :title="formatAbsoluteDate(account.tokenExpiry)">{{ formatRelativeTime(account.tokenExpiry) }}</span>
+				<span v-else>{{ formatRelativeTime(null) }}</span>
+			</dd>
 		</dl>
 	</Section>
 
@@ -210,6 +225,67 @@ async function toggleActive() {
 		}
 	}
 
+	function formatRelativeTime(dateString) {
+		if (!dateString) {
+			return 'Never expires'
+		}
+		
+		try {
+			const expiryDate = new Date(dateString)
+			if (isNaN(expiryDate.getTime())) {
+				return 'Invalid date'
+			}
+			
+			const now = new Date()
+			const diffMs = expiryDate - now
+			const diffSeconds = Math.floor(Math.abs(diffMs) / 1000)
+			const diffMinutes = Math.floor(diffSeconds / 60)
+			const diffHours = Math.floor(diffMinutes / 60)
+			const diffDays = Math.floor(diffHours / 24)
+			const diffWeeks = Math.floor(diffDays / 7)
+			const diffMonths = Math.floor(diffDays / 30)
+			const diffYears = Math.floor(diffDays / 365)
+			
+			const isPast = diffMs < 0
+			const prefix = isPast ? '' : 'In '
+			const suffix = isPast ? ' ago' : ''
+			
+			if (diffSeconds < 60) {
+				return isPast ? 'Just expired' : 'Expires soon'
+			} else if (diffMinutes < 60) {
+				return `${prefix}${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''}${suffix}`
+			} else if (diffHours < 24) {
+				return `${prefix}${diffHours} hour${diffHours !== 1 ? 's' : ''}${suffix}`
+			} else if (diffDays < 7) {
+				return `${prefix}${diffDays} day${diffDays !== 1 ? 's' : ''}${suffix}`
+			} else if (diffWeeks < 4) {
+				return `${prefix}${diffWeeks} week${diffWeeks !== 1 ? 's' : ''}${suffix}`
+			} else if (diffMonths < 12) {
+				return `${prefix}${diffMonths} month${diffMonths !== 1 ? 's' : ''}${suffix}`
+			} else {
+				return `${prefix}${diffYears} year${diffYears !== 1 ? 's' : ''}${suffix}`
+			}
+		} catch (e) {
+			return 'Invalid date'
+		}
+	}
+
+	function formatAbsoluteDate(dateString) {
+		if (!dateString) {
+			return ''
+		}
+		
+		try {
+			const date = new Date(dateString)
+			if (isNaN(date.getTime())) {
+				return ''
+			}
+			return date.toLocaleString()
+		} catch (e) {
+			return ''
+		}
+	}
+
 	async function deleteAccount() {
 	if (!confirm('Are you sure you want to delete this account?')) return
 	try {
@@ -254,5 +330,34 @@ async function toggleActive() {
 
 	.action-description p {
 		color: #666;
+	}
+
+	dd {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.profile-link-button {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.25rem 0.5rem;
+		border: 1px solid #ddd;
+		border-radius: 0.25rem;
+		background-color: #f5f5f5;
+		color: #333;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-size: 0.875rem;
+	}
+
+	.profile-link-button:hover {
+		background-color: #e0e0e0;
+		border-color: #bbb;
+	}
+
+	.profile-link-button:active {
+		background-color: #d0d0d0;
 	}
 </style>

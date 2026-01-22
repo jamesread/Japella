@@ -72,20 +72,27 @@
         errorMessage.value = '';
 
         try {
-            // Fetch timeline posts and map them to calendar events using the created timestamp
+            // Fetch timeline posts and map them to calendar events
+            // Use postedDate (which contains posted date if completed, or scheduled date otherwise)
             const ret = await window.client.getTimeline();
             const posts = (ret && ret.posts) ? ret.posts : [];
 
             const mapped = posts
                 .map((p) => {
-                    // Parse created date safely
-                    let d = new Date(p.created);
-                    if (Number.isNaN(d.getTime()) && typeof p.created === 'string') {
+                    // Use postedDate which contains:
+                    // - scheduled_at if the post was scheduled
+                    // - created_at if the post was not scheduled
+                    // This gives us the actual posted date for completed posts, or scheduled date for pending posts
+                    const dateToUse = (p.postedDate && p.postedDate.trim() !== '') ? p.postedDate : p.created;
+                    
+                    // Parse date safely
+                    let d = new Date(dateToUse);
+                    if (Number.isNaN(d.getTime()) && typeof dateToUse === 'string') {
                         // Try common non-ISO format fallback (e.g. "YYYY-MM-DD HH:mm:ss")
-                        d = new Date(p.created.replace(' ', 'T'));
+                        d = new Date(dateToUse.replace(' ', 'T'));
                     }
-                    if (Number.isNaN(d.getTime()) && typeof p.created === 'number') {
-                        d = new Date(p.created);
+                    if (Number.isNaN(d.getTime()) && typeof dateToUse === 'number') {
+                        d = new Date(dateToUse);
                     }
                     if (Number.isNaN(d.getTime())) {
                         return null; // skip if still invalid

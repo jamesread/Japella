@@ -15,14 +15,14 @@
 
 		<Pagination
 			:total="feed.length"
-			:page="currentPage"
-			:page-size="pageSize"
-			@change="onPageChange"
+			v-model:page="currentPage"
+			v-model:pageSize="pageSize"
 		/>
 	</Section>
 
 	<section class="small" v-for="post in pagedFeed" :key="post.id">
-		<PostPreview :post="post" />
+		<PostBoost v-if="isBoost(post)" :post="post" />
+		<PostPreview v-else :post="post" />
 	</section>
 
 </template>
@@ -35,6 +35,7 @@
 	import Pagination from 'picocrank/vue/components/Pagination.vue';
 	import Loading from './Loading.vue';
 	import PostPreview from './PostPreview.vue';
+	import PostBoost from './PostBoost.vue';
 
 	const feed = ref([]);
 	const clientReady = ref(false);
@@ -74,8 +75,44 @@
 		});
 	}
 
-	function onPageChange(newPage) {
-		currentPage.value = newPage;
+	function isBoost(post) {
+		// Check if remoteId contains ActivityStreams JSON
+		if (post.remoteId) {
+			try {
+				const parsed = JSON.parse(post.remoteId);
+				if (parsed && parsed['@context'] && parsed.type === 'Announce') {
+					return true;
+				}
+			} catch (e) {
+				// Not JSON, continue checking other indicators
+			}
+		}
+
+		// Check if remoteUrl indicates a boost activity (contains "/activity" or "/statuses/.../activity")
+		if (post.remoteUrl && (
+			post.remoteUrl.includes('/activity') ||
+			post.remoteUrl.match(/\/statuses\/\d+\/activity/)
+		)) {
+			// If content is empty or very short, it's likely a boost
+			// Boosts typically have empty content or just whitespace
+			const content = (post.content || '').trim();
+			if (content === '' || content.length < 50) {
+				return true;
+			}
+		}
+
+		// Check if content is empty but we have a remoteUrl (typical boost pattern)
+		const content = (post.content || '').trim();
+		if (content === '' && post.remoteUrl) {
+			// Check if remoteUrl looks like a Mastodon status URL
+			if (post.remoteUrl.includes('mastodon') || 
+			    post.remoteUrl.includes('fosstodon') ||
+			    post.remoteUrl.match(/https?:\/\/[^\/]+\/(users|@)[^\/]+\/statuses\/\d+/)) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	onMounted(async () => {
@@ -96,5 +133,6 @@
 
 	section {
 		margin-bottom: 1rem;
+		padding: 0;
 	}
 </style>

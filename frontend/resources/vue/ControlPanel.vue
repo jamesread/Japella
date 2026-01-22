@@ -37,49 +37,6 @@
 			</div>
 		</div>
 
-		<!-- System Variables Dialog -->
-		<dialog ref="cvarsDialog" class="cvars-dialog">
-			<h2>System Variables (CVars)</h2>
-			<div v-if="cvarsLoading" class="loading">
-				<HugeIcon :icon="Loading01Icon" />
-				<span>Loading system variables...</span>
-			</div>
-			<div v-else-if="cvars.length > 0" class="cvars-content">
-				<div v-for="category in cvars" :key="category.name" class="cvar-category">
-					<h4>{{ category.name }}</h4>
-					<div class="cvar-list">
-						<div v-for="cvar in category.cvars" :key="cvar.keyName" class="cvar-item">
-							<div class="cvar-info">
-								<strong>{{ cvar.title || cvar.keyName }}</strong>
-								<p v-if="cvar.description">{{ cvar.description }}</p>
-								<div class="cvar-meta">
-									<span class="cvar-type">{{ cvar.type }}</span>
-									<span v-if="cvar.isReadOnly" class="readonly">Read Only</span>
-								</div>
-							</div>
-							<div class="cvar-value">
-								<input
-									v-if="!cvar.isReadOnly"
-									:type="cvar.type === 'int' ? 'number' : 'text'"
-									:value="cvar.valueString || cvar.valueInt"
-									@change="updateCvar(cvar, $event)"
-									:maxlength="cvar.maxLength"
-								/>
-								<span v-else class="readonly-value">
-									{{ cvar.valueString || cvar.valueInt }}
-								</span>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div v-else>
-				<p>No system variables found.</p>
-			</div>
-			<form method="dialog">
-				<button type="submit" class="good">Close</button>
-			</form>
-		</dialog>
 	</Section>
 
 	<Section
@@ -181,6 +138,47 @@
 			</div>
 		</div>
 	</Section>
+
+	<Section
+		title="Background Jobs"
+		subtitle="Status and last run times for background jobs"
+		classes="background-jobs"
+	>
+		<template #toolbar>
+			<button @click="refreshJobs" :disabled="!clientReady || jobsLoading" class="neutral">
+				<HugeiconsIcon :icon="RefreshIcon" />
+			</button>
+		</template>
+
+		<div v-if="jobsLoading" class="loading">
+			<HugeIcon :icon="Loading01Icon" />
+			<span>Loading job status...</span>
+		</div>
+		<div v-else-if="jobs.length === 0" class="inline-notification note">
+			No background jobs found.
+		</div>
+		<table v-else class="data-table">
+			<thead>
+				<tr>
+					<th>Job Name</th>
+					<th>Schedule</th>
+					<th>Last Run</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="job in jobs" :key="job.name">
+					<td>{{ job.displayName }}</td>
+					<td>{{ job.schedule }}</td>
+					<td>
+						<span v-if="job.lastRun" :title="formatAbsoluteDate(job.lastRun)">
+							{{ formatRelativeDate(job.lastRun) }}
+						</span>
+						<span v-else class="text-muted">Never</span>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</Section>
 </template>
 
 <script setup>
@@ -201,26 +199,26 @@
 		Database01Icon,
 		LeftToRightListNumberIcon,
 		AlertCircleIcon,
-		Key01Icon,
 		Settings01Icon,
 		LinkSquare01Icon,
 		Loading01Icon,
 		CancelCircleIcon,
-		ApproximatelyEqualCircleIcon
+		ApproximatelyEqualCircleIcon,
+		ActivityIcon
 	} from '@hugeicons/core-free-icons';
 
 	const clientReady = ref(false);
 	const errorMessage = ref('');
 	const systemStatus = ref({});
-	const cvars = ref([]);
-	const cvarsLoading = ref(false);
-	const cvarsDialog = ref(null);
 	const cleaningFeed = ref(false);
 	const localNavigation = ref(null);
+	const jobs = ref([]);
+	const jobsLoading = ref(false);
 
 	async function refreshAll() {
 		await Promise.all([
 			refreshSystemStatus(),
+			refreshJobs(),
 		]);
 	}
 
@@ -232,43 +230,6 @@
 		} catch (error) {
 			errorMessage.value = `Failed to fetch system status: ${error.message}`;
 			console.error('Error fetching system status:', error);
-		}
-	}
-
-	async function showCvars() {
-		cvarsLoading.value = true;
-		cvarsDialog.value.showModal();
-
-		try {
-			const response = await window.client.getCvars({});
-			cvars.value = response.cvarCategories || [];
-		} catch (error) {
-			console.error('Error fetching CVars:', error);
-			errorMessage.value = `Failed to fetch system variables: ${error.message}`;
-		} finally {
-			cvarsLoading.value = false;
-		}
-	}
-
-	async function updateCvar(cvar, event) {
-		const newValue = event.target.value;
-
-		try {
-			await window.client.setCvar({
-				keyName: cvar.keyName,
-				valueString: cvar.type !== 'int' ? newValue : '',
-				valueInt: cvar.type === 'int' ? parseInt(newValue) : 0,
-			});
-
-			// Update the local value
-			if (cvar.type === 'int') {
-				cvar.valueInt = parseInt(newValue);
-			} else {
-				cvar.valueString = newValue;
-			}
-		} catch (error) {
-			console.error('Error updating CVar:', error);
-			alert(`Failed to update ${cvar.keyName}: ${error.message}`);
 		}
 	}
 
@@ -309,6 +270,72 @@
 		return iconMap[type] || InformationCircleIcon;
 	}
 
+	async function refreshJobs() {
+		if (!clientReady.value) return;
+		
+		jobsLoading.value = true;
+		try {
+			const response = await window.client.getJobsStatus({});
+			jobs.value = response.jobs || [];
+		} catch (error) {
+			console.error('Error fetching jobs status:', error);
+			errorMessage.value = `Failed to fetch jobs status: ${error.message}`;
+			jobs.value = [];
+		} finally {
+			jobsLoading.value = false;
+		}
+	}
+
+	function formatRelativeDate(dateString) {
+		if (!dateString) {
+			return 'Never';
+		}
+		
+		try {
+			const date = new Date(dateString);
+			if (isNaN(date.getTime())) {
+				return dateString;
+			}
+			
+			const now = new Date();
+			const diffMs = now - date;
+			const diffSeconds = Math.floor(Math.abs(diffMs) / 1000);
+			const diffMinutes = Math.floor(diffSeconds / 60);
+			const diffHours = Math.floor(diffMinutes / 60);
+			const diffDays = Math.floor(diffHours / 24);
+			
+			if (diffSeconds < 60) {
+				return 'Just now';
+			} else if (diffMinutes < 60) {
+				return `${diffMinutes} minute${diffMinutes !== 1 ? 's' : ''} ago`;
+			} else if (diffHours < 24) {
+				return `${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`;
+			} else if (diffDays < 7) {
+				return `${diffDays} day${diffDays !== 1 ? 's' : ''} ago`;
+			} else {
+				return date.toLocaleDateString();
+			}
+		} catch (e) {
+			return dateString;
+		}
+	}
+
+	function formatAbsoluteDate(dateString) {
+		if (!dateString) {
+			return '';
+		}
+		
+		try {
+			const date = new Date(dateString);
+			if (isNaN(date.getTime())) {
+				return '';
+			}
+			return date.toLocaleString();
+		} catch (e) {
+			return '';
+		}
+	}
+
 	async function refreshConnectors() {
 		if (!clientReady.value) return;
 		
@@ -329,12 +356,6 @@
 
 		// Setup administration actions navigation
 		if (localNavigation.value) {
-			localNavigation.value.addCallback('API Keys', () => goToRoute('/api-keys'), {
-				icon: Key01Icon,
-				name: 'api-keys',
-				description: 'View and manage API keys'
-			});
-
 			localNavigation.value.addCallback('User Management', () => goToRoute('/users'), {
 				icon: UserMultiple02Icon,
 				name: 'user-management',
@@ -357,16 +378,6 @@
 				description: 'Refresh connector services'
 			});
 
-			localNavigation.value.addCallback('System Variables', () => {
-				if (clientReady.value) {
-					showCvars();
-				}
-			}, {
-				icon: Settings01Icon,
-				name: 'system-variables',
-				description: 'View and edit system configuration variables'
-			});
-
 			localNavigation.value.addCallback('Cleanup Feed Posts', () => {
 				if (clientReady.value && !cleaningFeed.value) {
 					cleanupFeedPosts();
@@ -375,6 +386,12 @@
 				icon: RefreshIcon,
 				name: 'cleanup-feed',
 				description: 'Clean up old feed posts (keeps newest 100 per social account)'
+			});
+
+			localNavigation.value.addCallback('Logs', () => goToRoute('/logs'), {
+				icon: ActivityIcon,
+				name: 'logs',
+				description: 'View application logs and events'
 			});
 		}
 	});
@@ -463,86 +480,6 @@
 		color: inherit;
 	}
 
-	.cvars-dialog {
-		max-width: 800px;
-		max-height: 80vh;
-		overflow-y: auto;
-	}
-
-	.cvars-content {
-		max-height: 60vh;
-		overflow-y: auto;
-		margin-bottom: 1rem;
-	}
-
-	.cvar-category {
-		margin-bottom: 1.5rem;
-	}
-
-	.cvar-category h4 {
-		margin-bottom: 0.5rem;
-		padding-bottom: 0.25rem;
-		border-bottom: 1px solid #444;
-	}
-
-	.cvar-item {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		padding: 0.75rem;
-		margin: 0.5rem 0;
-		background: #242424;
-		border-radius: 0.25rem;
-		border: 1px solid #444;
-	}
-
-	.cvar-info {
-		flex: 1;
-		margin-right: 1rem;
-	}
-
-	.cvar-info p {
-		margin: 0.25rem 0;
-		font-size: 0.9em;
-		color: #ccc;
-	}
-
-	.cvar-meta {
-		display: flex;
-		gap: 0.5rem;
-		margin-top: 0.25rem;
-	}
-
-	.cvar-type {
-		font-size: 0.8em;
-		background: #444;
-		padding: 0.125rem 0.25rem;
-		border-radius: 0.125rem;
-	}
-
-	.readonly {
-		font-size: 0.8em;
-		color: #ff9800;
-	}
-
-	.cvar-value {
-		min-width: 150px;
-	}
-
-	.cvar-value input {
-		width: 100%;
-		padding: 0.25rem;
-		background: #333;
-		border: 1px solid #555;
-		border-radius: 0.25rem;
-		color: white;
-	}
-
-	.readonly-value {
-		color: #ccc;
-		font-style: italic;
-	}
-
 	.loading {
 		display: flex;
 		align-items: center;
@@ -558,5 +495,10 @@
 
 	h4 {
 		color: #fff;
+	}
+
+	.text-muted {
+		color: #999;
+		font-style: italic;
 	}
 </style>

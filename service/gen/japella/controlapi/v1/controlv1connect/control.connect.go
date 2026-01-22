@@ -144,6 +144,12 @@ const (
 	// JapellaControlApiServiceCleanupFeedPostsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's CleanupFeedPosts RPC.
 	JapellaControlApiServiceCleanupFeedPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/CleanupFeedPosts"
+	// JapellaControlApiServiceGetLogsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetLogs RPC.
+	JapellaControlApiServiceGetLogsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetLogs"
+	// JapellaControlApiServiceGetJobsStatusProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetJobsStatus RPC.
+	JapellaControlApiServiceGetJobsStatusProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetJobsStatus"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -186,6 +192,8 @@ type JapellaControlApiServiceClient interface {
 	RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error)
 	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
 	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
+	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
+	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -422,6 +430,18 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("CleanupFeedPosts")),
 			connect.WithClientOptions(opts...),
 		),
+		getLogs: connect.NewClient[v1.GetLogsRequest, v1.GetLogsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetLogsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetLogs")),
+			connect.WithClientOptions(opts...),
+		),
+		getJobsStatus: connect.NewClient[v1.GetJobsStatusRequest, v1.GetJobsStatusResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetJobsStatusProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetJobsStatus")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -464,6 +484,8 @@ type japellaControlApiServiceClient struct {
 	removeSocialAccountFromCampaign *connect.Client[v1.RemoveSocialAccountFromCampaignRequest, v1.RemoveSocialAccountFromCampaignResponse]
 	getCampaignSocialAccounts       *connect.Client[v1.GetCampaignSocialAccountsRequest, v1.GetCampaignSocialAccountsResponse]
 	cleanupFeedPosts                *connect.Client[v1.CleanupFeedPostsRequest, v1.CleanupFeedPostsResponse]
+	getLogs                         *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
+	getJobsStatus                   *connect.Client[v1.GetJobsStatusRequest, v1.GetJobsStatusResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -656,6 +678,16 @@ func (c *japellaControlApiServiceClient) CleanupFeedPosts(ctx context.Context, r
 	return c.cleanupFeedPosts.CallUnary(ctx, req)
 }
 
+// GetLogs calls japella.controlapi.v1.JapellaControlApiService.GetLogs.
+func (c *japellaControlApiServiceClient) GetLogs(ctx context.Context, req *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error) {
+	return c.getLogs.CallUnary(ctx, req)
+}
+
+// GetJobsStatus calls japella.controlapi.v1.JapellaControlApiService.GetJobsStatus.
+func (c *japellaControlApiServiceClient) GetJobsStatus(ctx context.Context, req *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error) {
+	return c.getJobsStatus.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -696,6 +728,8 @@ type JapellaControlApiServiceHandler interface {
 	RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error)
 	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
 	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
+	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
+	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -927,6 +961,18 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("CleanupFeedPosts")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetLogsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetLogsProcedure,
+		svc.GetLogs,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetLogs")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetJobsStatusHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetJobsStatusProcedure,
+		svc.GetJobsStatus,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetJobsStatus")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -1003,6 +1049,10 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetCampaignSocialAccountsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceCleanupFeedPostsProcedure:
 			japellaControlApiServiceCleanupFeedPostsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetLogsProcedure:
+			japellaControlApiServiceGetLogsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetJobsStatusProcedure:
+			japellaControlApiServiceGetJobsStatusHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1158,4 +1208,12 @@ func (UnimplementedJapellaControlApiServiceHandler) GetCampaignSocialAccounts(co
 
 func (UnimplementedJapellaControlApiServiceHandler) CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetLogs is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetJobsStatus is not implemented"))
 }

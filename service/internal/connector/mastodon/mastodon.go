@@ -44,6 +44,15 @@ type TimelineStatus struct {
 		ID       string `json:"id"`
 		Username string `json:"username"`
 	} `json:"account"`
+	Card *PreviewCard `json:"card"`
+}
+
+type PreviewCard struct {
+	URL         string `json:"url"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
+	Type        string `json:"type"`
 }
 
 const CFG_MASTODON_CLIENT_ID = "mastodon.client_id"
@@ -224,12 +233,24 @@ func (c *MastodonConnector) FetchRecentPosts(socialAccount *connector.SocialAcco
 		}
 
 		feedPost := &connector.FeedPost{
-			Content:    status.Content,
-			PostedDate: status.CreatedAt,
-			AuthorID:   uint32(authorID),
-			AuthorName: status.Account.Username,
-			RemoteURL:  status.URI,
-			RemoteID:   status.ID, // Keep as string for now since FeedPost expects string
+			Content:            status.Content,
+			PostedDate:          status.CreatedAt,
+			AuthorID:            uint32(authorID),
+			AuthorName:          status.Account.Username,
+			RemoteURL:           status.URI,
+			RemoteID:            status.ID, // Keep as string for now since FeedPost expects string
+			PreviewURL:          "",
+			PreviewTitle:        "",
+			PreviewDescription:  "",
+			PreviewImageURL:     "",
+		}
+
+		// Extract preview card data if present
+		if status.Card != nil {
+			feedPost.PreviewURL = status.Card.URL
+			feedPost.PreviewTitle = status.Card.Title
+			feedPost.PreviewDescription = status.Card.Description
+			feedPost.PreviewImageURL = status.Card.Image
 		}
 
 		posts = append(posts, feedPost)
