@@ -6,6 +6,8 @@
 [![Maturity](https://img.shields.io/badge/maturity-Sandbox-yellow)](#none)
 [![Build Tag](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml/badge.svg)](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml)
 [![Discord](https://img.shields.io/discord/846737624960860180?label=Discord%20Server)](https://discord.gg/jhYWWpNJ3v)
+
+[![AI Autonomy Level](https://img.shields.io/badge/AI%20Autonomy-Level%203%20of%205:%20Semi--Autonomous%20Engineer-blue)](https://blog.jread.com/posts/ai-levels-of-autonomy-in-software-engineering/)
 </div>
 
 Japella's architecture splits out the connections to different protocols (eg Telegram, Discord) into "adaptor" services, and all bot functionality is implemented in a separate service, meaning that the chatbot functionality can easily work with new protocols, by just creating a new adaptor, or, can relay chat messages across protocols, for example.
