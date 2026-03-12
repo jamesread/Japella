@@ -1,6 +1,14 @@
 package mastodon
 
 import (
+	"bytes"
+	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
+
 	"github.com/jamesread/golure/pkg/redact"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
@@ -8,6 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"context"
+	"encoding/json"
 	"strconv"
 	"time"
 
@@ -27,7 +36,13 @@ type MastodonConnector struct {
 }
 
 type Toot struct {
-	Status string `json:"status"`
+	Status   string   `json:"status"`
+	MediaIds []string `json:"media_ids,omitempty"`
+}
+
+// mastodonMediaAttachment is the response from POST /api/v2/media or /api/v1/media
+type mastodonMediaAttachment struct {
+	ID string `json:"id"`
 }
 
 type Status struct {
@@ -160,7 +175,57 @@ func (c *MastodonConnector) Start() {
 	c.Logger().Infof("Mastodon connector started")
 }
 
-func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, content string) *connector.PostResult {
+func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open file: %w", err)
+	}
+	defer f.Close()
+
+	body := &bytes.Buffer{}
+	w := multipart.NewWriter(body)
+	part, err := w.CreateFormFile("file", filepath.Base(path))
+	if err != nil {
+		return "", fmt.Errorf("create form file: %w", err)
+	}
+	if _, err := io.Copy(part, f); err != nil {
+		return "", fmt.Errorf("write file to form: %w", err)
+	}
+	contentType := w.FormDataContentType()
+	if err := w.Close(); err != nil {
+		return "", fmt.Errorf("close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", instanceURL+"/api/v2/media", body)
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("Content-Type", contentType)
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("do request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	respBody, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return "", fmt.Errorf("media upload returned %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	var out mastodonMediaAttachment
+	if err := json.Unmarshal(respBody, &out); err != nil {
+		return "", fmt.Errorf("decode response: %w", err)
+	}
+	if out.ID == "" {
+		return "", fmt.Errorf("media upload response missing id: %s", string(respBody))
+	}
+	return out.ID, nil
+}
+
+func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, content string, mediaPaths []string) *connector.PostResult {
 	res := &connector.PostResult{}
 
 	log.Infof("Posting to wall: %s", content)
@@ -169,10 +234,31 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 		Status: content,
 	}
 
-	// Use the homeserver URL from the social account
 	instanceURL := socialAccount.Homeserver
 	if instanceURL == "" {
 		instanceURL = "https://mastodon.social"
+	}
+
+	// Upload attached media and collect media_ids (Mastodon accepts multiple)
+	if len(mediaPaths) > 0 {
+		var mediaIDs []string
+		for _, p := range mediaPaths {
+			mediaID, err := c.uploadMedia(instanceURL, p, socialAccount.OAuthToken)
+			if err != nil {
+				c.Logger().Errorf("Mastodon media upload failed for %s: %v", p, err)
+				_ = c.db.InsertTableLog(
+					fmt.Sprintf("Mastodon media upload failed for account %d: %v", socialAccount.Id, err),
+					"error",
+					&socialAccount.Id,
+				)
+				res.Err = err
+				return res
+			}
+			mediaIDs = append(mediaIDs, mediaID)
+		}
+		if len(mediaIDs) > 0 {
+			toot.MediaIds = mediaIDs
+		}
 	}
 
 	client := utils.NewClient(c.Logger()).PostWithJson(instanceURL+"/api/v1/statuses", toot).WithBearerToken(socialAccount.OAuthToken)
@@ -187,6 +273,15 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 	client.AsJson(postResult)
 
 	if client.Err != nil {
+		c.Logger().Errorf("Error parsing Mastodon API response: %v", client.Err)
+		if len(client.ResBody) > 0 {
+			c.Logger().Errorf("Mastodon API response body: %s", string(client.ResBody))
+		}
+		msg := fmt.Sprintf("Error parsing Mastodon API response for account %d: %v", socialAccount.Id, client.Err)
+		if len(client.ResBody) > 0 {
+			msg += " | response: " + string(client.ResBody)
+		}
+		_ = c.db.InsertTableLog(msg, "error", &socialAccount.Id)
 		res.Err = client.Err
 		return res
 	}

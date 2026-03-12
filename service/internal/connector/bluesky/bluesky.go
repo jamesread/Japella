@@ -19,10 +19,16 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"math/big"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -87,6 +93,40 @@ type BlueskyPostRecord struct {
 	Text      string         `json:"text"`
 	CreatedAt string         `json:"createdAt"`
 	Facets    []BlueskyFacet `json:"facets,omitempty"`
+	Embed     interface{}    `json:"embed,omitempty"`
+}
+
+// BlueskyEmbedImages is app.bsky.embed.images for image posts
+type BlueskyEmbedImages struct {
+	Type   string                  `json:"$type"`
+	Images []BlueskyEmbedImageItem `json:"images"`
+}
+
+type BlueskyEmbedImageItem struct {
+	Image       BlueskyBlobRef   `json:"image"`
+	Alt         string           `json:"alt"`
+	AspectRatio *BlueskyAspectRatio `json:"aspectRatio,omitempty"`
+}
+
+type BlueskyBlobRef struct {
+	Type     string          `json:"$type"`
+	Ref      BlueskyBlobLink `json:"ref"`
+	MimeType string         `json:"mimeType"`
+	Size     int64          `json:"size"`
+}
+
+type BlueskyBlobLink struct {
+	Link string `json:"$link"`
+}
+
+type BlueskyAspectRatio struct {
+	Width  int `json:"width"`
+	Height int `json:"height"`
+}
+
+// uploadBlobResponse is the response from POST com.atproto.repo.uploadBlob
+type uploadBlobResponse struct {
+	Blob BlueskyBlobRef `json:"blob"`
 }
 
 type BlueskyFacet struct {
@@ -114,7 +154,81 @@ type BlueskyCreatePostResponse struct {
 	Cid string `json:"cid"`
 }
 
-func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, content string) *connector.PostResult {
+func blobRefMimeToContentType(ext string) string {
+	switch strings.ToLower(ext) {
+	case ".jpg", ".jpeg":
+		return "image/jpeg"
+	case ".png":
+		return "image/png"
+	case ".gif":
+		return "image/gif"
+	case ".webp":
+		return "image/webp"
+	default:
+		return "image/jpeg"
+	}
+}
+
+func imageAspectRatio(path string) (w, h int) {
+	w, h = 1, 1
+	f, err := os.Open(path)
+	if err != nil {
+		return 1, 1
+	}
+	defer f.Close()
+	cfg, _, err := image.DecodeConfig(f)
+	if err != nil {
+		return 1, 1
+	}
+	if cfg.Width < 1 {
+		cfg.Width = 1
+	}
+	if cfg.Height < 1 {
+		cfg.Height = 1
+	}
+	return cfg.Width, cfg.Height
+}
+
+func (b *BlueskyConnector) uploadBlob(pdsURL, path string, client *utils.ChainingHttpClient) (*BlueskyBlobRef, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("read file: %w", err)
+	}
+	ext := filepath.Ext(path)
+	contentType := blobRefMimeToContentType(ext)
+
+	req, err := http.NewRequest("POST", pdsURL+"/xrpc/com.atproto.repo.uploadBlob", bytes.NewReader(data))
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", contentType)
+	req.GetBody = func() (io.ReadCloser, error) {
+		return io.NopCloser(bytes.NewReader(data)), nil
+	}
+
+	resp, err := client.UnderlyingClient().Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("upload request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("uploadBlob returned %d: %s", resp.StatusCode, string(body))
+	}
+
+	var out uploadBlobResponse
+	if err := json.Unmarshal(body, &out); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+	if out.Blob.Ref.Link == "" {
+		return nil, fmt.Errorf("uploadBlob response missing blob.ref: %s", string(body))
+	}
+	out.Blob.Type = "blob"
+	return &out.Blob, nil
+}
+
+func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, content string, mediaPaths []string) *connector.PostResult {
 	// Get the full social account from database to access OAuth fields
 	dbSocialAccount, err := b.db.GetSocialAccount(socialAccount.Id)
 	if err != nil {
@@ -125,18 +239,12 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 	// Parse facets from content
 	facets := b.parseFacets(content)
 
-	req := BlueskyCreatePostRequest{
-		Repo:       dbSocialAccount.Did,
-		Collection: "app.bsky.feed.post",
-		Record: BlueskyPostRecord{
-			Type:      "app.bsky.feed.post",
-			Text:      content,
-			CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
-			Facets:    facets,
-		},
+	record := BlueskyPostRecord{
+		Type:      "app.bsky.feed.post",
+		Text:      content,
+		CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
+		Facets:    facets,
 	}
-
-	res := BlueskyCreatePostResponse{}
 
 	// Get the PDS endpoint for this social account
 	pdsURL, pdsErr := b.getPDSEndpoint(dbSocialAccount)
@@ -158,6 +266,47 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 		return &connector.PostResult{Err: fmt.Errorf("bluesky http client not initialized"), URL: ""}
 	}
 
+	// Upload attached images and build embed (Bluesky supports up to 4 images)
+	if len(mediaPaths) > 0 {
+		var images []BlueskyEmbedImageItem
+		for i, p := range mediaPaths {
+			if i >= 4 {
+				b.Logger().Warnf("Bluesky allows max 4 images per post, skipping remaining %d", len(mediaPaths)-4)
+				break
+			}
+			blob, err := b.uploadBlob(pdsURL, p, client)
+			if err != nil {
+				b.Logger().Errorf("Bluesky blob upload failed for %s: %v", p, err)
+				_ = b.db.InsertTableLog(
+					fmt.Sprintf("Bluesky blob upload failed for account %d: %v", socialAccount.Id, err),
+					"error",
+					&socialAccount.Id,
+				)
+				return &connector.PostResult{Err: err, URL: ""}
+			}
+			aw, ah := imageAspectRatio(p)
+			images = append(images, BlueskyEmbedImageItem{
+				Image: *blob,
+				Alt:   "",
+				AspectRatio: &BlueskyAspectRatio{Width: aw, Height: ah},
+			})
+		}
+		if len(images) > 0 {
+			record.Embed = &BlueskyEmbedImages{
+				Type:   "app.bsky.embed.images",
+				Images: images,
+			}
+		}
+	}
+
+	req := BlueskyCreatePostRequest{
+		Repo:       dbSocialAccount.Did,
+		Collection: "app.bsky.feed.post",
+		Record:     record,
+	}
+
+	res := BlueskyCreatePostResponse{}
+
 	b.Logger().Infof("Posting to Bluesky with request: %+v %+v", b, req)
 
 	endpoint := pdsURL + "/xrpc/com.atproto.repo.createRecord"
@@ -168,6 +317,16 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 
 	// Check for token-related errors in the response
 	if client.Err != nil {
+		b.Logger().Errorf("Error posting to Bluesky: %v", client.Err)
+		if len(client.ResBody) > 0 {
+			b.Logger().Errorf("Bluesky API response body: %s", string(client.ResBody))
+		}
+		msg := fmt.Sprintf("Error posting to Bluesky for account %d: %v", socialAccount.Id, client.Err)
+		if len(client.ResBody) > 0 {
+			msg += " | response: " + string(client.ResBody)
+		}
+		_ = b.db.InsertTableLog(msg, "error", &socialAccount.Id)
+
 		if strings.Contains(client.Err.Error(), "invalid or expired OAuth token") {
 			b.Logger().Warnf("Detected invalid token during post, attempting refresh")
 
@@ -194,7 +353,10 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 
 		// If we still have an error after potential retry, return it
 		if client.Err != nil {
-			b.Logger().Errorf("Error posting to Bluesky: %v", client.Err)
+			b.Logger().Errorf("Error posting to Bluesky (after retry): %v", client.Err)
+			if len(client.ResBody) > 0 {
+				b.Logger().Errorf("Bluesky API response body: %s", string(client.ResBody))
+			}
 			return &connector.PostResult{Err: client.Err, URL: ""}
 		}
 	}
@@ -912,7 +1074,7 @@ func (b *BlueskyConnector) GetOAuth2Config() *oauth2.Config {
 		Endpoint:     ep,
 		ClientID:     clientID,
 		ClientSecret: "",
-		Scopes:       []string{"atproto", "repo:app.bsky.feed.post?action=create"},
+		Scopes:       []string{"atproto", "repo:app.bsky.feed.post?action=create", "blob:image/png", "blob:image/jpeg", "blob:image/gif", "blob:image/webp"},
 		RedirectURL:  b.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
 	}
 }

@@ -1,8 +1,14 @@
 package x
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io"
+	"mime/multipart"
+	"net/http"
+	"os"
+	"path/filepath"
 
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
@@ -11,7 +17,9 @@ import (
 	"golang.org/x/oauth2/endpoints"
 
 	"context"
+	"encoding/json"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -178,11 +186,134 @@ func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
 	x.db.UpdateSocialAccountIdentity(socialAccount.ID, whoamiResult.Data.Username)
 }
 
-func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *connector.PostResult {
+// mediaUploadResponse is the JSON response from POST https://api.x.com/2/media/upload.
+// v1-style: { "media_id": 123 } or { "media_id_string": "123" }
+// v2-style: { "data": { "media_key": "..." } } or { "data": { "media_id": "..." } }
+type mediaUploadResponse struct {
+	MediaID       interface{}       `json:"media_id"`
+	MediaIDString string            `json:"media_id_string"`
+	Data          *mediaUploadData  `json:"data"`
+}
+
+type mediaUploadData struct {
+	MediaKey string      `json:"media_key"`
+	MediaID  interface{} `json:"media_id"`
+}
+
+func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", fmt.Errorf("open file: %w", err)
+	}
+	defer f.Close()
+
+	body := &bytes.Buffer{}
+	w := multipart.NewWriter(body)
+
+	// X API v2 expects form field "media" with raw binary, or "media_data" with base64
+	part, err := w.CreateFormFile("media", filepath.Base(path))
+	if err != nil {
+		return "", fmt.Errorf("create form file: %w", err)
+	}
+	if _, err := io.Copy(part, f); err != nil {
+		return "", fmt.Errorf("write file to form: %w", err)
+	}
+	// Optional: set media_category for images so X treats as tweet_image
+	ext := strings.ToLower(filepath.Ext(path))
+	if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".webp" {
+		_ = w.WriteField("media_category", "tweet_image")
+	}
+	contentType := w.FormDataContentType()
+	if err := w.Close(); err != nil {
+		return "", fmt.Errorf("close multipart writer: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", "https://api.x.com/2/media/upload", body)
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("Content-Type", contentType)
+
+	httpClient := &http.Client{}
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("do request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 403 {
+		b, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("media upload forbidden (403): X requires the media.write scope. Disconnect and reconnect your X account in Japella so the new permission is granted. Response: %s", string(b))
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		b, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("media upload returned %d: %s", resp.StatusCode, string(b))
+	}
+
+	var out mediaUploadResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return "", fmt.Errorf("decode response: %w", err)
+	}
+	// Prefer v2 data.media_key or data.media_id, then media_id_string, then media_id
+	if out.Data != nil {
+		if out.Data.MediaKey != "" {
+			return out.Data.MediaKey, nil
+		}
+		if out.Data.MediaID != nil {
+			return fmt.Sprint(out.Data.MediaID), nil
+		}
+	}
+	if out.MediaIDString != "" {
+		return out.MediaIDString, nil
+	}
+	if out.MediaID != nil {
+		return fmt.Sprint(out.MediaID), nil
+	}
+	return "", fmt.Errorf("media upload response missing media_id / media_key (got %+v)", out)
+}
+
+// mediaKeyToTweetMediaID converts a v2 media_key (e.g. "3_2032196022764445696") to the
+// format POST /2/tweets expects in media.media_ids: digits only, ^[0-9]{1,19}$
+func mediaKeyToTweetMediaID(mediaKey string) string {
+	if idx := strings.Index(mediaKey, "_"); idx >= 0 && idx+1 < len(mediaKey) {
+		return mediaKey[idx+1:]
+	}
+	return mediaKey
+}
+
+func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string, mediaPaths []string) *connector.PostResult {
 	res := &connector.PostResult{}
 
 	t := &Tweet{
 		Text: message,
+	}
+
+	// Upload attached media and collect media_ids (X allows up to 4 images per tweet)
+	if len(mediaPaths) > 0 {
+		var mediaIDs []string
+		for i, p := range mediaPaths {
+			if i >= 4 {
+				x.Logger().Warnf("X allows max 4 images per tweet, skipping remaining %d", len(mediaPaths)-4)
+				break
+			}
+			mediaID, err := x.uploadMedia(p, sa.OAuthToken)
+			if err != nil {
+				x.Logger().Errorf("X media upload failed for %s: %v", p, err)
+				_ = x.db.InsertTableLog(
+					fmt.Sprintf("X media upload failed for account %d: %v", sa.Id, err),
+					"error",
+					&sa.Id,
+				)
+				res.Err = err
+				return res
+			}
+			// POST /2/tweets expects media_ids to match ^[0-9]{1,19}$; v2 upload returns media_key like "3_123..."
+			mediaIDs = append(mediaIDs, mediaKeyToTweetMediaID(mediaID))
+		}
+		if len(mediaIDs) > 0 {
+			t.Media = &TweetMedia{MediaIds: mediaIDs}
+		}
 	}
 
 	client := utils.NewClient(x.Logger())
@@ -209,13 +340,16 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string) *co
 	// Check for errors after JSON parsing
 	if client.Err != nil {
 		x.Logger().Errorf("Error parsing X API response: %v", client.Err)
+		if len(client.ResBody) > 0 {
+			x.Logger().Errorf("X API response body: %s", string(client.ResBody))
+		}
 
 		// Also record this error in the logs table (commonly contains "unexpected status code: 403")
-		_ = x.db.InsertTableLog(
-			fmt.Sprintf("Error parsing X API response for account %d: %v", sa.Id, client.Err),
-			"error",
-			&sa.Id,
-		)
+		msg := fmt.Sprintf("Error parsing X API response for account %d: %v", sa.Id, client.Err)
+		if len(client.ResBody) > 0 {
+			msg += " | response: " + string(client.ResBody)
+		}
+		_ = x.db.InsertTableLog(msg, "error", &sa.Id)
 
 		res.Err = client.Err
 		return res
@@ -253,7 +387,7 @@ func (x *XConnector) GetOAuth2Config() *oauth2.Config {
 		ClientID:     x.db.GetCvarString(CFG_X_CLIENT_ID),
 		ClientSecret: x.db.GetCvarString(CFG_X_CLIENT_SECRET),
 		RedirectURL:  x.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
-		Scopes:       []string{"tweet.write", "users.read", "offline.access", "tweet.read"},
+		Scopes:       []string{"tweet.write", "users.read", "offline.access", "tweet.read", "media.write"},
 		Endpoint:     ep,
 	}
 

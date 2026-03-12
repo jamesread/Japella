@@ -24,6 +24,8 @@ type ChainingHttpClient struct {
 	Err error
 	req *http.Request
 	Res *http.Response
+	// ResBody is the response body when Err != nil (e.g. non-2xx), for logging/debugging
+	ResBody []byte
 
 	logger *logp.Entry
 }
@@ -56,15 +58,25 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 	l.logRequestHeaders(req)
 
 	if req.Body != nil {
-		l.logger.Debugf("Request Body: %v", req.Body)
-
+		contentType := req.Header.Get("Content-Type")
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(req.Body)
-		bodyString := buf.String()
-		req.Body.Close()                                           // Close the body to avoid resource leaks
-		req.Body = io.NopCloser(bytes.NewBufferString(bodyString)) // Reassign the body to allow further reading
+		n, _ := buf.ReadFrom(req.Body)
+		req.Body.Close()
+		bodyBytes := buf.Bytes()
+		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
-		fmt.Printf("Request Body Content:\n%s\n", bodyString)
+		// Don't log binary bodies (images, octet-stream, multipart) or large payloads
+		skipBody := n > 1024 ||
+			strings.HasPrefix(contentType, "image/") ||
+			strings.HasPrefix(contentType, "application/octet-stream") ||
+			strings.HasPrefix(contentType, "multipart/")
+		if skipBody {
+			l.logger.Debugf("Request body: %d bytes (Content-Type: %s), omitted from log", n, contentType)
+		} else {
+			l.logger.Debugf("Request Body: %v", req.Body)
+			bodyString := string(bodyBytes)
+			fmt.Printf("Request Body Content:\n%s\n", bodyString)
+		}
 	}
 
 	resp, err := l.rt.RoundTrip(req)
@@ -184,6 +196,7 @@ func (c *ChainingHttpClient) AsJson(v any) {
 	defer c.Res.Body.Close()
 
 	if c.Res.StatusCode < 200 || c.Res.StatusCode >= 300 {
+		c.ResBody, _ = io.ReadAll(c.Res.Body)
 		c.Err = fmt.Errorf("unexpected status code: %d", c.Res.StatusCode)
 		return
 	}

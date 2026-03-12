@@ -29,6 +29,7 @@ import (
 	"github.com/jamesread/japella/internal/connectorcontroller"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/layers/authentication"
+	"github.com/jamesread/japella/internal/media"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
@@ -140,7 +141,7 @@ func (s *ControlApi) processDueScheduledPosts() {
 		}
 
 		status := &controlv1.PostStatus{SocialAccountId: p.SocialAccountID, Content: p.Content}
-		s.tryPostStatus(p.Content, sa, status)
+		s.tryPostStatus(p.Content, nil, sa, status)
 
 		if status.Success {
 			if err := s.DB.MarkPostCompleted(p.ID, status.PostUrl, true); err != nil {
@@ -462,7 +463,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			})
 			postStatus.Success = true
 		} else {
-			s.tryPostStatus(req.Msg.Content, socialAccount, postStatus)
+			s.tryPostStatus(req.Msg.Content, req.Msg.MediaUrls, socialAccount, postStatus)
 
 			// Determine the appropriate state based on success
 			state := "completed"
@@ -486,7 +487,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 	return connect.NewResponse(res), nil
 }
 
-func (s *ControlApi) tryPostStatus(content string, socialAccount *db.SocialAccount, postStatus *controlv1.PostStatus) {
+func (s *ControlApi) tryPostStatus(content string, mediaURLs []string, socialAccount *db.SocialAccount, postStatus *controlv1.PostStatus) {
 	postingService := s.cc.Get(socialAccount.Connector)
 
 	if postingService == nil {
@@ -501,7 +502,9 @@ func (s *ControlApi) tryPostStatus(content string, socialAccount *db.SocialAccou
 	if wallService, ok := postingService.(connector.ConnectorWithWall); ok {
 		log.Infof("Posting to wall service wit account id: %v with is of connection proto: %v", socialAccount.ID, wallService.GetProtocol())
 
-		postResult := wallService.PostToWall(toConnectorSA(socialAccount), content)
+		// Resolve media URLs (e.g. /media/files/xxx) to local file paths for connectors
+		mediaPaths := resolveMediaPaths(mediaURLs)
+		postResult := wallService.PostToWall(toConnectorSA(socialAccount), content, mediaPaths)
 
 		if postResult.Err != nil {
 			log.Errorf("Error posting to wall: %v", postResult.Err)
@@ -533,6 +536,24 @@ func (s *ControlApi) tryPostStatus(content string, socialAccount *db.SocialAccou
 		postStatus.Success = false
 		return
 	}
+}
+
+// resolveMediaPaths converts media URLs (/media/files/xxx) to absolute file paths.
+// Invalid or missing files are skipped and logged.
+func resolveMediaPaths(mediaURLs []string) []string {
+	if len(mediaURLs) == 0 {
+		return nil
+	}
+	var paths []string
+	for _, u := range mediaURLs {
+		p, err := media.PathFromURL(u)
+		if err != nil {
+			log.Warnf("Skipping media URL %s: %v", u, err)
+			continue
+		}
+		paths = append(paths, p)
+	}
+	return paths
 }
 
 func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
@@ -694,8 +715,8 @@ func (s *ControlApi) StartOAuth(ctx context.Context, req *connect.Request[contro
 		verifier:  verifier,
 	}
 
-	log.Infof("OAuth flow started for connector: %s, config: %+v", req.Msg.ConnectorId, cfg)
-	log.Infof("OAuth URL: %s", url)
+	log.Debugf("OAuth flow started for connector: %s", req.Msg.ConnectorId)
+	log.Debugf("OAuth URL: %s", url)
 
 	res := connect.NewResponse(&controlv1.StartOAuthResponse{
 		Url: url,
@@ -712,6 +733,10 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 	errText := r.URL.Query().Get("error")
 
 	if errText != "" {
+		errDesc := r.URL.Query().Get("error_description")
+		stateKey := r.URL.Query().Get("state")
+		log.Errorf("OAuth2 callback error: error=%s error_description=%s state=%s url=%s", errText, errDesc, stateKey, r.URL.RawQuery)
+		_ = s.DB.InsertTableLog(fmt.Sprintf("OAuth2 callback error: %s — %s", errText, errDesc), "error", nil)
 		redirect(baseUrl, w, fmt.Sprintf("OAuth2 error: %v", errText), "bad")
 		return
 	}
@@ -1075,7 +1100,7 @@ func (s *ControlApi) RetryPost(ctx context.Context, req *connect.Request[control
 	}
 
 	// Try to post again
-	s.tryPostStatus(post.Content, socialAccount, postStatus)
+	s.tryPostStatus(post.Content, nil, socialAccount, postStatus)
 
 	// Update the post with the retry result
 	state := "completed"
@@ -1238,6 +1263,23 @@ func (s *ControlApi) getJobLastRun(jobName string) string {
 		return lastRun.Format(time.RFC3339)
 	}
 	return ""
+}
+
+func (s *ControlApi) ListMedia(ctx context.Context, req *connect.Request[controlv1.ListMediaRequest]) (*connect.Response[controlv1.ListMediaResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+	list, err := media.List()
+	if err != nil {
+		log.Errorf("ListMedia: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list media: %w", err))
+	}
+	items := make([]*controlv1.MediaItem, 0, len(list))
+	for _, it := range list {
+		items = append(items, &controlv1.MediaItem{Filename: it.Filename, Url: it.URL})
+	}
+	return connect.NewResponse(&controlv1.ListMediaResponse{Items: items}), nil
 }
 
 func (s *ControlApi) SetSocialAccountActive(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountActiveRequest]) (*connect.Response[controlv1.SetSocialAccountActiveResponse], error) {
@@ -1684,7 +1726,7 @@ func (s *ControlApi) OAuthClientMetadataHandler(w http.ResponseWriter, r *http.R
 		GrantTypes:              []string{"authorization_code", "refresh_token"},
 		RedirectURIs:            []string{s.DB.GetCvarString(db.CvarKeys.BaseUrl) + "/oauth2callback"},
 		ResponseTypes:           []string{"code"},
-		Scope:                   "atproto transition:generic repo:app.bsky.feed.post?action=create",
+		Scope:                   "atproto transition:generic repo:app.bsky.feed.post?action=create blob:image/png blob:image/jpeg blob:image/gif blob:image/webp",
 		TokenEndpointAuthMethod: "none",
 	}
 

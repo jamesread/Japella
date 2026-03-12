@@ -150,6 +150,9 @@ const (
 	// JapellaControlApiServiceGetJobsStatusProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetJobsStatus RPC.
 	JapellaControlApiServiceGetJobsStatusProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetJobsStatus"
+	// JapellaControlApiServiceListMediaProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListMedia RPC.
+	JapellaControlApiServiceListMediaProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListMedia"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -194,6 +197,7 @@ type JapellaControlApiServiceClient interface {
 	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
+	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -442,6 +446,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetJobsStatus")),
 			connect.WithClientOptions(opts...),
 		),
+		listMedia: connect.NewClient[v1.ListMediaRequest, v1.ListMediaResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListMediaProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListMedia")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -486,6 +496,7 @@ type japellaControlApiServiceClient struct {
 	cleanupFeedPosts                *connect.Client[v1.CleanupFeedPostsRequest, v1.CleanupFeedPostsResponse]
 	getLogs                         *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
 	getJobsStatus                   *connect.Client[v1.GetJobsStatusRequest, v1.GetJobsStatusResponse]
+	listMedia                       *connect.Client[v1.ListMediaRequest, v1.ListMediaResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -688,6 +699,11 @@ func (c *japellaControlApiServiceClient) GetJobsStatus(ctx context.Context, req 
 	return c.getJobsStatus.CallUnary(ctx, req)
 }
 
+// ListMedia calls japella.controlapi.v1.JapellaControlApiService.ListMedia.
+func (c *japellaControlApiServiceClient) ListMedia(ctx context.Context, req *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error) {
+	return c.listMedia.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -730,6 +746,7 @@ type JapellaControlApiServiceHandler interface {
 	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
+	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -973,6 +990,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetJobsStatus")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceListMediaHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListMediaProcedure,
+		svc.ListMedia,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListMedia")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -1053,6 +1076,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetLogsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetJobsStatusProcedure:
 			japellaControlApiServiceGetJobsStatusHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListMediaProcedure:
+			japellaControlApiServiceListMediaHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1216,4 +1241,8 @@ func (UnimplementedJapellaControlApiServiceHandler) GetLogs(context.Context, *co
 
 func (UnimplementedJapellaControlApiServiceHandler) GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetJobsStatus is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListMedia is not implemented"))
 }

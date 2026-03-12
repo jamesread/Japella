@@ -51,14 +51,20 @@
             }
 
             const formData = new FormData();
-            formData.append('media-file', file);
+            formData.append('file', file);
 
-            window.client.uploadMedia(formData)
-                .then((response) => {
-                    if (response.standardResponse.success) {
+            fetch('/upload', {
+                method: 'POST',
+                body: formData,
+                credentials: 'include',
+            })
+                .then(async (response) => {
+                    const text = await response.text();
+                    if (response.ok) {
                         alert(`File ${file.name} uploaded successfully.`);
+                        window.dispatchEvent(new CustomEvent('media-uploaded'));
                     } else {
-                        alert(`Error uploading file ${file.name}: ${response.standardResponse.errorMessage}`);
+                        alert(`Error uploading file ${file.name}: ${text || response.statusText}`);
                     }
                 })
                 .catch((error) => {

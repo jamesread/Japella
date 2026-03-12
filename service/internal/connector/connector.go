@@ -22,7 +22,7 @@ type ConnectorWithChannels interface {
 type ConnectorWithWall interface {
 	BaseConnector
 
-	PostToWall(sa *SocialAccount, message string) *PostResult
+	PostToWall(sa *SocialAccount, message string, mediaURLs []string) *PostResult
 	FetchRecentPosts(sa *SocialAccount) ([]*FeedPost, error)
 }
 

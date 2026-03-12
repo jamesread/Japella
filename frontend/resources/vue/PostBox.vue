@@ -54,6 +54,29 @@
 
             <textarea ref = "postTextarea" id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!" @keyup = "recountLength" @input="recountLength"></textarea>
 
+            <div v-if="postMode != 'canned'" class="media-attach">
+                <label>Attach media</label>
+                <div v-if="selectedMedia.length" class="selected-media">
+                    <div v-for="(m, idx) in selectedMedia" :key="m.url" class="selected-media-item">
+                        <img v-if="isImageFile(m.filename)" :src="m.url" :alt="m.filename" class="selected-media-thumb" />
+                        <span v-else class="selected-media-placeholder">{{ m.filename }}</span>
+                        <button type="button" class="remove-media" @click="removeMedia(idx)" title="Remove">×</button>
+                    </div>
+                </div>
+                <button type="button" class="neutral add-media-btn" @click="toggleMediaPicker">
+                    {{ showMediaPicker ? 'Close library' : 'Add from library' }}
+                </button>
+                <div v-if="showMediaPicker" class="media-picker">
+                    <p v-if="!mediaLibrary.length">No media in library. <router-link to="/media">Upload some</router-link> first.</p>
+                    <div v-else class="media-picker-grid">
+                        <button type="button" v-for="item in mediaLibrary" :key="item.url" class="media-picker-item" @click="addMedia(item)">
+                            <img v-if="isImageFile(item.filename)" :src="item.url" :alt="item.filename" />
+                            <span v-else>{{ item.filename }}</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <fieldset>
                 <button id = "submit" type = "button" class="good" @click="submitPost" :disabled="!canSubmit">Post now</button>
                 <button id = "open-schedule" type = "button" class="good" @click="openScheduleDialog" :disabled="!canSchedule">Post Later</button>
@@ -99,8 +122,34 @@ const contentLength = ref(0);
     const showScheduleDialog = ref(false);
     const scheduledAtDialog = ref("");
 const selectedServiceCount = ref(0);
+	const selectedMedia = ref([]);
+	const mediaLibrary = ref([]);
+	const showMediaPicker = ref(false);
 
 	const route = useRoute();
+
+	function isImageFile(filename) {
+		const ext = (filename || '').split('.').pop()?.toLowerCase();
+		return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'bmp', 'ico'].includes(ext);
+	}
+	async function loadMediaLibrary() {
+		try {
+			const res = await window.client.listMedia({});
+			mediaLibrary.value = res.items ?? [];
+		} catch (e) {
+			mediaLibrary.value = [];
+		}
+	}
+	function toggleMediaPicker() {
+		showMediaPicker.value = !showMediaPicker.value;
+		if (showMediaPicker.value && mediaLibrary.value.length === 0) loadMediaLibrary();
+	}
+	function addMedia(item) {
+		selectedMedia.value = [...selectedMedia.value, item];
+	}
+	function removeMedia(index) {
+		selectedMedia.value = selectedMedia.value.filter((_, i) => i !== index);
+	}
 
 const recountLength = (e) => {
     const length = e.target.value.length;
@@ -331,10 +380,11 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
                 submit.innerText = "Post";
                 submit.disabled = false;
 
-                // Clear the textarea
+                // Clear the textarea and selected media
                 document.getElementById('post').value = '';
                 postLength.value = 0;
                 contentLength.value = 0;
+                selectedMedia.value = [];
                 if (postLengthCounter.value) {
                     postLengthCounter.value.classList.remove('bad');
                 }
@@ -363,6 +413,9 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
         if (scheduledAt.value) {
             req.scheduledAt = scheduledAt.value;
         }
+        if (selectedMedia.value.length) {
+            req.mediaUrls = selectedMedia.value.map(m => m.url);
+        }
 
         console.log(req)
 
@@ -379,8 +432,9 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
                     postLengthCounter.value.classList.remove('bad');
                 }
 
-                // Clear scheduling input
+                // Clear scheduling input and selected media
                 scheduledAt.value = "";
+                selectedMedia.value = [];
 
                 for (let x of res.posts) {
                     let status = ""
@@ -503,5 +557,96 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
 			border-color: #42a5f5;
 			box-shadow: 0 2px 4px rgba(33, 150, 243, 0.4);
 		}
+	}
+
+	.media-attach {
+		margin-top: 0.75em;
+	}
+	.media-attach label {
+		display: block;
+		font-weight: 500;
+		margin-bottom: 0.25em;
+	}
+	.selected-media {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5em;
+		margin-bottom: 0.5em;
+	}
+	.selected-media-item {
+		position: relative;
+		width: 64px;
+		height: 64px;
+		border-radius: 0.5em;
+		overflow: hidden;
+		border: 1px solid var(--border-color, #ccc);
+		background: var(--card-bg, #f0f0f0);
+	}
+	.selected-media-thumb {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		display: block;
+	}
+	.selected-media-placeholder {
+		font-size: 0.65em;
+		padding: 0.25em;
+		word-break: break-all;
+		display: block;
+	}
+	.remove-media {
+		position: absolute;
+		top: 2px;
+		right: 2px;
+		width: 22px;
+		height: 22px;
+		padding: 0;
+		border-radius: 50%;
+		background: rgba(0,0,0,0.6);
+		color: #fff;
+		border: none;
+		cursor: pointer;
+		font-size: 1.1em;
+		line-height: 1;
+	}
+	.add-media-btn {
+		margin-top: 0.25em;
+	}
+	.media-picker {
+		margin-top: 0.75em;
+		padding: 0.75em;
+		border: 1px solid var(--border-color, #ccc);
+		border-radius: 0.5em;
+		background: var(--card-bg, #f8f8f8);
+		max-height: 200px;
+		overflow-y: auto;
+	}
+	.media-picker-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+		gap: 0.5em;
+	}
+	.media-picker-item {
+		aspect-ratio: 1;
+		border-radius: 0.5em;
+		border: 1px solid var(--border-color, #ccc);
+		background: #fff;
+		cursor: pointer;
+		padding: 0;
+		overflow: hidden;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.media-picker-item img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.media-picker-item span {
+		font-size: 0.7em;
+		word-break: break-all;
+		text-align: center;
+		padding: 0.25em;
 	}
 </style>

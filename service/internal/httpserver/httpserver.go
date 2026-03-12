@@ -98,6 +98,7 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	mux.HandleFunc("/oauth/client-metadata.json", srv.OAuthClientMetadataHandler)
 	mux.Handle("/lang", http.HandlerFunc(i18n.Handle))
 	mux.HandleFunc("/upload", upload.Handle)
+	mux.HandleFunc("/media/files/", upload.HandleServeMedia)
 	mux.HandleFunc("/readyz", handleReadyz)
 	mux.HandleFunc("/healthz", handleHealthz)
 	mux.Handle("/metrics", promhttp.Handler())

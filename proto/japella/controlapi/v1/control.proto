@@ -9,6 +9,7 @@ message SubmitPostRequest {
 	repeated uint32 social_accounts = 2;
     uint32 campaign_id = 3;
     string scheduled_at = 4; // RFC3339 or 'YYYY-MM-DDTHH:MM' local time
+    repeated string media_urls = 5; // URLs to attach (e.g. /media/files/<filename>)
 }
 
 message SubmitPostResponse {
@@ -473,6 +474,18 @@ message JobStatus {
 	string schedule = 4; // Human-readable schedule description
 }
 
+message ListMediaRequest {
+}
+
+message ListMediaResponse {
+	repeated MediaItem items = 1;
+}
+
+message MediaItem {
+	string filename = 1;
+	string url = 2; // URL path to fetch the file (e.g. /media/files/<filename>)
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -549,4 +562,6 @@ service JapellaControlApiService {
     rpc GetLogs(GetLogsRequest) returns (GetLogsResponse) {}
     
     rpc GetJobsStatus(GetJobsStatusRequest) returns (GetJobsStatusResponse) {}
+
+    rpc ListMedia(ListMediaRequest) returns (ListMediaResponse) {}
 }

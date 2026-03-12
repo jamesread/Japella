@@ -12,3 +12,4 @@ dist/
 /frontend/node_modules
 /frontend/.parcel-cache
 .cache
+/service/media
