@@ -80,7 +80,7 @@
 								<div class="post-status">
 									<span :class="['annotation', getPostStatusClass(post)]">{{ getPostStatusText(post) }}</span>
 								</div>
-		
+
 								<span class="post-date">{{ post.created }}</span>
 								<button @click="viewPost(post)" class="neutral small">
 									<Icon icon="mdi:eye" />

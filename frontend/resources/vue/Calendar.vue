@@ -84,7 +84,7 @@
                     // - created_at if the post was not scheduled
                     // This gives us the actual posted date for completed posts, or scheduled date for pending posts
                     const dateToUse = (p.postedDate && p.postedDate.trim() !== '') ? p.postedDate : p.created;
-                    
+
                     // Parse date safely
                     let d = new Date(dateToUse);
                     if (Number.isNaN(d.getTime()) && typeof dateToUse === 'string') {

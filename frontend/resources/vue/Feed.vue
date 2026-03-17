@@ -105,7 +105,7 @@
 		const content = (post.content || '').trim();
 		if (content === '' && post.remoteUrl) {
 			// Check if remoteUrl looks like a Mastodon status URL
-			if (post.remoteUrl.includes('mastodon') || 
+			if (post.remoteUrl.includes('mastodon') ||
 			    post.remoteUrl.includes('fosstodon') ||
 			    post.remoteUrl.match(/https?:\/\/[^\/]+\/(users|@)[^\/]+\/statuses\/\d+/)) {
 				return true;

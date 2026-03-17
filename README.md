@@ -1,9 +1,9 @@
 <div align = "center">
-	<img alt = "project logo" src = "logo.png" width = "128" />
-	<h1>Japella</h1>
-	<p>A social media & chat powertool.</p>
+ <img alt = "project logo" src = "logo.png" width = "128" />
+ <h1 id="japella">Japella</h1>
+ <p>A social media & chat powertool.</p>
 
-[![Maturity](https://img.shields.io/badge/maturity-Sandbox-yellow)](#none)
+[![Maturity](https://img.shields.io/badge/maturity-Sandbox-yellow)](#japella)
 [![Build Tag](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml/badge.svg)](https://github.com/jamesread/Sicroc/actions/workflows/build-tag.yml)
 [![Discord](https://img.shields.io/discord/846737624960860180?label=Discord%20Server)](https://discord.gg/jhYWWpNJ3v)
 
@@ -16,7 +16,7 @@ Japella's architecture splits out the connections to different protocols (eg Tel
 
 Japella is only distributed as a x86_64 Linux container, and requires a RabbitMQ server as the message queue.
 
-There is ready-to-go docker-compose.yml file here: https://jamesread.github.io/Japella/installation/docker-compose/
+There is ready-to-go docker-compose.yml file here: <https://jamesread.github.io/Japella/installation/docker-compose/>
 
 ## Helpful links
 
@@ -24,15 +24,15 @@ There is ready-to-go docker-compose.yml file here: https://jamesread.github.io/J
 
 ## **Japella is a No-Nonsense Open Source project;**
 
-- All code and assets are Open Source (AGPL).
-- No company is paying for development, there is no paid-for support from the developers.
-- No separate core and premium version, no plus/pro version or paid-for extra features.
-- No SaaS service or "special cloud version".
-- No "anonymous data collection", usage tracking, user tracking, telemetry or email address collection.
-- No requests for reviews in any "app store" or feedback surveys.
-- No prompts to "upgrade to the latest version".
-- No internet-connection required for any functionality.
+* All code and assets are Open Source (AGPL).
+* No company is paying for development, there is no paid-for support from the developers.
+* No separate core and premium version, no plus/pro version or paid-for extra features.
+* No SaaS service or "special cloud version".
+* No "anonymous data collection", usage tracking, user tracking, telemetry or email address collection.
+* No requests for reviews in any "app store" or feedback surveys.
+* No prompts to "upgrade to the latest version".
+* No internet-connection required for any functionality.
 
 ## Docs
 
-Documentation for how to install and use Faridoon is available at https://jamesread.github.io/Japella/
+Documentation for how to install and use Faridoon is available at <https://jamesread.github.io/Japella/>

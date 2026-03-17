@@ -2,7 +2,7 @@
 	<section class = "small login-form">
 		<h2>{{ t('section.login.title') }}</h2>
 		<p>{{ t('section.login.description') }}</p>
-		<Login 
+		<Login
 			ref="loginRef"
 			:show-default-tabs="false"
 			:custom-tabs="customTabs"

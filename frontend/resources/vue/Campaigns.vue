@@ -340,13 +340,13 @@ function formatRelativeDate(dateString) {
     if (!dateString || dateString === 'Never') {
         return 'Never';
     }
-    
+
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) {
             return 'Invalid date';
         }
-        
+
         const now = new Date();
         const diffMs = now - date;
         const diffSeconds = Math.floor(diffMs / 1000);
@@ -356,7 +356,7 @@ function formatRelativeDate(dateString) {
         const diffWeeks = Math.floor(diffDays / 7);
         const diffMonths = Math.floor(diffDays / 30);
         const diffYears = Math.floor(diffDays / 365);
-        
+
         if (diffSeconds < 60) {
             return 'Just now';
         } else if (diffMinutes < 60) {
@@ -382,13 +382,13 @@ function getFullDate(dateString) {
     if (!dateString || dateString === 'Never') {
         return 'No posts yet';
     }
-    
+
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) {
             return 'Invalid date';
         }
-        
+
         return date.toLocaleString('en-US', {
             year: 'numeric',
             month: 'long',

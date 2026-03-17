@@ -183,12 +183,12 @@
 	// Campaign dialog functions
 	async function updateCampaign() {
 		if (!post.value) return;
-		
+
 		selectedCampaignId.value = post.value.campaignId || 0;
 		showCampaignDialog.value = true;
 		campaignMessage.value = '';
 		campaignMessageType.value = '';
-		
+
 		// Load campaigns
 		campaignsLoading.value = true;
 		try {
@@ -212,30 +212,30 @@
 
 	async function updatePostCampaign() {
 		if (!post.value) return;
-		
+
 		campaignsSaving.value = true;
 		campaignMessage.value = '';
 		campaignMessageType.value = '';
-		
+
 		try {
 			await window.client.updatePostCampaign({
 				postId: post.value.id,
 				campaignId: selectedCampaignId.value
 			});
-			
+
 			campaignMessage.value = 'Campaign updated successfully';
 			campaignMessageType.value = 'good';
-			
+
 			// Update the post
 			post.value.campaignId = selectedCampaignId.value;
 			const campaign = campaigns.value.find(c => c.id === selectedCampaignId.value);
 			post.value.campaignName = campaign ? campaign.name : '';
-			
+
 			// Close dialog after a short delay
 			setTimeout(() => {
 				cancelCampaignDialog();
 			}, 1500);
-			
+
 		} catch (error) {
 			console.error('Error updating post campaign:', error);
 			campaignMessage.value = 'Failed to update campaign: ' + error.message;
@@ -248,16 +248,16 @@
 	// Post forget function
 	async function forgetPost() {
 		if (!post.value) return;
-		
+
 		if (!confirm(`Are you sure you want to forget (delete) this post?\n\n"${post.value.content.substring(0, 50)}${post.value.content.length > 50 ? '...' : ''}"`)) {
 			return;
 		}
-		
+
 		try {
 			await window.client.forgetPost({
 				postId: post.value.id
 			});
-			
+
 			console.log('Post forgotten successfully');
 			// Navigate back to timeline
 			router.push({ name: 'timeline' });
@@ -270,23 +270,23 @@
 	// Post retry function
 	async function retryPost() {
 		if (!post.value) return;
-		
+
 		if (!confirm(`Are you sure you want to retry posting this?\n\n"${post.value.content.substring(0, 50)}${post.value.content.length > 50 ? '...' : ''}"`)) {
 			return;
 		}
-		
+
 		retrying.value = true;
-		
+
 		try {
 			const response = await window.client.retryPost({
 				postId: post.value.id
 			});
-			
+
 			// Update the post with the retry result
 			post.value = response.postStatus;
-			
+
 			console.log('Post retry completed:', response.standardResponse.message);
-			
+
 		} catch (error) {
 			console.error('Error retrying post:', error);
 			alert('Failed to retry post: ' + error.message);

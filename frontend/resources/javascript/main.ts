@@ -105,7 +105,7 @@ function registerServiceWorker(): void {
 			navigator.serviceWorker.register('/sw.js')
 				.then((registration) => {
 					console.log('[Service Worker] Registration successful:', registration.scope);
-					
+
 					// Check for updates periodically
 					setInterval(() => {
 						registration.update();

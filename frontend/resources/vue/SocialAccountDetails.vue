@@ -28,10 +28,10 @@
 			<dt>Identity</dt>
 			<dd>
 				<span>{{ account.identity }}</span>
-				<button 
-					v-if="getProfileUrl(account)" 
-					@click="openProfile" 
-					class="profile-link-button" 
+				<button
+					v-if="getProfileUrl(account)"
+					@click="openProfile"
+					class="profile-link-button"
 					:title="'Open ' + account.identity + ' profile'"
 				>
 					<Icon icon="mdi:open-in-new" width="16" height="16" />
@@ -144,14 +144,14 @@ const router = useRouter();
 
 	async function fetchLastPosted() {
 		if (!accountId.value) return
-		
+
 		try {
 			const timelineRes = await window.client.getTimeline()
 			const posts = timelineRes.posts || []
-			
+
 			// Filter posts for this social account and find the most recent one
 			const accountPosts = posts.filter(post => post.socialAccountId === accountId.value)
-			
+
 			if (accountPosts.length > 0) {
 				// Sort by created date (most recent first) and get the first one
 				const sortedPosts = accountPosts.sort((a, b) => {
@@ -229,13 +229,13 @@ async function toggleActive() {
 		if (!dateString) {
 			return 'Never expires'
 		}
-		
+
 		try {
 			const expiryDate = new Date(dateString)
 			if (isNaN(expiryDate.getTime())) {
 				return 'Invalid date'
 			}
-			
+
 			const now = new Date()
 			const diffMs = expiryDate - now
 			const diffSeconds = Math.floor(Math.abs(diffMs) / 1000)
@@ -245,11 +245,11 @@ async function toggleActive() {
 			const diffWeeks = Math.floor(diffDays / 7)
 			const diffMonths = Math.floor(diffDays / 30)
 			const diffYears = Math.floor(diffDays / 365)
-			
+
 			const isPast = diffMs < 0
 			const prefix = isPast ? '' : 'In '
 			const suffix = isPast ? ' ago' : ''
-			
+
 			if (diffSeconds < 60) {
 				return isPast ? 'Just expired' : 'Expires soon'
 			} else if (diffMinutes < 60) {
@@ -274,7 +274,7 @@ async function toggleActive() {
 		if (!dateString) {
 			return ''
 		}
-		
+
 		try {
 			const date = new Date(dateString)
 			if (isNaN(date.getTime())) {

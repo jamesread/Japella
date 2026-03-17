@@ -93,7 +93,7 @@
 	import { UserMultiple03Icon, SettingsIcon, KeyIcon, SecurityValidationIcon, ActivityIcon } from '@hugeicons/core-free-icons';
 
 	const router = useRouter();
-	
+
 	const clientReady = ref(false);
 	const loading = ref(true);
 	const errorMessage = ref('');
@@ -106,10 +106,10 @@
 	async function refreshUserData() {
 		loading.value = true;
 		errorMessage.value = '';
-		
+
 		try {
 			await waitForClient();
-			
+
 			// Get current user status
 			const status = await window.client.getStatus();
 			userData.value = {
@@ -164,16 +164,16 @@
 
 		try {
 			await waitForClient();
-			
+
 			const response = await window.client.logout({});
 
 			if (response.standardResponse.success) {
 				// Clear the global login state
 				window.isLoggedIn = false;
-				
+
 				// Redirect to the login page
 				router.push('/');
-				
+
 				// Reload the page to ensure clean state
 				window.location.reload();
 			} else {

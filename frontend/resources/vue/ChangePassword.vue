@@ -6,21 +6,21 @@
 		<form @submit.prevent="changePassword">
 			<div class="password-form-grid">
 				<label for="current-password">Current Password:</label>
-				<input 
-					type="password" 
-					id="current-password" 
-					v-model="passwordForm.currentPassword" 
-					required 
+				<input
+					type="password"
+					id="current-password"
+					v-model="passwordForm.currentPassword"
+					required
 					:disabled="passwordChanging"
 				/>
-				
+
 				<label for="new-password">New Password:</label>
 				<div>
-					<input 
-						type="password" 
-						id="new-password" 
-						v-model="passwordForm.newPassword" 
-						required 
+					<input
+						type="password"
+						id="new-password"
+						v-model="passwordForm.newPassword"
+						required
 						minlength="8"
 						:disabled="passwordChanging"
 					/>
@@ -28,16 +28,16 @@
 						Password must be at least 8 characters long
 					</small>
 				</div>
-				
+
 				<label for="confirm-password">Confirm New Password:</label>
-				<input 
-					type="password" 
-					id="confirm-password" 
-					v-model="passwordForm.confirmPassword" 
-					required 
+				<input
+					type="password"
+					id="confirm-password"
+					v-model="passwordForm.confirmPassword"
+					required
 					:disabled="passwordChanging"
 				/>
-				
+
 				<div class="password-form-buttons">
 					<button type="submit" :disabled="passwordChanging || !isPasswordFormValid" class="good">
 						<Icon v-if="passwordChanging" icon="eos-icons:loading" width="16" height="16" />
@@ -48,7 +48,7 @@
 						Reset
 					</button>
 				</div>
-				
+
 				<div v-if="passwordMessage" class="password-form-message">
 					<div class="inline-notification" :class="passwordMessageType">
 						{{ passwordMessage }}
@@ -94,7 +94,7 @@
 
 		try {
 			await waitForClient();
-			
+
 			const response = await window.client.changePassword({
 				currentPassword: passwordForm.value.currentPassword,
 				newPassword: passwordForm.value.newPassword
@@ -154,5 +154,3 @@
 		grid-column: 1 / -1;
 	}
 </style>
-
-

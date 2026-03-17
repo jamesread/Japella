@@ -132,7 +132,7 @@
 			const minutes = date.getMinutes();
 			const ampm = hours >= 12 ? 'pm' : 'am';
 			const displayHours = hours % 12 || 12;
-			const timeStr = minutes > 0 
+			const timeStr = minutes > 0
 				? `${displayHours}:${minutes.toString().padStart(2, '0')}${ampm}`
 				: `${displayHours}${ampm}`;
 
@@ -155,7 +155,7 @@
 				const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 				const month = monthNames[date.getMonth()];
 				const day = date.getDate();
-				
+
 				// If same year, don't show year
 				if (date.getFullYear() === now.getFullYear()) {
 					return `${month} ${day} at ${timeStr}`;

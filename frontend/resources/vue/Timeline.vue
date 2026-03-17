@@ -236,7 +236,7 @@
 			const minutes = date.getMinutes();
 			const ampm = hours >= 12 ? 'pm' : 'am';
 			const displayHours = hours % 12 || 12;
-			const timeStr = minutes > 0 
+			const timeStr = minutes > 0
 				? `${displayHours}:${minutes.toString().padStart(2, '0')}${ampm}`
 				: `${displayHours}${ampm}`;
 
@@ -259,7 +259,7 @@
 				const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 				const month = monthNames[date.getMonth()];
 				const day = date.getDate();
-				
+
 				// If same year, don't show year
 				if (date.getFullYear() === now.getFullYear()) {
 					return `${month} ${day} at ${timeStr}`;
@@ -368,7 +368,7 @@
 		showCampaignDialog.value = true;
 		campaignMessage.value = '';
 		campaignMessageType.value = '';
-		
+
 		// Load campaigns
 		campaignsLoading.value = true;
 		try {
@@ -393,20 +393,20 @@
 
 	async function updatePostCampaign() {
 		if (!selectedPost.value) return;
-		
+
 		campaignsSaving.value = true;
 		campaignMessage.value = '';
 		campaignMessageType.value = '';
-		
+
 		try {
 			await window.client.updatePostCampaign({
 				postId: selectedPost.value.id,
 				campaignId: selectedCampaignId.value
 			});
-			
+
 			campaignMessage.value = 'Campaign updated successfully';
 			campaignMessageType.value = 'good';
-			
+
 			// Update the post in the timeline
 			const postIndex = timeline.value.findIndex(p => p.id === selectedPost.value.id);
 			if (postIndex !== -1) {
@@ -415,12 +415,12 @@
 				const campaign = campaigns.value.find(c => c.id === selectedCampaignId.value);
 				timeline.value[postIndex].campaignName = campaign ? campaign.name : '';
 			}
-			
+
 			// Close dialog after a short delay
 			setTimeout(() => {
 				cancelCampaignDialog();
 			}, 1500);
-			
+
 		} catch (error) {
 			console.error('Error updating post campaign:', error);
 			campaignMessage.value = 'Failed to update campaign: ' + error.message;
@@ -435,18 +435,18 @@
 		if (!confirm(`Are you sure you want to forget (delete) this post?\n\n"${post.content.substring(0, 50)}${post.content.length > 50 ? '...' : ''}"`)) {
 			return;
 		}
-		
+
 		try {
 			await window.client.forgetPost({
 				postId: post.id
 			});
-			
+
 			// Remove the post from the timeline
 			const postIndex = timeline.value.findIndex(p => p.id === post.id);
 			if (postIndex !== -1) {
 				timeline.value.splice(postIndex, 1);
 			}
-			
+
 			console.log('Post forgotten successfully');
 		} catch (error) {
 			console.error('Error forgetting post:', error);
@@ -459,15 +459,15 @@
 		if (!confirm(`Are you sure you want to retry posting this?\n\n"${post.content.substring(0, 50)}${post.content.length > 50 ? '...' : ''}"`)) {
 			return;
 		}
-		
+
 		// Add to retrying set
 		retryingPosts.value.add(post.id);
-		
+
 		try {
 			const response = await window.client.retryPost({
 				postId: post.id
 			});
-			
+
 			// Update the post in the timeline with the retry result
 			const postIndex = timeline.value.findIndex(p => p.id === post.id);
 			if (postIndex !== -1) {
@@ -475,16 +475,16 @@
 				const updatedPost = response.postStatus;
 				timeline.value[postIndex] = updatedPost;
 			}
-			
+
 			console.log('Post retry completed:', response.standardResponse.message);
-			
+
 			// Show success/error message
 			if (response.postStatus.success) {
 				console.log('Post retry succeeded!');
 			} else {
 				console.log('Post retry failed, but post status updated');
 			}
-			
+
 		} catch (error) {
 			console.error('Error retrying post:', error);
 			alert('Failed to retry post: ' + error.message);
