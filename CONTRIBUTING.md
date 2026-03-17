@@ -19,7 +19,7 @@ If you're planning on making a change that's more than a 3 lines, please talk to
 
 Please try to keep your pull requests small and focused. It's almost impossible to review PRs that change lots of files for lots of different reasons. If you have a big change, it's probably best to break it down into smaller, more manageable chunks, otherwise it's likely to be rejected.
 
-## If you're not sure, ask!
+## If you're not sure, ask
 
 Don't be afraid to ask for advice before working on a
 contribution. If you're thinking about a bigger change, especially that might

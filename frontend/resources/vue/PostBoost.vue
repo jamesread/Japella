@@ -3,9 +3,9 @@
 		<div class="boost-header">
 			<div class="boost-info">
 				<Icon icon="mdi:repeat" class="boost-icon" />
-				<router-link 
-					v-if="post.socialAccountId" 
-					:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" 
+				<router-link
+					v-if="post.socialAccountId"
+					:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
 					class="social-account-link"
 				>
 					<Icon :icon="post.socialAccountIcon || 'mdi:account'" />
@@ -17,9 +17,9 @@
 				</div>
 				<span class="boost-text">boosted</span>
 			</div>
-			<button 
-				v-if="post.id || post.remoteId" 
-				@click="openDiagnosticDialog" 
+			<button
+				v-if="post.id || post.remoteId"
+				@click="openDiagnosticDialog"
 				class="diagnostic-button neutral small"
 				title="Diagnostic Info"
 			>
@@ -117,7 +117,7 @@
 			const minutes = date.getMinutes();
 			const ampm = hours >= 12 ? 'pm' : 'am';
 			const displayHours = hours % 12 || 12;
-			const timeStr = minutes > 0 
+			const timeStr = minutes > 0
 				? `${displayHours}:${minutes.toString().padStart(2, '0')}${ampm}`
 				: `${displayHours}${ampm}`;
 

@@ -124,14 +124,26 @@ message GetConnectorsRequest {
 
 message GetConnectorsResponse {
 	repeated Connector connectors = 1;
+	repeated UnregisteredConnector unregistered_connectors = 2; // Connectors that exist but aren't started
 }
 
 message Connector {
 	string name = 2;
+	string protocol = 9; // The connector protocol (e.g., "telegram", "discord")
 	string icon = 3;
 	bool has_oauth = 4;
     repeated string issues = 5;
     bool is_registered = 6;
+	bool is_started = 7; // Whether the connector is currently started
+	bool uses_yaml_config = 8; // Whether the connector uses YAML configuration (as opposed to OAuth)
+	bool supports_social_accounts = 10; // Whether the connector supports social accounts
+	bool supports_chatbot = 11; // Whether the connector supports chatbot functionality
+}
+
+message UnregisteredConnector {
+	string protocol = 1; // The connector protocol (e.g., "telegram", "discord")
+	string name = 2; // Display name
+	string icon = 3; // Icon identifier
 }
 
 message StartOAuthRequest {
@@ -486,6 +498,64 @@ message MediaItem {
 	string url = 2; // URL path to fetch the file (e.g. /media/files/<filename>)
 }
 
+message GetChatBotsRequest {
+}
+
+message GetChatBotsResponse {
+	repeated ChatBot bots = 1;
+}
+
+message ChatBot {
+	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
+	string name = 2; // Display name of the bot
+	string identity = 3; // Bot identity/username
+	string icon = 4; // Icon identifier
+	bool is_running = 5; // Whether the bot is currently running
+	string status_message = 6; // Diagnostic message explaining why the bot is stopped or its current status
+	string error_message = 7; // Error message if the bot failed to start
+	string protocol_display_name = 8; // Protocol-specific display name (e.g., Telegram bot's FirstName)
+}
+
+message GetBotChannelsRequest {
+	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
+	string identity = 2; // Bot identity/username (optional, for distinguishing multiple bots of same type)
+}
+
+message GetBotChannelsResponse {
+	repeated BotChannel channels = 1;
+}
+
+message BotChannel {
+	string id = 1; // Channel/chat ID
+	string title = 2; // Channel/chat title
+	string type = 3; // Channel type (e.g., "channel", "group", "private")
+	string username = 4; // Username if available
+}
+
+message IncomingMessageHook {
+	string url = 1; // Webhook URL to call
+	bool enabled = 2; // Whether this hook is enabled
+}
+
+message GetBotHooksRequest {
+	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
+	string identity = 2; // Bot identity/username
+}
+
+message GetBotHooksResponse {
+	repeated IncomingMessageHook hooks = 1;
+}
+
+message SetBotHooksRequest {
+	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
+	string identity = 2; // Bot identity/username
+	repeated IncomingMessageHook hooks = 3; // List of hooks to configure
+}
+
+message SetBotHooksResponse {
+	StandardResponse standard_response = 1;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -556,12 +626,16 @@ service JapellaControlApiService {
     rpc AddSocialAccountToCampaign(AddSocialAccountToCampaignRequest) returns (AddSocialAccountToCampaignResponse) {}
     rpc RemoveSocialAccountFromCampaign(RemoveSocialAccountFromCampaignRequest) returns (RemoveSocialAccountFromCampaignResponse) {}
     rpc GetCampaignSocialAccounts(GetCampaignSocialAccountsRequest) returns (GetCampaignSocialAccountsResponse) {}
-    
+
     rpc CleanupFeedPosts(CleanupFeedPostsRequest) returns (CleanupFeedPostsResponse) {}
-    
+
     rpc GetLogs(GetLogsRequest) returns (GetLogsResponse) {}
-    
+
     rpc GetJobsStatus(GetJobsStatusRequest) returns (GetJobsStatusResponse) {}
 
     rpc ListMedia(ListMediaRequest) returns (ListMediaResponse) {}
+    rpc GetChatBots(GetChatBotsRequest) returns (GetChatBotsResponse) {}
+    rpc GetBotChannels(GetBotChannelsRequest) returns (GetBotChannelsResponse) {}
+    rpc GetBotHooks(GetBotHooksRequest) returns (GetBotHooksResponse) {}
+    rpc SetBotHooks(SetBotHooksRequest) returns (SetBotHooksResponse) {}
 }

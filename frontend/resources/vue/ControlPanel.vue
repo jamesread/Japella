@@ -189,7 +189,7 @@
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 	import { HugeiconsIcon} from '@hugeicons/vue';
-	import { 
+	import {
 		RefreshIcon,
 		CheckmarkCircle01Icon,
 		GridViewIcon,
@@ -272,7 +272,7 @@
 
 	async function refreshJobs() {
 		if (!clientReady.value) return;
-		
+
 		jobsLoading.value = true;
 		try {
 			const response = await window.client.getJobsStatus({});
@@ -290,20 +290,20 @@
 		if (!dateString) {
 			return 'Never';
 		}
-		
+
 		try {
 			const date = new Date(dateString);
 			if (isNaN(date.getTime())) {
 				return dateString;
 			}
-			
+
 			const now = new Date();
 			const diffMs = now - date;
 			const diffSeconds = Math.floor(Math.abs(diffMs) / 1000);
 			const diffMinutes = Math.floor(diffSeconds / 60);
 			const diffHours = Math.floor(diffMinutes / 60);
 			const diffDays = Math.floor(diffHours / 24);
-			
+
 			if (diffSeconds < 60) {
 				return 'Just now';
 			} else if (diffMinutes < 60) {
@@ -324,7 +324,7 @@
 		if (!dateString) {
 			return '';
 		}
-		
+
 		try {
 			const date = new Date(dateString);
 			if (isNaN(date.getTime())) {
@@ -338,7 +338,7 @@
 
 	async function refreshConnectors() {
 		if (!clientReady.value) return;
-		
+
 		try {
 			// Refresh connectors by fetching them
 			const response = await window.client.getConnectors({});
@@ -360,6 +360,12 @@
 				icon: UserMultiple02Icon,
 				name: 'user-management',
 				description: 'Manage system users and permissions'
+			});
+
+			localNavigation.value.addCallback('Connectors', () => goToRoute('/connectors'), {
+				icon: GridViewIcon,
+				name: 'connectors',
+				description: 'View currently started connectors'
 			});
 
 			localNavigation.value.addCallback('System Settings', () => goToRoute('/settings'), {
@@ -431,7 +437,7 @@
 	.action-button {
 		height: 5em;
 	}
-	
+
 	.action-button:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;

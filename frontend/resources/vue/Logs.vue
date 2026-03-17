@@ -37,9 +37,9 @@
 					</td>
 					<td>{{ log.message }}</td>
 					<td>
-						<router-link 
-							v-if="log.relatedSocialAccountId" 
-							:to="{ name: 'socialAccountDetails', params: { id: log.relatedSocialAccountId } }" 
+						<router-link
+							v-if="log.relatedSocialAccountId"
+							:to="{ name: 'socialAccountDetails', params: { id: log.relatedSocialAccountId } }"
 							class="social-account-link"
 						>
 							{{ log.relatedSocialAccountIdentity || `Account #${log.relatedSocialAccountId}` }}
@@ -67,7 +67,7 @@
 		if (!dateString) {
 			return '—';
 		}
-		
+
 		try {
 			const date = new Date(dateString);
 			if (isNaN(date.getTime())) {

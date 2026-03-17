@@ -10,7 +10,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file japella/nodemsgs/v1/nodemessages.proto.
  */
 export const file_japella_nodemsgs_v1_nodemessages: GenFile = /*@__PURE__*/
-  fileDesc("CiZqYXBlbGxhL25vZGVtc2dzL3YxL25vZGVtZXNzYWdlcy5wcm90bxITamFwZWxsYS5ub2RlbXNncy52MSKMAQoPSW5jb21pbmdNZXNzYWdlEg8KB2NvbnRlbnQYASABKAkSDwoHY2hhbm5lbBgCIAEoCRIOCgZhdXRob3IYAyABKAkSDgoGc2VydmVyGAQgASgJEhAKCHByb3RvY29sGAUgASgJEhIKCm1lc3NhZ2VfaWQYBiABKAkSEQoJdGltZXN0YW1wGAcgASgDImMKD091dGdvaW5nTWVzc2FnZRIPCgdjb250ZW50GAEgASgJEg8KB2NoYW5uZWwYAiABKAkSEAoIcHJvdG9jb2wYAyABKAkSHAoUaW5jb21taW5nX21lc3NhZ2VfaWQYBCABKAkiJwoTVGhyZWFkU2VhcmNoUmVxdWVzdBIQCghwcm90b2NvbBgBIAEoCSJEChRUaHJlYWRTZWFyY2hSZXNwb25zZRIsCgd0aHJlYWRzGAEgAygLMhsuamFwZWxsYS5ub2RlbXNncy52MS5UaHJlYWQiFwoGVGhyZWFkEg0KBXRpdGxlGAEgASgJQkFaP2dpdGh1Yi5jb20vamFtZXNyZWFkL2phcGVsbGEvZ2VuL2phcGVsbGEvbm9kZW1zZ3MvdjE7bm9kZW1zZ3N2MWIGcHJvdG8z");
+  fileDesc("CiZqYXBlbGxhL25vZGVtc2dzL3YxL25vZGVtZXNzYWdlcy5wcm90bxITamFwZWxsYS5ub2RlbXNncy52MSKeAQoPSW5jb21pbmdNZXNzYWdlEg8KB2NvbnRlbnQYASABKAkSDwoHY2hhbm5lbBgCIAEoCRIOCgZhdXRob3IYAyABKAkSDgoGc2VydmVyGAQgASgJEhAKCHByb3RvY29sGAUgASgJEhIKCm1lc3NhZ2VfaWQYBiABKAkSEQoJdGltZXN0YW1wGAcgASgDEhAKCGlkZW50aXR5GAggASgJInUKD091dGdvaW5nTWVzc2FnZRIPCgdjb250ZW50GAEgASgJEg8KB2NoYW5uZWwYAiABKAkSEAoIcHJvdG9jb2wYAyABKAkSHAoUaW5jb21taW5nX21lc3NhZ2VfaWQYBCABKAkSEAoIaWRlbnRpdHkYBSABKAkiJwoTVGhyZWFkU2VhcmNoUmVxdWVzdBIQCghwcm90b2NvbBgBIAEoCSJEChRUaHJlYWRTZWFyY2hSZXNwb25zZRIsCgd0aHJlYWRzGAEgAygLMhsuamFwZWxsYS5ub2RlbXNncy52MS5UaHJlYWQiFwoGVGhyZWFkEg0KBXRpdGxlGAEgASgJQkFaP2dpdGh1Yi5jb20vamFtZXNyZWFkL2phcGVsbGEvZ2VuL2phcGVsbGEvbm9kZW1zZ3MvdjE7bm9kZW1zZ3N2MWIGcHJvdG8z");
 
 /**
  * @generated from message japella.nodemsgs.v1.IncomingMessage
@@ -50,6 +50,13 @@ export type IncomingMessage = Message<"japella.nodemsgs.v1.IncomingMessage"> & {
    * @generated from field: int64 timestamp = 7;
    */
   timestamp: bigint;
+
+  /**
+   * Bot identity/username that received this message
+   *
+   * @generated from field: string identity = 8;
+   */
+  identity: string;
 };
 
 /**
@@ -82,6 +89,13 @@ export type OutgoingMessage = Message<"japella.nodemsgs.v1.OutgoingMessage"> & {
    * @generated from field: string incomming_message_id = 4;
    */
   incommingMessageId: string;
+
+  /**
+   * Bot identity/username to identify which bot instance should handle this message
+   *
+   * @generated from field: string identity = 5;
+   */
+  identity: string;
 };
 
 /**

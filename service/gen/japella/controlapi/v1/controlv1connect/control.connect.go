@@ -153,6 +153,18 @@ const (
 	// JapellaControlApiServiceListMediaProcedure is the fully-qualified name of the
 	// JapellaControlApiService's ListMedia RPC.
 	JapellaControlApiServiceListMediaProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListMedia"
+	// JapellaControlApiServiceGetChatBotsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetChatBots RPC.
+	JapellaControlApiServiceGetChatBotsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetChatBots"
+	// JapellaControlApiServiceGetBotChannelsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetBotChannels RPC.
+	JapellaControlApiServiceGetBotChannelsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetBotChannels"
+	// JapellaControlApiServiceGetBotHooksProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetBotHooks RPC.
+	JapellaControlApiServiceGetBotHooksProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetBotHooks"
+	// JapellaControlApiServiceSetBotHooksProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetBotHooks RPC.
+	JapellaControlApiServiceSetBotHooksProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetBotHooks"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -198,6 +210,10 @@ type JapellaControlApiServiceClient interface {
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
+	GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error)
+	GetBotChannels(context.Context, *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error)
+	GetBotHooks(context.Context, *connect.Request[v1.GetBotHooksRequest]) (*connect.Response[v1.GetBotHooksResponse], error)
+	SetBotHooks(context.Context, *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -452,6 +468,30 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListMedia")),
 			connect.WithClientOptions(opts...),
 		),
+		getChatBots: connect.NewClient[v1.GetChatBotsRequest, v1.GetChatBotsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetChatBotsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetChatBots")),
+			connect.WithClientOptions(opts...),
+		),
+		getBotChannels: connect.NewClient[v1.GetBotChannelsRequest, v1.GetBotChannelsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetBotChannelsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetBotChannels")),
+			connect.WithClientOptions(opts...),
+		),
+		getBotHooks: connect.NewClient[v1.GetBotHooksRequest, v1.GetBotHooksResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetBotHooksProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetBotHooks")),
+			connect.WithClientOptions(opts...),
+		),
+		setBotHooks: connect.NewClient[v1.SetBotHooksRequest, v1.SetBotHooksResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetBotHooksProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetBotHooks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -497,6 +537,10 @@ type japellaControlApiServiceClient struct {
 	getLogs                         *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
 	getJobsStatus                   *connect.Client[v1.GetJobsStatusRequest, v1.GetJobsStatusResponse]
 	listMedia                       *connect.Client[v1.ListMediaRequest, v1.ListMediaResponse]
+	getChatBots                     *connect.Client[v1.GetChatBotsRequest, v1.GetChatBotsResponse]
+	getBotChannels                  *connect.Client[v1.GetBotChannelsRequest, v1.GetBotChannelsResponse]
+	getBotHooks                     *connect.Client[v1.GetBotHooksRequest, v1.GetBotHooksResponse]
+	setBotHooks                     *connect.Client[v1.SetBotHooksRequest, v1.SetBotHooksResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -704,6 +748,26 @@ func (c *japellaControlApiServiceClient) ListMedia(ctx context.Context, req *con
 	return c.listMedia.CallUnary(ctx, req)
 }
 
+// GetChatBots calls japella.controlapi.v1.JapellaControlApiService.GetChatBots.
+func (c *japellaControlApiServiceClient) GetChatBots(ctx context.Context, req *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error) {
+	return c.getChatBots.CallUnary(ctx, req)
+}
+
+// GetBotChannels calls japella.controlapi.v1.JapellaControlApiService.GetBotChannels.
+func (c *japellaControlApiServiceClient) GetBotChannels(ctx context.Context, req *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error) {
+	return c.getBotChannels.CallUnary(ctx, req)
+}
+
+// GetBotHooks calls japella.controlapi.v1.JapellaControlApiService.GetBotHooks.
+func (c *japellaControlApiServiceClient) GetBotHooks(ctx context.Context, req *connect.Request[v1.GetBotHooksRequest]) (*connect.Response[v1.GetBotHooksResponse], error) {
+	return c.getBotHooks.CallUnary(ctx, req)
+}
+
+// SetBotHooks calls japella.controlapi.v1.JapellaControlApiService.SetBotHooks.
+func (c *japellaControlApiServiceClient) SetBotHooks(ctx context.Context, req *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error) {
+	return c.setBotHooks.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -747,6 +811,10 @@ type JapellaControlApiServiceHandler interface {
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
+	GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error)
+	GetBotChannels(context.Context, *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error)
+	GetBotHooks(context.Context, *connect.Request[v1.GetBotHooksRequest]) (*connect.Response[v1.GetBotHooksResponse], error)
+	SetBotHooks(context.Context, *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -996,6 +1064,30 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListMedia")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetChatBotsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetChatBotsProcedure,
+		svc.GetChatBots,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetChatBots")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetBotChannelsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetBotChannelsProcedure,
+		svc.GetBotChannels,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetBotChannels")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetBotHooksHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetBotHooksProcedure,
+		svc.GetBotHooks,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetBotHooks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetBotHooksHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetBotHooksProcedure,
+		svc.SetBotHooks,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetBotHooks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -1078,6 +1170,14 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetJobsStatusHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceListMediaProcedure:
 			japellaControlApiServiceListMediaHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetChatBotsProcedure:
+			japellaControlApiServiceGetChatBotsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetBotChannelsProcedure:
+			japellaControlApiServiceGetBotChannelsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetBotHooksProcedure:
+			japellaControlApiServiceGetBotHooksHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetBotHooksProcedure:
+			japellaControlApiServiceSetBotHooksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1245,4 +1345,20 @@ func (UnimplementedJapellaControlApiServiceHandler) GetJobsStatus(context.Contex
 
 func (UnimplementedJapellaControlApiServiceHandler) ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListMedia is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetChatBots is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetBotChannels(context.Context, *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetBotChannels is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetBotHooks(context.Context, *connect.Request[v1.GetBotHooksRequest]) (*connect.Response[v1.GetBotHooksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetBotHooks is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetBotHooks(context.Context, *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetBotHooks is not implemented"))
 }

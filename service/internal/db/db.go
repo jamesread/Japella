@@ -331,10 +331,10 @@ func (db *DB) SelectSocialAccounts(onlyActive bool) []*SocialAccount {
 func (db *DB) SelectSocialAccountsExpiringSoon(withinHours int) []*SocialAccount {
 	ret := make([]*SocialAccount, 0)
 	// Select active accounts where token expiry is within the specified hours and not null
-	query := `SELECT * FROM social_accounts 
-		WHERE active = 1 
-		AND oauth2_token_expiry IS NOT NULL 
-		AND oauth2_token_expiry > NOW() 
+	query := `SELECT * FROM social_accounts
+		WHERE active = 1
+		AND oauth2_token_expiry IS NOT NULL
+		AND oauth2_token_expiry > NOW()
 		AND oauth2_token_expiry <= DATE_ADD(NOW(), INTERVAL ? HOUR)`
 	err := db.ResilientSelect(&ret, query, withinHours)
 	if err != nil {
@@ -391,15 +391,15 @@ func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
 	if err == nil && existingAccount != nil {
 		// Account exists, update it with new tokens
 		db.Logger().Infof("Updating existing social account (ID: %d) for connector: %s, identity: %s", existingAccount.ID, socialAccount.Connector, socialAccount.Identity)
-		
+
 		// Preserve existing homeserver if new one is empty (for Mastodon instances)
 		homeserver := socialAccount.Homeserver
 		if homeserver == "" && existingAccount.Homeserver != "" {
 			homeserver = existingAccount.Homeserver
 		}
-		
+
 		// Update the account with new OAuth tokens and other fields
-		_, err = db.ResilientNamedExec(`UPDATE social_accounts SET 
+		_, err = db.ResilientNamedExec(`UPDATE social_accounts SET
 			identity = :identity,
 			did = :did,
 			homeserver = :homeserver,
@@ -430,7 +430,7 @@ func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
 		db.Logger().Errorf("Error checking for existing social account: %v", err)
 		return err
 	}
-	
+
 	// Account doesn't exist, insert a new one
 	db.Logger().Infof("Registering new social account for connector: %s, identity: %s", socialAccount.Connector, socialAccount.Identity)
 	_, err = db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, did, homeserver, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :did, :homeserver, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :dpop_key, NOW(), NOW())`, socialAccount)
@@ -556,7 +556,7 @@ func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {
 func (db *DB) GetSocialAccountByConnectorAndIdentity(connector string, identity string, did string) (*SocialAccount, error) {
 	var account SocialAccount
 	var err error
-	
+
 	// Try to find by connector and identity first
 	if identity != "" {
 		err = db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE connector = ? AND identity = ? LIMIT 1", connector, identity)
@@ -568,7 +568,7 @@ func (db *DB) GetSocialAccountByConnectorAndIdentity(connector string, identity 
 			return nil, err
 		}
 	}
-	
+
 	// If not found and we have a DID, try to find by connector and DID
 	if did != "" {
 		err = db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE connector = ? AND did = ? LIMIT 1", connector, did)
@@ -580,7 +580,7 @@ func (db *DB) GetSocialAccountByConnectorAndIdentity(connector string, identity 
 			return nil, err
 		}
 	}
-	
+
 	// Not found
 	return nil, sql.ErrNoRows
 }
@@ -971,7 +971,7 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) error {
 		db.Logger().Errorf("Failed to check if feed entry exists: %v", err)
 		return err
 	}
-	
+
 	if exists {
 		db.Logger().Debugf("Feed entry already exists for social_account_id=%d, remote_id=%s, skipping insert", feedEntry.SocialAccountID, feedEntry.RemoteID)
 		return nil // Not an error, just skip the duplicate
@@ -1016,13 +1016,13 @@ func (db *DB) CleanupOldFeedPosts(keepCount int) error {
 		) ranked ON f.id = ranked.id
 		WHERE ranked.rn > ?
 	`
-	
+
 	result, err := db.ResilientExec(query, keepCount)
 	if err != nil {
 		db.Logger().Errorf("Failed to cleanup old feed posts: %v", err)
 		return err
 	}
-	
+
 	rowsAffected, _ := result.RowsAffected()
 	db.Logger().Infof("Cleaned up %d old feed posts (kept newest %d per social account)", rowsAffected, keepCount)
 	return nil
@@ -1057,7 +1057,7 @@ func (db *DB) SelectTableLogs(limit int) ([]*TableLog, error) {
 	logs := make([]*TableLog, 0)
 
 	query := `SELECT id, message, level, related_social_account_id, created_at, updated_at FROM table_logs ORDER BY created_at DESC LIMIT ?`
-	
+
 	err := db.ResilientSelect(&logs, query, limit)
 	if err != nil {
 		db.Logger().Errorf("Failed to select table logs: %v", err)
@@ -1075,4 +1075,35 @@ func (db *DB) SelectTableLogs(limit int) ([]*TableLog, error) {
 	}
 
 	return logs, nil
+}
+
+// SelectWebhookHooks returns all webhook hooks for a specific connector and identity
+func (db *DB) SelectWebhookHooks(connector string, identity string) ([]*WebhookHook, error) {
+	ret := make([]*WebhookHook, 0)
+	err := db.ResilientSelect(&ret, "SELECT * FROM webhook_hooks WHERE connector = ? AND identity = ? ORDER BY id ASC", connector, identity)
+	if err != nil {
+		db.Logger().Errorf("Failed to select webhook hooks: %v", err)
+		return nil, err
+	}
+	return ret, nil
+}
+
+// DeleteWebhookHooks deletes all webhook hooks for a specific connector and identity
+func (db *DB) DeleteWebhookHooks(connector string, identity string) error {
+	_, err := db.ResilientExec("DELETE FROM webhook_hooks WHERE connector = ? AND identity = ?", connector, identity)
+	if err != nil {
+		db.Logger().Errorf("Failed to delete webhook hooks: %v", err)
+		return err
+	}
+	return nil
+}
+
+// CreateWebhookHook creates a new webhook hook
+func (db *DB) CreateWebhookHook(hook *WebhookHook) error {
+	_, err := db.ResilientNamedExec(`INSERT INTO webhook_hooks (connector, identity, url, enabled, created_at, updated_at) VALUES (:connector, :identity, :url, :enabled, NOW(), NOW())`, hook)
+	if err != nil {
+		db.Logger().Errorf("Failed to create webhook hook: %v", err)
+		return err
+	}
+	return nil
 }

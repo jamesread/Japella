@@ -2,9 +2,9 @@
 	<div class="post-preview">
 		<div class="post-header">
 			<div class="social-account-info">
-				<router-link 
-					v-if="post.socialAccountId" 
-					:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }" 
+				<router-link
+					v-if="post.socialAccountId"
+					:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
 					class="social-account-link"
 				>
 					<Icon :icon="post.socialAccountIcon || 'mdi:account'" />
@@ -15,9 +15,9 @@
 					<span class="account-name">Canned Post</span>
 				</div>
 			</div>
-			<button 
-				v-if="post.id || post.remoteId" 
-				@click="openDiagnosticDialog" 
+			<button
+				v-if="post.id || post.remoteId"
+				@click="openDiagnosticDialog"
 				class="diagnostic-button neutral small"
 				title="Diagnostic Info"
 			>
@@ -31,11 +31,11 @@
 		</div>
 
 		<div v-if="post.previewUrl || post.previewImageUrl" class="preview-card">
-			<a 
-				v-if="post.previewUrl" 
-				:href="post.previewUrl" 
-				target="_blank" 
-				rel="noopener noreferrer" 
+			<a
+				v-if="post.previewUrl"
+				:href="post.previewUrl"
+				target="_blank"
+				rel="noopener noreferrer"
 				class="preview-card-link"
 			>
 				<div v-if="post.previewImageUrl" class="preview-image">
@@ -136,7 +136,7 @@
 			const minutes = date.getMinutes();
 			const ampm = hours >= 12 ? 'pm' : 'am';
 			const displayHours = hours % 12 || 12;
-			const timeStr = minutes > 0 
+			const timeStr = minutes > 0
 				? `${displayHours}:${minutes.toString().padStart(2, '0')}${ampm}`
 				: `${displayHours}${ampm}`;
 
@@ -460,7 +460,7 @@
 		width: 120px;
 		height: 90px;
 	}
-	
+
 	.preview-content {
 		padding: 0.75rem;
 	}

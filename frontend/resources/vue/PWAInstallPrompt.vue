@@ -31,7 +31,7 @@ const dismissedKey = 'pwa-install-dismissed';
 
 onMounted(() => {
 	// Check if already installed
-	if (window.matchMedia('(display-mode: standalone)').matches || 
+	if (window.matchMedia('(display-mode: standalone)').matches ||
 	    window.navigator.standalone === true) {
 		return; // Already installed
 	}
@@ -49,7 +49,7 @@ onMounted(() => {
 
 	// Listen for the beforeinstallprompt event
 	window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-	
+
 	// Check if app is already installed
 	window.addEventListener('appinstalled', handleAppInstalled);
 });
@@ -62,10 +62,10 @@ onBeforeUnmount(() => {
 function handleBeforeInstallPrompt(e) {
 	// Prevent the default browser install prompt
 	e.preventDefault();
-	
+
 	// Store the event for later use
 	deferredPrompt = e;
-	
+
 	// Show our custom prompt
 	showPrompt.value = true;
 }

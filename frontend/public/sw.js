@@ -15,7 +15,7 @@ const CACHE_FILES = [
 // Install event - cache essential files
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing version', SW_VERSION);
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -35,7 +35,7 @@ self.addEventListener('install', (event) => {
 // Activate event - clean up old caches
 self.addEventListener('activate', (event) => {
   console.log('[Service Worker] Activating version', SW_VERSION);
-  
+
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -65,7 +65,7 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   // Skip API requests - always go to network
-  if (url.pathname.startsWith('/api/') || 
+  if (url.pathname.startsWith('/api/') ||
       url.pathname.startsWith('/oauth2callback') ||
       url.pathname.startsWith('/lang') ||
       url.pathname.startsWith('/upload')) {

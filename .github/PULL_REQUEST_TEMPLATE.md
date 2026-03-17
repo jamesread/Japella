@@ -12,7 +12,8 @@ Helpful information to understand the project can be found here: [CONTRIBUTING](
 ^^^ please delete the lines above or leave them commented, when raising a PR, to keep the text to the bare essentials ^^^
 !-->
 
-# Checklist
+## Checklist
+
 Please put a X in the boxes as evidence of reading through the checklist.
 
 - [ ] I have forked the project, and raised this PR on a feature branch.

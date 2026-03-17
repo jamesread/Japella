@@ -637,8 +637,28 @@ func (s *ControlApi) DeleteCannedPost(ctx context.Context, req *connect.Request[
 func (s *ControlApi) GetConnectors(ctx context.Context, req *connect.Request[controlv1.GetConnectorsRequest]) (*connect.Response[controlv1.GetConnectorsResponse], error) {
 	log.Infof("Fetching connectors")
 
+	connectors := marshalConnectors(s.cc, req.Msg.OnlyWantOauth)
+
+	// Mark all returned connectors as started
+	for _, conn := range connectors {
+		conn.IsStarted = true
+	}
+
+	// Get unregistered connectors (not started)
+	unregistered := s.cc.GetUnregisteredConnectors()
+	unregisteredProto := make([]*controlv1.UnregisteredConnector, 0, len(unregistered))
+
+	for _, uc := range unregistered {
+		unregisteredProto = append(unregisteredProto, &controlv1.UnregisteredConnector{
+			Protocol: uc.Protocol,
+			Name:     uc.Name,
+			Icon:     uc.Icon,
+		})
+	}
+
 	res := connect.NewResponse(&controlv1.GetConnectorsResponse{
-		Connectors: marshalConnectors(s.cc, req.Msg.OnlyWantOauth),
+		Connectors:           connectors,
+		UnregisteredConnectors: unregisteredProto,
 	})
 
 	return res, nil
@@ -655,11 +675,38 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 			continue
 		}
 
+		// Get protocol name and display name
+		protocolName := svc.GetProtocol()
+		displayName := protocolName
+
+		// Get display name if connector supports it, otherwise use protocol name
+		if connectorWithDisplayName, ok := svc.(connector.ConnectorWithDisplayName); ok {
+			if name := connectorWithDisplayName.GetDisplayName(); name != "" {
+				displayName = name
+			}
+		}
+
+		// Check if connector uses YAML configuration
+		_, usesYamlConfig := svc.(connector.ConnectorWithYamlConfig)
+
+		// Check if connector supports social accounts (OAuth connectors or connectors with wall support)
+		_, supportsSocialAccounts := svc.(connector.ConnectorWithWall)
+		if !supportsSocialAccounts {
+			supportsSocialAccounts = isOAuth
+		}
+
+		// Check if connector supports chatbot functionality
+		_, supportsChatBot := svc.(connector.ConnectorWithChatBot)
+
 		srv := &controlv1.Connector{
-			Name:         svc.GetProtocol(),
-			Icon:         svc.GetIcon(),
-			HasOauth:     isOAuth,
-			IsRegistered: isOAuthRegistered(svc),
+			Name:                  displayName,
+			Protocol:              protocolName,
+			Icon:                  svc.GetIcon(),
+			HasOauth:              isOAuth,
+			IsRegistered:          isOAuthRegistered(svc),
+			UsesYamlConfig:        usesYamlConfig,
+			SupportsSocialAccounts: supportsSocialAccounts,
+			SupportsChatbot:        supportsChatBot,
 		}
 
 		cfgProvider, isConfigProvider := svc.(connector.ConfigProvider)
@@ -1935,6 +1982,221 @@ func (s *ControlApi) UpdateCannedPost(ctx context.Context, req *connect.Request[
 		StandardResponse: &controlv1.StandardResponse{
 			Success: true,
 			Message: "Canned post updated successfully",
+		},
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) GetChatBots(ctx context.Context, req *connect.Request[controlv1.GetChatBotsRequest]) (*connect.Response[controlv1.GetChatBotsResponse], error) {
+	log.Infof("Fetching chatbots")
+
+	bots := make([]*controlv1.ChatBot, 0)
+
+	for _, svc := range s.cc.GetServices() {
+		if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
+			chatbot := chatbotConnector.GetChatBot()
+			if chatbot != nil {
+				bots = append(bots, &controlv1.ChatBot{
+					Connector:          chatbot.Connector,
+					Name:               chatbot.Name,
+					Identity:           chatbot.Identity,
+					Icon:               chatbot.Icon,
+					IsRunning:          chatbot.IsRunning,
+					StatusMessage:      chatbot.StatusMessage,
+					ErrorMessage:       chatbot.ErrorMessage,
+					ProtocolDisplayName: chatbot.ProtocolDisplayName,
+				})
+			}
+		}
+	}
+
+	res := connect.NewResponse(&controlv1.GetChatBotsResponse{
+		Bots: bots,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) GetBotChannels(ctx context.Context, req *connect.Request[controlv1.GetBotChannelsRequest]) (*connect.Response[controlv1.GetBotChannelsResponse], error) {
+	log.Infof("Fetching channels for bot: %s (identity: %s)", req.Msg.Connector, req.Msg.Identity)
+
+	channels := make([]*controlv1.BotChannel, 0)
+
+	// Find the matching bot connector
+	for _, svc := range s.cc.GetServices() {
+		if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
+			chatbot := chatbotConnector.GetChatBot()
+			if chatbot != nil {
+				// Match by connector and optionally by identity
+				matchesConnector := chatbot.Connector == req.Msg.Connector
+				matchesIdentity := req.Msg.Identity == "" || chatbot.Identity == req.Msg.Identity
+
+				if matchesConnector && matchesIdentity {
+					// Check if this connector supports channel info
+					if channelsConnector, ok := svc.(connector.ConnectorWithChannelsInfo); ok {
+						botChannels := channelsConnector.GetChannels()
+						for _, ch := range botChannels {
+							channels = append(channels, &controlv1.BotChannel{
+								Id:       ch.ID,
+								Title:    ch.Title,
+								Type:     ch.Type,
+								Username: ch.Username,
+							})
+						}
+						break
+					}
+				}
+			}
+		}
+	}
+
+	res := connect.NewResponse(&controlv1.GetBotChannelsResponse{
+		Channels: channels,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) GetBotHooks(ctx context.Context, req *connect.Request[controlv1.GetBotHooksRequest]) (*connect.Response[controlv1.GetBotHooksResponse], error) {
+	log.Infof("Fetching hooks for bot: %s (identity: %s)", req.Msg.Connector, req.Msg.Identity)
+
+	hooks := make([]*controlv1.IncomingMessageHook, 0)
+
+	// Load hooks from database
+	dbHooks, err := s.DB.SelectWebhookHooks(req.Msg.Connector, req.Msg.Identity)
+	if err == nil {
+		for _, hook := range dbHooks {
+			hooks = append(hooks, &controlv1.IncomingMessageHook{
+				Url:     hook.URL,
+				Enabled: hook.Enabled,
+			})
+		}
+	} else {
+		log.Warnf("Failed to load hooks from database, trying connector: %v", err)
+		// Fallback: try to get from connector (for backward compatibility)
+		for _, svc := range s.cc.GetServices() {
+			if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
+				chatbot := chatbotConnector.GetChatBot()
+				if chatbot != nil {
+					// Match by connector and optionally by identity
+					matchesConnector := chatbot.Connector == req.Msg.Connector
+					matchesIdentity := req.Msg.Identity == "" || chatbot.Identity == req.Msg.Identity
+
+					if matchesConnector && matchesIdentity {
+						// Check if this connector supports hooks
+						if hooksConnector, ok := svc.(connector.ConnectorWithHooks); ok {
+							botHooks := hooksConnector.GetHooks()
+							for _, hook := range botHooks {
+								hooks = append(hooks, &controlv1.IncomingMessageHook{
+									Url:     hook.URL,
+									Enabled: hook.Enabled,
+								})
+							}
+							break
+						}
+					}
+				}
+			}
+		}
+	}
+
+	res := connect.NewResponse(&controlv1.GetBotHooksResponse{
+		Hooks: hooks,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) SetBotHooks(ctx context.Context, req *connect.Request[controlv1.SetBotHooksRequest]) (*connect.Response[controlv1.SetBotHooksResponse], error) {
+	log.Infof("Setting hooks for bot: %s (identity: %s)", req.Msg.Connector, req.Msg.Identity)
+
+	// Verify the bot exists
+	var botExists bool
+	for _, svc := range s.cc.GetServices() {
+		if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
+			chatbot := chatbotConnector.GetChatBot()
+			if chatbot != nil {
+				// Match by connector and optionally by identity
+				matchesConnector := chatbot.Connector == req.Msg.Connector
+				matchesIdentity := req.Msg.Identity == "" || chatbot.Identity == req.Msg.Identity
+
+				if matchesConnector && matchesIdentity {
+					botExists = true
+					break
+				}
+			}
+		}
+	}
+
+	if !botExists {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("bot not found: %s/%s", req.Msg.Connector, req.Msg.Identity))
+	}
+
+	// Delete existing hooks for this connector/identity
+	err := s.DB.DeleteWebhookHooks(req.Msg.Connector, req.Msg.Identity)
+	if err != nil {
+		log.Errorf("Failed to delete existing hooks: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete existing hooks: %w", err))
+	}
+
+	// Create new hooks in database
+	for _, hook := range req.Msg.Hooks {
+		dbHook := &db.WebhookHook{
+			Connector: req.Msg.Connector,
+			Identity:  req.Msg.Identity,
+			URL:       hook.Url,
+			Enabled:   hook.Enabled,
+		}
+		err := s.DB.CreateWebhookHook(dbHook)
+		if err != nil {
+			log.Errorf("Failed to create webhook hook: %v", err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create webhook hook: %w", err))
+		}
+	}
+
+	// Also update the connector's in-memory hooks for immediate effect
+	var targetConnector connector.ConnectorWithHooks
+	for _, svc := range s.cc.GetServices() {
+		if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
+			chatbot := chatbotConnector.GetChatBot()
+			if chatbot != nil {
+				// Match by connector and optionally by identity
+				matchesConnector := chatbot.Connector == req.Msg.Connector
+				matchesIdentity := req.Msg.Identity == "" || chatbot.Identity == req.Msg.Identity
+
+				if matchesConnector && matchesIdentity {
+					// Check if this connector supports hooks
+					if hooksConnector, ok := svc.(connector.ConnectorWithHooks); ok {
+						targetConnector = hooksConnector
+						break
+					}
+				}
+			}
+		}
+	}
+
+	if targetConnector != nil {
+		// Convert proto hooks to connector hooks
+		connectorHooks := make([]*connector.IncomingMessageHook, 0, len(req.Msg.Hooks))
+		for _, hook := range req.Msg.Hooks {
+			connectorHooks = append(connectorHooks, &connector.IncomingMessageHook{
+				URL:     hook.Url,
+				Enabled: hook.Enabled,
+			})
+		}
+
+		// Update hooks in connector
+		err := targetConnector.SetHooks(connectorHooks)
+		if err != nil {
+			log.Warnf("Failed to update connector hooks (database update succeeded): %v", err)
+		}
+	}
+
+	res := connect.NewResponse(&controlv1.SetBotHooksResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Hooks updated successfully",
 		},
 	})
 

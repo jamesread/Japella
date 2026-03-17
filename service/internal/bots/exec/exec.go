@@ -77,6 +77,7 @@ func (b *ExecBot) exechelp(m *msgs.IncomingMessage, command string, arguments st
 	out := &msgs.OutgoingMessage{
 		Channel:  m.Channel,
 		Protocol: m.Protocol,
+		Identity: m.Identity, // Include bot identity to route to correct bot instance
 	}
 
 	out.Content = "Available commands: " + commands
@@ -99,6 +100,7 @@ func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments str
 	out := &msgs.OutgoingMessage{
 		Channel:  m.Channel,
 		Protocol: m.Protocol,
+		Identity: m.Identity, // Include bot identity to route to correct bot instance
 	}
 
 	b.Logger().Infof("Executing command: %v", m.Content)

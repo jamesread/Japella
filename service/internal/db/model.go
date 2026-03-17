@@ -157,3 +157,12 @@ type TableLog struct {
 	RelatedSocialAccountID sql.NullInt32 `db:"related_social_account_id"`
 	RelatedSocialAccount   *SocialAccount
 }
+
+type WebhookHook struct {
+	Model
+
+	Connector string `db:"connector"`
+	Identity  string `db:"identity"`
+	URL       string `db:"url"`
+	Enabled   bool   `db:"enabled"`
+}

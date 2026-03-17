@@ -12,6 +12,7 @@ message IncomingMessage {
   string protocol = 5;
   string message_id = 6;
   int64 timestamp = 7;
+  string identity = 8; // Bot identity/username that received this message
 }
 
 message OutgoingMessage {
@@ -19,6 +20,7 @@ message OutgoingMessage {
   string channel = 2;
   string protocol = 3;
   string incomming_message_id = 4;
+  string identity = 5; // Bot identity/username to identify which bot instance should handle this message
 }
 
 message ThreadSearchRequest {
