@@ -102,6 +102,20 @@ type BlueskyEmbedImages struct {
 	Images []BlueskyEmbedImageItem `json:"images"`
 }
 
+// BlueskyEmbedExternal is app.bsky.embed.external for rich link cards
+type BlueskyEmbedExternal struct {
+	Type     string           `json:"$type"`
+	External BlueskyExternal  `json:"external"`
+}
+
+// BlueskyExternal is app.bsky.embed.external#external (uri, title, description, optional thumb)
+type BlueskyExternal struct {
+	URI         string          `json:"uri"`
+	Title       string          `json:"title"`
+	Description string          `json:"description"`
+	Thumb       *BlueskyBlobRef `json:"thumb,omitempty"`
+}
+
 type BlueskyEmbedImageItem struct {
 	Image       BlueskyBlobRef   `json:"image"`
 	Alt         string           `json:"alt"`
@@ -228,6 +242,61 @@ func (b *BlueskyConnector) uploadBlob(pdsURL, path string, client *utils.Chainin
 	return &out.Blob, nil
 }
 
+const (
+	thumbMaxSize  = 1000000 // 1MB Bluesky limit for external thumb
+	thumbTimeout  = 15 * time.Second
+)
+
+// downloadAndUploadThumb fetches an image from imageURL, saves to a temp file, uploads as blob to PDS, and returns the blob ref.
+func (b *BlueskyConnector) downloadAndUploadThumb(pdsURL, imageURL string, client *utils.ChainingHttpClient) *BlueskyBlobRef {
+	httpClient := &http.Client{Timeout: thumbTimeout}
+	req, err := http.NewRequest("GET", imageURL, nil)
+	if err != nil {
+		return nil
+	}
+	req.Header.Set("User-Agent", ogUserAgent)
+	resp, err := httpClient.Do(req)
+	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil
+	}
+	defer resp.Body.Close()
+	ct := resp.Header.Get("Content-Type")
+	if !strings.HasPrefix(ct, "image/") {
+		return nil
+	}
+	body, err := io.ReadAll(io.LimitReader(resp.Body, thumbMaxSize+1))
+	if err != nil || len(body) > thumbMaxSize {
+		return nil
+	}
+	ext := ".jpg"
+	switch {
+	case strings.HasPrefix(ct, "image/png"):
+		ext = ".png"
+	case strings.HasPrefix(ct, "image/gif"):
+		ext = ".gif"
+	case strings.HasPrefix(ct, "image/webp"):
+		ext = ".webp"
+	}
+	tmp, err := os.CreateTemp("", "japella-thumb-*"+ext)
+	if err != nil {
+		return nil
+	}
+	tmpPath := tmp.Name()
+	defer os.Remove(tmpPath)
+	if _, err := tmp.Write(body); err != nil {
+		tmp.Close()
+		return nil
+	}
+	if err := tmp.Close(); err != nil {
+		return nil
+	}
+	blob, err := b.uploadBlob(pdsURL, tmpPath, client)
+	if err != nil {
+		return nil
+	}
+	return blob
+}
+
 func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, content string, mediaPaths []string) *connector.PostResult {
 	// Get the full social account from database to access OAuth fields
 	dbSocialAccount, err := b.db.GetSocialAccount(socialAccount.Id)
@@ -295,6 +364,24 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 			record.Embed = &BlueskyEmbedImages{
 				Type:   "app.bsky.embed.images",
 				Images: images,
+			}
+		}
+	} else if firstURL := b.getFirstURL(content); firstURL != "" {
+		// Rich link preview: fetch Open Graph data and add app.bsky.embed.external
+		if preview, err := b.fetchLinkPreview(firstURL); err == nil && preview != nil {
+			ext := BlueskyExternal{
+				URI:         firstURL,
+				Title:       preview.Title,
+				Description: preview.Description,
+			}
+			if preview.ImageURL != "" {
+				if thumbBlob := b.downloadAndUploadThumb(pdsURL, preview.ImageURL, client); thumbBlob != nil {
+					ext.Thumb = thumbBlob
+				}
+			}
+			record.Embed = &BlueskyEmbedExternal{
+				Type:     "app.bsky.embed.external",
+				External: ext,
 			}
 		}
 	}
@@ -380,6 +467,22 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 }
 
 // parseFacets parses URLs, mentions, and hashtags from text and returns Bluesky facets
+// getFirstURL returns the first valid http(s) URL in text, or empty string.
+func (b *BlueskyConnector) getFirstURL(text string) string {
+	if text == "" {
+		return ""
+	}
+	urlRegex := regexp.MustCompile(`https?://[^\s]+`)
+	m := urlRegex.FindString(text)
+	if m == "" {
+		return ""
+	}
+	if parsed, err := url.Parse(m); err == nil && (parsed.Scheme == "http" || parsed.Scheme == "https") {
+		return m
+	}
+	return ""
+}
+
 func (b *BlueskyConnector) parseFacets(text string) []BlueskyFacet {
 	if text == "" {
 		return nil
