@@ -4,12 +4,16 @@ import (
 	"github.com/bwmarrin/discordgo"
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/amqp"
+	"github.com/jamesread/japella/internal/connector"
+	"github.com/jamesread/japella/internal/hooks"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
 	"time"
 )
 
 var goBot *discordgo.Session
 var registeredCommands map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate)
+var discordConnectorInstance *DiscordConnector // Global reference to access hooks from messageHandler
 
 func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 	var err error
@@ -18,18 +22,13 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 	registeredCommands = make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate))
 
 	if err != nil {
-		log.Errorf("Cannot create new discord bot: %v", err)
+		a.Logger().Errorf("Cannot create new discord bot: %v", err)
+		a.isRunning = false
 		return nil
 	}
 
-	u, err := goBot.User("@me")
-
-	if err != nil {
-		log.Fatalf("%v", err)
-		return nil
-	}
-
-	a.nickname = u.ID
+	// Store reference to connector instance so messageHandler can access hooks
+	discordConnectorInstance = a
 
 	goBot.AddHandler(messageHandler)
 	goBot.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
@@ -37,7 +36,41 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 	err = goBot.Open()
 
 	if err != nil {
-		log.Errorf("err: %v", err)
+		a.Logger().Errorf("Error opening Discord connection: %v", err)
+		a.isRunning = false
+		return nil
+	}
+
+	// Get user info after connection is open
+	u, err := goBot.User("@me")
+	if err != nil {
+		a.Logger().Errorf("Error getting bot user info: %v", err)
+		// Don't fail completely, just use a default
+		a.nickname = "Discord Bot"
+	} else {
+		a.nickname = u.Username
+		if a.nickname == "" {
+			a.nickname = u.ID
+		}
+	}
+
+	a.isRunning = true
+
+	// Load hooks from database now that we have the nickname
+	if a.db != nil {
+		dbHooks, err := a.db.SelectWebhookHooks("discord", a.nickname)
+		if err == nil && len(dbHooks) > 0 {
+			a.hooks = make([]runtimeconfig.IncomingMessageHook, 0, len(dbHooks))
+			for _, hook := range dbHooks {
+				a.hooks = append(a.hooks, runtimeconfig.IncomingMessageHook{
+					URL:     hook.URL,
+					Enabled: hook.Enabled,
+				})
+			}
+			a.Logger().Infof("Loaded %d incoming message hook(s) from database", len(a.hooks))
+		} else if err != nil {
+			a.Logger().Warnf("Failed to load hooks from database: %v, using config hooks", err)
+		}
 	}
 
 	goBot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -48,17 +81,7 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 
 	registerCommand("ping", cmdPing)
 
-	if false {
-		go Replier()
-		go MessageSearch()
-	}
-
-	if err != nil {
-		log.Fatalf("%v", err)
-		return nil
-	}
-
-	a.Logger().Infof("Connector is running !")
+	a.Logger().Infof("Discord connector is running!")
 
 	return goBot
 }
@@ -143,18 +166,73 @@ func (a *DiscordConnector) GetProtocol() string {
 	return "discord"
 }
 
-func Replier() {
-	amqp.ConsumeForever("discord-OutgoingMessage", func(d amqp.Delivery) {
+func (a *DiscordConnector) GetIcon() string {
+	return "mdi:discord"
+}
+
+func (a *DiscordConnector) GetChatBot() *connector.ChatBot {
+	name := "Discord"
+	if a.nickname != "" {
+		name = a.nickname
+	}
+	return &connector.ChatBot{
+		Connector:          a.GetProtocol(),
+		Name:               name,
+		Identity:           a.nickname,
+		Icon:               a.GetIcon(),
+		IsRunning:          a.isRunning,
+		ProtocolDisplayName: "", // Discord doesn't have a protocol-specific display name
+	}
+}
+
+// GetHooks returns the configured hooks for this connector
+// Implements ConnectorWithHooks interface
+func (a *DiscordConnector) GetHooks() []*connector.IncomingMessageHook {
+	hooks := make([]*connector.IncomingMessageHook, 0, len(a.hooks))
+	for _, hook := range a.hooks {
+		hooks = append(hooks, &connector.IncomingMessageHook{
+			URL:     hook.URL,
+			Enabled: hook.Enabled,
+		})
+	}
+	return hooks
+}
+
+// SetHooks updates the hooks for this connector
+// Implements ConnectorWithHooks interface
+// Note: This updates in-memory hooks only. The database should be updated via the API.
+func (a *DiscordConnector) SetHooks(hooks []*connector.IncomingMessageHook) error {
+	a.hooks = make([]runtimeconfig.IncomingMessageHook, 0, len(hooks))
+	for _, hook := range hooks {
+		a.hooks = append(a.hooks, runtimeconfig.IncomingMessageHook{
+			URL:     hook.URL,
+			Enabled: hook.Enabled,
+		})
+	}
+	a.Logger().Infof("Updated hooks: %d hook(s) configured", len(a.hooks))
+	return nil
+}
+
+func (a *DiscordConnector) Replier() {
+	// Use identity-specific routing key so this bot only receives messages intended for it
+	routingKey := amqp.GetOutgoingMessageRoutingKey("discord", a.nickname)
+	a.Logger().Infof("Starting Replier for routing key: %s", routingKey)
+
+	// Consume from identity-specific routing key
+	amqp.ConsumeForever(routingKey, func(d amqp.Delivery) {
 		reply := msgs.OutgoingMessage{}
 
 		amqp.Decode(d.Message.Body, &reply)
 
-		log.Infof("reply: %+v %v", &reply, goBot)
+		a.Logger().Infof("reply: %+v %v", &reply, goBot)
 
-		goBot.ChannelMessageSend(reply.Channel, reply.Content)
+		// Note: AMQP binding should already filter by identity via routing key, but we keep protocol check for safety
+
+		if goBot != nil {
+			goBot.ChannelMessageSend(reply.Channel, reply.Content)
+		}
 
 	})
-
 }
 
 func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -165,13 +243,40 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
+	// Get bot identity from the session
+	botIdentity := ""
+	botUserID := ""
+	if goBot != nil && goBot.State != nil && goBot.State.User != nil {
+		botIdentity = goBot.State.User.Username
+		botUserID = goBot.State.User.ID
+		if botIdentity == "" {
+			botIdentity = goBot.State.User.ID
+		}
+	}
+
+	// Only process messages that mention the bot at the beginning
+	if !isBotMentionedAtStart(m, botUserID) {
+		log.Infof("Ignoring message that doesn't mention bot at the beginning: Channel=%s, Author=%s, Content=%q", m.ChannelID, getUsername(m), m.Content)
+		return
+	}
+
+	// Remove the bot mention from the beginning of the content for processing
+	content := removeBotMentionFromStart(m.Content, botUserID)
+
 	msg := msgs.IncomingMessage{
 		Author:    getUsername(m),
-		Content:   m.Content,
+		Content:   content, // Use content with bot mention removed
 		Channel:   m.ChannelID,
 		MessageId: m.ID,
 		Protocol:  "discord",
 		Timestamp: time.Now().Unix(),
+		Identity:  botIdentity, // Include bot identity so hooks can route responses correctly
+	}
+
+	// Execute hooks if configured
+	if discordConnectorInstance != nil && len(discordConnectorInstance.hooks) > 0 {
+		log.Debugf("Executing %d hook(s) for incoming Discord message", len(discordConnectorInstance.hooks))
+		hooks.ExecuteHooks(discordConnectorInstance.hooks, &msg, discordConnectorInstance.Logger())
 	}
 
 	amqp.PublishPb(&msg)
@@ -191,4 +296,74 @@ func getUsername(m *discordgo.MessageCreate) string {
 	}
 
 	return m.Author.Username
+}
+
+// isBotMentionedAtStart checks if the bot is mentioned at the beginning of the message
+// Discord mentions can be in the format: @username, <@userID>, or <@!userID>
+func isBotMentionedAtStart(m *discordgo.MessageCreate, botUserID string) bool {
+	if botUserID == "" {
+		return false
+	}
+
+	content := m.Content
+	if content == "" {
+		return false
+	}
+
+	// First check if the bot is in the Mentions list (most reliable)
+	botMentioned := false
+	for _, mention := range m.Mentions {
+		if mention.ID == botUserID {
+			botMentioned = true
+			break
+		}
+	}
+
+	if !botMentioned {
+		return false
+	}
+
+	// Check if the mention is at the beginning of the message
+	// Discord mentions can be: <@userID> or <@!userID>
+	mentionPatterns := []string{
+		"<@" + botUserID + ">",
+		"<@!" + botUserID + ">",
+	}
+
+	// Check if content starts with any mention pattern
+	for _, pattern := range mentionPatterns {
+		if len(content) >= len(pattern) && content[:len(pattern)] == pattern {
+			// Check if it's at the start (possibly followed by space or end of string)
+			if len(content) == len(pattern) || content[len(pattern)] == ' ' {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// removeBotMentionFromStart removes the bot mention from the beginning of the message content
+func removeBotMentionFromStart(content string, botUserID string) string {
+	if botUserID == "" {
+		return content
+	}
+
+	mentionPatterns := []string{
+		"<@" + botUserID + ">",
+		"<@!" + botUserID + ">",
+	}
+
+	for _, pattern := range mentionPatterns {
+		if len(content) >= len(pattern) && content[:len(pattern)] == pattern {
+			// Remove the mention and any following space
+			remaining := content[len(pattern):]
+			if len(remaining) > 0 && remaining[0] == ' ' {
+				remaining = remaining[1:]
+			}
+			return remaining
+		}
+	}
+
+	return content
 }

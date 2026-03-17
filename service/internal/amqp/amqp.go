@@ -184,11 +184,21 @@ func PublishPbWithRoutingKey(msg interface{}, routingKey string) {
 
 	env := newEnvelope(getMsgType(msg), Encode(msg))
 
+	log.Debugf("Publishing message with routing key: %s", routingKey)
 	err = PublishWithChannel(channel, routingKey, env)
 
 	if err != nil {
 		log.Errorf("PublishPbWithRoutingKey: %v", err)
 	}
+}
+
+// GetOutgoingMessageRoutingKey generates a routing key for OutgoingMessage that includes identity
+// Format: "{protocol}-OutgoingMessage-{identity}" if identity is set, otherwise "{protocol}-OutgoingMessage"
+func GetOutgoingMessageRoutingKey(protocol string, identity string) string {
+	if identity != "" {
+		return protocol + "-OutgoingMessage-" + identity
+	}
+	return protocol + "-OutgoingMessage"
 }
 
 func PublishPb(msg interface{}) {
@@ -307,14 +317,17 @@ func consumeWithChannel(handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTa
 		return
 	}
 
+	// Use empty string for consumer tag - RabbitMQ will auto-generate a unique tag
+	// This prevents conflicts when reconnecting after channel closes
+	// The consumer tag is only used for cancellation, which we don't need to track
 	deliveries, err := c.Consume(
-		queueName,              // name
-		"consume-"+deliveryTag, // consumer tag
-		false,                  // noAck
-		false,                  // exclusive
-		false,                  // noLocal
-		false,                  // noWait
-		nil,                    // arguments
+		queueName, // name
+		"",        // consumer tag (empty = auto-generate unique tag)
+		false,     // noAck
+		false,     // exclusive
+		false,     // noLocal
+		false,     // noWait
+		nil,       // arguments
 	)
 
 	if err != nil {

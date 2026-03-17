@@ -30,6 +30,7 @@ type IncomingMessage struct {
 	Protocol      string                 `protobuf:"bytes,5,opt,name=protocol,proto3" json:"protocol,omitempty"`
 	MessageId     string                 `protobuf:"bytes,6,opt,name=message_id,json=messageId,proto3" json:"message_id,omitempty"`
 	Timestamp     int64                  `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	Identity      string                 `protobuf:"bytes,8,opt,name=identity,proto3" json:"identity,omitempty"` // Bot identity/username that received this message
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -113,12 +114,20 @@ func (x *IncomingMessage) GetTimestamp() int64 {
 	return 0
 }
 
+func (x *IncomingMessage) GetIdentity() string {
+	if x != nil {
+		return x.Identity
+	}
+	return ""
+}
+
 type OutgoingMessage struct {
 	state              protoimpl.MessageState `protogen:"open.v1"`
 	Content            string                 `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
 	Channel            string                 `protobuf:"bytes,2,opt,name=channel,proto3" json:"channel,omitempty"`
 	Protocol           string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
 	IncommingMessageId string                 `protobuf:"bytes,4,opt,name=incomming_message_id,json=incommingMessageId,proto3" json:"incomming_message_id,omitempty"`
+	Identity           string                 `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"` // Bot identity/username to identify which bot instance should handle this message
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -177,6 +186,13 @@ func (x *OutgoingMessage) GetProtocol() string {
 func (x *OutgoingMessage) GetIncommingMessageId() string {
 	if x != nil {
 		return x.IncommingMessageId
+	}
+	return ""
+}
+
+func (x *OutgoingMessage) GetIdentity() string {
+	if x != nil {
+		return x.Identity
 	}
 	return ""
 }
@@ -317,7 +333,7 @@ var File_japella_nodemsgs_v1_nodemessages_proto protoreflect.FileDescriptor
 
 const file_japella_nodemsgs_v1_nodemessages_proto_rawDesc = "" +
 	"\n" +
-	"&japella/nodemsgs/v1/nodemessages.proto\x12\x13japella.nodemsgs.v1\"\xce\x01\n" +
+	"&japella/nodemsgs/v1/nodemessages.proto\x12\x13japella.nodemsgs.v1\"\xea\x01\n" +
 	"\x0fIncomingMessage\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12\x18\n" +
 	"\achannel\x18\x02 \x01(\tR\achannel\x12\x16\n" +
@@ -326,12 +342,14 @@ const file_japella_nodemsgs_v1_nodemessages_proto_rawDesc = "" +
 	"\bprotocol\x18\x05 \x01(\tR\bprotocol\x12\x1d\n" +
 	"\n" +
 	"message_id\x18\x06 \x01(\tR\tmessageId\x12\x1c\n" +
-	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\"\x93\x01\n" +
+	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\x12\x1a\n" +
+	"\bidentity\x18\b \x01(\tR\bidentity\"\xaf\x01\n" +
 	"\x0fOutgoingMessage\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12\x18\n" +
 	"\achannel\x18\x02 \x01(\tR\achannel\x12\x1a\n" +
 	"\bprotocol\x18\x03 \x01(\tR\bprotocol\x120\n" +
-	"\x14incomming_message_id\x18\x04 \x01(\tR\x12incommingMessageId\"1\n" +
+	"\x14incomming_message_id\x18\x04 \x01(\tR\x12incommingMessageId\x12\x1a\n" +
+	"\bidentity\x18\x05 \x01(\tR\bidentity\"1\n" +
 	"\x13ThreadSearchRequest\x12\x1a\n" +
 	"\bprotocol\x18\x01 \x01(\tR\bprotocol\"M\n" +
 	"\x14ThreadSearchResponse\x125\n" +

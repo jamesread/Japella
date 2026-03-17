@@ -49,8 +49,6 @@
 			</table>
 		</div>
 	</Section>
-
-	<OAuthServices />
 </template>
 
 <script setup>
@@ -131,7 +129,7 @@
 			.then((ret) => {
 				if (!ret.standardResponse.success) {
 				    console.log('Error refreshing social account:', ret.standardResponse.message)
-				    
+
 				    // Check if the error indicates re-authentication is required
 				    const errorMessage = ret.standardResponse.message.toLowerCase()
 				    if (errorMessage.includes('re-authentication required') || errorMessage.includes('reauthentication required')) {
@@ -210,5 +208,5 @@
 
 <style scoped>
 	/* Use global .social-account styling from main.css */
-		
+
 </style>

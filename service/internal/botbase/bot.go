@@ -132,13 +132,15 @@ func Consumek[M interface{}](log *utils.LogComponent, handler func(M)) {
 */
 
 func (b *Bot) SendMessage(msg *msgs.OutgoingMessage) {
-	amqp.PublishPbWithRoutingKey(msg, msg.Protocol+"-OutgoingMessage")
+	routingKey := amqp.GetOutgoingMessageRoutingKey(msg.Protocol, msg.Identity)
+	amqp.PublishPbWithRoutingKey(msg, routingKey)
 }
 
 func (b *Bot) Reply(msg *msgs.IncomingMessage) *msgs.OutgoingMessage {
 	return &msgs.OutgoingMessage{
 		Protocol: msg.Protocol,
 		Channel:  msg.Channel,
+		Identity: msg.Identity, // Include bot identity to route to correct bot instance
 	}
 }
 

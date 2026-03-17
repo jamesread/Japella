@@ -3,12 +3,13 @@ package runtimeconfig
 type CommonConfig struct {
 	ConfigVersion int `yaml:"configVersion"`
 
-	Amqp          AmqpConfig
-	Connectors    []*ConnectorConfigWrapper
-	Database      DatabaseConfig
-	Nanoservices  []NanoserviceConfig
-	TLS           TLSConfig
-	ListenAddress string `yaml:"listenAddress"`
+	Amqp              AmqpConfig
+	Connectors        []*ConnectorConfigWrapper
+	Database          DatabaseConfig
+	Nanoservices      []NanoserviceConfig
+	TLS               TLSConfig
+	ListenAddress     string `yaml:"listenAddress"`
+	TelegramDebugChatId string `yaml:"telegramDebugChatId"` // Global debug chat ID for Telegram bots to send startup messages
 }
 
 type ConnectorConfig interface {
@@ -28,13 +29,21 @@ type BlueskyConfig struct {
 }
 
 type DiscordConfig struct {
-	AppId     string
-	PublicKey string
-	Token     string
+	AppId                string
+	PublicKey            string
+	Token                string
+	IncomingMessageHooks []IncomingMessageHook `yaml:"incomingMessageHooks"` // Webhooks to call when messages are received
+}
+
+type IncomingMessageHook struct {
+	URL     string `yaml:"url"`     // Webhook URL to call
+	Enabled bool   `yaml:"enabled"` // Whether this hook is enabled
 }
 
 type TelegramConfig struct {
-	Token string
+	Token                string                `yaml:"token"`
+	Name                 string                `yaml:"name"`
+	IncomingMessageHooks []IncomingMessageHook `yaml:"incomingMessageHooks"` // Webhooks to call when messages are received
 }
 
 type AmqpConfig struct {

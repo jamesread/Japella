@@ -13,7 +13,6 @@ import CannedPosts from '../vue/CannedPosts.vue'
 import UserList from '../vue/UserList.vue'
 import SocialAccounts from '../vue/SocialAccounts.vue'
 import SocialAccountDetails from '../vue/SocialAccountDetails.vue'
-import OAuthServices from '../vue/OAuthServices.vue'
 import ApiKeys from '../vue/ApiKeys.vue'
 import Media from '../vue/Media.vue'
 import ControlPanel from '../vue/ControlPanel.vue'
@@ -23,6 +22,9 @@ import PostDetails from '../vue/PostDetails.vue'
 import Feed from '../vue/Feed.vue'
 import Logs from '../vue/Logs.vue'
 import BrowserDiagnostics from '../vue/BrowserDiagnostics.vue'
+import ChatBots from '../vue/ChatBots.vue'
+import ChatBotDetails from '../vue/ChatBotDetails.vue'
+import Connectors from '../vue/Connectors.vue'
 
 import {
   SettingsIcon,
@@ -37,6 +39,7 @@ import {
   UserGroupIcon,
   ActivityIcon,
   HomeIcon,
+  Robot01Icon,
 } from '@hugeicons/core-free-icons'
 
 const routes = [
@@ -47,6 +50,34 @@ const routes = [
     meta: {
       title: 'Welcome',
       requiresAuth: false
+    }
+  },
+  {
+    path: '/connectors',
+    name: 'connectors',
+    component: Connectors,
+    meta: {
+      title: 'Connectors',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/chat-bots',
+    name: 'chatBots',
+    component: ChatBots,
+    meta: {
+      icon: Robot01Icon,
+      title: 'Chat Bots',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/chat-bots/:connector/:identity?',
+    name: 'chatBotDetails',
+    component: ChatBotDetails,
+    meta: {
+      title: 'Chat Bot Details',
+      requiresAuth: true
     }
   },
   {
@@ -163,15 +194,6 @@ const routes = [
     component: SocialAccountDetails,
     meta: {
       title: 'Social Account',
-      requiresAuth: true
-    }
-  },
-  {
-    path: '/oauth-services',
-    name: 'oauthServices',
-    component: OAuthServices,
-    meta: {
-      title: 'OAuth Services',
       requiresAuth: true
     }
   },

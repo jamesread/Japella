@@ -155,7 +155,7 @@
 
 		navigation.value.addRouterLink('socialAccounts');
 
-		navigation.value.addRouterLink('oauthServices');
+		navigation.value.addRouterLink('chatBots');
 
 		navigation.value.addRouterLink('controlPanel');
 

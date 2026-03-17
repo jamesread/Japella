@@ -141,6 +141,7 @@ func loadEnvVars(cfg *CommonConfig) {
 	loadEnvVarStr(&cfg.TLS.CrtPath, "JAPELLA_TLS_CRT_PATH")
 	loadEnvVarStr(&cfg.TLS.KeyPath, "JAPELLA_TLS_KEY_PATH")
 	loadEnvVarStr(&cfg.ListenAddress, "JAPELLA_LISTEN_ADDRESS")
+	loadEnvVarStr(&cfg.TelegramDebugChatId, "JAPELLA_TELEGRAM_DEBUG_CHAT_ID")
 }
 
 func loadEnvVarInt(variable *int, envVar string) {
