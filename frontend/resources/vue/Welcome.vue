@@ -1,13 +1,215 @@
 <template>
-	<section class = "welcome" title = "Welcome to Japella">
-		<h2>{{ t('welcome') }}</h2>
-		<p>
-			{{ t('welcome.gettingstarted') }}
-		</p>
-	</section>
+	<div class="welcome-page">
+		<section class="welcome-hero" aria-labelledby="welcome-heading">
+			<h1 id="welcome-heading">{{ t('welcome') }}</h1>
+			<p class="welcome-tagline">{{ t('welcome.tagline') }}</p>
+			<p class="welcome-lead">{{ t('welcome.gettingstarted') }}</p>
+			<router-link :to="{ name: 'postBox' }" class="welcome-primary-cta">
+				<Icon icon="mdi:pencil-outline" width="22" height="22" aria-hidden="true" />
+				<span>{{ t('welcome.cta.post') }}</span>
+			</router-link>
+		</section>
+
+		<Section
+			:title="t('welcome.section.quickstart')"
+			:subtitle="t('welcome.section.quickstart.subtitle')"
+			classes="welcome-quickstart"
+		>
+			<div class="welcome-cards" role="navigation" aria-label="Quick links">
+				<router-link
+					v-for="card in cards"
+					:key="card.routeName"
+					:to="{ name: card.routeName }"
+					class="welcome-card"
+				>
+					<div class="welcome-card-icon" aria-hidden="true">
+						<Icon :icon="card.icon" width="28" height="28" />
+					</div>
+					<div class="welcome-card-body">
+						<span class="welcome-card-title">{{ card.title }}</span>
+						<span class="welcome-card-desc">{{ card.description }}</span>
+					</div>
+				</router-link>
+			</div>
+		</Section>
+	</div>
 </template>
 
 <script setup>
+	import { computed } from 'vue'
 	import { useI18n } from 'vue-i18n'
+	import { Icon } from '@iconify/vue'
+	import Section from 'picocrank/vue/components/Section.vue'
+
 	const { t } = useI18n()
+
+	const cards = computed(() => [
+		{
+			routeName: 'timeline',
+			icon: 'mdi:timeline-clock-outline',
+			title: t('nav.timeline'),
+			description: t('welcome.card.timeline.hint'),
+		},
+		{
+			routeName: 'socialAccounts',
+			icon: 'mdi:account-multiple-outline',
+			title: t('nav.socialaccounts'),
+			description: t('welcome.card.social.hint'),
+		},
+		{
+			routeName: 'calendar',
+			icon: 'mdi:calendar-month-outline',
+			title: t('nav.calendar'),
+			description: t('welcome.card.calendar.hint'),
+		},
+		{
+			routeName: 'media',
+			icon: 'mdi:image-multiple-outline',
+			title: t('nav.media'),
+			description: t('welcome.card.media.hint'),
+		},
+		{
+			routeName: 'feed',
+			icon: 'mdi:rss',
+			title: t('nav.feed'),
+			description: t('welcome.card.feed.hint'),
+		},
+	])
 </script>
+
+<style scoped>
+	.welcome-page {
+		max-width: 56rem;
+		margin: 0 auto;
+	}
+
+	.welcome-hero {
+		padding: 1.5rem 0 2rem;
+		margin-bottom: 0.5rem;
+		border-bottom: 1px solid var(--border-color, #e1e5e9);
+	}
+
+	.welcome-hero h1 {
+		margin: 0 0 0.5rem;
+		font-size: clamp(1.75rem, 4vw, 2.25rem);
+		font-weight: 700;
+		line-height: 1.2;
+		letter-spacing: -0.02em;
+	}
+
+	.welcome-tagline {
+		margin: 0 0 0.75rem;
+		font-size: 1.1rem;
+		color: var(--text-muted, #5c6570);
+		line-height: 1.45;
+		max-width: 36rem;
+	}
+
+	.welcome-lead {
+		margin: 0 0 1.25rem;
+		font-size: 0.95rem;
+		line-height: 1.5;
+		max-width: 38rem;
+	}
+
+	.welcome-primary-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.65rem 1.25rem;
+		border-radius: 8px;
+		font-weight: 600;
+		text-decoration: none;
+		color: #fff;
+		background: var(--primary-color, #007bff);
+		border: 1px solid var(--primary-color, #007bff);
+		transition: filter 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+		box-shadow: 0 2px 6px rgba(0, 123, 255, 0.25);
+	}
+
+	.welcome-primary-cta:hover {
+		filter: brightness(1.06);
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+	}
+
+	.welcome-primary-cta:focus-visible {
+		outline: 2px solid var(--primary-color, #007bff);
+		outline-offset: 3px;
+	}
+
+	.welcome-cards {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+		gap: 1rem;
+		padding-top: 0.25rem;
+	}
+
+	.welcome-card {
+		display: flex;
+		gap: 1rem;
+		align-items: flex-start;
+		padding: 1.1rem 1rem;
+		border: 1px solid var(--border-color, #e1e5e9);
+		border-radius: 8px;
+		text-decoration: none;
+		color: inherit;
+		transition: border-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+		background: transparent;
+	}
+
+	.welcome-card:hover {
+		border-color: var(--primary-color, #007bff);
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+	}
+
+	.welcome-card:focus-visible {
+		outline: 2px solid var(--primary-color, #007bff);
+		outline-offset: 2px;
+	}
+
+	.welcome-card-icon {
+		flex-shrink: 0;
+		color: var(--primary-color, #007bff);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		margin-top: 0.1rem;
+	}
+
+	.welcome-card-body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		min-width: 0;
+		text-align: left;
+	}
+
+	.welcome-card-title {
+		font-weight: 700;
+		font-size: 1.05rem;
+		line-height: 1.25;
+	}
+
+	.welcome-card-desc {
+		font-size: 0.875rem;
+		line-height: 1.45;
+		color: var(--text-muted, #666);
+	}
+
+	@media (prefers-color-scheme: dark) {
+		.welcome-card:hover {
+			box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+			background: var(--hover-background-color, rgba(96, 165, 250, 0.06));
+		}
+
+		.welcome-card-icon {
+			color: var(--primary-color, #60a5fa);
+		}
+
+		.welcome-primary-cta {
+			box-shadow: 0 2px 10px rgba(96, 165, 250, 0.2);
+		}
+	}
+</style>

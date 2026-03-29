@@ -2,9 +2,22 @@
 	"schemaVersion": 1,
 	"translations": {
 		"welcome": "Willkommen bei Japella!",
-		"welcome.gettingstarted": "Willkommen bei Japella. Um loszulegen, erstelle deinen ersten Beitrag.",
+		"welcome.gettingstarted": "Beginne mit einem Beitrag oder nutze die Links unten, um Konten zu verbinden, die Zeitleiste zu prüfen und mehr.",
+		"welcome.tagline": "Veröffentliche und plane Inhalte für deine Social-Media-Kanäle von einem Ort aus.",
+		"welcome.section.quickstart": "Schnellzugriff",
+		"welcome.section.quickstart.subtitle": "Häufige Ziele nach der Anmeldung.",
+		"welcome.cta.post": "Beitrag verfassen",
+		"welcome.card.timeline.hint": "Entwürfe, geplante Beiträge und Verlauf ansehen.",
+		"welcome.card.social.hint": "Profile verbinden und verwalten, auf denen du postest.",
+		"welcome.card.calendar.hint": "Sehen, was wann geplant ist.",
+		"welcome.card.media.hint": "Bilder und Dateien für Beiträge hochladen.",
+		"welcome.card.feed.hint": "Aktuelle Aktivität verbundener Konten durchsehen.",
 		"nav.post": "Post",
 		"nav.timeline": "Zeitleiste",
-		"nav.settings": "Einstellungen"
+		"nav.settings": "Einstellungen",
+		"nav.media": "Medien",
+		"nav.calendar": "Kalender",
+		"nav.socialaccounts": "Social-Media-Konten",
+		"nav.feed": "Feed"
 	}
 }

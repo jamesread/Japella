@@ -2,9 +2,22 @@
 	"schemaVersion": 1,
 	"translations": {
 		"welcome": "Benvenuto in Japella!",
-		"welcome.gettingstarted": "Per iniziare, crea il tuo primo post.",
+		"welcome.gettingstarted": "Inizia con un post o usa i collegamenti qui sotto per collegare account, consultare la cronologia e altro.",
+		"welcome.tagline": "Pubblica e programma contenuti sui tuoi canali social da un unico posto.",
+		"welcome.section.quickstart": "Collegamenti rapidi",
+		"welcome.section.quickstart.subtitle": "Destinazioni comuni dopo l’accesso.",
+		"welcome.cta.post": "Componi un post",
+		"welcome.card.timeline.hint": "Bozze, post programmati e cronologia di pubblicazione.",
+		"welcome.card.social.hint": "Collega e gestisci i profili su cui pubblichi.",
+		"welcome.card.calendar.hint": "Vedi cosa è programmato e quando.",
+		"welcome.card.media.hint": "Carica immagini e file da usare nei post.",
+		"welcome.card.feed.hint": "Sfoglia l’attività recente degli account collegati.",
 		"nav.post": "Inviare",
 		"nav.timeline": "Cronologia",
-		"nav.settings": "Impostazioni"
+		"nav.settings": "Impostazioni",
+		"nav.media": "Media",
+		"nav.calendar": "Calendario",
+		"nav.socialaccounts": "Account social",
+		"nav.feed": "Feed"
 	}
 }
