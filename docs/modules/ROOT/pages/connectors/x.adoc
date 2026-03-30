@@ -1,1 +1,37 @@
 = X
+
+Use the X connector to post messages and media to X (Twitter) via OAuth2.
+
+== What you need
+
+* An X Developer account.
+* An app in the X Developer Portal.
+* User authentication enabled for the app.
+
+== Configure credentials
+
+Set these connector values in Japella settings:
+
+* `x.client_id`
+* `x.client_secret`
+
+You can find both in the X Developer Portal under your app's keys and tokens settings.
+
+== OAuth scopes
+
+Japella requests these scopes when connecting an account:
+
+* `tweet.write`
+* `tweet.read`
+* `users.read`
+* `offline.access`
+* `media.write`
+
+If posting with images fails with a `403`, disconnect and reconnect the account so the latest scopes are granted.
+
+== Add an account
+
+. Open Japella and go to social accounts.
+. Choose **Add social account** and select **X**.
+. Complete the OAuth flow.
+. Verify that posting succeeds from the control panel.

@@ -195,6 +195,7 @@ func (db *DB) reconnectDatabase() error {
 		db.Migrate,
 		db.InsertCvarsIfNotExists,
 		db.initAdminUser,
+		db.runRBACBootstrap,
 	}
 
 	for _, check := range connectionChecks {
@@ -261,6 +262,13 @@ func (db *DB) initAdminUser(chain *ConnectionChain) {
 			chain.err = err
 			return
 		}
+	}
+}
+
+func (db *DB) runRBACBootstrap(chain *ConnectionChain) {
+	if err := db.EnsureRBACBootstrap(); err != nil {
+		db.Logger().Errorf("RBAC bootstrap failed: %v", err)
+		chain.err = err
 	}
 }
 
@@ -646,6 +654,63 @@ func (db *DB) UpdateUserPassword(userID uint32, newPasswordHash string) error {
 	return nil
 }
 
+// DeleteUserAccount removes a user and dependent rows (API keys, sessions, group memberships).
+func (db *DB) DeleteUserAccount(userID uint32) error {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+		return errors.New("database connection is not established")
+	}
+
+	tx, err := db.connx.Beginx()
+	if err != nil {
+		db.Logger().Errorf("Failed to begin delete user transaction: %v", err)
+		return err
+	}
+
+	rollback := func() {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			db.Logger().Warnf("Rollback after delete user error: %v", rbErr)
+		}
+	}
+
+	if _, err = tx.Exec("DELETE FROM api_keys WHERE user_account_id = ?", userID); err != nil {
+		db.Logger().Errorf("Failed to delete API keys for user %d: %v", userID, err)
+		rollback()
+		return err
+	}
+	if _, err = tx.Exec("DELETE FROM sessions WHERE user_account_id = ?", userID); err != nil {
+		db.Logger().Errorf("Failed to delete sessions for user %d: %v", userID, err)
+		rollback()
+		return err
+	}
+	if _, err = tx.Exec("DELETE FROM user_group_memberships WHERE user_account_id = ?", userID); err != nil {
+		db.Logger().Errorf("Failed to delete group memberships for user %d: %v", userID, err)
+		rollback()
+		return err
+	}
+	res, err := tx.Exec("DELETE FROM user_accounts WHERE id = ?", userID)
+	if err != nil {
+		db.Logger().Errorf("Failed to delete user account %d: %v", userID, err)
+		rollback()
+		return err
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		rollback()
+		return err
+	}
+	if n == 0 {
+		rollback()
+		return sql.ErrNoRows
+	}
+
+	if err = tx.Commit(); err != nil {
+		db.Logger().Errorf("Failed to commit delete user transaction: %v", err)
+		return err
+	}
+	return nil
+}
+
 func (db *DB) CreateApiKey(user *UserAccount, keyValue string) (*ApiKey, error) {
 	res, err := db.ResilientExec("INSERT INTO api_keys (key_value, user_account_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", keyValue, user.ID)
 	if err != nil {
@@ -693,6 +758,20 @@ func (db *DB) GetUserByID(id uint32) *UserAccount {
 	return &user
 }
 
+// FindUserByID loads a user by primary key. Returns sql.ErrNoRows when missing (no error log for that case).
+func (db *DB) FindUserByID(id uint32) (*UserAccount, error) {
+	var user UserAccount
+	err := db.ResilientGet(&user, "SELECT * FROM user_accounts WHERE id = ? LIMIT 1", id)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, sql.ErrNoRows
+		}
+		db.Logger().Errorf("Failed to get user by ID %d: %v", id, err)
+		return nil, err
+	}
+	return &user, nil
+}
+
 func (db *DB) GetSessionByID(sessionID string) *Session {
 	var session Session
 	err := db.ResilientGet(&session, "SELECT * FROM sessions WHERE sid = ? LIMIT 1", sessionID)
@@ -712,6 +791,39 @@ func (db *DB) GetSessionByID(sessionID string) *Session {
 	}
 
 	return &session
+}
+
+func (db *DB) ImpersonateSession(sid string, targetUserID uint32, originalUserID uint32) error {
+	_, err := db.ResilientExec(
+		"UPDATE sessions SET user_account_id = ?, impersonator_user_id = ? WHERE sid = ?",
+		targetUserID, originalUserID, sid,
+	)
+	if err != nil {
+		db.Logger().Errorf("Failed to impersonate session %s: %v", sid, err)
+	}
+	return err
+}
+
+func (db *DB) StopImpersonation(sid string) (*Session, error) {
+	sess := db.GetSessionByID(sid)
+	if sess == nil {
+		return nil, errors.New("session not found")
+	}
+	if !sess.ImpersonatorUserID.Valid {
+		return nil, errors.New("session is not impersonating")
+	}
+
+	originalUID := uint32(sess.ImpersonatorUserID.Int32)
+	_, err := db.ResilientExec(
+		"UPDATE sessions SET user_account_id = ?, impersonator_user_id = NULL WHERE sid = ?",
+		originalUID, sid,
+	)
+	if err != nil {
+		db.Logger().Errorf("Failed to stop impersonation for session %s: %v", sid, err)
+		return nil, err
+	}
+
+	return db.GetSessionByID(sid), nil
 }
 
 func (db *DB) DeleteSession(sessionID string) error {
@@ -1103,6 +1215,131 @@ func (db *DB) CreateWebhookHook(hook *WebhookHook) error {
 	_, err := db.ResilientNamedExec(`INSERT INTO webhook_hooks (connector, identity, url, enabled, created_at, updated_at) VALUES (:connector, :identity, :url, :enabled, NOW(), NOW())`, hook)
 	if err != nil {
 		db.Logger().Errorf("Failed to create webhook hook: %v", err)
+		return err
+	}
+	return nil
+}
+
+func (db *DB) SelectSocialAccountsForUser(userID uint32, onlyActive bool) []*SocialAccount {
+	ret := make([]*SocialAccount, 0)
+	activeClause := ""
+	if onlyActive {
+		activeClause = " AND sa.active = 1"
+	}
+	query := fmt.Sprintf(`SELECT sa.* FROM social_accounts sa
+		WHERE (sa.owner_user_id = ? OR EXISTS (
+			SELECT 1 FROM social_account_shares sas
+			INNER JOIN user_group_memberships ugm ON ugm.user_group_id = sas.user_group_id AND ugm.user_account_id = ?
+			WHERE sas.social_account_id = sa.id AND sas.can_read = 1
+		))%s ORDER BY sa.id`, activeClause)
+	err := db.ResilientSelect(&ret, query, userID, userID)
+	if err != nil {
+		db.Logger().Errorf("Failed to select social accounts for user %d: %v", userID, err)
+	}
+	return ret
+}
+
+func (db *DB) SelectSocialAccountsPostableByUser(userID uint32) []*SocialAccount {
+	ret := make([]*SocialAccount, 0)
+	query := `SELECT sa.* FROM social_accounts sa
+		WHERE sa.active = 1 AND (sa.owner_user_id = ? OR EXISTS (
+			SELECT 1 FROM social_account_shares sas
+			INNER JOIN user_group_memberships ugm ON ugm.user_group_id = sas.user_group_id AND ugm.user_account_id = ?
+			WHERE sas.social_account_id = sa.id AND sas.can_post = 1
+		)) ORDER BY sa.id`
+	err := db.ResilientSelect(&ret, query, userID, userID)
+	if err != nil {
+		db.Logger().Errorf("Failed to select writable social accounts for user %d: %v", userID, err)
+	}
+	return ret
+}
+
+func (db *DB) CanUserAccessSocialAccount(userID, socialAccountID uint32, capability string) bool {
+	account, err := db.GetSocialAccount(socialAccountID)
+	if err != nil {
+		return false
+	}
+	if account.OwnerUserID.Valid && uint32(account.OwnerUserID.Int32) == userID {
+		return true
+	}
+	var capCol string
+	switch capability {
+	case "read":
+		capCol = "can_read"
+	case "post":
+		capCol = "can_post"
+	case "manage":
+		capCol = "can_manage"
+	default:
+		return false
+	}
+	var count int
+	err = db.ResilientGet(&count, fmt.Sprintf(`SELECT COUNT(*) FROM social_account_shares sas
+		INNER JOIN user_group_memberships ugm ON ugm.user_group_id = sas.user_group_id AND ugm.user_account_id = ?
+		WHERE sas.social_account_id = ? AND sas.%s = 1`, capCol), userID, socialAccountID)
+	if err != nil {
+		db.Logger().Errorf("CanUserAccessSocialAccount check failed: %v", err)
+		return false
+	}
+	return count > 0
+}
+
+func (db *DB) GetSocialAccountShares(socialAccountID uint32) ([]SocialAccountShare, error) {
+	ret := make([]SocialAccountShare, 0)
+	query := `SELECT sas.id, sas.social_account_id, sas.user_group_id, sas.can_read, sas.can_post, sas.can_manage, sas.created_at, ug.name AS group_name
+		FROM social_account_shares sas
+		JOIN user_groups ug ON ug.id = sas.user_group_id
+		WHERE sas.social_account_id = ?
+		ORDER BY ug.name`
+	err := db.ResilientSelect(&ret, query, socialAccountID)
+	if err != nil {
+		db.Logger().Errorf("Failed to get shares for social account %d: %v", socialAccountID, err)
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (db *DB) SetSocialAccountShares(socialAccountID uint32, shares []SocialAccountShare) error {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+		return errors.New("database connection is not established")
+	}
+
+	tx, err := db.connx.Beginx()
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	rollback := func() {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			db.Logger().Warnf("Rollback error in SetSocialAccountShares: %v", rbErr)
+		}
+	}
+
+	if _, err = tx.Exec("DELETE FROM social_account_shares WHERE social_account_id = ?", socialAccountID); err != nil {
+		rollback()
+		return fmt.Errorf("delete existing shares: %w", err)
+	}
+
+	for _, s := range shares {
+		if _, err = tx.Exec(
+			"INSERT INTO social_account_shares (social_account_id, user_group_id, can_read, can_post, can_manage, created_at) VALUES (?, ?, ?, ?, ?, NOW(3))",
+			socialAccountID, s.UserGroupID, s.CanRead, s.CanPost, s.CanManage,
+		); err != nil {
+			rollback()
+			return fmt.Errorf("insert share for group %d: %w", s.UserGroupID, err)
+		}
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("commit: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) SetSocialAccountOwner(socialAccountID uint32, ownerUserID uint32) error {
+	_, err := db.ResilientExec("UPDATE social_accounts SET owner_user_id = ?, updated_at = NOW() WHERE id = ?", ownerUserID, socialAccountID)
+	if err != nil {
+		db.Logger().Errorf("Failed to set owner for social account %d: %v", socialAccountID, err)
 		return err
 	}
 	return nil

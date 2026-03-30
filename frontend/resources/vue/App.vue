@@ -4,7 +4,19 @@
 		@toggleSidebar="toggleSidebar"
 		title="Japella"
 		:logoUrl="logoUrl"
+		:sidebarEnabled="isLoggedIn"
 	>
+		<template #toolbar>
+			<div v-if="isImpersonating" class="impersonation-banner">
+				<Icon icon="mdi:account-switch" width="18" height="18" />
+				<span>Impersonating <strong>{{ username }}</strong> (as {{ impersonatorUsername }})</span>
+				<button class="impersonation-exit" @click="stopImpersonation" :disabled="impersonationLoading">
+					<Icon icon="mdi:logout" width="16" height="16" />
+					Exit
+				</button>
+			</div>
+			<QuickSearch v-if="isLoggedIn" />
+		</template>
 		<template #user-info>
 			<div class="user-info icon-and-text logo-with-title" v-if="isLoggedIn">
 				<router-link to="/user-control-panel" class="username-link">
@@ -79,6 +91,36 @@
     .username-link:visited {
         color: white;
     }
+
+    .impersonation-banner {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #e65100;
+        color: white;
+        padding: 0.3rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.85em;
+        white-space: nowrap;
+    }
+
+    .impersonation-exit {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        border: 1px solid rgba(255,255,255,0.4);
+        border-radius: 3px;
+        padding: 0.15rem 0.5rem;
+        cursor: pointer;
+        font-size: 0.85em;
+        margin-left: 0.5rem;
+    }
+
+    .impersonation-exit:hover {
+        background: rgba(255,255,255,0.35);
+    }
 </style>
 
 <script setup>
@@ -92,7 +134,9 @@
     import Header from 'picocrank/vue/components/Header.vue';
     import Navigation from 'picocrank/vue/components/Navigation.vue';
     import Sidebar from 'picocrank/vue/components/Sidebar.vue';
+    import QuickSearch from 'picocrank/vue/components/QuickSearch.vue';
 	import logoUrl from '../../logo.png';
+	import { canAccessControlPanelFromStatus } from '../javascript/rbacAccess.js';
 
     const { t } = useI18n();
 
@@ -101,6 +145,9 @@
     const currentVersion = ref('');
     const username = ref('');
     const statusMessages = ref([]);
+    const isImpersonating = ref(false);
+    const impersonatorUsername = ref('');
+    const impersonationLoading = ref(false);
 
     // Router will handle component loading
     const loadingWarning = ref('');
@@ -157,7 +204,13 @@
 
 		navigation.value.addRouterLink('chatBots');
 
-		navigation.value.addRouterLink('controlPanel');
+		if (canAccessControlPanelFromStatus({
+			isLoggedIn: isLoggedIn.value,
+			rbacIsSuperuser: window.userRbacIsSuperuser,
+			rbacPermissions: window.userRbacPermissions,
+		})) {
+			navigation.value.addRouterLink('controlPanel');
+		}
 
 		navigation.value.addRouterLink('appStatus');
 
@@ -196,11 +249,16 @@
                 });
             }
 
+            isImpersonating.value = Boolean(st.isImpersonating);
+            impersonatorUsername.value = st.impersonatorUsername || '';
+
             if (st.isLoggedIn) {
-                onLogin(st)
+                applyAuthFromStatus(st)
             } else {
                 isLoggedIn.value = false;
                 window.isLoggedIn = false; // Set global auth state for router
+                window.userRbacPermissions = [];
+                window.userRbacIsSuperuser = false;
             }
 
             currentVersion.value = 'Version: ' + st.version;
@@ -213,16 +271,31 @@
         }
     }
 
-    /**
-     * ret could be from getStatus, or from loginWith... - bot hhave the ".username" property.
-     */
-    function onLogin(ret) {
+    function applyAuthFromStatus(st) {
         isLoggedIn.value = true;
-        username.value = ret.username
-        window.isLoggedIn = true; // Set global auth state for router
-
-        // Setup navigation for logged-in user
+        username.value = st.username;
+        window.isLoggedIn = true;
+        window.userRbacPermissions = st.rbacPermissions || [];
+        window.userRbacIsSuperuser = Boolean(st.rbacIsSuperuser);
         setupNavigation();
+    }
+
+    /**
+     * After password login the client only has username until GetStatus returns RBAC.
+     */
+    async function onLogin() {
+        await getStatus();
+    }
+
+    async function stopImpersonation() {
+        impersonationLoading.value = true;
+        try {
+            await window.client.stopImpersonation({});
+            window.location.href = '/';
+        } catch (e) {
+            statusMessages.value.push({ id: Date.now(), type: 'error', message: 'Failed to stop impersonation: ' + e.message });
+            impersonationLoading.value = false;
+        }
     }
 
     onMounted(async () => {

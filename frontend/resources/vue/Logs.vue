@@ -6,12 +6,18 @@
 		:padding="false"
 	>
 		<template #toolbar>
-			<button @click="refreshLogs" :disabled="!clientReady || loading" class="neutral">
+			<button v-if="canAccess" @click="refreshLogs" :disabled="!clientReady || loading" class="neutral">
 				<Icon icon="material-symbols:refresh" />
 			</button>
 		</template>
 
-		<div v-if="!clientReady || loading">
+		<div v-if="!clientReady || !loaded">
+			<p>Loading...</p>
+		</div>
+		<div v-else-if="!canAccess">
+			<p class="inline-notification error">You do not have permission to view logs.</p>
+		</div>
+		<div v-else-if="loading">
 			<p>Loading logs...</p>
 		</div>
 		<div v-else-if="error">
@@ -53,7 +59,7 @@
 </template>
 
 <script setup>
-	import { ref, onMounted } from 'vue';
+	import { ref, computed, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
@@ -62,6 +68,13 @@
 	const loading = ref(true);
 	const error = ref('');
 	const logs = ref([]);
+	const loaded = ref(false);
+	const statusPerms = ref([]);
+	const statusSuper = ref(false);
+
+	const canAccess = computed(
+		() => statusSuper.value || (Array.isArray(statusPerms.value) && statusPerms.value.includes('system.logs'))
+	);
 
 	function formatDate(dateString) {
 		if (!dateString) {
@@ -116,7 +129,15 @@
 	onMounted(async () => {
 		await waitForClient();
 		clientReady.value = true;
-		await refreshLogs();
+
+		const st = await window.client.getStatus({});
+		statusPerms.value = st.rbacPermissions || [];
+		statusSuper.value = Boolean(st.rbacIsSuperuser);
+		loaded.value = true;
+
+		if (canAccess.value) {
+			await refreshLogs();
+		}
 	});
 </script>
 

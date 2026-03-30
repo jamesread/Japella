@@ -83,9 +83,10 @@ type ConnectorWithYamlConfig interface {
 
 // UnregisteredConnector represents a connector type that exists but isn't currently started
 type UnregisteredConnector struct {
-	Protocol string // The connector protocol (e.g., "telegram", "discord")
-	Name     string // Display name
-	Icon     string // Icon identifier
+	Protocol         string // The connector protocol (e.g., "telegram", "discord")
+	Name             string // Display name
+	Icon             string // Icon identifier
+	NotStartedReason string // Why the connector is not started (e.g., "Requires IsPubliclyAccessible", "Requires YAML configuration")
 }
 
 type FeedPost struct {

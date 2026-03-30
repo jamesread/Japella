@@ -46,6 +46,12 @@ message GetStatusResponse {
     string listen_address = 11;
     uint32 database_schema_version = 12;
     bool database_schema_dirty = 13;
+    repeated string rbac_permissions = 14;
+    bool rbac_is_superuser = 15;
+    bool is_impersonating = 16;
+    string impersonator_username = 17;
+    // Absolute path on the server to the loaded config.yaml (or the path the loader resolved).
+    string config_file_absolute_path = 18;
 }
 
 message StatusMessage {
@@ -116,10 +122,21 @@ message SocialAccount {
 	string icon = 6;
 	bool active = 7;
 	string token_expiry = 8; // RFC3339 timestamp, empty if token doesn't expire
+	uint32 owner_user_id = 9;
+	bool is_owner = 10; // Computed: true if the requesting user owns this account
+	string owner_username = 11;
+	bool can_post = 12; // Computed: true if the requesting user can post through this account
+	bool can_manage = 13; // Computed: true if the requesting user can manage (delete, toggle, share) this account
 }
 
 message GetConnectorsRequest {
 	bool only_want_oauth = 1;
+}
+
+message RefreshConnectorsRequest {}
+
+message RefreshConnectorsResponse {
+	StandardResponse standard_response = 1;
 }
 
 message GetConnectorsResponse {
@@ -144,6 +161,7 @@ message UnregisteredConnector {
 	string protocol = 1; // The connector protocol (e.g., "telegram", "discord")
 	string name = 2; // Display name
 	string icon = 3; // Icon identifier
+	string not_started_reason = 4; // Why the connector is not started (e.g., "Requires IsPubliclyAccessible", "Requires YAML configuration")
 }
 
 message StartOAuthRequest {
@@ -278,6 +296,15 @@ message ChangePasswordResponse {
 	StandardResponse standard_response = 1;
 }
 
+message ResetUserPasswordRequest {
+	uint32 user_id = 1;
+	string new_password = 2;
+}
+
+message ResetUserPasswordResponse {
+	StandardResponse standard_response = 1;
+}
+
 message LogoutRequest {
 }
 
@@ -292,10 +319,110 @@ message GetUsersResponse {
 	repeated UserAccount users = 1;
 }
 
+message GetUserRequest {
+	uint32 user_id = 1;
+}
+
+message GetUserResponse {
+	UserAccount user = 1;
+}
+
 message UserAccount {
 	uint32 id = 1;
 	string username = 2;
 	string created_at = 3;
+}
+
+message CreateUserRequest {
+	string username = 1;
+	string password = 2;
+}
+
+message CreateUserResponse {
+	StandardResponse standard_response = 1;
+	UserAccount user = 2;
+}
+
+message DeleteUserRequest {
+	uint32 user_id = 1;
+}
+
+message DeleteUserResponse {
+	StandardResponse standard_response = 1;
+}
+
+message RbacPermission {
+	uint32 id = 1;
+	string name = 2;
+	string description = 3;
+}
+
+message RbacRole {
+	uint32 id = 1;
+	string name = 2;
+	string description = 3;
+	repeated uint32 permission_ids = 4;
+}
+
+message ListRbacPermissionsRequest {
+}
+
+message ListRbacPermissionsResponse {
+	repeated RbacPermission permissions = 1;
+}
+
+message ListRbacRolesRequest {
+}
+
+message ListRbacRolesResponse {
+	repeated RbacRole roles = 1;
+}
+
+message CreateRbacRoleRequest {
+	string name = 1;
+	string description = 2;
+	repeated uint32 permission_ids = 3;
+}
+
+message CreateRbacRoleResponse {
+	StandardResponse standard_response = 1;
+	uint32 role_id = 2;
+}
+
+message UpdateRbacRoleRequest {
+	uint32 role_id = 1;
+	string name = 2;
+	string description = 3;
+	repeated uint32 permission_ids = 4;
+}
+
+message UpdateRbacRoleResponse {
+	StandardResponse standard_response = 1;
+}
+
+message DeleteRbacRoleRequest {
+	uint32 role_id = 1;
+}
+
+message DeleteRbacRoleResponse {
+	StandardResponse standard_response = 1;
+}
+
+message GetUserRbacRolesRequest {
+	uint32 user_id = 1;
+}
+
+message GetUserRbacRolesResponse {
+	repeated uint32 role_ids = 1;
+}
+
+message SetUserRbacRolesRequest {
+	uint32 user_id = 1;
+	repeated uint32 role_ids = 2;
+}
+
+message SetUserRbacRolesResponse {
+	StandardResponse standard_response = 1;
 }
 
 message GetApiKeysRequest {
@@ -556,6 +683,143 @@ message SetBotHooksResponse {
 	StandardResponse standard_response = 1;
 }
 
+message GetBotConversationsRequest {
+	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
+	string identity = 2; // Bot identity/username
+	uint32 limit = 3; // Optional max items (defaults to 100)
+}
+
+message BotConversation {
+	string key = 1; // Internal conversation key
+	string title = 2; // Display name (usually sender)
+	string last_message = 3;
+	string last_direction = 4; // incoming|outgoing
+	int64 last_message_at_unix = 5;
+}
+
+message GetBotConversationsResponse {
+	repeated BotConversation conversations = 1;
+}
+
+message GetBotConversationMessagesRequest {
+	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
+	string identity = 2; // Bot identity/username
+	string conversation_key = 3;
+	uint32 limit = 4; // Optional max items (defaults to 200)
+}
+
+message BotConversationMessage {
+	uint32 id = 1;
+	string author = 2;
+	string content = 3;
+	string direction = 4; // incoming|outgoing
+	string channel = 5;
+	string message_id = 6;
+	int64 timestamp_unix = 7;
+}
+
+message GetBotConversationMessagesResponse {
+	repeated BotConversationMessage messages = 1;
+}
+
+message SendBotConversationMessageRequest {
+	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
+	string identity = 2; // Bot identity/username
+	string conversation_key = 3;
+	string content = 4;
+}
+
+message SendBotConversationMessageResponse {
+	StandardResponse standard_response = 1;
+}
+
+message SocialAccountShareEntry {
+	uint32 user_group_id = 1;
+	string group_name = 2;
+	bool can_read = 3;
+	bool can_post = 4;
+	bool can_manage = 5;
+}
+
+message GetSocialAccountSharesRequest {
+	uint32 social_account_id = 1;
+}
+
+message GetSocialAccountSharesResponse {
+	repeated SocialAccountShareEntry shares = 1;
+}
+
+message SetSocialAccountSharesRequest {
+	uint32 social_account_id = 1;
+	repeated SocialAccountShareEntry shares = 2;
+}
+
+message SetSocialAccountSharesResponse {
+	StandardResponse standard_response = 1;
+}
+
+message ImpersonateUserRequest {
+	uint32 user_id = 1;
+}
+
+message ImpersonateUserResponse {
+	StandardResponse standard_response = 1;
+	string username = 2;
+}
+
+message StopImpersonationRequest {}
+
+message StopImpersonationResponse {
+	StandardResponse standard_response = 1;
+	string username = 2;
+}
+
+message UserGroup {
+	uint32 id = 1;
+	string name = 2;
+	uint32 member_count = 3;
+}
+
+message ListUserGroupsRequest {}
+
+message ListUserGroupsResponse {
+	repeated UserGroup groups = 1;
+}
+
+message CreateUserGroupRequest {
+	string name = 1;
+}
+
+message CreateUserGroupResponse {
+	StandardResponse standard_response = 1;
+	uint32 group_id = 2;
+}
+
+message DeleteUserGroupRequest {
+	uint32 group_id = 1;
+}
+
+message DeleteUserGroupResponse {
+	StandardResponse standard_response = 1;
+}
+
+message GetUserGroupMembersRequest {
+	uint32 group_id = 1;
+}
+
+message GetUserGroupMembersResponse {
+	repeated uint32 user_ids = 1;
+}
+
+message SetUserGroupMembersRequest {
+	uint32 group_id = 1;
+	repeated uint32 user_ids = 2;
+}
+
+message SetUserGroupMembersResponse {
+	StandardResponse standard_response = 1;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -577,6 +841,8 @@ service JapellaControlApiService {
 
 	rpc GetConnectors(GetConnectorsRequest) returns (GetConnectorsResponse) {}
 
+	rpc RefreshConnectors(RefreshConnectorsRequest) returns (RefreshConnectorsResponse) {}
+
 	rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse) {}
 
 	rpc GetTimeline(GetTimelineRequest) returns (GetTimelineResponse) {}
@@ -595,9 +861,31 @@ service JapellaControlApiService {
 
 	rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse) {}
 
+	rpc ResetUserPassword(ResetUserPasswordRequest) returns (ResetUserPasswordResponse) {}
+
 	rpc Logout(LogoutRequest) returns (LogoutResponse) {}
 
 	rpc GetUsers(GetUsersRequest) returns (GetUsersResponse) {}
+
+	rpc GetUser(GetUserRequest) returns (GetUserResponse) {}
+
+	rpc CreateUser(CreateUserRequest) returns (CreateUserResponse) {}
+
+	rpc DeleteUser(DeleteUserRequest) returns (DeleteUserResponse) {}
+
+	rpc ListRbacPermissions(ListRbacPermissionsRequest) returns (ListRbacPermissionsResponse) {}
+
+	rpc ListRbacRoles(ListRbacRolesRequest) returns (ListRbacRolesResponse) {}
+
+	rpc CreateRbacRole(CreateRbacRoleRequest) returns (CreateRbacRoleResponse) {}
+
+	rpc UpdateRbacRole(UpdateRbacRoleRequest) returns (UpdateRbacRoleResponse) {}
+
+	rpc DeleteRbacRole(DeleteRbacRoleRequest) returns (DeleteRbacRoleResponse) {}
+
+	rpc GetUserRbacRoles(GetUserRbacRolesRequest) returns (GetUserRbacRolesResponse) {}
+
+	rpc SetUserRbacRoles(SetUserRbacRolesRequest) returns (SetUserRbacRolesResponse) {}
 
 	rpc GetApiKeys(GetApiKeysRequest) returns (GetApiKeysResponse) {}
 
@@ -638,4 +926,19 @@ service JapellaControlApiService {
     rpc GetBotChannels(GetBotChannelsRequest) returns (GetBotChannelsResponse) {}
     rpc GetBotHooks(GetBotHooksRequest) returns (GetBotHooksResponse) {}
     rpc SetBotHooks(SetBotHooksRequest) returns (SetBotHooksResponse) {}
+    rpc GetBotConversations(GetBotConversationsRequest) returns (GetBotConversationsResponse) {}
+    rpc GetBotConversationMessages(GetBotConversationMessagesRequest) returns (GetBotConversationMessagesResponse) {}
+    rpc SendBotConversationMessage(SendBotConversationMessageRequest) returns (SendBotConversationMessageResponse) {}
+
+    rpc GetSocialAccountShares(GetSocialAccountSharesRequest) returns (GetSocialAccountSharesResponse) {}
+    rpc SetSocialAccountShares(SetSocialAccountSharesRequest) returns (SetSocialAccountSharesResponse) {}
+
+    rpc ImpersonateUser(ImpersonateUserRequest) returns (ImpersonateUserResponse) {}
+    rpc StopImpersonation(StopImpersonationRequest) returns (StopImpersonationResponse) {}
+
+    rpc ListUserGroups(ListUserGroupsRequest) returns (ListUserGroupsResponse) {}
+    rpc CreateUserGroup(CreateUserGroupRequest) returns (CreateUserGroupResponse) {}
+    rpc DeleteUserGroup(DeleteUserGroupRequest) returns (DeleteUserGroupResponse) {}
+    rpc GetUserGroupMembers(GetUserGroupMembersRequest) returns (GetUserGroupMembersResponse) {}
+    rpc SetUserGroupMembers(SetUserGroupMembersRequest) returns (SetUserGroupMembersResponse) {}
 }

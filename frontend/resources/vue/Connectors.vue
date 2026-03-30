@@ -1,9 +1,24 @@
 <template>
 	<section class = "connectors">
-		<h2>Connectors</h2>
-		<p>These connectors are currently started by the server.</p>
+		<div class = "header-row">
+			<div>
+				<h2>Connectors</h2>
+				<p>These connectors are currently started by the server.</p>
+			</div>
+			<button v-if="canAccess" class = "refresh-btn" :disabled = "loading" @click = "applyRefresh" title = "Apply IsPubliclyAccessible setting and refresh connector list">
+				<Icon icon = "mdi:refresh" width = "18" height = "18" />
+				<span>Refresh</span>
+			</button>
+		</div>
 
-		<div v-if = "loading" class = "icon-and-text" style = "margin-top: 1em;">
+		<div v-if="!loaded">
+			<p>Loading...</p>
+		</div>
+		<div v-else-if="!canAccess">
+			<p class="inline-notification error">You do not have permission to view connectors.</p>
+		</div>
+
+		<div v-else-if = "loading" class = "icon-and-text" style = "margin-top: 1em;">
 			<Icon icon = "eos-icons:loading" width = "24" height = "24" />
 			<span style = "margin-left: .5em;">Loading connectors...</span>
 		</div>
@@ -56,7 +71,7 @@
 							<h3>{{ c.name }}</h3>
 						</div>
 						<div class = "meta">
-							<div class = "tag fg-neutral">Not Started</div>
+							<div class = "tag fg-neutral">{{ c.notStartedReason || 'Not started' }}</div>
 						</div>
 					</div>
 				</div>
@@ -68,13 +83,33 @@
 </template>
 
 <script setup>
-	import { ref, onMounted } from 'vue';
+	import { ref, computed, onMounted } from 'vue';
 	import { Icon } from '@iconify/vue';
 	import { waitForClient } from '../javascript/util';
 
 	const connectors = ref([]);
 	const unregisteredConnectors = ref([]);
 	const loading = ref(true);
+	const loaded = ref(false);
+	const statusPerms = ref([]);
+	const statusSuper = ref(false);
+
+	const canAccess = computed(
+		() => statusSuper.value || (Array.isArray(statusPerms.value) && statusPerms.value.includes('system.connectors'))
+	);
+
+	async function applyRefresh() {
+		await waitForClient();
+		loading.value = true;
+		try {
+			await window.client.refreshConnectors({});
+			await fetchConnectors();
+		} catch (e) {
+			console.error('Failed to refresh connectors:', e);
+		} finally {
+			loading.value = false;
+		}
+	}
 
 	async function fetchConnectors() {
 		await waitForClient();
@@ -106,7 +141,8 @@
 			const unregisteredList = (res.unregisteredConnectors || []).map(c => ({
 				protocol: c.protocol,
 				name: c.name || c.protocol,
-				icon: c.icon
+				icon: c.icon,
+				notStartedReason: c.notStartedReason || ''
 			}));
 			unregisteredList.sort((a, b) => a.name.localeCompare(b.name));
 			unregisteredConnectors.value = unregisteredList;
@@ -119,12 +155,42 @@
 		}
 	}
 
-	onMounted(() => {
-		fetchConnectors();
+	onMounted(async () => {
+		await waitForClient();
+
+		const st = await window.client.getStatus({});
+		statusPerms.value = st.rbacPermissions || [];
+		statusSuper.value = Boolean(st.rbacIsSuperuser);
+		loaded.value = true;
+
+		if (canAccess.value) {
+			fetchConnectors();
+		}
 	});
 </script>
 
 <style scoped>
+	.header-row {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		gap: 1em;
+		margin-bottom: 0.5em;
+	}
+
+	.refresh-btn {
+		display: flex;
+		align-items: center;
+		gap: 0.4em;
+		padding: 0.4em 0.8em;
+		white-space: nowrap;
+	}
+
+	.refresh-btn:disabled {
+		opacity: 0.6;
+		cursor: not-allowed;
+	}
+
 	.connector-list {
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));

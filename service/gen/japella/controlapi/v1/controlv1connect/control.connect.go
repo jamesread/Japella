@@ -63,6 +63,9 @@ const (
 	// JapellaControlApiServiceGetConnectorsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetConnectors RPC.
 	JapellaControlApiServiceGetConnectorsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetConnectors"
+	// JapellaControlApiServiceRefreshConnectorsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's RefreshConnectors RPC.
+	JapellaControlApiServiceRefreshConnectorsProcedure = "/japella.controlapi.v1.JapellaControlApiService/RefreshConnectors"
 	// JapellaControlApiServiceStartOAuthProcedure is the fully-qualified name of the
 	// JapellaControlApiService's StartOAuth RPC.
 	JapellaControlApiServiceStartOAuthProcedure = "/japella.controlapi.v1.JapellaControlApiService/StartOAuth"
@@ -90,12 +93,45 @@ const (
 	// JapellaControlApiServiceChangePasswordProcedure is the fully-qualified name of the
 	// JapellaControlApiService's ChangePassword RPC.
 	JapellaControlApiServiceChangePasswordProcedure = "/japella.controlapi.v1.JapellaControlApiService/ChangePassword"
+	// JapellaControlApiServiceResetUserPasswordProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ResetUserPassword RPC.
+	JapellaControlApiServiceResetUserPasswordProcedure = "/japella.controlapi.v1.JapellaControlApiService/ResetUserPassword"
 	// JapellaControlApiServiceLogoutProcedure is the fully-qualified name of the
 	// JapellaControlApiService's Logout RPC.
 	JapellaControlApiServiceLogoutProcedure = "/japella.controlapi.v1.JapellaControlApiService/Logout"
 	// JapellaControlApiServiceGetUsersProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetUsers RPC.
 	JapellaControlApiServiceGetUsersProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUsers"
+	// JapellaControlApiServiceGetUserProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetUser RPC.
+	JapellaControlApiServiceGetUserProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUser"
+	// JapellaControlApiServiceCreateUserProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateUser RPC.
+	JapellaControlApiServiceCreateUserProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateUser"
+	// JapellaControlApiServiceDeleteUserProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteUser RPC.
+	JapellaControlApiServiceDeleteUserProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteUser"
+	// JapellaControlApiServiceListRbacPermissionsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListRbacPermissions RPC.
+	JapellaControlApiServiceListRbacPermissionsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListRbacPermissions"
+	// JapellaControlApiServiceListRbacRolesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListRbacRoles RPC.
+	JapellaControlApiServiceListRbacRolesProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListRbacRoles"
+	// JapellaControlApiServiceCreateRbacRoleProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateRbacRole RPC.
+	JapellaControlApiServiceCreateRbacRoleProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateRbacRole"
+	// JapellaControlApiServiceUpdateRbacRoleProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateRbacRole RPC.
+	JapellaControlApiServiceUpdateRbacRoleProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateRbacRole"
+	// JapellaControlApiServiceDeleteRbacRoleProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteRbacRole RPC.
+	JapellaControlApiServiceDeleteRbacRoleProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteRbacRole"
+	// JapellaControlApiServiceGetUserRbacRolesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetUserRbacRoles RPC.
+	JapellaControlApiServiceGetUserRbacRolesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUserRbacRoles"
+	// JapellaControlApiServiceSetUserRbacRolesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetUserRbacRoles RPC.
+	JapellaControlApiServiceSetUserRbacRolesProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetUserRbacRoles"
 	// JapellaControlApiServiceGetApiKeysProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetApiKeys RPC.
 	JapellaControlApiServiceGetApiKeysProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetApiKeys"
@@ -165,6 +201,42 @@ const (
 	// JapellaControlApiServiceSetBotHooksProcedure is the fully-qualified name of the
 	// JapellaControlApiService's SetBotHooks RPC.
 	JapellaControlApiServiceSetBotHooksProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetBotHooks"
+	// JapellaControlApiServiceGetBotConversationsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetBotConversations RPC.
+	JapellaControlApiServiceGetBotConversationsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetBotConversations"
+	// JapellaControlApiServiceGetBotConversationMessagesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetBotConversationMessages RPC.
+	JapellaControlApiServiceGetBotConversationMessagesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetBotConversationMessages"
+	// JapellaControlApiServiceSendBotConversationMessageProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SendBotConversationMessage RPC.
+	JapellaControlApiServiceSendBotConversationMessageProcedure = "/japella.controlapi.v1.JapellaControlApiService/SendBotConversationMessage"
+	// JapellaControlApiServiceGetSocialAccountSharesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetSocialAccountShares RPC.
+	JapellaControlApiServiceGetSocialAccountSharesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetSocialAccountShares"
+	// JapellaControlApiServiceSetSocialAccountSharesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetSocialAccountShares RPC.
+	JapellaControlApiServiceSetSocialAccountSharesProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetSocialAccountShares"
+	// JapellaControlApiServiceImpersonateUserProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ImpersonateUser RPC.
+	JapellaControlApiServiceImpersonateUserProcedure = "/japella.controlapi.v1.JapellaControlApiService/ImpersonateUser"
+	// JapellaControlApiServiceStopImpersonationProcedure is the fully-qualified name of the
+	// JapellaControlApiService's StopImpersonation RPC.
+	JapellaControlApiServiceStopImpersonationProcedure = "/japella.controlapi.v1.JapellaControlApiService/StopImpersonation"
+	// JapellaControlApiServiceListUserGroupsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListUserGroups RPC.
+	JapellaControlApiServiceListUserGroupsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListUserGroups"
+	// JapellaControlApiServiceCreateUserGroupProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateUserGroup RPC.
+	JapellaControlApiServiceCreateUserGroupProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateUserGroup"
+	// JapellaControlApiServiceDeleteUserGroupProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteUserGroup RPC.
+	JapellaControlApiServiceDeleteUserGroupProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteUserGroup"
+	// JapellaControlApiServiceGetUserGroupMembersProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetUserGroupMembers RPC.
+	JapellaControlApiServiceGetUserGroupMembersProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUserGroupMembers"
+	// JapellaControlApiServiceSetUserGroupMembersProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetUserGroupMembers RPC.
+	JapellaControlApiServiceSetUserGroupMembersProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetUserGroupMembers"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -180,6 +252,7 @@ type JapellaControlApiServiceClient interface {
 	DeleteSocialAccount(context.Context, *connect.Request[v1.DeleteSocialAccountRequest]) (*connect.Response[v1.DeleteSocialAccountResponse], error)
 	RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error)
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
+	RefreshConnectors(context.Context, *connect.Request[v1.RefreshConnectorsRequest]) (*connect.Response[v1.RefreshConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
 	GetFeed(context.Context, *connect.Request[v1.GetFeedRequest]) (*connect.Response[v1.GetFeedResponse], error)
@@ -189,8 +262,19 @@ type JapellaControlApiServiceClient interface {
 	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
 	LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error)
 	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
+	ResetUserPassword(context.Context, *connect.Request[v1.ResetUserPasswordRequest]) (*connect.Response[v1.ResetUserPasswordResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error)
+	GetUser(context.Context, *connect.Request[v1.GetUserRequest]) (*connect.Response[v1.GetUserResponse], error)
+	CreateUser(context.Context, *connect.Request[v1.CreateUserRequest]) (*connect.Response[v1.CreateUserResponse], error)
+	DeleteUser(context.Context, *connect.Request[v1.DeleteUserRequest]) (*connect.Response[v1.DeleteUserResponse], error)
+	ListRbacPermissions(context.Context, *connect.Request[v1.ListRbacPermissionsRequest]) (*connect.Response[v1.ListRbacPermissionsResponse], error)
+	ListRbacRoles(context.Context, *connect.Request[v1.ListRbacRolesRequest]) (*connect.Response[v1.ListRbacRolesResponse], error)
+	CreateRbacRole(context.Context, *connect.Request[v1.CreateRbacRoleRequest]) (*connect.Response[v1.CreateRbacRoleResponse], error)
+	UpdateRbacRole(context.Context, *connect.Request[v1.UpdateRbacRoleRequest]) (*connect.Response[v1.UpdateRbacRoleResponse], error)
+	DeleteRbacRole(context.Context, *connect.Request[v1.DeleteRbacRoleRequest]) (*connect.Response[v1.DeleteRbacRoleResponse], error)
+	GetUserRbacRoles(context.Context, *connect.Request[v1.GetUserRbacRolesRequest]) (*connect.Response[v1.GetUserRbacRolesResponse], error)
+	SetUserRbacRoles(context.Context, *connect.Request[v1.SetUserRbacRolesRequest]) (*connect.Response[v1.SetUserRbacRolesResponse], error)
 	GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error)
 	GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error)
 	SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error)
@@ -214,6 +298,18 @@ type JapellaControlApiServiceClient interface {
 	GetBotChannels(context.Context, *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error)
 	GetBotHooks(context.Context, *connect.Request[v1.GetBotHooksRequest]) (*connect.Response[v1.GetBotHooksResponse], error)
 	SetBotHooks(context.Context, *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error)
+	GetBotConversations(context.Context, *connect.Request[v1.GetBotConversationsRequest]) (*connect.Response[v1.GetBotConversationsResponse], error)
+	GetBotConversationMessages(context.Context, *connect.Request[v1.GetBotConversationMessagesRequest]) (*connect.Response[v1.GetBotConversationMessagesResponse], error)
+	SendBotConversationMessage(context.Context, *connect.Request[v1.SendBotConversationMessageRequest]) (*connect.Response[v1.SendBotConversationMessageResponse], error)
+	GetSocialAccountShares(context.Context, *connect.Request[v1.GetSocialAccountSharesRequest]) (*connect.Response[v1.GetSocialAccountSharesResponse], error)
+	SetSocialAccountShares(context.Context, *connect.Request[v1.SetSocialAccountSharesRequest]) (*connect.Response[v1.SetSocialAccountSharesResponse], error)
+	ImpersonateUser(context.Context, *connect.Request[v1.ImpersonateUserRequest]) (*connect.Response[v1.ImpersonateUserResponse], error)
+	StopImpersonation(context.Context, *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error)
+	ListUserGroups(context.Context, *connect.Request[v1.ListUserGroupsRequest]) (*connect.Response[v1.ListUserGroupsResponse], error)
+	CreateUserGroup(context.Context, *connect.Request[v1.CreateUserGroupRequest]) (*connect.Response[v1.CreateUserGroupResponse], error)
+	DeleteUserGroup(context.Context, *connect.Request[v1.DeleteUserGroupRequest]) (*connect.Response[v1.DeleteUserGroupResponse], error)
+	GetUserGroupMembers(context.Context, *connect.Request[v1.GetUserGroupMembersRequest]) (*connect.Response[v1.GetUserGroupMembersResponse], error)
+	SetUserGroupMembers(context.Context, *connect.Request[v1.SetUserGroupMembersRequest]) (*connect.Response[v1.SetUserGroupMembersResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -288,6 +384,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetConnectors")),
 			connect.WithClientOptions(opts...),
 		),
+		refreshConnectors: connect.NewClient[v1.RefreshConnectorsRequest, v1.RefreshConnectorsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRefreshConnectorsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RefreshConnectors")),
+			connect.WithClientOptions(opts...),
+		),
 		startOAuth: connect.NewClient[v1.StartOAuthRequest, v1.StartOAuthResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceStartOAuthProcedure,
@@ -342,6 +444,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("ChangePassword")),
 			connect.WithClientOptions(opts...),
 		),
+		resetUserPassword: connect.NewClient[v1.ResetUserPasswordRequest, v1.ResetUserPasswordResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceResetUserPasswordProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ResetUserPassword")),
+			connect.WithClientOptions(opts...),
+		),
 		logout: connect.NewClient[v1.LogoutRequest, v1.LogoutResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceLogoutProcedure,
@@ -352,6 +460,66 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceGetUsersProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUsers")),
+			connect.WithClientOptions(opts...),
+		),
+		getUser: connect.NewClient[v1.GetUserRequest, v1.GetUserResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetUserProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUser")),
+			connect.WithClientOptions(opts...),
+		),
+		createUser: connect.NewClient[v1.CreateUserRequest, v1.CreateUserResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateUserProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateUser")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteUser: connect.NewClient[v1.DeleteUserRequest, v1.DeleteUserResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteUserProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteUser")),
+			connect.WithClientOptions(opts...),
+		),
+		listRbacPermissions: connect.NewClient[v1.ListRbacPermissionsRequest, v1.ListRbacPermissionsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListRbacPermissionsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListRbacPermissions")),
+			connect.WithClientOptions(opts...),
+		),
+		listRbacRoles: connect.NewClient[v1.ListRbacRolesRequest, v1.ListRbacRolesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListRbacRolesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListRbacRoles")),
+			connect.WithClientOptions(opts...),
+		),
+		createRbacRole: connect.NewClient[v1.CreateRbacRoleRequest, v1.CreateRbacRoleResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateRbacRoleProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateRbacRole")),
+			connect.WithClientOptions(opts...),
+		),
+		updateRbacRole: connect.NewClient[v1.UpdateRbacRoleRequest, v1.UpdateRbacRoleResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateRbacRoleProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateRbacRole")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteRbacRole: connect.NewClient[v1.DeleteRbacRoleRequest, v1.DeleteRbacRoleResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteRbacRoleProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteRbacRole")),
+			connect.WithClientOptions(opts...),
+		),
+		getUserRbacRoles: connect.NewClient[v1.GetUserRbacRolesRequest, v1.GetUserRbacRolesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetUserRbacRolesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserRbacRoles")),
+			connect.WithClientOptions(opts...),
+		),
+		setUserRbacRoles: connect.NewClient[v1.SetUserRbacRolesRequest, v1.SetUserRbacRolesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetUserRbacRolesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserRbacRoles")),
 			connect.WithClientOptions(opts...),
 		),
 		getApiKeys: connect.NewClient[v1.GetApiKeysRequest, v1.GetApiKeysResponse](
@@ -492,6 +660,78 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetBotHooks")),
 			connect.WithClientOptions(opts...),
 		),
+		getBotConversations: connect.NewClient[v1.GetBotConversationsRequest, v1.GetBotConversationsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetBotConversationsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetBotConversations")),
+			connect.WithClientOptions(opts...),
+		),
+		getBotConversationMessages: connect.NewClient[v1.GetBotConversationMessagesRequest, v1.GetBotConversationMessagesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetBotConversationMessagesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetBotConversationMessages")),
+			connect.WithClientOptions(opts...),
+		),
+		sendBotConversationMessage: connect.NewClient[v1.SendBotConversationMessageRequest, v1.SendBotConversationMessageResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSendBotConversationMessageProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SendBotConversationMessage")),
+			connect.WithClientOptions(opts...),
+		),
+		getSocialAccountShares: connect.NewClient[v1.GetSocialAccountSharesRequest, v1.GetSocialAccountSharesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetSocialAccountSharesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccountShares")),
+			connect.WithClientOptions(opts...),
+		),
+		setSocialAccountShares: connect.NewClient[v1.SetSocialAccountSharesRequest, v1.SetSocialAccountSharesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetSocialAccountSharesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountShares")),
+			connect.WithClientOptions(opts...),
+		),
+		impersonateUser: connect.NewClient[v1.ImpersonateUserRequest, v1.ImpersonateUserResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceImpersonateUserProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ImpersonateUser")),
+			connect.WithClientOptions(opts...),
+		),
+		stopImpersonation: connect.NewClient[v1.StopImpersonationRequest, v1.StopImpersonationResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceStopImpersonationProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("StopImpersonation")),
+			connect.WithClientOptions(opts...),
+		),
+		listUserGroups: connect.NewClient[v1.ListUserGroupsRequest, v1.ListUserGroupsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListUserGroupsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListUserGroups")),
+			connect.WithClientOptions(opts...),
+		),
+		createUserGroup: connect.NewClient[v1.CreateUserGroupRequest, v1.CreateUserGroupResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateUserGroupProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateUserGroup")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteUserGroup: connect.NewClient[v1.DeleteUserGroupRequest, v1.DeleteUserGroupResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteUserGroupProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteUserGroup")),
+			connect.WithClientOptions(opts...),
+		),
+		getUserGroupMembers: connect.NewClient[v1.GetUserGroupMembersRequest, v1.GetUserGroupMembersResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetUserGroupMembersProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserGroupMembers")),
+			connect.WithClientOptions(opts...),
+		),
+		setUserGroupMembers: connect.NewClient[v1.SetUserGroupMembersRequest, v1.SetUserGroupMembersResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetUserGroupMembersProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserGroupMembers")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -507,6 +747,7 @@ type japellaControlApiServiceClient struct {
 	deleteSocialAccount             *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
 	refreshSocialAccount            *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
 	getConnectors                   *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
+	refreshConnectors               *connect.Client[v1.RefreshConnectorsRequest, v1.RefreshConnectorsResponse]
 	startOAuth                      *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
 	getTimeline                     *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
 	getFeed                         *connect.Client[v1.GetFeedRequest, v1.GetFeedResponse]
@@ -516,8 +757,19 @@ type japellaControlApiServiceClient struct {
 	setSocialAccountActive          *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
 	loginWithUsernameAndPassword    *connect.Client[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse]
 	changePassword                  *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	resetUserPassword               *connect.Client[v1.ResetUserPasswordRequest, v1.ResetUserPasswordResponse]
 	logout                          *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
 	getUsers                        *connect.Client[v1.GetUsersRequest, v1.GetUsersResponse]
+	getUser                         *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
+	createUser                      *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
+	deleteUser                      *connect.Client[v1.DeleteUserRequest, v1.DeleteUserResponse]
+	listRbacPermissions             *connect.Client[v1.ListRbacPermissionsRequest, v1.ListRbacPermissionsResponse]
+	listRbacRoles                   *connect.Client[v1.ListRbacRolesRequest, v1.ListRbacRolesResponse]
+	createRbacRole                  *connect.Client[v1.CreateRbacRoleRequest, v1.CreateRbacRoleResponse]
+	updateRbacRole                  *connect.Client[v1.UpdateRbacRoleRequest, v1.UpdateRbacRoleResponse]
+	deleteRbacRole                  *connect.Client[v1.DeleteRbacRoleRequest, v1.DeleteRbacRoleResponse]
+	getUserRbacRoles                *connect.Client[v1.GetUserRbacRolesRequest, v1.GetUserRbacRolesResponse]
+	setUserRbacRoles                *connect.Client[v1.SetUserRbacRolesRequest, v1.SetUserRbacRolesResponse]
 	getApiKeys                      *connect.Client[v1.GetApiKeysRequest, v1.GetApiKeysResponse]
 	getCvars                        *connect.Client[v1.GetCvarsRequest, v1.GetCvarsResponse]
 	saveUserPreferences             *connect.Client[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse]
@@ -541,6 +793,18 @@ type japellaControlApiServiceClient struct {
 	getBotChannels                  *connect.Client[v1.GetBotChannelsRequest, v1.GetBotChannelsResponse]
 	getBotHooks                     *connect.Client[v1.GetBotHooksRequest, v1.GetBotHooksResponse]
 	setBotHooks                     *connect.Client[v1.SetBotHooksRequest, v1.SetBotHooksResponse]
+	getBotConversations             *connect.Client[v1.GetBotConversationsRequest, v1.GetBotConversationsResponse]
+	getBotConversationMessages      *connect.Client[v1.GetBotConversationMessagesRequest, v1.GetBotConversationMessagesResponse]
+	sendBotConversationMessage      *connect.Client[v1.SendBotConversationMessageRequest, v1.SendBotConversationMessageResponse]
+	getSocialAccountShares          *connect.Client[v1.GetSocialAccountSharesRequest, v1.GetSocialAccountSharesResponse]
+	setSocialAccountShares          *connect.Client[v1.SetSocialAccountSharesRequest, v1.SetSocialAccountSharesResponse]
+	impersonateUser                 *connect.Client[v1.ImpersonateUserRequest, v1.ImpersonateUserResponse]
+	stopImpersonation               *connect.Client[v1.StopImpersonationRequest, v1.StopImpersonationResponse]
+	listUserGroups                  *connect.Client[v1.ListUserGroupsRequest, v1.ListUserGroupsResponse]
+	createUserGroup                 *connect.Client[v1.CreateUserGroupRequest, v1.CreateUserGroupResponse]
+	deleteUserGroup                 *connect.Client[v1.DeleteUserGroupRequest, v1.DeleteUserGroupResponse]
+	getUserGroupMembers             *connect.Client[v1.GetUserGroupMembersRequest, v1.GetUserGroupMembersResponse]
+	setUserGroupMembers             *connect.Client[v1.SetUserGroupMembersRequest, v1.SetUserGroupMembersResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -593,6 +857,11 @@ func (c *japellaControlApiServiceClient) GetConnectors(ctx context.Context, req 
 	return c.getConnectors.CallUnary(ctx, req)
 }
 
+// RefreshConnectors calls japella.controlapi.v1.JapellaControlApiService.RefreshConnectors.
+func (c *japellaControlApiServiceClient) RefreshConnectors(ctx context.Context, req *connect.Request[v1.RefreshConnectorsRequest]) (*connect.Response[v1.RefreshConnectorsResponse], error) {
+	return c.refreshConnectors.CallUnary(ctx, req)
+}
+
 // StartOAuth calls japella.controlapi.v1.JapellaControlApiService.StartOAuth.
 func (c *japellaControlApiServiceClient) StartOAuth(ctx context.Context, req *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error) {
 	return c.startOAuth.CallUnary(ctx, req)
@@ -640,6 +909,11 @@ func (c *japellaControlApiServiceClient) ChangePassword(ctx context.Context, req
 	return c.changePassword.CallUnary(ctx, req)
 }
 
+// ResetUserPassword calls japella.controlapi.v1.JapellaControlApiService.ResetUserPassword.
+func (c *japellaControlApiServiceClient) ResetUserPassword(ctx context.Context, req *connect.Request[v1.ResetUserPasswordRequest]) (*connect.Response[v1.ResetUserPasswordResponse], error) {
+	return c.resetUserPassword.CallUnary(ctx, req)
+}
+
 // Logout calls japella.controlapi.v1.JapellaControlApiService.Logout.
 func (c *japellaControlApiServiceClient) Logout(ctx context.Context, req *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {
 	return c.logout.CallUnary(ctx, req)
@@ -648,6 +922,56 @@ func (c *japellaControlApiServiceClient) Logout(ctx context.Context, req *connec
 // GetUsers calls japella.controlapi.v1.JapellaControlApiService.GetUsers.
 func (c *japellaControlApiServiceClient) GetUsers(ctx context.Context, req *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error) {
 	return c.getUsers.CallUnary(ctx, req)
+}
+
+// GetUser calls japella.controlapi.v1.JapellaControlApiService.GetUser.
+func (c *japellaControlApiServiceClient) GetUser(ctx context.Context, req *connect.Request[v1.GetUserRequest]) (*connect.Response[v1.GetUserResponse], error) {
+	return c.getUser.CallUnary(ctx, req)
+}
+
+// CreateUser calls japella.controlapi.v1.JapellaControlApiService.CreateUser.
+func (c *japellaControlApiServiceClient) CreateUser(ctx context.Context, req *connect.Request[v1.CreateUserRequest]) (*connect.Response[v1.CreateUserResponse], error) {
+	return c.createUser.CallUnary(ctx, req)
+}
+
+// DeleteUser calls japella.controlapi.v1.JapellaControlApiService.DeleteUser.
+func (c *japellaControlApiServiceClient) DeleteUser(ctx context.Context, req *connect.Request[v1.DeleteUserRequest]) (*connect.Response[v1.DeleteUserResponse], error) {
+	return c.deleteUser.CallUnary(ctx, req)
+}
+
+// ListRbacPermissions calls japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions.
+func (c *japellaControlApiServiceClient) ListRbacPermissions(ctx context.Context, req *connect.Request[v1.ListRbacPermissionsRequest]) (*connect.Response[v1.ListRbacPermissionsResponse], error) {
+	return c.listRbacPermissions.CallUnary(ctx, req)
+}
+
+// ListRbacRoles calls japella.controlapi.v1.JapellaControlApiService.ListRbacRoles.
+func (c *japellaControlApiServiceClient) ListRbacRoles(ctx context.Context, req *connect.Request[v1.ListRbacRolesRequest]) (*connect.Response[v1.ListRbacRolesResponse], error) {
+	return c.listRbacRoles.CallUnary(ctx, req)
+}
+
+// CreateRbacRole calls japella.controlapi.v1.JapellaControlApiService.CreateRbacRole.
+func (c *japellaControlApiServiceClient) CreateRbacRole(ctx context.Context, req *connect.Request[v1.CreateRbacRoleRequest]) (*connect.Response[v1.CreateRbacRoleResponse], error) {
+	return c.createRbacRole.CallUnary(ctx, req)
+}
+
+// UpdateRbacRole calls japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole.
+func (c *japellaControlApiServiceClient) UpdateRbacRole(ctx context.Context, req *connect.Request[v1.UpdateRbacRoleRequest]) (*connect.Response[v1.UpdateRbacRoleResponse], error) {
+	return c.updateRbacRole.CallUnary(ctx, req)
+}
+
+// DeleteRbacRole calls japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole.
+func (c *japellaControlApiServiceClient) DeleteRbacRole(ctx context.Context, req *connect.Request[v1.DeleteRbacRoleRequest]) (*connect.Response[v1.DeleteRbacRoleResponse], error) {
+	return c.deleteRbacRole.CallUnary(ctx, req)
+}
+
+// GetUserRbacRoles calls japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles.
+func (c *japellaControlApiServiceClient) GetUserRbacRoles(ctx context.Context, req *connect.Request[v1.GetUserRbacRolesRequest]) (*connect.Response[v1.GetUserRbacRolesResponse], error) {
+	return c.getUserRbacRoles.CallUnary(ctx, req)
+}
+
+// SetUserRbacRoles calls japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles.
+func (c *japellaControlApiServiceClient) SetUserRbacRoles(ctx context.Context, req *connect.Request[v1.SetUserRbacRolesRequest]) (*connect.Response[v1.SetUserRbacRolesResponse], error) {
+	return c.setUserRbacRoles.CallUnary(ctx, req)
 }
 
 // GetApiKeys calls japella.controlapi.v1.JapellaControlApiService.GetApiKeys.
@@ -768,6 +1092,70 @@ func (c *japellaControlApiServiceClient) SetBotHooks(ctx context.Context, req *c
 	return c.setBotHooks.CallUnary(ctx, req)
 }
 
+// GetBotConversations calls japella.controlapi.v1.JapellaControlApiService.GetBotConversations.
+func (c *japellaControlApiServiceClient) GetBotConversations(ctx context.Context, req *connect.Request[v1.GetBotConversationsRequest]) (*connect.Response[v1.GetBotConversationsResponse], error) {
+	return c.getBotConversations.CallUnary(ctx, req)
+}
+
+// GetBotConversationMessages calls
+// japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages.
+func (c *japellaControlApiServiceClient) GetBotConversationMessages(ctx context.Context, req *connect.Request[v1.GetBotConversationMessagesRequest]) (*connect.Response[v1.GetBotConversationMessagesResponse], error) {
+	return c.getBotConversationMessages.CallUnary(ctx, req)
+}
+
+// SendBotConversationMessage calls
+// japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage.
+func (c *japellaControlApiServiceClient) SendBotConversationMessage(ctx context.Context, req *connect.Request[v1.SendBotConversationMessageRequest]) (*connect.Response[v1.SendBotConversationMessageResponse], error) {
+	return c.sendBotConversationMessage.CallUnary(ctx, req)
+}
+
+// GetSocialAccountShares calls
+// japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares.
+func (c *japellaControlApiServiceClient) GetSocialAccountShares(ctx context.Context, req *connect.Request[v1.GetSocialAccountSharesRequest]) (*connect.Response[v1.GetSocialAccountSharesResponse], error) {
+	return c.getSocialAccountShares.CallUnary(ctx, req)
+}
+
+// SetSocialAccountShares calls
+// japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares.
+func (c *japellaControlApiServiceClient) SetSocialAccountShares(ctx context.Context, req *connect.Request[v1.SetSocialAccountSharesRequest]) (*connect.Response[v1.SetSocialAccountSharesResponse], error) {
+	return c.setSocialAccountShares.CallUnary(ctx, req)
+}
+
+// ImpersonateUser calls japella.controlapi.v1.JapellaControlApiService.ImpersonateUser.
+func (c *japellaControlApiServiceClient) ImpersonateUser(ctx context.Context, req *connect.Request[v1.ImpersonateUserRequest]) (*connect.Response[v1.ImpersonateUserResponse], error) {
+	return c.impersonateUser.CallUnary(ctx, req)
+}
+
+// StopImpersonation calls japella.controlapi.v1.JapellaControlApiService.StopImpersonation.
+func (c *japellaControlApiServiceClient) StopImpersonation(ctx context.Context, req *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error) {
+	return c.stopImpersonation.CallUnary(ctx, req)
+}
+
+// ListUserGroups calls japella.controlapi.v1.JapellaControlApiService.ListUserGroups.
+func (c *japellaControlApiServiceClient) ListUserGroups(ctx context.Context, req *connect.Request[v1.ListUserGroupsRequest]) (*connect.Response[v1.ListUserGroupsResponse], error) {
+	return c.listUserGroups.CallUnary(ctx, req)
+}
+
+// CreateUserGroup calls japella.controlapi.v1.JapellaControlApiService.CreateUserGroup.
+func (c *japellaControlApiServiceClient) CreateUserGroup(ctx context.Context, req *connect.Request[v1.CreateUserGroupRequest]) (*connect.Response[v1.CreateUserGroupResponse], error) {
+	return c.createUserGroup.CallUnary(ctx, req)
+}
+
+// DeleteUserGroup calls japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup.
+func (c *japellaControlApiServiceClient) DeleteUserGroup(ctx context.Context, req *connect.Request[v1.DeleteUserGroupRequest]) (*connect.Response[v1.DeleteUserGroupResponse], error) {
+	return c.deleteUserGroup.CallUnary(ctx, req)
+}
+
+// GetUserGroupMembers calls japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers.
+func (c *japellaControlApiServiceClient) GetUserGroupMembers(ctx context.Context, req *connect.Request[v1.GetUserGroupMembersRequest]) (*connect.Response[v1.GetUserGroupMembersResponse], error) {
+	return c.getUserGroupMembers.CallUnary(ctx, req)
+}
+
+// SetUserGroupMembers calls japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers.
+func (c *japellaControlApiServiceClient) SetUserGroupMembers(ctx context.Context, req *connect.Request[v1.SetUserGroupMembersRequest]) (*connect.Response[v1.SetUserGroupMembersResponse], error) {
+	return c.setUserGroupMembers.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -781,6 +1169,7 @@ type JapellaControlApiServiceHandler interface {
 	DeleteSocialAccount(context.Context, *connect.Request[v1.DeleteSocialAccountRequest]) (*connect.Response[v1.DeleteSocialAccountResponse], error)
 	RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error)
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
+	RefreshConnectors(context.Context, *connect.Request[v1.RefreshConnectorsRequest]) (*connect.Response[v1.RefreshConnectorsResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
 	GetFeed(context.Context, *connect.Request[v1.GetFeedRequest]) (*connect.Response[v1.GetFeedResponse], error)
@@ -790,8 +1179,19 @@ type JapellaControlApiServiceHandler interface {
 	SetSocialAccountActive(context.Context, *connect.Request[v1.SetSocialAccountActiveRequest]) (*connect.Response[v1.SetSocialAccountActiveResponse], error)
 	LoginWithUsernameAndPassword(context.Context, *connect.Request[v1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[v1.LoginWithUsernameAndPasswordResponse], error)
 	ChangePassword(context.Context, *connect.Request[v1.ChangePasswordRequest]) (*connect.Response[v1.ChangePasswordResponse], error)
+	ResetUserPassword(context.Context, *connect.Request[v1.ResetUserPasswordRequest]) (*connect.Response[v1.ResetUserPasswordResponse], error)
 	Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error)
 	GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error)
+	GetUser(context.Context, *connect.Request[v1.GetUserRequest]) (*connect.Response[v1.GetUserResponse], error)
+	CreateUser(context.Context, *connect.Request[v1.CreateUserRequest]) (*connect.Response[v1.CreateUserResponse], error)
+	DeleteUser(context.Context, *connect.Request[v1.DeleteUserRequest]) (*connect.Response[v1.DeleteUserResponse], error)
+	ListRbacPermissions(context.Context, *connect.Request[v1.ListRbacPermissionsRequest]) (*connect.Response[v1.ListRbacPermissionsResponse], error)
+	ListRbacRoles(context.Context, *connect.Request[v1.ListRbacRolesRequest]) (*connect.Response[v1.ListRbacRolesResponse], error)
+	CreateRbacRole(context.Context, *connect.Request[v1.CreateRbacRoleRequest]) (*connect.Response[v1.CreateRbacRoleResponse], error)
+	UpdateRbacRole(context.Context, *connect.Request[v1.UpdateRbacRoleRequest]) (*connect.Response[v1.UpdateRbacRoleResponse], error)
+	DeleteRbacRole(context.Context, *connect.Request[v1.DeleteRbacRoleRequest]) (*connect.Response[v1.DeleteRbacRoleResponse], error)
+	GetUserRbacRoles(context.Context, *connect.Request[v1.GetUserRbacRolesRequest]) (*connect.Response[v1.GetUserRbacRolesResponse], error)
+	SetUserRbacRoles(context.Context, *connect.Request[v1.SetUserRbacRolesRequest]) (*connect.Response[v1.SetUserRbacRolesResponse], error)
 	GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error)
 	GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error)
 	SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error)
@@ -815,6 +1215,18 @@ type JapellaControlApiServiceHandler interface {
 	GetBotChannels(context.Context, *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error)
 	GetBotHooks(context.Context, *connect.Request[v1.GetBotHooksRequest]) (*connect.Response[v1.GetBotHooksResponse], error)
 	SetBotHooks(context.Context, *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error)
+	GetBotConversations(context.Context, *connect.Request[v1.GetBotConversationsRequest]) (*connect.Response[v1.GetBotConversationsResponse], error)
+	GetBotConversationMessages(context.Context, *connect.Request[v1.GetBotConversationMessagesRequest]) (*connect.Response[v1.GetBotConversationMessagesResponse], error)
+	SendBotConversationMessage(context.Context, *connect.Request[v1.SendBotConversationMessageRequest]) (*connect.Response[v1.SendBotConversationMessageResponse], error)
+	GetSocialAccountShares(context.Context, *connect.Request[v1.GetSocialAccountSharesRequest]) (*connect.Response[v1.GetSocialAccountSharesResponse], error)
+	SetSocialAccountShares(context.Context, *connect.Request[v1.SetSocialAccountSharesRequest]) (*connect.Response[v1.SetSocialAccountSharesResponse], error)
+	ImpersonateUser(context.Context, *connect.Request[v1.ImpersonateUserRequest]) (*connect.Response[v1.ImpersonateUserResponse], error)
+	StopImpersonation(context.Context, *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error)
+	ListUserGroups(context.Context, *connect.Request[v1.ListUserGroupsRequest]) (*connect.Response[v1.ListUserGroupsResponse], error)
+	CreateUserGroup(context.Context, *connect.Request[v1.CreateUserGroupRequest]) (*connect.Response[v1.CreateUserGroupResponse], error)
+	DeleteUserGroup(context.Context, *connect.Request[v1.DeleteUserGroupRequest]) (*connect.Response[v1.DeleteUserGroupResponse], error)
+	GetUserGroupMembers(context.Context, *connect.Request[v1.GetUserGroupMembersRequest]) (*connect.Response[v1.GetUserGroupMembersResponse], error)
+	SetUserGroupMembers(context.Context, *connect.Request[v1.SetUserGroupMembersRequest]) (*connect.Response[v1.SetUserGroupMembersResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -884,6 +1296,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetConnectors")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceRefreshConnectorsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRefreshConnectorsProcedure,
+		svc.RefreshConnectors,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RefreshConnectors")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceStartOAuthHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceStartOAuthProcedure,
 		svc.StartOAuth,
@@ -938,6 +1356,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("ChangePassword")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceResetUserPasswordHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceResetUserPasswordProcedure,
+		svc.ResetUserPassword,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ResetUserPassword")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceLogoutHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceLogoutProcedure,
 		svc.Logout,
@@ -948,6 +1372,66 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceGetUsersProcedure,
 		svc.GetUsers,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUsers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetUserHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetUserProcedure,
+		svc.GetUser,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateUserHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateUserProcedure,
+		svc.CreateUser,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateUser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteUserHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteUserProcedure,
+		svc.DeleteUser,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteUser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListRbacPermissionsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListRbacPermissionsProcedure,
+		svc.ListRbacPermissions,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListRbacPermissions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListRbacRolesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListRbacRolesProcedure,
+		svc.ListRbacRoles,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListRbacRoles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateRbacRoleHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateRbacRoleProcedure,
+		svc.CreateRbacRole,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateRbacRole")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateRbacRoleHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateRbacRoleProcedure,
+		svc.UpdateRbacRole,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateRbacRole")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteRbacRoleHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteRbacRoleProcedure,
+		svc.DeleteRbacRole,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteRbacRole")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetUserRbacRolesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetUserRbacRolesProcedure,
+		svc.GetUserRbacRoles,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserRbacRoles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetUserRbacRolesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetUserRbacRolesProcedure,
+		svc.SetUserRbacRoles,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserRbacRoles")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceGetApiKeysHandler := connect.NewUnaryHandler(
@@ -1088,6 +1572,78 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetBotHooks")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetBotConversationsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetBotConversationsProcedure,
+		svc.GetBotConversations,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetBotConversations")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetBotConversationMessagesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetBotConversationMessagesProcedure,
+		svc.GetBotConversationMessages,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetBotConversationMessages")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSendBotConversationMessageHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSendBotConversationMessageProcedure,
+		svc.SendBotConversationMessage,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SendBotConversationMessage")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetSocialAccountSharesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetSocialAccountSharesProcedure,
+		svc.GetSocialAccountShares,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccountShares")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetSocialAccountSharesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetSocialAccountSharesProcedure,
+		svc.SetSocialAccountShares,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountShares")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceImpersonateUserHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceImpersonateUserProcedure,
+		svc.ImpersonateUser,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ImpersonateUser")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceStopImpersonationHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceStopImpersonationProcedure,
+		svc.StopImpersonation,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("StopImpersonation")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListUserGroupsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListUserGroupsProcedure,
+		svc.ListUserGroups,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListUserGroups")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateUserGroupHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateUserGroupProcedure,
+		svc.CreateUserGroup,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateUserGroup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteUserGroupHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteUserGroupProcedure,
+		svc.DeleteUserGroup,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteUserGroup")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetUserGroupMembersHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetUserGroupMembersProcedure,
+		svc.GetUserGroupMembers,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserGroupMembers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetUserGroupMembersHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetUserGroupMembersProcedure,
+		svc.SetUserGroupMembers,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserGroupMembers")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -1110,6 +1666,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceRefreshSocialAccountHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetConnectorsProcedure:
 			japellaControlApiServiceGetConnectorsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRefreshConnectorsProcedure:
+			japellaControlApiServiceRefreshConnectorsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceStartOAuthProcedure:
 			japellaControlApiServiceStartOAuthHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetTimelineProcedure:
@@ -1128,10 +1686,32 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceLoginWithUsernameAndPasswordHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceChangePasswordProcedure:
 			japellaControlApiServiceChangePasswordHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceResetUserPasswordProcedure:
+			japellaControlApiServiceResetUserPasswordHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceLogoutProcedure:
 			japellaControlApiServiceLogoutHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetUsersProcedure:
 			japellaControlApiServiceGetUsersHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetUserProcedure:
+			japellaControlApiServiceGetUserHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateUserProcedure:
+			japellaControlApiServiceCreateUserHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteUserProcedure:
+			japellaControlApiServiceDeleteUserHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListRbacPermissionsProcedure:
+			japellaControlApiServiceListRbacPermissionsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListRbacRolesProcedure:
+			japellaControlApiServiceListRbacRolesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateRbacRoleProcedure:
+			japellaControlApiServiceCreateRbacRoleHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateRbacRoleProcedure:
+			japellaControlApiServiceUpdateRbacRoleHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteRbacRoleProcedure:
+			japellaControlApiServiceDeleteRbacRoleHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetUserRbacRolesProcedure:
+			japellaControlApiServiceGetUserRbacRolesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetUserRbacRolesProcedure:
+			japellaControlApiServiceSetUserRbacRolesHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetApiKeysProcedure:
 			japellaControlApiServiceGetApiKeysHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetCvarsProcedure:
@@ -1178,6 +1758,30 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetBotHooksHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceSetBotHooksProcedure:
 			japellaControlApiServiceSetBotHooksHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetBotConversationsProcedure:
+			japellaControlApiServiceGetBotConversationsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetBotConversationMessagesProcedure:
+			japellaControlApiServiceGetBotConversationMessagesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSendBotConversationMessageProcedure:
+			japellaControlApiServiceSendBotConversationMessageHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetSocialAccountSharesProcedure:
+			japellaControlApiServiceGetSocialAccountSharesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetSocialAccountSharesProcedure:
+			japellaControlApiServiceSetSocialAccountSharesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceImpersonateUserProcedure:
+			japellaControlApiServiceImpersonateUserHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceStopImpersonationProcedure:
+			japellaControlApiServiceStopImpersonationHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListUserGroupsProcedure:
+			japellaControlApiServiceListUserGroupsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateUserGroupProcedure:
+			japellaControlApiServiceCreateUserGroupHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteUserGroupProcedure:
+			japellaControlApiServiceDeleteUserGroupHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetUserGroupMembersProcedure:
+			japellaControlApiServiceGetUserGroupMembersHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetUserGroupMembersProcedure:
+			japellaControlApiServiceSetUserGroupMembersHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -1227,6 +1831,10 @@ func (UnimplementedJapellaControlApiServiceHandler) GetConnectors(context.Contex
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetConnectors is not implemented"))
 }
 
+func (UnimplementedJapellaControlApiServiceHandler) RefreshConnectors(context.Context, *connect.Request[v1.RefreshConnectorsRequest]) (*connect.Response[v1.RefreshConnectorsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RefreshConnectors is not implemented"))
+}
+
 func (UnimplementedJapellaControlApiServiceHandler) StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.StartOAuth is not implemented"))
 }
@@ -1263,12 +1871,56 @@ func (UnimplementedJapellaControlApiServiceHandler) ChangePassword(context.Conte
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ChangePassword is not implemented"))
 }
 
+func (UnimplementedJapellaControlApiServiceHandler) ResetUserPassword(context.Context, *connect.Request[v1.ResetUserPasswordRequest]) (*connect.Response[v1.ResetUserPasswordResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ResetUserPassword is not implemented"))
+}
+
 func (UnimplementedJapellaControlApiServiceHandler) Logout(context.Context, *connect.Request[v1.LogoutRequest]) (*connect.Response[v1.LogoutResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.Logout is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) GetUsers(context.Context, *connect.Request[v1.GetUsersRequest]) (*connect.Response[v1.GetUsersResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUsers is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetUser(context.Context, *connect.Request[v1.GetUserRequest]) (*connect.Response[v1.GetUserResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUser is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateUser(context.Context, *connect.Request[v1.CreateUserRequest]) (*connect.Response[v1.CreateUserResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateUser is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteUser(context.Context, *connect.Request[v1.DeleteUserRequest]) (*connect.Response[v1.DeleteUserResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteUser is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListRbacPermissions(context.Context, *connect.Request[v1.ListRbacPermissionsRequest]) (*connect.Response[v1.ListRbacPermissionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListRbacRoles(context.Context, *connect.Request[v1.ListRbacRolesRequest]) (*connect.Response[v1.ListRbacRolesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListRbacRoles is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateRbacRole(context.Context, *connect.Request[v1.CreateRbacRoleRequest]) (*connect.Response[v1.CreateRbacRoleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateRbacRole is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateRbacRole(context.Context, *connect.Request[v1.UpdateRbacRoleRequest]) (*connect.Response[v1.UpdateRbacRoleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteRbacRole(context.Context, *connect.Request[v1.DeleteRbacRoleRequest]) (*connect.Response[v1.DeleteRbacRoleResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetUserRbacRoles(context.Context, *connect.Request[v1.GetUserRbacRolesRequest]) (*connect.Response[v1.GetUserRbacRolesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetUserRbacRoles(context.Context, *connect.Request[v1.SetUserRbacRolesRequest]) (*connect.Response[v1.SetUserRbacRolesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error) {
@@ -1361,4 +2013,52 @@ func (UnimplementedJapellaControlApiServiceHandler) GetBotHooks(context.Context,
 
 func (UnimplementedJapellaControlApiServiceHandler) SetBotHooks(context.Context, *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetBotHooks is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetBotConversations(context.Context, *connect.Request[v1.GetBotConversationsRequest]) (*connect.Response[v1.GetBotConversationsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetBotConversations is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetBotConversationMessages(context.Context, *connect.Request[v1.GetBotConversationMessagesRequest]) (*connect.Response[v1.GetBotConversationMessagesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SendBotConversationMessage(context.Context, *connect.Request[v1.SendBotConversationMessageRequest]) (*connect.Response[v1.SendBotConversationMessageResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetSocialAccountShares(context.Context, *connect.Request[v1.GetSocialAccountSharesRequest]) (*connect.Response[v1.GetSocialAccountSharesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetSocialAccountShares(context.Context, *connect.Request[v1.SetSocialAccountSharesRequest]) (*connect.Response[v1.SetSocialAccountSharesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ImpersonateUser(context.Context, *connect.Request[v1.ImpersonateUserRequest]) (*connect.Response[v1.ImpersonateUserResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ImpersonateUser is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) StopImpersonation(context.Context, *connect.Request[v1.StopImpersonationRequest]) (*connect.Response[v1.StopImpersonationResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.StopImpersonation is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListUserGroups(context.Context, *connect.Request[v1.ListUserGroupsRequest]) (*connect.Response[v1.ListUserGroupsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListUserGroups is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateUserGroup(context.Context, *connect.Request[v1.CreateUserGroupRequest]) (*connect.Response[v1.CreateUserGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateUserGroup is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteUserGroup(context.Context, *connect.Request[v1.DeleteUserGroupRequest]) (*connect.Response[v1.DeleteUserGroupResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetUserGroupMembers(context.Context, *connect.Request[v1.GetUserGroupMembersRequest]) (*connect.Response[v1.GetUserGroupMembersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetUserGroupMembers(context.Context, *connect.Request[v1.SetUserGroupMembersRequest]) (*connect.Response[v1.SetUserGroupMembersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers is not implemented"))
 }

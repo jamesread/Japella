@@ -11,6 +11,10 @@ import Calendar from '../vue/Calendar.vue'
 import Settings from '../vue/Settings.vue'
 import CannedPosts from '../vue/CannedPosts.vue'
 import UserList from '../vue/UserList.vue'
+import UserDetails from '../vue/UserDetails.vue'
+import UserDetailsRoles from '../vue/UserDetailsRoles.vue'
+import UserDetailsPassword from '../vue/UserDetailsPassword.vue'
+import RbacSettings from '../vue/RbacSettings.vue'
 import SocialAccounts from '../vue/SocialAccounts.vue'
 import SocialAccountDetails from '../vue/SocialAccountDetails.vue'
 import ApiKeys from '../vue/ApiKeys.vue'
@@ -24,7 +28,11 @@ import Logs from '../vue/Logs.vue'
 import BrowserDiagnostics from '../vue/BrowserDiagnostics.vue'
 import ChatBots from '../vue/ChatBots.vue'
 import ChatBotDetails from '../vue/ChatBotDetails.vue'
+import CreateUser from '../vue/CreateUser.vue'
 import Connectors from '../vue/Connectors.vue'
+import UserGroups from '../vue/UserGroups.vue'
+import AddSocialAccount from '../vue/AddSocialAccount.vue'
+import { canAccessControlPanelFromStatus } from './rbacAccess.js'
 
 import {
   SettingsIcon,
@@ -40,6 +48,8 @@ import {
   ActivityIcon,
   HomeIcon,
   Robot01Icon,
+  WebSecurityIcon,
+  SecurityValidationIcon,
 } from '@hugeicons/core-free-icons'
 
 const routes = [
@@ -189,6 +199,15 @@ const routes = [
     }
   },
   {
+    path: '/social-accounts/add',
+    name: 'addSocialAccount',
+    component: AddSocialAccount,
+    meta: {
+      title: 'Add Social Account',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/social-accounts/:id',
     name: 'socialAccountDetails',
     component: SocialAccountDetails,
@@ -204,6 +223,15 @@ const routes = [
     meta: {
       icon: SettingsIcon,
       title: 'Settings',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/settings/rbac',
+    name: 'rbacSettings',
+    component: RbacSettings,
+    meta: {
+      title: 'Roles & permissions',
       requiresAuth: true
     }
   },
@@ -228,6 +256,66 @@ const routes = [
     }
   },
   {
+    path: '/create-user',
+    name: 'createUser',
+    component: CreateUser,
+    meta: {
+      title: 'Create User',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/users/:id',
+    name: 'userDetails',
+    component: UserDetails,
+    meta: {
+      title: 'User',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/users/:id/roles',
+    name: 'userDetailsRoles',
+    component: UserDetailsRoles,
+    meta: {
+      icon: WebSecurityIcon,
+      title: 'Roles & permissions',
+      description: 'Assign RBAC roles and review effective permissions',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/users/:id/password',
+    name: 'userDetailsPassword',
+    component: UserDetailsPassword,
+    meta: {
+      icon: SecurityValidationIcon,
+      title: 'Reset password',
+      description: 'Set a new password for this user',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/users/:id/api-keys',
+    name: 'userDetailsApiKeys',
+    component: ApiKeys,
+    meta: {
+      icon: KeyIcon,
+      title: 'API Keys',
+      description: 'View and manage API keys for this user',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user-groups',
+    name: 'userGroups',
+    component: UserGroups,
+    meta: {
+      title: 'User Groups',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/change-password',
     name: 'changePassword',
     component: ChangePassword,
@@ -243,7 +331,8 @@ const routes = [
     meta: {
       icon: HomeIcon,
       title: 'Control Panel',
-      requiresAuth: true
+      requiresAuth: true,
+      requiresControlPanel: true
     }
   },
   {
@@ -317,6 +406,21 @@ router.beforeEach(async (to, from, next) => {
         next('/')
         return
       }
+    }
+  }
+
+  if (to.meta.requiresControlPanel) {
+    try {
+      await waitForClient()
+      const status = await window.client.getStatus()
+      if (!canAccessControlPanelFromStatus(status)) {
+        next('/')
+        return
+      }
+    } catch (error) {
+      console.error('Error checking control panel access:', error)
+      next('/')
+      return
     }
   }
 

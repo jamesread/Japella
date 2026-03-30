@@ -1,1 +1,29 @@
 = Mastodon
+
+Use the Mastodon connector to post status updates and media through Mastodon OAuth.
+
+== What you need
+
+* A Mastodon account.
+* OAuth app credentials for your Mastodon instance (or `mastodon.social`).
+
+== Configure credentials
+
+Set these connector values in Japella settings:
+
+* `mastodon.client_id`
+* `mastodon.client_secret`
+
+The connector uses these for OAuth and account authorization.
+
+== Notes
+
+* Japella defaults to `https://mastodon.social` when no homeserver is configured.
+* Media uploads are sent to Mastodon's media API before creating a status.
+
+== Add an account
+
+. Open Japella and go to social accounts.
+. Choose **Add social account** and select **Mastodon**.
+. Complete the OAuth flow.
+. Test a post to confirm your account is connected.

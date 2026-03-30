@@ -3,3 +3,19 @@
 Connectors are a way to connect Japella to a chat protocol. This means they are responsible for sending and receiving messages from the chat protocol, they are also responsible for handling the connection to the chat protocol.
 
 You can see a list of chat protocols supported by Japella adaptors in the sidebar of this documentation page.
+
+== Common prerequisites
+
+Before adding accounts for any connector:
+
+* Set `baseUrl` in Japella settings so OAuth callbacks can return to your instance.
+* Ensure `oauth2.redirect_url` is valid for your deployment.
+* Use HTTPS in production (many providers require secure callback URLs).
+
+== Connector guides
+
+* xref:x.adoc[X]
+* xref:mastodon.adoc[Mastodon]
+* xref:bluesky.adoc[Bluesky]
+* xref:discord.adoc[Discord]
+* xref:telegram.adoc[Telegram]

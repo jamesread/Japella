@@ -370,6 +370,25 @@ func (c *TelegramConnector) handleMessage(message *tgbotmdl.Message) {
 		Identity:  c.nickname, // Include bot identity so hooks can route responses correctly
 	}
 
+	if c.db != nil {
+		convTitle := author
+		if convTitle == "" {
+			convTitle = "Unknown sender"
+		}
+		_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
+			Connector:         "telegram",
+			Identity:          c.nickname,
+			ConversationKey:   db.BuildConversationKey(incomingMsg.Channel, author),
+			ConversationTitle: convTitle,
+			Channel:           incomingMsg.Channel,
+			Author:            author,
+			Content:           incomingMsg.Content,
+			Direction:         "incoming",
+			MessageID:         incomingMsg.MessageId,
+			TimestampUnix:     incomingMsg.Timestamp,
+		})
+	}
+
 	// Execute hooks if configured
 	if len(c.hooks) > 0 {
 		c.Logger().Debugf("Executing %d hook(s) for incoming message", len(c.hooks))
@@ -424,6 +443,29 @@ func (c *TelegramConnector) Replier() {
 				ChatID: channelId,
 				Text:   reply.Content,
 			})
+
+			if c.db != nil {
+				conversationKey := db.BuildConversationKey(reply.Channel, "")
+				conversationTitle := reply.Channel
+				if reply.IncommingMessageId != "" {
+					if incomingRef, err := c.db.GetChatBotMessageByExternalID("telegram", c.nickname, reply.IncommingMessageId); err == nil && incomingRef != nil {
+						conversationKey = incomingRef.ConversationKey
+						conversationTitle = incomingRef.ConversationTitle
+					}
+				}
+				_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
+					Connector:         "telegram",
+					Identity:          c.nickname,
+					ConversationKey:   conversationKey,
+					ConversationTitle: conversationTitle,
+					Channel:           reply.Channel,
+					Author:            "bot",
+					Content:           reply.Content,
+					Direction:         "outgoing",
+					MessageID:         "",
+					TimestampUnix:     time.Now().Unix(),
+				})
+			}
 		} else {
 			c.Logger().Warnf("Bot instance is nil, cannot send message")
 		}

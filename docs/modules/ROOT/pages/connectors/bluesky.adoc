@@ -1,1 +1,29 @@
 = Bluesky
+
+Use the Bluesky connector to post to AT Protocol accounts with OAuth2 + DPoP.
+
+== What you need
+
+* A Bluesky account.
+* A reachable public Japella `baseUrl` so Bluesky can complete OAuth callbacks.
+
+== Configuration
+
+The connector derives its OAuth client identity from:
+
+* `baseUrl` + `/oauth/client-metadata.json`
+
+Ensure `baseUrl` is correctly set in Japella settings and is publicly reachable.
+
+== Notes
+
+* Japella stores and refreshes Bluesky access/refresh tokens.
+* DPoP is used for Bluesky token and API requests.
+* Bluesky supports image attachments and rich link previews.
+
+== Add an account
+
+. Open Japella and go to social accounts.
+. Choose **Add social account** and select **Bluesky**.
+. Complete the OAuth flow.
+. Post a test message to verify account connectivity.

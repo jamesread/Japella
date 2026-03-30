@@ -2,7 +2,7 @@
     <section>
         <h2>Media upload</h2>
 
-        <p>Here you can upload images and videos to your media library.</p>
+        <p>Here you can upload images and videos to your media library. You can also paste images from your clipboard (Ctrl+V).</p>
 
         <form id="media-upload-form" @submit.prevent="submitForm">
             <fieldset style = "flex-direction: column; gap: 1em;">
@@ -28,7 +28,7 @@
 <script setup>
     import { ref } from 'vue';
     import { useI18n } from 'vue-i18n';
-    import { onMounted } from 'vue';
+    import { onMounted, onUnmounted } from 'vue';
     const { t } = useI18n()
 
     const fileupload = ref(null);
@@ -76,6 +76,7 @@
 
     onMounted(() => {
         const fileInput = fileupload.value;
+        if (!fileInput) return;
         fileInput.addEventListener('dragover', (event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -98,6 +99,37 @@
         });
 
         fileInput.addEventListener('change', updateImageDisplay);
+
+        const handlePaste = (event) => {
+            const items = event.clipboardData?.items;
+            if (!items) return;
+
+            const pastedImages = [];
+            for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                    const file = item.getAsFile();
+                    if (file) pastedImages.push(file);
+                }
+            }
+            if (pastedImages.length === 0) return;
+
+            event.preventDefault();
+            const dt = new DataTransfer();
+            for (const f of fileInput.files) dt.items.add(f);
+            for (const f of pastedImages) dt.items.add(f);
+            fileInput.files = dt.files;
+            updateImageDisplay();
+        };
+
+        document.addEventListener('paste', handlePaste);
+        fileInput._pasteHandler = handlePaste;
+    });
+
+    onUnmounted(() => {
+        const fileInput = fileupload.value;
+        if (fileInput?._pasteHandler) {
+            document.removeEventListener('paste', fileInput._pasteHandler);
+        }
     });
 
 const fileTypes = [
@@ -128,27 +160,18 @@ function returnFileSize(number) {
 
 function updateImageDisplay() {
   const input = fileupload.value;
+  if (!input) return;
+
+  for (const f of uploadedfiles.value) {
+    if (f.objectUrl) URL.revokeObjectURL(f.objectUrl);
+  }
+  uploadedfiles.value = [];
 
   const curFiles = input.files;
-  if (curFiles.length === 0) {
-    const para = document.createElement("p");
-    para.textContent = "No files currently selected for upload";
-  } else {
-    const list = document.createElement("ol");
-
-    for (const file of curFiles) {
-      const listItem = document.createElement("li");
-      const para = document.createElement("p");
-      if (validFileType(file)) {
-        para.textContent = `File name ${file.name}, file size ${returnFileSize(
-          file.size,
-        )}.`;
-
-        file.objectUrl = URL.createObjectURL(file);
-        uploadedfiles.value.push(file);
-      }
-
-      list.appendChild(listItem);
+  for (const file of curFiles) {
+    if (validFileType(file)) {
+      file.objectUrl = URL.createObjectURL(file);
+      uploadedfiles.value.push(file);
     }
   }
 }

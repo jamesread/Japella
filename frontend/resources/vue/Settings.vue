@@ -1,18 +1,25 @@
 <template>
     <section class = "settings" title = "Settings">
         <h2>Settings</h2>
-        <p>This page allows you to configure all of the cvars available in the app.</p>
 
-        <InlineNotification message = "Settings are saved immediately when you change them on this page." type = "warning" />
+        <div v-if="!loaded">
+            <p>Loading...</p>
+        </div>
+        <div v-else-if="!canAccess">
+            <p class="inline-notification error">You do not have permission to view system settings.</p>
+        </div>
+        <template v-else>
+            <p>This page allows you to configure all of the cvars available in the app.</p>
+            <InlineNotification message = "Settings are saved immediately when you change them on this page." type = "warning" />
+        </template>
     </section>
 
-    <section v-for="category in categories">
+    <section v-if="canAccess" v-for="category in categories">
         <h2>Category: {{ category.name }}</h2>
 
         <form>
             <template v-for="cvar in category.cvars">
                 <label>{{ cvar.title }}: </label>
-                <!-- Use v-if to handle different input types -->
                     <template v-if = "cvar.type === 'text' || cvar.type === 'password'">
                         <input :type = "cvar.type" name = "" :id = "cvar.keyName" :placeholder = "cvar.keyName" :value = "cvar.valueString" @blur = "setCvar(cvar)" />
                     </template>
@@ -32,10 +39,18 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue';
+    import { ref, computed, onMounted } from 'vue';
     import { waitForClient } from '../javascript/util';
+    import InlineNotification from './InlineNotification.vue';
 
     const categories = ref([]);
+    const loaded = ref(false);
+    const statusPerms = ref([]);
+    const statusSuper = ref(false);
+
+    const canAccess = computed(
+        () => statusSuper.value || (Array.isArray(statusPerms.value) && statusPerms.value.includes('system.settings'))
+    );
 
     function refreshCvars() {
         categories.value = [];
@@ -75,7 +90,14 @@
     onMounted(async () => {
         await waitForClient();
 
-        refreshCvars();
+        const st = await window.client.getStatus({});
+        statusPerms.value = st.rbacPermissions || [];
+        statusSuper.value = Boolean(st.rbacIsSuperuser);
+        loaded.value = true;
+
+        if (canAccess.value) {
+            refreshCvars();
+        }
     });
 </script>
 

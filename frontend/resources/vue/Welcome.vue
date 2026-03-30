@@ -1,14 +1,18 @@
 <template>
 	<div class="welcome-page">
-		<section class="welcome-hero" aria-labelledby="welcome-heading">
-			<h1 id="welcome-heading">{{ t('welcome') }}</h1>
+		<Section
+			title="Welcome"
+			:subtitle="t('welcome.tagline')"
+			classes="welcome-hero"
+			id="welcome-hero"
+		>
 			<p class="welcome-tagline">{{ t('welcome.tagline') }}</p>
 			<p class="welcome-lead">{{ t('welcome.gettingstarted') }}</p>
 			<router-link :to="{ name: 'postBox' }" class="welcome-primary-cta">
-				<Icon icon="mdi:pencil-outline" width="22" height="22" aria-hidden="true" />
+				<HugeiconsIcon :icon="EditIcon" width="22" height="22" aria-hidden="true" />
 				<span>{{ t('welcome.cta.post') }}</span>
 			</router-link>
-		</section>
+		</Section>
 
 		<Section
 			:title="t('welcome.section.quickstart')"
@@ -23,7 +27,7 @@
 					class="welcome-card"
 				>
 					<div class="welcome-card-icon" aria-hidden="true">
-						<Icon :icon="card.icon" width="28" height="28" />
+						<HugeiconsIcon :icon="card.icon" :width="cardIconSize" :height="cardIconSize" />
 					</div>
 					<div class="welcome-card-body">
 						<span class="welcome-card-title">{{ card.title }}</span>
@@ -38,40 +42,51 @@
 <script setup>
 	import { computed } from 'vue'
 	import { useI18n } from 'vue-i18n'
-	import { Icon } from '@iconify/vue'
+	import { HugeiconsIcon } from '@hugeicons/vue'
+	import {
+		EditIcon,
+		ClockIcon,
+		UserMultiple03Icon,
+		CalendarIcon,
+		ImageIcon,
+		ActivityIcon,
+	} from '@hugeicons/core-free-icons'
 	import Section from 'picocrank/vue/components/Section.vue'
 
 	const { t } = useI18n()
 
+	/** Matches picocrank NavigationGrid default icon size */
+	const cardIconSize = '2em'
+
 	const cards = computed(() => [
 		{
 			routeName: 'timeline',
-			icon: 'mdi:timeline-clock-outline',
-			title: t('nav.timeline'),
+			icon: ClockIcon,
+			title: t('welcome.card.timeline.title'),
 			description: t('welcome.card.timeline.hint'),
 		},
 		{
-			routeName: 'socialAccounts',
-			icon: 'mdi:account-multiple-outline',
-			title: t('nav.socialaccounts'),
+			routeName: 'addSocialAccount',
+			icon: UserMultiple03Icon,
+			title: t('welcome.card.social.title'),
 			description: t('welcome.card.social.hint'),
 		},
 		{
 			routeName: 'calendar',
-			icon: 'mdi:calendar-month-outline',
-			title: t('nav.calendar'),
+			icon: CalendarIcon,
+			title: t('welcome.card.calendar.title'),
 			description: t('welcome.card.calendar.hint'),
 		},
 		{
 			routeName: 'media',
-			icon: 'mdi:image-multiple-outline',
-			title: t('nav.media'),
+			icon: ImageIcon,
+			title: t('welcome.card.media.title'),
 			description: t('welcome.card.media.hint'),
 		},
 		{
 			routeName: 'feed',
-			icon: 'mdi:rss',
-			title: t('nav.feed'),
+			icon: ActivityIcon,
+			title: t('welcome.card.feed.title'),
 			description: t('welcome.card.feed.hint'),
 		},
 	])
@@ -81,20 +96,6 @@
 	.welcome-page {
 		max-width: 56rem;
 		margin: 0 auto;
-	}
-
-	.welcome-hero {
-		padding: 1.5rem 0 2rem;
-		margin-bottom: 0.5rem;
-		border-bottom: 1px solid var(--border-color, #e1e5e9);
-	}
-
-	.welcome-hero h1 {
-		margin: 0 0 0.5rem;
-		font-size: clamp(1.75rem, 4vw, 2.25rem);
-		font-weight: 700;
-		line-height: 1.2;
-		letter-spacing: -0.02em;
 	}
 
 	.welcome-tagline {

@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -26,6 +27,21 @@ func getConfigFilePath(filename string) string {
 	}
 
 	return filename
+}
+
+// ConfigYAMLAbsolutePath returns the absolute filesystem path to config.yaml (the file the loader uses).
+func ConfigYAMLAbsolutePath() string {
+	p := getConfigFilePath("config.yaml")
+	if strings.HasPrefix(p, "~/") {
+		if home, err := os.UserHomeDir(); err == nil {
+			p = filepath.Join(home, strings.TrimPrefix(p, "~/"))
+		}
+	}
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return p
+	}
+	return abs
 }
 
 func readFile(filename string) ([]byte, error) {

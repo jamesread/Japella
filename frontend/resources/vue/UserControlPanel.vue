@@ -90,7 +90,7 @@
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
-	import { UserMultiple03Icon, SettingsIcon, KeyIcon, SecurityValidationIcon, ActivityIcon } from '@hugeicons/core-free-icons';
+	import { KeyIcon, SecurityValidationIcon, ActivityIcon } from '@hugeicons/core-free-icons';
 
 	const router = useRouter();
 
@@ -135,14 +135,6 @@
 		} catch {
 			return 'Invalid date';
 		}
-	}
-
-	function goToSocialAccounts() {
-		router.push('/social-accounts');
-	}
-
-	function goToSettings() {
-		router.push('/settings');
 	}
 
 	function goToApiKeys() {
@@ -201,18 +193,6 @@
 
 		// Setup quick actions navigation
 		if (localNavigation.value) {
-			localNavigation.value.addCallback('Manage Social Accounts', goToSocialAccounts, {
-				icon: UserMultiple03Icon,
-				name: 'social-accounts',
-				description: 'Manage your connected social media accounts'
-			});
-
-			localNavigation.value.addCallback('Account Settings', goToSettings, {
-				icon: SettingsIcon,
-				name: 'account-settings',
-				description: 'Manage your account configuration'
-			});
-
 			localNavigation.value.addCallback('API Keys', goToApiKeys, {
 				icon: KeyIcon,
 				name: 'api-keys',

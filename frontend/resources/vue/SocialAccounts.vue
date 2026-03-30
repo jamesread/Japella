@@ -6,6 +6,10 @@
 		:padding="false"
 	>
 		<template #toolbar>
+			<router-link :to="{ name: 'addSocialAccount' }" class="button good" title="Add social account">
+				<Icon icon="material-symbols:add" />
+				Add account
+			</router-link>
 			<button @click="refreshAccounts()" :disabled="!clientReady" class="neutral">
 				<Icon icon="material-symbols:refresh" />
 			</button>
@@ -15,13 +19,14 @@
 			<p class="inline-notification error">{{ errorMessage }}</p>
 		</div>
 		<div v-else>
-			<div v-if="accounts.length === 0">
+			<div v-if="accounts.length === 0" class="padding">
 				<p class="inline-notification note">No social accounts connected yet.</p>
 			</div>
 			<table class = "data-table" v-else>
 				<thead>
 					<tr>
 						<th>Identity</th>
+						<th>Owner</th>
 						<th class="actions" style="text-align: right">Actions</th>
 					</tr>
 				</thead>
@@ -33,16 +38,23 @@
 							{{ account.identity }}
 						</router-link>
 					</td>
+					<td>
+						<span v-if="account.isOwner" class="owner-tag self">you</span>
+						<span v-else-if="account.ownerUsername" class="owner-tag">{{ account.ownerUsername }}</span>
+						<span v-else class="owner-tag none">—</span>
+					</td>
 						<td align="right">
 						<button @click="openProfile(account)" class="neutral" :title="'Open ' + account.identity + ' profile'">
 							<Icon icon="material-symbols:open-in-new" />
 						</button>
+						<template v-if="account.canManage">
 						&nbsp;
 						<button @click="refreshAccount(account.id)" class="good" :disabled="isAccountRefreshing(account.id)">
 							<Icon v-if="isAccountSuccess(account.id)" icon="material-symbols:check-circle" />
 							<Icon v-else-if="isAccountRefreshing(account.id)" icon="material-symbols:hourglass-top" />
 							<Icon v-else icon="material-symbols:refresh" />
 						</button>
+						</template>
 					</td>
 					</tr>
 				</tbody>
@@ -207,6 +219,14 @@
 </script>
 
 <style scoped>
-	/* Use global .social-account styling from main.css */
-
+.owner-tag {
+	font-size: 0.85em;
+	opacity: 0.8;
+}
+.owner-tag.self {
+	font-weight: 600;
+}
+.owner-tag.none {
+	opacity: 0.4;
+}
 </style>

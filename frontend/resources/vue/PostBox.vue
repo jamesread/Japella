@@ -237,7 +237,7 @@ const recountLength = (e) => {
       const ret = await window.client.getSocialAccounts({"onlyActive": true});
       const campaignsRet = await window.client.getCampaigns();
 
-      items.value = ret.accounts
+      items.value = (ret.accounts || []).filter(a => a.canPost)
 
       campaigns.value = campaignsRet.campaigns || [];
 

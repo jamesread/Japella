@@ -2,6 +2,7 @@ package connectorcontroller
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connector/bluesky"
@@ -18,7 +19,18 @@ import (
 
 type ConnectionController struct {
 	controllers map[string]connector.BaseConnector
+	mu          sync.RWMutex
 	db          *db.DB
+}
+
+// oauthConnectorTypes lists connector types that require OAuth and should only be started when IsPubliclyAccessible is true
+var oauthConnectorTypes = map[string]bool{
+	"mastodon": true, "x": true, "bluesky": true, "facebook": true, "instagram": true,
+}
+
+// yamlConnectorTypes lists connector types that require YAML configuration to be started
+var yamlConnectorTypes = map[string]bool{
+	"telegram": true, "discord": true,
 }
 
 func New(dbc *db.DB) *ConnectionController {
@@ -26,25 +38,39 @@ func New(dbc *db.DB) *ConnectionController {
 		controllers: map[string]connector.BaseConnector{},
 		db:          dbc,
 	}
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+
+	isPubliclyAccessible := dbc.GetCvarBool(db.CvarKeys.IsPubliclyAccessible)
 
 	for _, wrapper := range runtimeconfig.Get().Connectors {
-		if wrapper.Enabled {
-			cc.startControllerFromConfig(wrapper)
-		} else {
+		if !wrapper.Enabled {
 			log.Warnf("Connector %s is disabled in configuration", wrapper.ConnectorType)
+			continue
 		}
+		if oauthConnectorTypes[wrapper.ConnectorType] && !isPubliclyAccessible {
+			log.Infof("Skipping OAuth connector %s: IsPubliclyAccessible is false", wrapper.ConnectorType)
+			continue
+		}
+		cc.startControllerFromConfig(wrapper)
 	}
 
-	cc.setupConnector(&mastodon.MastodonConnector{}, nil)
-	cc.setupConnector(&x.XConnector{}, nil)
-	cc.setupConnector(&bluesky.BlueskyConnector{}, nil)
-	cc.setupConnector(&facebook.FacebookConnector{}, nil)
-	cc.setupConnector(&instagram.InstagramConnector{}, nil)
+	if isPubliclyAccessible {
+		cc.setupConnector(&mastodon.MastodonConnector{}, nil)
+		cc.setupConnector(&x.XConnector{}, nil)
+		cc.setupConnector(&bluesky.BlueskyConnector{}, nil)
+		cc.setupConnector(&facebook.FacebookConnector{}, nil)
+		cc.setupConnector(&instagram.InstagramConnector{}, nil)
+	} else {
+		log.Infof("OAuth connectors not started: IsPubliclyAccessible is false")
+	}
 
 	return cc
 }
 
 func (cc *ConnectionController) Get(key string) connector.BaseConnector {
+	cc.mu.RLock()
+	defer cc.mu.RUnlock()
 	controller, exists := cc.controllers[key]
 
 	if !exists {
@@ -56,10 +82,18 @@ func (cc *ConnectionController) Get(key string) connector.BaseConnector {
 }
 
 func (cc *ConnectionController) GetServices() map[string]connector.BaseConnector {
-	return cc.controllers
+	cc.mu.RLock()
+	defer cc.mu.RUnlock()
+	services := make(map[string]connector.BaseConnector, len(cc.controllers))
+	for k, v := range cc.controllers {
+		services[k] = v
+	}
+	return services
 }
 
 func (cc *ConnectionController) GetKeys() []string {
+	cc.mu.RLock()
+	defer cc.mu.RUnlock()
 	keys := make([]string, 0)
 
 	log.Infof("Registered controllers: %v", cc)
@@ -87,6 +121,7 @@ func GetAllAvailableConnectorTypes() []string {
 
 // GetUnregisteredConnectors returns connector info for connectors that exist but aren't started
 func (cc *ConnectionController) GetUnregisteredConnectors() []*connector.UnregisteredConnector {
+	cc.mu.RLock()
 	available := GetAllAvailableConnectorTypes()
 	startedTypes := make(map[string]bool)
 
@@ -99,6 +134,13 @@ func (cc *ConnectionController) GetUnregisteredConnectors() []*connector.Unregis
 				break
 			}
 		}
+	}
+	cc.mu.RUnlock()
+
+	isPubliclyAccessible := cc.db.GetCvarBool(db.CvarKeys.IsPubliclyAccessible)
+	configTypes := make(map[string]bool)
+	for _, w := range runtimeconfig.Get().Connectors {
+		configTypes[w.ConnectorType] = true
 	}
 
 	unregistered := make([]*connector.UnregisteredConnector, 0)
@@ -124,15 +166,34 @@ func (cc *ConnectionController) GetUnregisteredConnectors() []*connector.Unregis
 				icon = conn.GetIcon()
 			}
 
+			reason := getNotStartedReason(connectorType, isPubliclyAccessible, configTypes)
+
 			unregistered = append(unregistered, &connector.UnregisteredConnector{
-				Protocol: connectorType,
-				Icon:     icon,
-				Name:     connectorType,
+				Protocol:         connectorType,
+				Icon:             icon,
+				Name:             connectorType,
+				NotStartedReason: reason,
 			})
 		}
 	}
 
 	return unregistered
+}
+
+func getNotStartedReason(connectorType string, isPubliclyAccessible bool, configTypes map[string]bool) string {
+	if oauthConnectorTypes[connectorType] && !isPubliclyAccessible {
+		return "Requires IsPubliclyAccessible to be enabled"
+	}
+	if yamlConnectorTypes[connectorType] && !configTypes[connectorType] {
+		return "Requires YAML configuration"
+	}
+	if yamlConnectorTypes[connectorType] && configTypes[connectorType] {
+		return "Disabled in YAML configuration"
+	}
+	if connectorType == "whatsapp" {
+		return "Not configured"
+	}
+	return "Not started"
 }
 
 // createConnectorInstance creates a temporary connector instance to get metadata
@@ -236,6 +297,47 @@ func (cc *ConnectionController) setupConnectorWithKey(c connector.BaseConnector,
 	c.Start()
 
 	cc.controllers[key] = c
+}
+
+// RefreshConnectors applies the current IsPubliclyAccessible setting by starting or stopping OAuth connectors.
+// Call this after changing the IsPubliclyAccessible setting to apply it without restarting the server.
+func (cc *ConnectionController) RefreshConnectors() {
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+
+	isPubliclyAccessible := cc.db.GetCvarBool(db.CvarKeys.IsPubliclyAccessible)
+
+	// Remove OAuth connectors when IsPubliclyAccessible is false
+	if !isPubliclyAccessible {
+		for key := range cc.controllers {
+			for oauthType := range oauthConnectorTypes {
+				if key == oauthType || (len(key) > len(oauthType) && key[:len(oauthType)+1] == oauthType+"-") {
+					delete(cc.controllers, key)
+					log.Infof("Stopped OAuth connector: %s (IsPubliclyAccessible is false)", key)
+					break
+				}
+			}
+		}
+		return
+	}
+
+	// Add OAuth connectors when IsPubliclyAccessible is true (if not already present)
+	oauthDefaults := []struct {
+		key string
+		c   connector.BaseConnector
+	}{
+		{"mastodon", &mastodon.MastodonConnector{}},
+		{"x", &x.XConnector{}},
+		{"bluesky", &bluesky.BlueskyConnector{}},
+		{"facebook", &facebook.FacebookConnector{}},
+		{"instagram", &instagram.InstagramConnector{}},
+	}
+	for _, def := range oauthDefaults {
+		if _, exists := cc.controllers[def.key]; !exists {
+			cc.setupConnectorWithKey(def.c, nil, def.key)
+			log.Infof("Started OAuth connector: %s (IsPubliclyAccessible is true)", def.key)
+		}
+	}
 }
 
 // generateUniqueKey generates a unique key for a connector instance

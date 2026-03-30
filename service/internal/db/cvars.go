@@ -1,15 +1,18 @@
 package db
 
 var CvarKeys = struct {
-	BaseUrl string
-	OAuth2RedirectURL string
+	BaseUrl             string
+	OAuth2RedirectURL   string
+	IsPubliclyAccessible string
 }{
-	BaseUrl:          "base_url",
-	OAuth2RedirectURL: "oauth2_redirect_url",
+	BaseUrl:               "base_url",
+	OAuth2RedirectURL:     "oauth2_redirect_url",
+	IsPubliclyAccessible: "is_publicly_accessible",
 }
 
 var CvarList = []Cvar{
 	{KeyName: CvarKeys.BaseUrl, Title: "Base URL", ValueString: "http://localhost:8080", Category: "General", Description: "The base URL of the application", Type: "text"},
+	{KeyName: CvarKeys.IsPubliclyAccessible, Title: "Is Publicly Accessible", ValueInt: 0, Category: "General", Description: "When enabled, OAuth connectors (Mastodon, X, Bluesky, Facebook, Instagram) are started. When disabled, they appear in Unregistered Connectors.", Type: "bool", DefaultValue: "0"},
 	{KeyName: CvarKeys.OAuth2RedirectURL, Title: "OAuth2 Redirect URL", ValueString: "http://localhost:8080/oauth2callback", Category: "OAuth2", Description: "The redirect URL for OAuth2 authentication", Type: "text"},
 }
 

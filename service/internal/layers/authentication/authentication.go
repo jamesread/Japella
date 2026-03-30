@@ -2,24 +2,23 @@ package authentication
 
 import (
 	"context"
-	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 
+	"github.com/jamesread/golure/pkg/redact"
 	"github.com/jamesread/japella/internal/db"
 
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
+	japauth "github.com/jamesread/httpauthshim"
 
 	"connectrpc.com/authn"
+	log "github.com/sirupsen/logrus"
 )
-
-type AuthenticatedUser struct {
-	User *db.UserAccount
-}
 
 type AuthLayer struct {
 	DB        *db.DB
-	AuthChain []AuthFunc
+	shim      *japauth.AuthShimContext
+	devNoAuth bool
 }
 
 var allowList = map[string]bool{
@@ -27,63 +26,99 @@ var allowList = map[string]bool{
 	controlv1.JapellaControlApiServiceGetStatusProcedure:                    true,
 }
 
-type AuthFunc func(ctx context.Context, db *db.DB, req *http.Request) (*AuthenticatedUser, error)
+func (al *AuthLayer) finishWithRBAC(au *AuthenticatedUser, procedureName string) (any, error) {
+	rb, err := al.DB.LoadEffectiveRBAC(au.User.ID)
+	if err != nil {
+		log.Errorf("LoadEffectiveRBAC: %v", err)
+		return nil, authn.Errorf("Authentication Required")
+	}
+	au.RBAC = rb
+
+	if allowList[procedureName] {
+		return au, nil
+	}
+
+	req := RequiredPermission(procedureName)
+	if req != "" && !au.HasPermission(req) {
+		log.Warnf("RBAC denied user %q procedure %q needs %q", au.User.Username, procedureName, req)
+		return nil, authn.Errorf("Forbidden")
+	}
+	return au, nil
+}
 
 func (al *AuthLayer) Handle(ctx context.Context, req *http.Request) (any, error) {
 	procedureName, _ := authn.InferProcedure(req.URL)
 
-	var user *AuthenticatedUser
-	var err error
-
-	for _, authFunc := range al.AuthChain {
-		user, err = authFunc(ctx, al.DB, req)
-
-		if err == nil && user != nil {
-			return user, nil
+	if al.devNoAuth {
+		au := &AuthenticatedUser{
+			User: &db.UserAccount{Username: "anonymous"},
+			RBAC: &db.EffectiveRBAC{IsSuperuser: true, Permissions: map[string]bool{}},
 		}
+		if allowList[procedureName] {
+			return au, nil
+		}
+		req := RequiredPermission(procedureName)
+		if req != "" && !au.HasPermission(req) {
+			return nil, authn.Errorf("Forbidden")
+		}
+		return au, nil
 	}
 
-	if user == nil && allowList[procedureName] {
-		// We just log the unauthenticated access for allowed procedures as a helper
-		// for debugging and development really. Filtering out GET and OPTIONS logs
-		// as these are often used by browsers and other clients to check the API status.
-
-		if req.Method != http.MethodPost {
-			log.Debugf("Allowing unauthenticated access to %s", procedureName)
+	if token, ok := authn.BearerToken(req); ok {
+		log.Infof("Checking API key: %s", redact.RedactString(token))
+		user := al.DB.GetUserByApiKey(token)
+		if user == nil {
+			log.Warnf("API key not found or invalid: %s", redact.RedactString(token))
+			return nil, authn.Errorf("Invalid API key")
 		}
-
-		return nil, nil
+		log.Infof("API key authenticated for user: %s", user.Username)
+		au := &AuthenticatedUser{User: user}
+		return al.finishWithRBAC(au, procedureName)
 	}
 
-	return nil, authn.Errorf("Authentication Required")
+	shimUser, err := al.shim.AuthFromHttpReqWithError(req)
+	if err != nil {
+		log.Debugf("httpauthshim: %v", err)
+		return nil, authn.Errorf("Authentication Required")
+	}
+
+	if shimUser.IsGuest() {
+		if allowList[procedureName] {
+			if req.Method != http.MethodPost {
+				log.Debugf("Allowing unauthenticated access to %s", procedureName)
+			}
+			return nil, nil
+		}
+		return nil, authn.Errorf("Authentication Required")
+	}
+
+	dbUser := al.DB.GetUserByUsername(shimUser.Username)
+	if dbUser == nil {
+		log.Warnf("Session user %q not found in database", shimUser.Username)
+		return nil, authn.Errorf("Authentication Required")
+	}
+
+	au := &AuthenticatedUser{User: dbUser}
+	return al.finishWithRBAC(au, procedureName)
 }
 
 func (al *AuthLayer) WrapHandler(in http.Handler) http.Handler {
 	authMiddleware := authn.NewMiddleware(al.Handle)
-	authHandler := authMiddleware.Wrap(in)
-
-	return authHandler
+	return authMiddleware.Wrap(in)
 }
 
-func CheckAuthAllowAll(ctx context.Context, dbc *db.DB, req *http.Request) (*AuthenticatedUser, error) {
-	return &AuthenticatedUser{User: &db.UserAccount{Username: "anonymous"}}, nil
-}
-
+// DefaultAuthLayer wires Connect-RPC auth to github.com/jamesread/httpauthshim for cookie sessions,
+// with Bearer API keys checked against the database before the shim runs.
 func DefaultAuthLayer(db *db.DB) *AuthLayer {
-	authChain := []AuthFunc{
-		CheckAuthSessionCookie,
-		CheckAuthApiKey,
-		CheckAuthTrustedHeader,
-	}
-
 	if os.Getenv("JAPELLA_DEV_DISABLE_AUTH") == "true" {
-		authChain = []AuthFunc{
-			CheckAuthAllowAll,
-		}
+		log.Warn("JAPELLA_DEV_DISABLE_AUTH is set: all API requests run as anonymous user")
+		return &AuthLayer{DB: db, devNoAuth: true}
 	}
 
-	return &AuthLayer{
-		DB:        db,
-		AuthChain: authChain,
+	shim, err := newJapellaAuthShim(db)
+	if err != nil {
+		log.Fatalf("Failed to initialize httpauthshim: %v", err)
 	}
+
+	return &AuthLayer{DB: db, shim: shim}
 }

@@ -1,5 +1,6 @@
 <template>
 	<Section
+		v-if="canAccessControlPanel"
 		title="Control Panel"
 		subtitle="System administration and monitoring dashboard for Japella"
 		classes="control-panel"
@@ -40,6 +41,7 @@
 	</Section>
 
 	<Section
+		v-if="canViewSystemDiagnostics"
 		title="System Diagnostics"
 		subtitle="System status and diagnostic information"
 		classes="system-diagnostics"
@@ -136,13 +138,29 @@
 					</div>
 				</div>
 			</div>
+
+			<div class="config-file-subsection" role="region" aria-labelledby="config-file-heading">
+				<h4 id="config-file-heading">
+					<HugeiconsIcon :icon="Settings01Icon" />
+					<span>Config file (server)</span>
+				</h4>
+				<div class="config-file-path-box">
+					<p class="config-file-subheader">Absolute path</p>
+					<code
+						class="config-file-path"
+						:title="systemStatus.configFileAbsolutePath || ''"
+					>{{ systemStatus.configFileAbsolutePath || 'Unknown' }}</code>
+				</div>
+			</div>
 		</div>
 	</Section>
 
 	<Section
+		v-if="canLogs"
 		title="Background Jobs"
 		subtitle="Status and last run times for background jobs"
 		classes="background-jobs"
+		:padding="false"
 	>
 		<template #toolbar>
 			<button @click="refreshJobs" :disabled="!clientReady || jobsLoading" class="neutral">
@@ -182,8 +200,12 @@
 </template>
 
 <script setup>
-	import { ref, onMounted } from 'vue';
+	import { ref, computed, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
+	import {
+		canAccessControlPanelFromStatus,
+		canViewSystemDiagnosticsFromStatus,
+	} from '../javascript/rbacAccess.js';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
@@ -204,7 +226,8 @@
 		Loading01Icon,
 		CancelCircleIcon,
 		ApproximatelyEqualCircleIcon,
-		ActivityIcon
+		ActivityIcon,
+		WebSecurityIcon
 	} from '@hugeicons/core-free-icons';
 
 	const clientReady = ref(false);
@@ -215,11 +238,25 @@
 	const jobs = ref([]);
 	const jobsLoading = ref(false);
 
+	const canLogs = computed(() =>
+		systemStatus.value?.rbacIsSuperuser ||
+		(Array.isArray(systemStatus.value?.rbacPermissions) &&
+			systemStatus.value.rbacPermissions.includes('system.logs'))
+	);
+
+	const canAccessControlPanel = computed(() =>
+		canAccessControlPanelFromStatus(systemStatus.value)
+	);
+
+	const canViewSystemDiagnostics = computed(() =>
+		canViewSystemDiagnosticsFromStatus(systemStatus.value)
+	);
+
 	async function refreshAll() {
-		await Promise.all([
-			refreshSystemStatus(),
-			refreshJobs(),
-		]);
+		await refreshSystemStatus();
+		if (canLogs.value) {
+			await refreshJobs();
+		}
 	}
 
 	async function refreshSystemStatus() {
@@ -336,69 +373,99 @@
 		}
 	}
 
-	async function refreshConnectors() {
-		if (!clientReady.value) return;
-
-		try {
-			// Refresh connectors by fetching them
-			const response = await window.client.getConnectors({});
-			alert('Connectors refreshed successfully');
-		} catch (error) {
-			console.error('Error refreshing connectors:', error);
-			errorMessage.value = `Failed to refresh connectors: ${error.message}`;
-		}
-	}
-
 	onMounted(async () => {
 		await waitForClient();
 		clientReady.value = true;
 		await refreshAll();
 
+		if (!canAccessControlPanelFromStatus(systemStatus.value)) {
+			window.router.push('/');
+			return;
+		}
+
 		// Setup administration actions navigation
 		if (localNavigation.value) {
-			localNavigation.value.addCallback('User Management', () => goToRoute('/users'), {
-				icon: UserMultiple02Icon,
-				name: 'user-management',
-				description: 'Manage system users and permissions'
-			});
+			const canUsers =
+				systemStatus.value?.rbacIsSuperuser ||
+				(Array.isArray(systemStatus.value?.rbacPermissions) &&
+					systemStatus.value.rbacPermissions.includes('users.view'));
+			if (canUsers) {
+				localNavigation.value.addCallback('User Management', () => goToRoute('/users'), {
+					icon: UserMultiple02Icon,
+					name: 'user-management',
+					description: 'Manage system users and permissions'
+				});
+			}
 
-			localNavigation.value.addCallback('Connectors', () => goToRoute('/connectors'), {
-				icon: GridViewIcon,
-				name: 'connectors',
-				description: 'View currently started connectors'
-			});
+			const canRbac =
+				systemStatus.value?.rbacIsSuperuser ||
+				(Array.isArray(systemStatus.value?.rbacPermissions) &&
+					systemStatus.value.rbacPermissions.includes('rbac.view'));
+			if (canRbac) {
+				localNavigation.value.addCallback('Roles & permissions', () => goToRoute('/settings/rbac'), {
+					icon: WebSecurityIcon,
+					name: 'rbac-settings',
+					description: 'Manage RBAC roles and user assignments'
+				});
+			}
 
-			localNavigation.value.addCallback('System Settings', () => goToRoute('/settings'), {
-				icon: Settings01Icon,
-				name: 'system-settings',
-				description: 'Configure system settings'
-			});
+			const canUserGroups =
+				systemStatus.value?.rbacIsSuperuser ||
+				(Array.isArray(systemStatus.value?.rbacPermissions) &&
+					systemStatus.value.rbacPermissions.includes('usergroups.view'));
+			if (canUserGroups) {
+				localNavigation.value.addCallback('User Groups', () => goToRoute('/user-groups'), {
+					icon: UserMultiple02Icon,
+					name: 'user-groups',
+					description: 'Manage user groups and membership'
+				});
+			}
 
-			localNavigation.value.addCallback('Refresh Connectors', () => {
-				if (clientReady.value) {
-					refreshConnectors();
-				}
-			}, {
-				icon: RefreshIcon,
-				name: 'refresh-connectors',
-				description: 'Refresh connector services'
-			});
+			const canConnectors =
+				systemStatus.value?.rbacIsSuperuser ||
+				(Array.isArray(systemStatus.value?.rbacPermissions) &&
+					systemStatus.value.rbacPermissions.includes('system.connectors'));
+			if (canConnectors) {
+				localNavigation.value.addCallback('Connectors', () => goToRoute('/connectors'), {
+					icon: GridViewIcon,
+					name: 'connectors',
+					description: 'View currently started connectors'
+				});
+			}
 
-			localNavigation.value.addCallback('Cleanup Feed Posts', () => {
-				if (clientReady.value && !cleaningFeed.value) {
-					cleanupFeedPosts();
-				}
-			}, {
-				icon: RefreshIcon,
-				name: 'cleanup-feed',
-				description: 'Clean up old feed posts (keeps newest 100 per social account)'
-			});
+			const canSettings =
+				systemStatus.value?.rbacIsSuperuser ||
+				(Array.isArray(systemStatus.value?.rbacPermissions) &&
+					systemStatus.value.rbacPermissions.includes('system.settings'));
+			if (canSettings) {
+				localNavigation.value.addCallback('System Settings', () => goToRoute('/settings'), {
+					icon: Settings01Icon,
+					name: 'system-settings',
+					description: 'Configure system settings'
+				});
+			}
 
-			localNavigation.value.addCallback('Logs', () => goToRoute('/logs'), {
-				icon: ActivityIcon,
-				name: 'logs',
-				description: 'View application logs and events'
-			});
+			const canLogs =
+				systemStatus.value?.rbacIsSuperuser ||
+				(Array.isArray(systemStatus.value?.rbacPermissions) &&
+					systemStatus.value.rbacPermissions.includes('system.logs'));
+			if (canLogs) {
+				localNavigation.value.addCallback('Cleanup Feed Posts', () => {
+					if (clientReady.value && !cleaningFeed.value) {
+						cleanupFeedPosts();
+					}
+				}, {
+					icon: RefreshIcon,
+					name: 'cleanup-feed',
+					description: 'Clean up old feed posts (keeps newest 100 per social account)'
+				});
+
+				localNavigation.value.addCallback('Logs', () => goToRoute('/logs'), {
+					icon: ActivityIcon,
+					name: 'logs',
+					description: 'View application logs and events'
+				});
+			}
 		}
 	});
 </script>
@@ -406,6 +473,51 @@
 <style scoped>
 	.status-overview {
 		margin-bottom: 2rem;
+	}
+
+	.config-file-subsection {
+		margin-top: 1.25rem;
+		padding-top: 1rem;
+		border-top: 1px solid rgba(255, 255, 255, 0.12);
+	}
+
+	.config-file-subsection h4 {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		margin: 0 0 0.5rem;
+		font-size: 0.95rem;
+	}
+
+	.config-file-path-box {
+		display: block;
+		margin: 0;
+		padding: 0.65rem 0.85rem;
+		border-radius: 0.35rem;
+		border: 1px solid rgba(255, 255, 255, 0.16);
+		border-left-width: 4px;
+		border-left-color: rgba(100, 180, 255, 0.55);
+		background: rgba(255, 255, 255, 0.06);
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+	}
+
+	.config-file-subheader {
+		margin: 0 0 0.4rem;
+		font-size: 0.7rem;
+		font-weight: 600;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		opacity: 0.65;
+	}
+
+	.config-file-path {
+		display: block;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 0.85rem;
+		line-height: 1.45;
+		word-break: break-all;
+		color: inherit;
+		background: transparent;
 	}
 
 	.status-grid {

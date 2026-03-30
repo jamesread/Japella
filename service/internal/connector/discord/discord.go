@@ -5,6 +5,7 @@ import (
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/connector"
+	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/hooks"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
@@ -230,6 +231,29 @@ func (a *DiscordConnector) Replier() {
 
 		if goBot != nil {
 			goBot.ChannelMessageSend(reply.Channel, reply.Content)
+
+			if a.db != nil {
+				conversationKey := db.BuildConversationKey(reply.Channel, "")
+				conversationTitle := reply.Channel
+				if reply.IncommingMessageId != "" {
+					if incomingRef, err := a.db.GetChatBotMessageByExternalID("discord", a.nickname, reply.IncommingMessageId); err == nil && incomingRef != nil {
+						conversationKey = incomingRef.ConversationKey
+						conversationTitle = incomingRef.ConversationTitle
+					}
+				}
+				_ = a.db.InsertChatBotMessage(&db.ChatBotMessage{
+					Connector:         "discord",
+					Identity:          a.nickname,
+					ConversationKey:   conversationKey,
+					ConversationTitle: conversationTitle,
+					Channel:           reply.Channel,
+					Author:            "bot",
+					Content:           reply.Content,
+					Direction:         "outgoing",
+					MessageID:         "",
+					TimestampUnix:     time.Now().Unix(),
+				})
+			}
 		}
 
 	})
@@ -271,6 +295,26 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		Protocol:  "discord",
 		Timestamp: time.Now().Unix(),
 		Identity:  botIdentity, // Include bot identity so hooks can route responses correctly
+	}
+
+	if discordConnectorInstance != nil && discordConnectorInstance.db != nil {
+		author := getUsername(m)
+		convTitle := author
+		if convTitle == "" {
+			convTitle = "Unknown sender"
+		}
+		_ = discordConnectorInstance.db.InsertChatBotMessage(&db.ChatBotMessage{
+			Connector:         "discord",
+			Identity:          botIdentity,
+			ConversationKey:   db.BuildConversationKey(msg.Channel, author),
+			ConversationTitle: convTitle,
+			Channel:           msg.Channel,
+			Author:            author,
+			Content:           msg.Content,
+			Direction:         "incoming",
+			MessageID:         msg.MessageId,
+			TimestampUnix:     msg.Timestamp,
+		})
 	}
 
 	// Execute hooks if configured

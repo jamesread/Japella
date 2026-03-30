@@ -34,6 +34,18 @@ type SocialAccount struct {
 	OAuth2RefreshToken string         `db:"oauth2_refresh_token"`
 	DpopKey            sql.NullString `db:"dpop_key"`
 	Active             bool           `db:"active"`
+	OwnerUserID        sql.NullInt32  `db:"owner_user_id"`
+}
+
+type SocialAccountShare struct {
+	ID              uint32    `db:"id"`
+	SocialAccountID uint32    `db:"social_account_id"`
+	UserGroupID     uint32    `db:"user_group_id"`
+	CanRead         bool      `db:"can_read"`
+	CanPost         bool      `db:"can_post"`
+	CanManage       bool      `db:"can_manage"`
+	CreatedAt       time.Time `db:"created_at"`
+	GroupName       string    `db:"group_name"`
 }
 
 type CannedPost struct {
@@ -91,9 +103,10 @@ type ApiKey struct {
 type Session struct {
 	Model
 
-	UserAccountID uint32 `db:"user_account_id"`
-	UserAccount   *UserAccount
-	SID           string `db:"sid"` // Session ID
+	UserAccountID      uint32        `db:"user_account_id"`
+	UserAccount        *UserAccount
+	SID                string        `db:"sid"` // Session ID
+	ImpersonatorUserID sql.NullInt32 `db:"impersonator_user_id"`
 }
 
 type Cvar struct {
@@ -165,4 +178,19 @@ type WebhookHook struct {
 	Identity  string `db:"identity"`
 	URL       string `db:"url"`
 	Enabled   bool   `db:"enabled"`
+}
+
+type ChatBotMessage struct {
+	Model
+
+	Connector         string `db:"connector"`
+	Identity          string `db:"identity"`
+	ConversationKey   string `db:"conversation_key"`
+	ConversationTitle string `db:"conversation_title"`
+	Channel           string `db:"channel"`
+	Author            string `db:"author"`
+	Content           string `db:"content"`
+	Direction         string `db:"direction"` // incoming|outgoing
+	MessageID         string `db:"message_id"`
+	TimestampUnix     int64  `db:"timestamp_unix"`
 }

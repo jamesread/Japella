@@ -37,6 +37,12 @@
 					<Icon icon="mdi:open-in-new" width="16" height="16" />
 				</button>
 			</dd>
+			<dt>Owner</dt>
+			<dd>
+				<span v-if="account.isOwner">{{ account.ownerUsername }} (you)</span>
+				<span v-else-if="account.ownerUsername">{{ account.ownerUsername }}</span>
+				<span v-else>—</span>
+			</dd>
 			<dt>Active</dt>
 			<dd>{{ account.active ? 'Yes' : 'No' }}</dd>
 			<dt>Last Posted</dt>
@@ -50,7 +56,7 @@
 	</Section>
 
 	<Section
-		v-if="!loading && account"
+		v-if="!loading && account && account.canManage"
 		title="Account Actions"
 		subtitle="Manage this social account"
 	>
@@ -96,23 +102,131 @@
 			</button>
 		</div>
 	</Section>
+
+	<Section
+		v-if="!loading && account && canManageSharing"
+		title="Sharing"
+		subtitle="Grant read, post, or manage access to user groups; members of those groups inherit the permissions"
+		:padding="false"
+	>
+		<div v-if="sharesLoading" style="padding: 1rem;">
+			<p>Loading shares...</p>
+		</div>
+		<div v-else-if="sharesError" style="padding: 1rem;">
+			<p class="inline-notification error">{{ sharesError }}</p>
+		</div>
+		<div v-else>
+			<table class="data-table" v-if="shares.length > 0">
+				<thead>
+					<tr>
+						<th>User group</th>
+						<th class="share-check-col">Read</th>
+						<th class="share-check-col">Post</th>
+						<th class="share-check-col">Manage</th>
+						<th class="share-check-col"></th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="(share, idx) in shares" :key="share.userGroupId">
+						<td>{{ share.groupName }}</td>
+						<td class="share-check-col"><input type="checkbox" v-model="shares[idx].canRead" /></td>
+						<td class="share-check-col"><input type="checkbox" v-model="shares[idx].canPost" /></td>
+						<td class="share-check-col"><input type="checkbox" v-model="shares[idx].canManage" /></td>
+						<td class="share-check-col">
+							<button class="bad small" @click="removeShare(idx)" title="Remove share">
+								<Icon icon="material-symbols:close" width="14" height="14" />
+							</button>
+						</td>
+					</tr>
+				</tbody>
+			</table>
+			<p v-else class="inline-notification note">Not shared with any user groups.</p>
+
+			<div class="share-add-row">
+				<select v-model="addShareGroupId" class="share-user-select">
+					<option value="">Add user group...</option>
+					<option v-for="g in availableGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
+				</select>
+				<button type="button" class="good" :disabled="!addShareGroupId" @click="addShare">
+					<Icon icon="material-symbols:group-add" width="16" height="16" />
+					Add
+				</button>
+				<span style="flex:1"></span>
+				<button class="good" :disabled="sharesSaving" @click="saveShares">
+					<Icon icon="material-symbols:save" width="16" height="16" />
+					{{ sharesSaving ? 'Saving...' : 'Save' }}
+				</button>
+			</div>
+			<div v-if="sharesMessage" style="padding: 0 1rem 1rem 1rem;">
+				<p :class="'inline-notification ' + sharesMessageType">{{ sharesMessage }}</p>
+			</div>
+		</div>
+	</Section>
 </template>
 
 <script setup>
-	import { ref, onMounted } from 'vue';
-	import { useRoute } from 'vue-router';
+	import { ref, computed, onMounted } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
-import { useRouter } from 'vue-router';
 
 	const route = useRoute();
-const router = useRouter();
+	const router = useRouter();
 	const clientReady = ref(false)
 	const loading = ref(true)
 	const error = ref('')
 	const accountId = ref(0)
 	const account = ref(null)
 	const lastPosted = ref(null)
+
+	const statusPerms = ref([])
+	const statusSuper = ref(false)
+
+	const shares = ref([])
+	const sharesLoading = ref(false)
+	const sharesError = ref('')
+	const sharesSaving = ref(false)
+	const sharesMessage = ref('')
+	const sharesMessageType = ref('good')
+	const allGroups = ref([])
+	const addShareGroupId = ref('')
+
+	const canManageSharing = computed(() => {
+		if (!account.value) return false
+		if (account.value.isOwner) return true
+		if (statusSuper.value) return true
+		if (Array.isArray(statusPerms.value) && statusPerms.value.includes('social-accounts.view-all')) return true
+		return false
+	})
+
+	const availableGroups = computed(() => {
+		const sharedIds = new Set(shares.value.map((s) => s.userGroupId))
+		return allGroups.value.filter((g) => !sharedIds.has(g.id))
+	})
+
+	async function loadAllGroups() {
+		try {
+			const res = await window.client.listUserGroups({})
+			allGroups.value = res.groups || []
+		} catch (e) {
+			console.error('Failed to load user groups for sharing:', e)
+		}
+	}
+
+	function addShare() {
+		const gid = Number(addShareGroupId.value)
+		if (!gid) return
+		const group = allGroups.value.find((g) => g.id === gid)
+		if (!group) return
+		shares.value.push({
+			userGroupId: gid,
+			groupName: group.name,
+			canRead: true,
+			canPost: false,
+			canManage: false,
+		})
+		addShareGroupId.value = ''
+	}
 
 	function waitForClient() {
 		return new Promise((resolve) => {
@@ -287,20 +401,75 @@ async function toggleActive() {
 	}
 
 	async function deleteAccount() {
-	if (!confirm('Are you sure you want to delete this account?')) return
-	try {
-		await window.client.deleteSocialAccount({ id: accountId.value })
-		router.push({ name: 'socialAccounts' })
-	} catch (e) {
-		error.value = `Failed to delete account: ${e.message || e}`
+		if (!confirm('Are you sure you want to delete this account?')) return
+		try {
+			await window.client.deleteSocialAccount({ id: accountId.value })
+			router.push({ name: 'socialAccounts' })
+		} catch (e) {
+			error.value = `Failed to delete account: ${e.message || e}`
+		}
 	}
-}
+
+	async function loadShares() {
+		if (!canManageSharing.value) return
+		sharesLoading.value = true
+		sharesError.value = ''
+		try {
+			const res = await window.client.getSocialAccountShares({ socialAccountId: accountId.value })
+			shares.value = (res.shares || []).map(s => ({
+				userGroupId: s.userGroupId,
+				groupName: s.groupName,
+				canRead: s.canRead,
+				canPost: s.canPost,
+				canManage: s.canManage,
+			}))
+		} catch (e) {
+			sharesError.value = `Failed to load shares: ${e.message || e}`
+		} finally {
+			sharesLoading.value = false
+		}
+	}
+
+	function removeShare(idx) {
+		shares.value.splice(idx, 1)
+	}
+
+	async function saveShares() {
+		sharesSaving.value = true
+		sharesMessage.value = ''
+		try {
+			await window.client.setSocialAccountShares({
+				socialAccountId: accountId.value,
+				shares: shares.value.map(s => ({
+					userGroupId: s.userGroupId,
+					groupName: s.groupName,
+					canRead: s.canRead,
+					canPost: s.canPost,
+					canManage: s.canManage,
+				})),
+			})
+			sharesMessage.value = 'Shares saved.'
+			sharesMessageType.value = 'good'
+			await loadShares()
+		} catch (e) {
+			sharesMessage.value = `Failed to save shares: ${e.message || e}`
+			sharesMessageType.value = 'error'
+		} finally {
+			sharesSaving.value = false
+		}
+	}
 
 	onMounted(async () => {
 		accountId.value = parseInt(route.params.id, 10) || 0
 		await waitForClient()
 		clientReady.value = true
+
+		const st = await window.client.getStatus({})
+		statusPerms.value = st.rbacPermissions || []
+		statusSuper.value = Boolean(st.rbacIsSuperuser)
+
 		await fetchAccount()
+		await Promise.all([loadShares(), loadAllGroups()])
 	})
 </script>
 
@@ -359,5 +528,26 @@ async function toggleActive() {
 
 	.profile-link-button:active {
 		background-color: #d0d0d0;
+	}
+
+	.share-check-col {
+		text-align: center;
+		width: 5rem;
+	}
+
+	.share-add-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1rem;
+	}
+
+	button.small {
+		padding: 0.2rem 0.4rem;
+		min-width: auto;
+	}
+
+	.share-user-select {
+		max-width: 16rem;
 	}
 </style>
