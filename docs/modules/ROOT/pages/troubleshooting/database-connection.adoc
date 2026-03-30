@@ -1,0 +1,26 @@
+= Database connection and “translations could not be loaded”
+
+If the web interface shows an error that translations could not be loaded, or the API returns HTTP 500 until the service is healthy, Japella is usually waiting on the database or cannot reach it.
+
+== Quick checks
+
+. *Database running* — Ensure MariaDB or MySQL is up and accepting connections on the host and port configured for Japella.
+. *Configuration* — Verify database host, name, user, and password in `config.yaml` (or the equivalent environment variables such as `JAPELLA_DB_HOST`, `JAPELLA_DB_USER`, `JAPELLA_DB_PASS`, `JAPELLA_DB_NAME`).
+. *Network* — From the Japella container or host, confirm the database hostname resolves and the port is reachable (firewalls, Docker network names, and `depends_on` only affect startup order, not guaranteed readiness).
+
+== Docker Compose
+
+When using Compose, define a database service and point Japella at it. See xref:installation/docker-compose.adoc[Docker Compose installation] for a full example, including a MariaDB service and `JAPELLA_DB_*` environment variables.
+
+Inspect logs if the UI stays in an error state:
+
+* `docker compose logs japella`
+* `docker compose logs mariadb` (or your database service name)
+
+== Standalone or custom installs
+
+For non-Compose setups, follow xref:installation/standalone.adoc[standalone installation] and ensure the database exists, credentials match, and Japella can run its migrations on first successful connection (check Japella logs if the schema does not update).
+
+== Configuration reference
+
+Database-related settings are described alongside other options in xref:configuration/index.adoc[Configuration].

@@ -17,6 +17,8 @@
 ** xref:connectors/mastodon.adoc[Mastodon]
 ** xref:connectors/bluesky.adoc[Bluesky]
 * Troubleshooting
+** xref:troubleshooting/database-connection.adoc[Database connection]
+** xref:troubleshooting/reset-admin-password.adoc[Reset admin password]
 ** xref:troubleshooting/secure-context-cookies.adoc[Secure Context Cookies]
 * FAQ
 ** xref:faq/postiz.adoc[Postiz]
