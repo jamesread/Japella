@@ -161,6 +161,7 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 							Protocol:           msg.Protocol,
 							IncommingMessageId: msg.MessageId,
 							Identity:           msg.Identity, // Include bot identity to route to correct bot instance
+							ConversationKey:    db.BuildConversationKey(msg.Channel, msg.Author),
 						}
 
 						routingKey := amqp.GetOutgoingMessageRoutingKey(msg.Protocol, msg.Identity)
@@ -202,6 +203,7 @@ func sendErrorNotification(msg *msgs.IncomingMessage, errorMsg string, logger lo
 		Protocol:           msg.Protocol,
 		IncommingMessageId: msg.MessageId,
 		Identity:           msg.Identity,
+		ConversationKey:    db.BuildConversationKey(msg.Channel, msg.Author),
 	}
 
 	routingKey := amqp.GetOutgoingMessageRoutingKey(msg.Protocol, msg.Identity)

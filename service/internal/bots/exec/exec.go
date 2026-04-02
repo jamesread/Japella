@@ -7,6 +7,7 @@ import (
 	"github.com/google/shlex"
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/botbase"
+	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
@@ -75,9 +76,10 @@ func (b *ExecBot) refreshCommands(m *msgs.IncomingMessage, command string, argum
 
 func (b *ExecBot) exechelp(m *msgs.IncomingMessage, command string, arguments string) {
 	out := &msgs.OutgoingMessage{
-		Channel:  m.Channel,
-		Protocol: m.Protocol,
-		Identity: m.Identity, // Include bot identity to route to correct bot instance
+		Channel:         m.Channel,
+		Protocol:        m.Protocol,
+		Identity:        m.Identity, // Include bot identity to route to correct bot instance
+		ConversationKey: db.BuildConversationKey(m.Channel, m.Author),
 	}
 
 	out.Content = "Available commands: " + commands
@@ -98,9 +100,10 @@ func getCommandContext(ctx context.Context, command string) (*exec.Cmd, error) {
 
 func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments string) {
 	out := &msgs.OutgoingMessage{
-		Channel:  m.Channel,
-		Protocol: m.Protocol,
-		Identity: m.Identity, // Include bot identity to route to correct bot instance
+		Channel:         m.Channel,
+		Protocol:        m.Protocol,
+		Identity:        m.Identity, // Include bot identity to route to correct bot instance
+		ConversationKey: db.BuildConversationKey(m.Channel, m.Author),
 	}
 
 	b.Logger().Infof("Executing command: %v", m.Content)

@@ -13,9 +13,61 @@ import router from './router.js';
 
 import Notification from './notification.js';
 
+/** Published docs: database readiness and translation load failures. */
+const DOCS_TROUBLESHOOT_DATABASE =
+	'https://jamesread.github.io/Japella/troubleshooting/database-connection.html';
+
+type HttpError = Error & { status?: number };
+
+type DocLink = { href: string; label: string };
+
+function showLanguageLoadFailure(summary: string, hint: string, docLinks?: DocLink[]): void {
+	const block = document.createElement('div');
+	block.classList.add('bad');
+	block.classList.add('notification');
+	block.style.margin = '2em';
+
+	const title = document.createElement('strong');
+	title.textContent = summary;
+	block.appendChild(title);
+	block.appendChild(document.createElement('br'));
+	block.appendChild(document.createElement('br'));
+
+	const hintEl = document.createElement('p');
+	hintEl.textContent = hint;
+	hintEl.style.margin = '0 0 0.75em 0';
+	block.appendChild(hintEl);
+
+	if (docLinks != null && docLinks.length > 0) {
+		const list = document.createElement('ul');
+		list.style.margin = '0';
+		list.style.paddingLeft = '1.25em';
+		for (const { href, label } of docLinks) {
+			const li = document.createElement('li');
+			const a = document.createElement('a');
+			a.href = href;
+			a.target = '_blank';
+			a.rel = 'noopener noreferrer';
+			a.textContent = label;
+			li.appendChild(a);
+			list.appendChild(li);
+		}
+		block.appendChild(list);
+	}
+
+	document.body.prepend(block);
+}
+
 export function main(): void {
 	fetch('/lang')
-		.then(response => response.json())
+		.then(async (response) => {
+			if (!response.ok) {
+				const err = new Error(`HTTP ${response.status}`) as HttpError;
+				err.status = response.status;
+				throw err;
+			}
+			return response.json();
+		})
 		.then(ret => {
 			const i18n = createI18n({
 				legacy: false,
@@ -35,14 +87,40 @@ export function main(): void {
 
 			createTheApp(i18n);
 		})
-		.catch(error => {
-			const errorMessage = document.createElement('p');
-			errorMessage.classList.add('bad');
-			errorMessage.classList.add('notification');
-			errorMessage.style.margin = '2em';
-			errorMessage.innerHTML = 'Error loading the initial language file. This could be if the frontend is running, but cannot connect to the Japella server. Please check your browser console for more details. <br /><br />' + error.message;
+		.catch((error: unknown) => {
+			if (error instanceof SyntaxError) {
+				showLanguageLoadFailure(
+					'Translations could not be loaded.',
+					'The server response was not valid JSON.',
+				);
+				console.error('Error loading language file:', error);
+				return;
+			}
 
-			document.body.prepend(errorMessage);
+			const status = (error as HttpError).status;
+
+			if (status === 500) {
+				showLanguageLoadFailure(
+					'Translations could not be loaded.',
+					'The Japella server returned an error while loading translations. This usually means the database is not reachable or the application has not finished starting.',
+					[
+						{
+							href: DOCS_TROUBLESHOOT_DATABASE,
+							label: 'Database connection troubleshooting (documentation)',
+						},
+					],
+				);
+			} else if (status != null && status >= 400) {
+				showLanguageLoadFailure(
+					'Translations could not be loaded.',
+					`The server responded with HTTP ${status}. Check that the Japella backend is running and try again.`,
+				);
+			} else {
+				showLanguageLoadFailure(
+					'Could not reach the Japella server to load translations.',
+					'The browser could not complete the request (for example, a network error or the server is unreachable). Check your connection and the browser console.',
+				);
+			}
 
 			console.error('Error loading language file:', error);
 		});

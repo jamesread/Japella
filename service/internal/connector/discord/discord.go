@@ -223,7 +223,10 @@ func (a *DiscordConnector) Replier() {
 	amqp.ConsumeForever(routingKey, func(d amqp.Delivery) {
 		reply := msgs.OutgoingMessage{}
 
-		amqp.Decode(d.Message.Body, &reply)
+		if err := amqp.Decode(d.Message.Body, &reply); err != nil {
+			a.Logger().Errorf("decode OutgoingMessage: %v", err)
+			return
+		}
 
 		a.Logger().Infof("reply: %+v %v", &reply, goBot)
 
@@ -233,14 +236,10 @@ func (a *DiscordConnector) Replier() {
 			goBot.ChannelMessageSend(reply.Channel, reply.Content)
 
 			if a.db != nil {
-				conversationKey := db.BuildConversationKey(reply.Channel, "")
-				conversationTitle := reply.Channel
-				if reply.IncommingMessageId != "" {
-					if incomingRef, err := a.db.GetChatBotMessageByExternalID("discord", a.nickname, reply.IncommingMessageId); err == nil && incomingRef != nil {
-						conversationKey = incomingRef.ConversationKey
-						conversationTitle = incomingRef.ConversationTitle
-					}
-				}
+				conversationKey, conversationTitle := a.db.ResolveOutgoingConversationForLog(
+					"discord", a.nickname, reply.Channel,
+					reply.GetConversationKey(), reply.GetIncommingMessageId(),
+				)
 				_ = a.db.InsertChatBotMessage(&db.ChatBotMessage{
 					Connector:         "discord",
 					Identity:          a.nickname,

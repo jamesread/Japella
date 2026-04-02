@@ -18,6 +18,7 @@
 ** xref:connectors/bluesky.adoc[Bluesky]
 * Troubleshooting
 ** xref:troubleshooting/database-connection.adoc[Database connection]
+** xref:troubleshooting/migration-errors.adoc[Database migration errors]
 ** xref:troubleshooting/reset-admin-password.adoc[Reset admin password]
 ** xref:troubleshooting/secure-context-cookies.adoc[Secure Context Cookies]
 * FAQ

@@ -1,0 +1,21 @@
+= Database migration errors
+
+Japella applies SQL migrations on startup (`golang-migrate`). If the schema version and the actual tables disagree, you can see errors such as `Table '…' already exists` or follow-on messages like missing cvars (for example `is_publicly_accessible`), because later bootstrap steps never ran.
+
+== `campaign_social_accounts` already exists (Error 1050)
+
+*Cause:* Older migration `3_campaigns.up.sql` once created `campaign_social_accounts` with a legacy layout; migration `6_campaign_social_accounts.up.sql` defines the current table. Replaying migrations from version `0` on a database that still had that table triggered a duplicate `CREATE TABLE`.
+
+*What we changed in the project:* `3_campaigns.up.sql` no longer creates `campaign_social_accounts`; `6_campaign_social_accounts.up.sql` drops any existing `campaign_social_accounts` (including the legacy shape) before creating the canonical table.
+
+*Note:* Dropping that table removes any rows stored in the **legacy** link table (old columns `campaign_id` / `social_account_group_id`). The current schema links campaigns and social accounts differently; if you rely on old data there, back it up before upgrading.
+
+*What you should do:*
+
+. Use a Japella build that includes the fixed migration files (current `var/app-skel/db-migrations/` in this repository).
+. Restart Japella so migrations can run again.
+. If you still see conflicts (for example, a hand-edited schema or empty `schema_migrations` while tables exist), take a backup, then either restore a consistent backup or align the database with xref:troubleshooting/database-connection.adoc[database connection troubleshooting] and your ops procedures.
+
+== `Failed to get cvar … sql: no rows in result set`
+
+Usually a *consequence* of migrations not finishing: default cvars are not inserted until the migration and bootstrap chain succeed. Fix the migration error first, then restart; the cvar should appear after a successful run.

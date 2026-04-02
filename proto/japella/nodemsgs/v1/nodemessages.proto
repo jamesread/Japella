@@ -21,6 +21,8 @@ message OutgoingMessage {
   string protocol = 3;
   string incomming_message_id = 4;
   string identity = 5; // Bot identity/username to identify which bot instance should handle this message
+  // When set (e.g. from the control panel), used for chat_bot_messages logging so outgoing rows share the same conversation_key as incoming.
+  string conversation_key = 6;
 }
 
 message ThreadSearchRequest {

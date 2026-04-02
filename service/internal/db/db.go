@@ -83,6 +83,14 @@ func (db *DB) ReconnectDatabaseAndSetErrorMessage() {
 	}
 }
 
+// ConnEstablished reports whether a database handle is currently held.
+// It does not verify liveness; use reconnect / Ping on errors as today.
+func (db *DB) ConnEstablished() bool {
+	db.connectionMutex.Lock()
+	defer db.connectionMutex.Unlock()
+	return db.connx != nil
+}
+
 func (db *DB) findMigrationsDirectory() (string, error) {
 	toSearch := []string{
 		"../var/app-skel/db-migrations/",

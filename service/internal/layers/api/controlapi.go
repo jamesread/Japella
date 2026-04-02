@@ -69,14 +69,14 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 
 	s.DB = &db.DB{}
 	s.DB.SetDatabaseConfig(cfg.Database)
-	s.DB.ReconnectDatabaseAndSetErrorMessage()
-
-	go s.DB.ReconnectLoop()
+	s.DB.SetErrorMessage("database connection not established")
 
 	s.oauth2states = make(map[string]*oauth2State)
-	s.cc = connectorcontroller.New(s.DB)
-
 	s.lastJobRunTimes = make(map[string]time.Time)
+
+	go s.DB.ReconnectLoop()
+	go s.initConnectorControllerWhenReady()
+
 	s.jobRunMutex = sync.RWMutex{}
 
 	log.Infof("ControlAPI started")
@@ -132,7 +132,59 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 		}
 	}()
 }
+
+func (s *ControlApi) IsReady() bool {
+	if s == nil || s.DB == nil {
+		return false
+	}
+	if s.DB.GetErrorMessage() != "" {
+		return false
+	}
+	if s.cc == nil {
+		return false
+	}
+	return true
+}
+
+// ReadinessErrorMessage returns a short explanation for HTTP 503/500 when IsReady is false.
+func (s *ControlApi) ReadinessErrorMessage() string {
+	if s == nil || s.DB == nil {
+		return "service not initialized"
+	}
+	if msg := s.DB.GetErrorMessage(); msg != "" {
+		return msg
+	}
+	if s.cc == nil {
+		return "service initializing"
+	}
+	return ""
+}
+
+// ReadinessClientMessage is safe to send in HTTP responses (no SQL or internal details).
+func (s *ControlApi) ReadinessClientMessage() string {
+	if s == nil || s.DB == nil {
+		return "Service is not available."
+	}
+	if s.DB.GetErrorMessage() != "" {
+		return "Cannot connect to database"
+	}
+	if s.cc == nil {
+		return "Service is starting"
+	}
+	return "Service is not available."
+}
+
+func (s *ControlApi) initConnectorControllerWhenReady() {
+	for !s.DB.ConnEstablished() {
+		time.Sleep(50 * time.Millisecond)
+	}
+	s.cc = connectorcontroller.New(s.DB)
+}
+
 func (s *ControlApi) processDueScheduledPosts() {
+	if s.cc == nil {
+		return
+	}
 	due, err := s.DB.SelectDueScheduledPosts(50)
 	if err != nil {
 		log.Errorf("Scheduler: failed to load due posts: %v", err)
@@ -164,6 +216,9 @@ func (s *ControlApi) processDueScheduledPosts() {
 }
 
 func (s *ControlApi) processFeedFetching() {
+	if s.cc == nil {
+		return
+	}
 	log.Infof("FeedFetcher: starting feed fetch cycle")
 
 	// Get all social accounts
@@ -238,6 +293,9 @@ func (s *ControlApi) processFeedFetching() {
 }
 
 func (s *ControlApi) processTokenRefresh() {
+	if s.cc == nil {
+		return
+	}
 	log.Infof("TokenRefresh: starting token refresh cycle")
 
 	// Log that the job is running
@@ -413,6 +471,9 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		}
 	}
 
+	dbConnected := s.DB != nil && s.DB.ConnEstablished() && s.DB.GetErrorMessage() == ""
+	amqpEn, amqpConn := amqp.ConnectionStatus()
+
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
 		Status:                 "OK!",
 		Nanoservices:           nanoservice.GetNanoservices(),
@@ -431,6 +492,9 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		IsImpersonating:        isImpersonating,
 		ImpersonatorUsername:   impersonatorUsername,
 		ConfigFileAbsolutePath: runtimeconfig.ConfigYAMLAbsolutePath(),
+		DatabaseConnected:      dbConnected,
+		AmqpEnabled:            amqpEn,
+		AmqpConnected:          amqpConn,
 	})
 
 	if authenticatedUser == nil || !authenticatedUser.CanViewSystemDiagnostics() {
@@ -2684,6 +2748,12 @@ func (s *ControlApi) GetBotConversationMessages(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch messages: %w", err))
 	}
 
+	return connect.NewResponse(&controlv1.GetBotConversationMessagesResponse{
+		Messages: marshalBotConversationMessageRows(rows),
+	}), nil
+}
+
+func marshalBotConversationMessageRows(rows []*db.ChatBotMessage) []*controlv1.BotConversationMessage {
 	messages := make([]*controlv1.BotConversationMessage, 0, len(rows))
 	for _, row := range rows {
 		messages = append(messages, &controlv1.BotConversationMessage{
@@ -2696,10 +2766,52 @@ func (s *ControlApi) GetBotConversationMessages(ctx context.Context, req *connec
 			TimestampUnix: row.TimestampUnix,
 		})
 	}
+	return messages
+}
 
-	return connect.NewResponse(&controlv1.GetBotConversationMessagesResponse{
-		Messages: messages,
-	}), nil
+func (s *ControlApi) StreamBotConversationUpdates(ctx context.Context, req *connect.Request[controlv1.StreamBotConversationUpdatesRequest], stream *connect.ServerStream[controlv1.StreamBotConversationUpdatesResponse]) error {
+	au := s.getAuthenticatedUser(ctx)
+	if au == nil {
+		return connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+	if !au.CanAccessControlPanel() {
+		return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("admin access required"))
+	}
+	if strings.TrimSpace(req.Msg.Connector) == "" || strings.TrimSpace(req.Msg.ConversationKey) == "" {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("connector and conversation_key are required"))
+	}
+
+	ticker := time.NewTicker(1200 * time.Millisecond)
+	defer ticker.Stop()
+
+	cursor := req.Msg.LastMessageId
+
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+			rows, err := s.DB.SelectChatBotConversationMessagesAfterID(
+				req.Msg.Connector,
+				req.Msg.Identity,
+				req.Msg.ConversationKey,
+				cursor,
+				100,
+			)
+			if err != nil {
+				return connect.NewError(connect.CodeInternal, fmt.Errorf("stream fetch messages: %w", err))
+			}
+			if len(rows) == 0 {
+				continue
+			}
+			if err := stream.Send(&controlv1.StreamBotConversationUpdatesResponse{
+				NewMessages: marshalBotConversationMessageRows(rows),
+			}); err != nil {
+				return err
+			}
+			cursor = rows[len(rows)-1].ID
+		}
+	}
 }
 
 func (s *ControlApi) SendBotConversationMessage(ctx context.Context, req *connect.Request[controlv1.SendBotConversationMessageRequest]) (*connect.Response[controlv1.SendBotConversationMessageResponse], error) {
@@ -2724,10 +2836,11 @@ func (s *ControlApi) SendBotConversationMessage(ctx context.Context, req *connec
 	}
 
 	outgoing := &msgs.OutgoingMessage{
-		Content:  req.Msg.Content,
-		Channel:  channel,
-		Protocol: req.Msg.Connector,
-		Identity: req.Msg.Identity,
+		Content:         req.Msg.Content,
+		Channel:         channel,
+		Protocol:        req.Msg.Connector,
+		Identity:        req.Msg.Identity,
+		ConversationKey: strings.TrimSpace(req.Msg.ConversationKey),
 	}
 	routingKey := amqp.GetOutgoingMessageRoutingKey(req.Msg.Connector, req.Msg.Identity)
 	amqp.PublishPbWithRoutingKey(outgoing, routingKey)

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/amqp"
+	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/utils"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"regexp"
@@ -54,7 +55,10 @@ func (b *Bot) ConsumeBangCommands() *sync.WaitGroup {
 
 		msg := &msgs.IncomingMessage{}
 
-		amqp.Decode(d.Message.Body, &msg)
+		if err := amqp.Decode(d.Message.Body, &msg); err != nil {
+			b.Logger().Errorf("decode IncomingMessage: %v", err)
+			return
+		}
 
 		b.Logger().Infof("Received %+v", msg)
 
@@ -138,9 +142,10 @@ func (b *Bot) SendMessage(msg *msgs.OutgoingMessage) {
 
 func (b *Bot) Reply(msg *msgs.IncomingMessage) *msgs.OutgoingMessage {
 	return &msgs.OutgoingMessage{
-		Protocol: msg.Protocol,
-		Channel:  msg.Channel,
-		Identity: msg.Identity, // Include bot identity to route to correct bot instance
+		Protocol:        msg.Protocol,
+		Channel:         msg.Channel,
+		Identity:        msg.Identity, // Include bot identity to route to correct bot instance
+		ConversationKey: db.BuildConversationKey(msg.Channel, msg.Author),
 	}
 }
 

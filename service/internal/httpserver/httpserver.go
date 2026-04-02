@@ -87,11 +87,8 @@ func CreateServer(endpoint string) (*http.Server, error) {
 
 	apipath, apihandler, srv := api.GetNewHandler()
 
-	healthcheckLayer := healthcheck.NewHealthCheckLayer(srv)
-	healthcheckHandler := healthcheckLayer.Wrap(apihandler)
-
 	authenticationLayer := authentication.DefaultAuthLayer(srv.DB)
-	authenticatedApiHandler := authenticationLayer.WrapHandler(healthcheckHandler)
+	authenticatedApiHandler := authenticationLayer.WrapHandler(apihandler)
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", authenticatedApiHandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
@@ -104,9 +101,11 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.Handle("/", http.StripPrefix("/", frontend.GetNewHandler()))
 
+	handler := healthcheck.ReadinessMiddleware(srv, mux)
+
 	server := &http.Server{
 		Addr:    endpoint,
-		Handler: h2c.NewHandler(mux, &http2.Server{}),
+		Handler: h2c.NewHandler(handler, &http2.Server{}),
 	}
 
 	return server, nil

@@ -52,6 +52,10 @@ message GetStatusResponse {
     string impersonator_username = 17;
     // Absolute path on the server to the loaded config.yaml (or the path the loader resolved).
     string config_file_absolute_path = 18;
+    // Live connectivity / health hints for architecture and dashboards.
+    bool database_connected = 19;
+    bool amqp_enabled = 20;
+    bool amqp_connected = 21;
 }
 
 message StatusMessage {
@@ -733,6 +737,20 @@ message SendBotConversationMessageResponse {
 	StandardResponse standard_response = 1;
 }
 
+// Client loads history with GetBotConversationMessages, then opens this stream with
+// last_message_id set to the highest id it already has. The server polls the database
+// and pushes new rows until the client disconnects.
+message StreamBotConversationUpdatesRequest {
+	string connector = 1;
+	string identity = 2;
+	string conversation_key = 3;
+	uint32 last_message_id = 4;
+}
+
+message StreamBotConversationUpdatesResponse {
+	repeated BotConversationMessage new_messages = 1;
+}
+
 message SocialAccountShareEntry {
 	uint32 user_group_id = 1;
 	string group_name = 2;
@@ -929,6 +947,7 @@ service JapellaControlApiService {
     rpc GetBotConversations(GetBotConversationsRequest) returns (GetBotConversationsResponse) {}
     rpc GetBotConversationMessages(GetBotConversationMessagesRequest) returns (GetBotConversationMessagesResponse) {}
     rpc SendBotConversationMessage(SendBotConversationMessageRequest) returns (SendBotConversationMessageResponse) {}
+    rpc StreamBotConversationUpdates(StreamBotConversationUpdatesRequest) returns (stream StreamBotConversationUpdatesResponse) {}
 
     rpc GetSocialAccountShares(GetSocialAccountSharesRequest) returns (GetSocialAccountSharesResponse) {}
     rpc SetSocialAccountShares(SetSocialAccountSharesRequest) returns (SetSocialAccountSharesResponse) {}

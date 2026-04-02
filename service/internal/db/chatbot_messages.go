@@ -1,6 +1,9 @@
 package db
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type ChatBotConversationSummary struct {
 	ConversationKey   string `db:"conversation_key"`
@@ -70,6 +73,23 @@ func (db *DB) SelectChatBotConversationMessages(connector string, identity strin
 	return ret, nil
 }
 
+func (db *DB) SelectChatBotConversationMessagesAfterID(connector string, identity string, conversationKey string, afterID uint32, limit int) ([]*ChatBotMessage, error) {
+	ret := make([]*ChatBotMessage, 0)
+	if limit <= 0 {
+		limit = 100
+	}
+	query := `SELECT * FROM chat_bot_messages
+		WHERE connector = ? AND identity = ? AND conversation_key = ? AND id > ?
+		ORDER BY id ASC
+		LIMIT ?`
+	err := db.ResilientSelect(&ret, query, connector, identity, conversationKey, afterID, limit)
+	if err != nil {
+		db.Logger().Errorf("Failed to select chatbot messages after id: %v", err)
+		return nil, err
+	}
+	return ret, nil
+}
+
 func (db *DB) GetChatBotMessageByExternalID(connector string, identity string, messageID string) (*ChatBotMessage, error) {
 	ret := &ChatBotMessage{}
 	err := db.ResilientGet(
@@ -84,6 +104,51 @@ func (db *DB) GetChatBotMessageByExternalID(connector string, identity string, m
 		return nil, err
 	}
 	return ret, nil
+}
+
+// GetLatestIncomingChatBotMessageForChannel returns the most recent incoming row for the same connector identity and channel (e.g. Telegram chat id).
+func (db *DB) GetLatestIncomingChatBotMessageForChannel(connector, identity, channel string) (*ChatBotMessage, error) {
+	ret := &ChatBotMessage{}
+	err := db.ResilientGet(
+		ret,
+		`SELECT * FROM chat_bot_messages
+		WHERE connector = ? AND identity = ? AND channel = ? AND direction = 'incoming'
+		ORDER BY id DESC
+		LIMIT 1`,
+		connector, identity, channel,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
+}
+
+// ConversationTitleFromConversationKey picks a display title from a stored conversation_key (channel|author).
+func ConversationTitleFromConversationKey(conversationKey, channelFallback string) string {
+	parts := strings.SplitN(strings.TrimSpace(conversationKey), "|", 2)
+	if len(parts) == 2 && strings.TrimSpace(parts[1]) != "" {
+		return strings.TrimSpace(parts[1])
+	}
+	if len(parts) > 0 && strings.TrimSpace(parts[0]) != "" {
+		return strings.TrimSpace(parts[0])
+	}
+	return channelFallback
+}
+
+// ResolveOutgoingConversationForLog picks conversation_key and conversation_title for logging an outbound connector message.
+func (db *DB) ResolveOutgoingConversationForLog(connector, identity, channel, explicitConversationKey, incomingMessageID string) (conversationKey, conversationTitle string) {
+	if k := strings.TrimSpace(explicitConversationKey); k != "" {
+		return k, ConversationTitleFromConversationKey(k, channel)
+	}
+	if incomingMessageID != "" {
+		if ref, err := db.GetChatBotMessageByExternalID(connector, identity, incomingMessageID); err == nil && ref != nil {
+			return ref.ConversationKey, ref.ConversationTitle
+		}
+	}
+	if ref, err := db.GetLatestIncomingChatBotMessageForChannel(connector, identity, channel); err == nil && ref != nil {
+		return ref.ConversationKey, ref.ConversationTitle
+	}
+	return BuildConversationKey(channel, ""), channel
 }
 
 func BuildConversationKey(channel string, author string) string {

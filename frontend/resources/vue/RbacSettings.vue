@@ -15,14 +15,6 @@
 		<div v-if="loading && !permissions.length" class="muted">Loading…</div>
 
 		<template v-else>
-			<h3 class="subsection-title">Permissions</h3>
-			<ul class="perm-list">
-				<li v-for="p in permissions" :key="p.id">
-					<code>{{ p.name }}</code>
-					<span class="perm-desc">{{ p.description }}</span>
-				</li>
-			</ul>
-
 			<h3 class="subsection-title">Roles</h3>
 			<p v-if="!canManage" class="inline-notification note">You can view roles. Editing requires the rbac.manage permission.</p>
 
@@ -77,10 +69,24 @@
 				</div>
 				<fieldset class="perm-checks">
 					<legend>Permissions</legend>
-					<label v-for="p in permissions" :key="'n-' + p.id" class="check-label">
-						<input v-model="newRole.permissionIds" type="checkbox" :value="p.id" />
-						{{ p.name }}
-					</label>
+					<table class="perm-table data-table">
+						<thead>
+							<tr>
+								<th class="perm-col-check" scope="col"><span class="a11yhidden">Grant</span></th>
+								<th scope="col">Permission</th>
+								<th scope="col">Description</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr v-for="p in permissionsSorted" :key="'n-' + p.id">
+								<td class="perm-col-check">
+									<input v-model="newRole.permissionIds" type="checkbox" :value="p.id" :aria-label="'Grant ' + p.name" />
+								</td>
+								<td><code>{{ p.name }}</code></td>
+								<td>{{ p.description || '—' }}</td>
+							</tr>
+						</tbody>
+					</table>
 				</fieldset>
 				<button type="button" class="good" :disabled="saving || !newRole.name.trim()" @click="createRole">
 					Create role
@@ -116,10 +122,29 @@
 			<input v-model="editRole.description" type="text" />
 			<fieldset class="perm-checks">
 				<legend>Permissions</legend>
-				<label v-for="p in permissions" :key="'e-' + p.id" class="check-label">
-					<input v-model="editRole.permissionIds" type="checkbox" :value="p.id" />
-					{{ p.name }}
-				</label>
+				<table class="perm-table data-table">
+					<thead>
+						<tr>
+							<th class="perm-col-check" scope="col"><span class="a11yhidden">Grant</span></th>
+							<th scope="col">Permission</th>
+							<th scope="col">Description</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr v-for="p in permissionsSorted" :key="'e-' + p.id">
+							<td class="perm-col-check">
+								<input
+									v-model="editRole.permissionIds"
+									type="checkbox"
+									:value="p.id"
+									:aria-label="'Grant ' + p.name"
+								/>
+							</td>
+							<td><code>{{ p.name }}</code></td>
+							<td>{{ p.description || '—' }}</td>
+						</tr>
+					</tbody>
+				</table>
 			</fieldset>
 			<div class="dialog-actions">
 				<button type="button" class="neutral" @click="editDialog?.close()">Cancel</button>
@@ -164,6 +189,12 @@
 		}
 		return m;
 	});
+
+	const permissionsSorted = computed(() =>
+		[...permissions.value].sort((a, b) =>
+			String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }),
+		),
+	);
 
 	function permissionLabels(ids) {
 		if (!ids?.length) {
@@ -332,20 +363,19 @@
 		font-weight: 600;
 	}
 
-	.perm-list {
-		margin: 0 0 1rem;
-		padding-left: 1.2rem;
-		max-width: 48rem;
+	.perm-table {
+		width: 100%;
+		margin: 0.25rem 0 0;
 	}
 
-	.perm-list li {
-		margin-bottom: 0.35rem;
+	.perm-col-check {
+		width: 2.5rem;
+		vertical-align: middle;
+		text-align: center;
 	}
 
-	.perm-desc {
-		margin-left: 0.5rem;
-		opacity: 0.85;
-		font-size: 0.9em;
+	.perm-table td.perm-col-check input {
+		margin: 0;
 	}
 
 	.roles-table {

@@ -210,6 +210,9 @@ const (
 	// JapellaControlApiServiceSendBotConversationMessageProcedure is the fully-qualified name of the
 	// JapellaControlApiService's SendBotConversationMessage RPC.
 	JapellaControlApiServiceSendBotConversationMessageProcedure = "/japella.controlapi.v1.JapellaControlApiService/SendBotConversationMessage"
+	// JapellaControlApiServiceStreamBotConversationUpdatesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's StreamBotConversationUpdates RPC.
+	JapellaControlApiServiceStreamBotConversationUpdatesProcedure = "/japella.controlapi.v1.JapellaControlApiService/StreamBotConversationUpdates"
 	// JapellaControlApiServiceGetSocialAccountSharesProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetSocialAccountShares RPC.
 	JapellaControlApiServiceGetSocialAccountSharesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetSocialAccountShares"
@@ -301,6 +304,7 @@ type JapellaControlApiServiceClient interface {
 	GetBotConversations(context.Context, *connect.Request[v1.GetBotConversationsRequest]) (*connect.Response[v1.GetBotConversationsResponse], error)
 	GetBotConversationMessages(context.Context, *connect.Request[v1.GetBotConversationMessagesRequest]) (*connect.Response[v1.GetBotConversationMessagesResponse], error)
 	SendBotConversationMessage(context.Context, *connect.Request[v1.SendBotConversationMessageRequest]) (*connect.Response[v1.SendBotConversationMessageResponse], error)
+	StreamBotConversationUpdates(context.Context, *connect.Request[v1.StreamBotConversationUpdatesRequest]) (*connect.ServerStreamForClient[v1.StreamBotConversationUpdatesResponse], error)
 	GetSocialAccountShares(context.Context, *connect.Request[v1.GetSocialAccountSharesRequest]) (*connect.Response[v1.GetSocialAccountSharesResponse], error)
 	SetSocialAccountShares(context.Context, *connect.Request[v1.SetSocialAccountSharesRequest]) (*connect.Response[v1.SetSocialAccountSharesResponse], error)
 	ImpersonateUser(context.Context, *connect.Request[v1.ImpersonateUserRequest]) (*connect.Response[v1.ImpersonateUserResponse], error)
@@ -678,6 +682,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("SendBotConversationMessage")),
 			connect.WithClientOptions(opts...),
 		),
+		streamBotConversationUpdates: connect.NewClient[v1.StreamBotConversationUpdatesRequest, v1.StreamBotConversationUpdatesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceStreamBotConversationUpdatesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("StreamBotConversationUpdates")),
+			connect.WithClientOptions(opts...),
+		),
 		getSocialAccountShares: connect.NewClient[v1.GetSocialAccountSharesRequest, v1.GetSocialAccountSharesResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceGetSocialAccountSharesProcedure,
@@ -796,6 +806,7 @@ type japellaControlApiServiceClient struct {
 	getBotConversations             *connect.Client[v1.GetBotConversationsRequest, v1.GetBotConversationsResponse]
 	getBotConversationMessages      *connect.Client[v1.GetBotConversationMessagesRequest, v1.GetBotConversationMessagesResponse]
 	sendBotConversationMessage      *connect.Client[v1.SendBotConversationMessageRequest, v1.SendBotConversationMessageResponse]
+	streamBotConversationUpdates    *connect.Client[v1.StreamBotConversationUpdatesRequest, v1.StreamBotConversationUpdatesResponse]
 	getSocialAccountShares          *connect.Client[v1.GetSocialAccountSharesRequest, v1.GetSocialAccountSharesResponse]
 	setSocialAccountShares          *connect.Client[v1.SetSocialAccountSharesRequest, v1.SetSocialAccountSharesResponse]
 	impersonateUser                 *connect.Client[v1.ImpersonateUserRequest, v1.ImpersonateUserResponse]
@@ -1109,6 +1120,12 @@ func (c *japellaControlApiServiceClient) SendBotConversationMessage(ctx context.
 	return c.sendBotConversationMessage.CallUnary(ctx, req)
 }
 
+// StreamBotConversationUpdates calls
+// japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates.
+func (c *japellaControlApiServiceClient) StreamBotConversationUpdates(ctx context.Context, req *connect.Request[v1.StreamBotConversationUpdatesRequest]) (*connect.ServerStreamForClient[v1.StreamBotConversationUpdatesResponse], error) {
+	return c.streamBotConversationUpdates.CallServerStream(ctx, req)
+}
+
 // GetSocialAccountShares calls
 // japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares.
 func (c *japellaControlApiServiceClient) GetSocialAccountShares(ctx context.Context, req *connect.Request[v1.GetSocialAccountSharesRequest]) (*connect.Response[v1.GetSocialAccountSharesResponse], error) {
@@ -1218,6 +1235,7 @@ type JapellaControlApiServiceHandler interface {
 	GetBotConversations(context.Context, *connect.Request[v1.GetBotConversationsRequest]) (*connect.Response[v1.GetBotConversationsResponse], error)
 	GetBotConversationMessages(context.Context, *connect.Request[v1.GetBotConversationMessagesRequest]) (*connect.Response[v1.GetBotConversationMessagesResponse], error)
 	SendBotConversationMessage(context.Context, *connect.Request[v1.SendBotConversationMessageRequest]) (*connect.Response[v1.SendBotConversationMessageResponse], error)
+	StreamBotConversationUpdates(context.Context, *connect.Request[v1.StreamBotConversationUpdatesRequest], *connect.ServerStream[v1.StreamBotConversationUpdatesResponse]) error
 	GetSocialAccountShares(context.Context, *connect.Request[v1.GetSocialAccountSharesRequest]) (*connect.Response[v1.GetSocialAccountSharesResponse], error)
 	SetSocialAccountShares(context.Context, *connect.Request[v1.SetSocialAccountSharesRequest]) (*connect.Response[v1.SetSocialAccountSharesResponse], error)
 	ImpersonateUser(context.Context, *connect.Request[v1.ImpersonateUserRequest]) (*connect.Response[v1.ImpersonateUserResponse], error)
@@ -1590,6 +1608,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("SendBotConversationMessage")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceStreamBotConversationUpdatesHandler := connect.NewServerStreamHandler(
+		JapellaControlApiServiceStreamBotConversationUpdatesProcedure,
+		svc.StreamBotConversationUpdates,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("StreamBotConversationUpdates")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceGetSocialAccountSharesHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceGetSocialAccountSharesProcedure,
 		svc.GetSocialAccountShares,
@@ -1764,6 +1788,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetBotConversationMessagesHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceSendBotConversationMessageProcedure:
 			japellaControlApiServiceSendBotConversationMessageHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceStreamBotConversationUpdatesProcedure:
+			japellaControlApiServiceStreamBotConversationUpdatesHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetSocialAccountSharesProcedure:
 			japellaControlApiServiceGetSocialAccountSharesHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceSetSocialAccountSharesProcedure:
@@ -2025,6 +2051,10 @@ func (UnimplementedJapellaControlApiServiceHandler) GetBotConversationMessages(c
 
 func (UnimplementedJapellaControlApiServiceHandler) SendBotConversationMessage(context.Context, *connect.Request[v1.SendBotConversationMessageRequest]) (*connect.Response[v1.SendBotConversationMessageResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) StreamBotConversationUpdates(context.Context, *connect.Request[v1.StreamBotConversationUpdatesRequest], *connect.ServerStream[v1.StreamBotConversationUpdatesResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) GetSocialAccountShares(context.Context, *connect.Request[v1.GetSocialAccountSharesRequest]) (*connect.Response[v1.GetSocialAccountSharesResponse], error) {

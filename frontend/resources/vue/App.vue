@@ -194,6 +194,8 @@
 
 		navigation.value.addRouterLink('feed');
 
+		navigation.value.addRouterLink('chatBotConversationsAll');
+
 		navigation.value.addSeparator('connections-separator');
 
 		navigation.value.addHtml('<h2 style = "padding-left: .5em; margin-top: 1em; margin-bottom: .5em;">Settings</h2>', {

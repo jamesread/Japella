@@ -2,7 +2,8 @@
 	<Section
 		title="User Groups"
 		subtitle="Manage user groups and their membership. Groups let you organise users for easier administration."
-		classes="user-groups"
+		classes="user-groups settings-users"
+		:padding="false"
 	>
 		<template #toolbar>
 			<button type="button" class="neutral" title="Refresh" :disabled="loading" @click="loadAll">
@@ -10,15 +11,15 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</div>
+		<div v-if="errorMessage" class="inline-notification error groups-banner-pad">{{ errorMessage }}</div>
 
-		<div v-if="loading && !groups.length" class="muted">Loading…</div>
+		<div v-if="loading && !groups.length" class="groups-banner-pad muted">Loading…</div>
 
 		<template v-else>
-			<h3 class="subsection-title">Groups</h3>
-			<p v-if="!groups.length" class="inline-notification note">No user groups yet.</p>
+			<h3 class="subsection-title groups-banner-pad">Groups</h3>
+			<p v-if="!groups.length" class="inline-notification note groups-banner-pad">No user groups yet.</p>
 
-			<table v-if="groups.length" class="groups-table">
+			<table v-if="groups.length" class="groups-table user-table-wrap">
 				<thead>
 					<tr>
 						<th>Name</th>
@@ -60,7 +61,7 @@
 				</div>
 			</div>
 
-			<template v-if="selectedGroupId">
+			<div v-if="selectedGroupId" class="members-section">
 				<h3 class="subsection-title">
 					Members of <em>{{ selectedGroupName }}</em>
 				</h3>
@@ -102,7 +103,7 @@
 						{{ membersSaveMessage }}
 					</div>
 				</template>
-			</template>
+			</div>
 		</template>
 	</Section>
 </template>
@@ -284,15 +285,23 @@
 </script>
 
 <style scoped>
+	.groups-banner-pad {
+		padding-left: 1em;
+		padding-right: 1em;
+	}
+
 	.subsection-title {
 		margin: 1.25rem 0 0.5rem;
 		font-size: 1.05rem;
 		font-weight: 600;
 	}
 
+	.user-table-wrap {
+		margin-top: 0.5rem;
+	}
+
 	.groups-table {
 		width: 100%;
-		max-width: 40rem;
 		margin-bottom: 1.5rem;
 	}
 
@@ -314,9 +323,8 @@
 
 	.create-group-panel {
 		margin-bottom: 2rem;
-		padding: 1rem 0;
+		padding: 1rem 1em;
 		border-top: 1px solid var(--pico-muted-border-color, rgba(0, 0, 0, 0.12));
-		max-width: 40rem;
 	}
 
 	.form-row {
@@ -340,7 +348,6 @@
 		border: 1px solid var(--pico-muted-border-color, rgba(0, 0, 0, 0.12));
 		padding: 0.75rem 1rem;
 		border-radius: 4px;
-		max-width: 40rem;
 	}
 
 	.check-label {
@@ -353,8 +360,12 @@
 		opacity: 0.8;
 	}
 
+	.members-section {
+		padding-left: 1em;
+		padding-right: 1em;
+	}
+
 	.member-toolbar {
 		margin: 0.5rem 0 0.75rem;
-		max-width: 40rem;
 	}
 </style>

@@ -8,6 +8,7 @@ import (
 	"github.com/teris-io/shortid"
 	"os"
 	"reflect"
+	"strings"
 	"sync"
 	"time"
 )
@@ -17,6 +18,7 @@ var (
 	channels             map[string]*amqp.Channel
 	ConnectionIdentifier string
 	connMutex            sync.Mutex
+	mandatoryPublishMu   sync.Mutex
 
 	InstanceId string
 
@@ -104,6 +106,20 @@ func declareExchange(channel *amqp.Channel) {
 	}
 }
 
+// ConnectionStatus reports whether AMQP is enabled in config and whether the process holds an open broker connection.
+func ConnectionStatus() (enabled bool, connected bool) {
+	cfg := runtimeconfig.Get().Amqp
+	if !cfg.Enabled {
+		return false, false
+	}
+	connMutex.Lock()
+	defer connMutex.Unlock()
+	if conn == nil || conn.IsClosed() {
+		return true, false
+	}
+	return true, true
+}
+
 func getConn() (*amqp.Connection, error) {
 	var err error
 	connMutex.Lock()
@@ -174,6 +190,45 @@ func PublishWithChannel(c *amqp.Channel, routingKey string, msg amqp.Publishing)
 	return err
 }
 
+// publishMandatoryWithReturn publishes with the mandatory flag so RabbitMQ returns unroutable
+// messages when no queue is bound to the routing key (e.g. Telegram Replier not started yet).
+func publishMandatoryWithReturn(c *amqp.Channel, routingKey string, msg amqp.Publishing) error {
+	mandatoryPublishMu.Lock()
+	defer mandatoryPublishMu.Unlock()
+
+	retCh := make(chan amqp.Return, 8)
+	if err := c.NotifyReturn(retCh); err != nil {
+		log.Warnf("AMQP NotifyReturn: %v", err)
+	}
+
+	log.Infof("Publishing to %v", routingKey)
+
+	err := c.Publish(
+		"ex_japella",
+		routingKey,
+		true,  // mandatory
+		false, // immediate
+		msg,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	deadline := time.After(500 * time.Millisecond)
+	for {
+		select {
+		case ret := <-retCh:
+			if ret.RoutingKey == routingKey {
+				log.Errorf("Unroutable outgoing message: no queue bound for routing key %q. If the message should go to Telegram/Discord, ensure the connector is running with AMQP enabled and has started the Replier (see logs for \"Starting Replier for routing key\").", routingKey)
+				return nil
+			}
+		case <-deadline:
+			return nil
+		}
+	}
+}
+
 func PublishPbWithRoutingKey(msg interface{}, routingKey string) {
 	channel, err := GetChannel("Publish-" + getMsgType(msg))
 
@@ -185,18 +240,32 @@ func PublishPbWithRoutingKey(msg interface{}, routingKey string) {
 	env := newEnvelope(getMsgType(msg), Encode(msg))
 
 	log.Debugf("Publishing message with routing key: %s", routingKey)
-	err = PublishWithChannel(channel, routingKey, env)
+	err = publishMandatoryWithReturn(channel, routingKey, env)
 
 	if err != nil {
 		log.Errorf("PublishPbWithRoutingKey: %v", err)
 	}
 }
 
+// normalizeOutgoingRoutingIdentity makes routing keys stable. Telegram usernames are
+// case-insensitive; publisher and consumer must use the same key.
+func normalizeOutgoingRoutingIdentity(protocol string, identity string) string {
+	identity = strings.TrimSpace(identity)
+	if identity == "" {
+		return ""
+	}
+	if protocol == "telegram" {
+		return strings.ToLower(identity)
+	}
+	return identity
+}
+
 // GetOutgoingMessageRoutingKey generates a routing key for OutgoingMessage that includes identity
 // Format: "{protocol}-OutgoingMessage-{identity}" if identity is set, otherwise "{protocol}-OutgoingMessage"
 func GetOutgoingMessageRoutingKey(protocol string, identity string) string {
-	if identity != "" {
-		return protocol + "-OutgoingMessage-" + identity
+	id := normalizeOutgoingRoutingIdentity(protocol, identity)
+	if id != "" {
+		return protocol + "-OutgoingMessage-" + id
 	}
 	return protocol + "-OutgoingMessage"
 }
@@ -295,7 +364,7 @@ func consumeWithChannel(handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTa
 		false, // durable
 		true,  // delete when unused
 		false, // exclusive
-		true,  // nowait
+		false, // nowait — wait for declare-ok so errors are visible
 		nil,   // args
 	)
 
@@ -308,8 +377,8 @@ func consumeWithChannel(handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTa
 		queueName,
 		deliveryTag, // key
 		"ex_japella",
-		true, // nowait
-		nil,  // args
+		false, // nowait — wait for bind-ok
+		nil,   // args
 	)
 
 	if err != nil {
@@ -357,6 +426,10 @@ func consumeDeliveries(deliveries <-chan amqp.Delivery, handlerFunc HandlerFunc,
 		handlerFunc(Delivery{
 			Message: d,
 		})
+
+		if err := d.Ack(false); err != nil {
+			log.Warnf("AMQP Ack failed: %v", err)
+		}
 
 		if handlerWait != nil {
 			handlerWait.Done()

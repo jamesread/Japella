@@ -37,7 +37,10 @@ func (bot *DbLogger) ListenForMessages(db *sql.DB) {
 	handler := amqp.ConsumeForever("IncomingMessage", func(d amqp.Delivery) {
 		msg := &msgs.IncomingMessage{}
 
-		amqp.Decode(d.Message.Body, &msg)
+		if err := amqp.Decode(d.Message.Body, &msg); err != nil {
+			bot.Logger().Errorf("dblogger decode: %v", err)
+			return
+		}
 
 		bot.Logger().Infof("dblogger recv: %+v", msg)
 

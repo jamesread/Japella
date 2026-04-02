@@ -361,24 +361,29 @@ func (c *TelegramConnector) handleMessage(message *tgbotmdl.Message) {
 		}
 	}
 
+	messageIDStr := ""
+	if message.ID != 0 {
+		messageIDStr = strconv.Itoa(message.ID)
+	}
 	incomingMsg := &msgs.IncomingMessage{
 		Author:    author,
 		Content:   messageText,
 		Channel:   strconv.FormatInt(chat.ID, 10),
 		Protocol:  "telegram",
+		MessageId: messageIDStr,
 		Timestamp: time.Now().Unix(),
 		Identity:  c.nickname, // Include bot identity so hooks can route responses correctly
 	}
 
 	if c.db != nil {
-		convTitle := author
+		convTitle := channel.Title
 		if convTitle == "" {
-			convTitle = "Unknown sender"
+			convTitle = "Chat " + incomingMsg.Channel
 		}
 		_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
 			Connector:         "telegram",
 			Identity:          c.nickname,
-			ConversationKey:   db.BuildConversationKey(incomingMsg.Channel, author),
+			ConversationKey:   db.BuildConversationKey(incomingMsg.Channel, ""),
 			ConversationTitle: convTitle,
 			Channel:           incomingMsg.Channel,
 			Author:            author,
@@ -425,7 +430,10 @@ func (c *TelegramConnector) Replier() {
 	amqp.ConsumeForever(routingKey, func(d amqp.Delivery) {
 		reply := msgs.OutgoingMessage{}
 
-		amqp.Decode(d.Message.Body, &reply)
+		if err := amqp.Decode(d.Message.Body, &reply); err != nil {
+			c.Logger().Errorf("decode OutgoingMessage: %v", err)
+			return
+		}
 
 		c.Logger().Infof("Received OutgoingMessage - Protocol: %s, Identity: %s, Channel: %s, Content: %s",
 			reply.Protocol, reply.Identity, reply.Channel, reply.Content)
@@ -437,22 +445,26 @@ func (c *TelegramConnector) Replier() {
 			return
 		}
 
-		channelId, _ := strconv.ParseInt(reply.Channel, 10, 64)
+		channelID, err := strconv.ParseInt(reply.Channel, 10, 64)
+		if err != nil {
+			c.Logger().Errorf("OutgoingMessage has invalid channel %q: %v", reply.Channel, err)
+			return
+		}
 		if c.botInstance != nil {
-			c.botInstance.SendMessage(ctx, &tgbotapi.SendMessageParams{
-				ChatID: channelId,
+			_, sendErr := c.botInstance.SendMessage(ctx, &tgbotapi.SendMessageParams{
+				ChatID: channelID,
 				Text:   reply.Content,
 			})
+			if sendErr != nil {
+				c.Logger().Errorf("SendMessage failed (chat_id=%d): %v", channelID, sendErr)
+				return
+			}
 
 			if c.db != nil {
-				conversationKey := db.BuildConversationKey(reply.Channel, "")
-				conversationTitle := reply.Channel
-				if reply.IncommingMessageId != "" {
-					if incomingRef, err := c.db.GetChatBotMessageByExternalID("telegram", c.nickname, reply.IncommingMessageId); err == nil && incomingRef != nil {
-						conversationKey = incomingRef.ConversationKey
-						conversationTitle = incomingRef.ConversationTitle
-					}
-				}
+				conversationKey, conversationTitle := c.db.ResolveOutgoingConversationForLog(
+					"telegram", c.nickname, reply.Channel,
+					reply.GetConversationKey(), reply.GetIncommingMessageId(),
+				)
 				_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
 					Connector:         "telegram",
 					Identity:          c.nickname,

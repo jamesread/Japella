@@ -28,8 +28,12 @@ import Logs from '../vue/Logs.vue'
 import BrowserDiagnostics from '../vue/BrowserDiagnostics.vue'
 import ChatBots from '../vue/ChatBots.vue'
 import ChatBotDetails from '../vue/ChatBotDetails.vue'
+import ChatBotConversationsPage from '../vue/ChatBotConversationsPage.vue'
+import AllChatBotConversationsPage from '../vue/AllChatBotConversationsPage.vue'
+import ChatBotHooksPage from '../vue/ChatBotHooksPage.vue'
 import CreateUser from '../vue/CreateUser.vue'
 import Connectors from '../vue/Connectors.vue'
+import SystemArchitecture from '../vue/SystemArchitecture.vue'
 import UserGroups from '../vue/UserGroups.vue'
 import AddSocialAccount from '../vue/AddSocialAccount.vue'
 import { canAccessControlPanelFromStatus } from './rbacAccess.js'
@@ -50,6 +54,7 @@ import {
   Robot01Icon,
   WebSecurityIcon,
   SecurityValidationIcon,
+  MessageMultiple01Icon,
 } from '@hugeicons/core-free-icons'
 
 const routes = [
@@ -78,6 +83,24 @@ const routes = [
     meta: {
       icon: Robot01Icon,
       title: 'Chat Bots',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/chat-bots/:connector/:identity/conversations',
+    name: 'chatBotConversations',
+    component: ChatBotConversationsPage,
+    meta: {
+      title: 'Bot Conversations',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/chat-bots/:connector/:identity/hooks',
+    name: 'chatBotHooks',
+    component: ChatBotHooksPage,
+    meta: {
+      title: 'Bot Message Hooks',
       requiresAuth: true
     }
   },
@@ -165,6 +188,16 @@ const routes = [
     meta: {
       icon: ActivityIcon,
       title: 'Feed',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/conversations',
+    name: 'chatBotConversationsAll',
+    component: AllChatBotConversationsPage,
+    meta: {
+      icon: MessageMultiple01Icon,
+      title: 'Conversations',
       requiresAuth: true
     }
   },
@@ -331,6 +364,16 @@ const routes = [
     meta: {
       icon: HomeIcon,
       title: 'Control Panel',
+      requiresAuth: true,
+      requiresControlPanel: true
+    }
+  },
+  {
+    path: '/control-panel/system-architecture',
+    name: 'systemArchitecture',
+    component: SystemArchitecture,
+    meta: {
+      title: 'System Architecture',
       requiresAuth: true,
       requiresControlPanel: true
     }

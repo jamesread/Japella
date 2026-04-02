@@ -8,12 +8,6 @@ CREATE TABLE campaigns (
 	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE campaign_social_accounts (
-	id int(10) not null primary key auto_increment,
-	campaign_id int(10) NOT NULL,
-	social_account_group_id int(10) NOT NULL,
-	created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-	updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- campaign_social_accounts is created in 6_campaign_social_accounts.up.sql (single canonical schema).
 
 ALTER TABLE posts ADD COLUMN campaign_id int(10) DEFAULT NULL;

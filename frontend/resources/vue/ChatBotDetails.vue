@@ -4,6 +4,13 @@
 		:subtitle="bot ? bot.connector : 'Loading bot details'"
 		classes="chat-bot-details"
 	>
+		<template #toolbar>
+			<router-link :to="{ name: 'chatBots' }" class="button neutral">
+				<Icon icon="mdi:robot-outline" />
+				All chat bots
+			</router-link>
+		</template>
+
 		<div v-if="!clientReady || loading">
 			<p>Loading...</p>
 		</div>
@@ -18,7 +25,10 @@
 				<dt>Name</dt>
 				<dd>{{ bot.name }}</dd>
 				<dt>Connector</dt>
-				<dd>{{ bot.connector }}</dd>
+				<dd class="connector-with-icon">
+					<Icon :icon="protocolIcon" width="18" height="18" />
+					<span>{{ bot.connector }}</span>
+				</dd>
 				<dt>Identity</dt>
 				<dd>{{ bot.identity || 'N/A' }}</dd>
 				<dt>Status</dt>
@@ -41,8 +51,14 @@
 				</dd>
 			</dl>
 
+			<div class="bot-detail-nav-wrap">
+				<Navigation ref="botDetailNav">
+					<NavigationGrid />
+				</Navigation>
+			</div>
+
 			<!-- Channels Section -->
-			<div v-if="bot.connector === 'telegram'" class="channels-section" style="margin-top: 2em;">
+			<div v-if="bot.connector === 'telegram'" id="chat-bot-channels" class="channels-section" style="margin-top: 2em;">
 				<h3>Channels</h3>
 				<div v-if="channelsLoading" class="icon-and-text" style="margin-top: 1em;">
 					<Icon icon="eos-icons:loading" width="24" height="24" />
@@ -75,146 +91,25 @@
 					</tbody>
 				</table>
 			</div>
-
-			<!-- Hooks Section -->
-			<div class="hooks-section" style="margin-top: 2em;">
-				<h3>Incoming Message Hooks</h3>
-				<p style="margin-top: 0.5em; margin-bottom: 1em; color: #aaa;">
-					Configure webhooks to be called when this bot receives messages. Each hook will receive a JSON payload with message details.
-				</p>
-
-				<div v-if="hooksLoading" class="icon-and-text" style="margin-top: 1em;">
-					<Icon icon="eos-icons:loading" width="20" height="20" />
-					<span style="margin-left: .5em;">Loading hooks...</span>
-				</div>
-				<div v-else-if="hooksError" class="inline-notification error">
-					{{ hooksError }}
-				</div>
-				<div v-else>
-					<div v-if="hooks.length === 0" class="inline-notification note">
-						No hooks configured. Add a webhook URL below to start receiving message notifications.
-					</div>
-					<div v-else class="hooks-list" style="margin-top: 1em;">
-						<div v-for="(hook, index) in hooks" :key="index" class="hook-item">
-							<div class="hook-item-content">
-								<label class="hook-checkbox-label">
-									<input type="checkbox" v-model="hook.enabled" @change="saveHooks" />
-									<span class="hook-status-label">{{ hook.enabled ? 'Enabled' : 'Disabled' }}</span>
-								</label>
-								<div class="hook-url-container" :class="{ 'hook-disabled': !hook.enabled }">
-									<code class="hook-url">{{ hook.url }}</code>
-								</div>
-								<button @click="removeHook(index)" class="hook-remove-button">Remove</button>
-							</div>
-						</div>
-					</div>
-
-					<div class="add-hook-form" style="margin-top: 1.5em; padding-top: 1.5em; border-top: 1px solid #444;">
-						<h4 style="margin-top: 0; margin-bottom: 0.75em;">Add New Hook</h4>
-						<div style="display: flex; gap: 0.5em; align-items: flex-start;">
-							<input
-								type="url"
-								v-model="newHookUrl"
-								placeholder="https://example.com/webhook"
-								style="flex: 1; padding: 0.5em;"
-								:disabled="savingHooks"
-							/>
-							<button @click="addHook" :disabled="!newHookUrl || savingHooks" class="good" style="padding: 0.5em 1em;">
-								Add Hook
-							</button>
-						</div>
-					</div>
-
-					<div v-if="hooksMessage" class="inline-notification" :class="hooksMessageType" style="margin-top: 1em;">
-						{{ hooksMessage }}
-					</div>
-				</div>
-			</div>
-
-			<div class="conversations-section" style="margin-top: 2em;">
-				<h3>Conversations</h3>
-				<p style="margin-top: 0.5em; margin-bottom: 1em; color: #aaa;">
-					People who message this bot appear here. Select one to view the thread and reply as the bot.
-				</p>
-
-				<div v-if="conversationsLoading" class="icon-and-text" style="margin-top: 1em;">
-					<Icon icon="eos-icons:loading" width="20" height="20" />
-					<span style="margin-left: .5em;">Loading conversations...</span>
-				</div>
-				<div v-else-if="conversationsError" class="inline-notification error">
-					{{ conversationsError }}
-				</div>
-				<div v-else-if="conversations.length === 0" class="inline-notification note">
-					No conversations yet.
-				</div>
-				<div v-else class="conversation-layout">
-					<div class="conversation-list">
-						<button
-							v-for="conversation in conversations"
-							:key="conversation.key"
-							class="conversation-list-item"
-							:class="{ active: selectedConversationKey === conversation.key }"
-							@click="selectConversation(conversation.key)"
-						>
-							<div class="conversation-title">{{ conversation.title || 'Unknown sender' }}</div>
-							<div class="conversation-preview">{{ conversation.lastMessage || '' }}</div>
-						</button>
-					</div>
-					<div class="conversation-thread">
-						<div v-if="messagesLoading" class="icon-and-text">
-							<Icon icon="eos-icons:loading" width="20" height="20" />
-							<span style="margin-left: .5em;">Loading messages...</span>
-						</div>
-						<div v-else-if="messagesError" class="inline-notification error">
-							{{ messagesError }}
-						</div>
-						<div v-else>
-							<div v-if="messages.length === 0" class="inline-notification note">No messages in this conversation.</div>
-							<div v-else class="messages-list">
-								<div
-									v-for="message in messages"
-									:key="message.id"
-									class="message-item"
-									:class="message.direction === 'outgoing' ? 'message-outgoing' : 'message-incoming'"
-								>
-									<div class="message-meta">
-										<span>{{ message.direction === 'outgoing' ? 'Bot' : (message.author || 'Unknown') }}</span>
-										<span>{{ formatTimestamp(message.timestampUnix) }}</span>
-									</div>
-									<div class="message-content">{{ message.content }}</div>
-								</div>
-							</div>
-
-							<div class="reply-box">
-								<textarea
-									v-model="replyContent"
-									placeholder="Write a reply as this bot..."
-									:disabled="sendingReply || !selectedConversationKey"
-								/>
-								<div class="reply-actions">
-									<button class="good" :disabled="sendingReply || !replyContent.trim() || !selectedConversationKey" @click="sendReply">
-										{{ sendingReply ? 'Sending...' : 'Send reply' }}
-									</button>
-								</div>
-								<div v-if="replyMessage" class="inline-notification" :class="replyMessageType" style="margin-top: 0.75em;">
-									{{ replyMessage }}
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
 		</div>
 	</Section>
 </template>
 
 <script setup>
-	import { ref, onMounted } from 'vue';
-	import { useRoute } from 'vue-router';
+	import { ref, computed, onMounted, watch, nextTick } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import Navigation from 'picocrank/vue/components/Navigation.vue';
+	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
+	import {
+		MessageMultiple01Icon,
+		WebhookIcon,
+	} from '@hugeicons/core-free-icons';
 
 	const route = useRoute();
+	const router = useRouter();
+
 	const clientReady = ref(false)
 	const loading = ref(true)
 	const error = ref('')
@@ -224,24 +119,68 @@
 	const channels = ref([])
 	const channelsLoading = ref(false)
 	const channelsError = ref('')
-	const hooks = ref([])
-	const hooksLoading = ref(false)
-	const hooksError = ref('')
-	const hooksMessage = ref('')
-	const hooksMessageType = ref('')
-	const savingHooks = ref(false)
-	const newHookUrl = ref('')
-const conversations = ref([])
-const conversationsLoading = ref(false)
-const conversationsError = ref('')
-const selectedConversationKey = ref('')
-const messages = ref([])
-const messagesLoading = ref(false)
-const messagesError = ref('')
-const replyContent = ref('')
-const sendingReply = ref(false)
-const replyMessage = ref('')
-const replyMessageType = ref('')
+	const botDetailNav = ref(null)
+
+	const identityForRoute = computed(() => identity.value || '_')
+	const protocolIcon = computed(() => {
+		const connectorName = String(bot.value?.connector || '').toLowerCase()
+		if (connectorName === 'telegram') {
+			return 'mdi:telegram'
+		}
+		if (connectorName === 'discord') {
+			return 'mdi:discord'
+		}
+		return 'mdi:robot-outline'
+	})
+
+	function goToConversations() {
+		if (!bot.value) {
+			return
+		}
+		router.push({
+			name: 'chatBotConversations',
+			params: { connector: bot.value.connector, identity: identityForRoute.value },
+		})
+	}
+
+	function goToMessageHooks() {
+		if (!bot.value) {
+			return
+		}
+		router.push({
+			name: 'chatBotHooks',
+			params: { connector: bot.value.connector, identity: identityForRoute.value },
+		})
+	}
+
+	async function rebuildBotDetailNavigation() {
+		await nextTick()
+		const nav = botDetailNav.value
+		if (!nav || !bot.value) {
+			return
+		}
+		nav.clearNavigationLinks()
+		nav.addCallback('Conversations', goToConversations, {
+			icon: MessageMultiple01Icon,
+			name: 'bot-detail-conversations',
+			description: 'Message threads and replies for this bot',
+		})
+		nav.addCallback('Message hooks', goToMessageHooks, {
+			icon: WebhookIcon,
+			name: 'bot-detail-hooks',
+			description: 'Configure incoming webhooks for this bot',
+		})
+	}
+
+	watch(
+		bot,
+		(b) => {
+			if (b) {
+				rebuildBotDetailNavigation()
+			}
+		},
+		{ flush: 'post' },
+	)
 
 	function waitForClient() {
 		return new Promise((resolve) => {
@@ -303,194 +242,6 @@ const replyMessageType = ref('')
 		}
 	}
 
-	async function fetchHooks() {
-		if (!bot.value) {
-			return
-		}
-
-		hooksLoading.value = true
-		hooksError.value = ''
-		hooksMessage.value = ''
-		try {
-			const routeIdentityValue = identity.value === '_' ? '' : (identity.value || '')
-			const res = await window.client.getBotHooks({
-				connector: bot.value.connector,
-				identity: routeIdentityValue
-			})
-			hooks.value = (res.hooks || []).map(hook => ({
-				url: String(hook.url || ''),
-				enabled: Boolean(hook.enabled)
-			}))
-		} catch (e) {
-			hooksError.value = `Failed to load hooks: ${e.message || e}`
-			hooks.value = []
-		} finally {
-			hooksLoading.value = false
-		}
-	}
-
-	async function saveHooks() {
-		if (!bot.value || savingHooks.value) {
-			return
-		}
-
-		savingHooks.value = true
-		hooksMessage.value = ''
-		hooksMessageType.value = ''
-		try {
-			const routeIdentityValue = identity.value === '_' ? '' : (identity.value || '')
-			const res = await window.client.setBotHooks({
-				connector: bot.value.connector,
-				identity: routeIdentityValue,
-				hooks: hooks.value.map(hook => ({
-					url: hook.url,
-					enabled: hook.enabled
-				}))
-			})
-			if (res.standardResponse.success) {
-				hooksMessage.value = 'Hooks saved successfully'
-				hooksMessageType.value = 'note'
-			} else {
-				hooksMessage.value = res.standardResponse.errorMessage || 'Failed to save hooks'
-				hooksMessageType.value = 'error'
-			}
-		} catch (e) {
-			hooksMessage.value = `Failed to save hooks: ${e.message || e}`
-			hooksMessageType.value = 'error'
-		} finally {
-			savingHooks.value = false
-		}
-	}
-
-	function addHook() {
-		if (!newHookUrl.value.trim()) {
-			return
-		}
-		hooks.value.push({
-			url: newHookUrl.value.trim(),
-			enabled: true
-		})
-		newHookUrl.value = ''
-		saveHooks()
-	}
-
-	function removeHook(index) {
-		hooks.value.splice(index, 1)
-		saveHooks()
-	}
-
-function formatTimestamp(ts) {
-	if (!ts) return ''
-	const d = new Date(Number(ts) * 1000)
-	if (Number.isNaN(d.getTime())) return ''
-	return d.toLocaleString()
-}
-
-async function fetchConversations() {
-	if (!bot.value) {
-		return
-	}
-	conversationsLoading.value = true
-	conversationsError.value = ''
-	try {
-		const routeIdentityValue = identity.value === '_' ? '' : (identity.value || '')
-		const res = await window.client.getBotConversations({
-			connector: bot.value.connector,
-			identity: routeIdentityValue,
-			limit: 200
-		})
-		conversations.value = (res.conversations || []).map(c => ({
-			key: String(c.key || ''),
-			title: String(c.title || ''),
-			lastMessage: String(c.lastMessage || ''),
-			lastDirection: String(c.lastDirection || ''),
-			lastMessageAtUnix: Number(c.lastMessageAtUnix || 0)
-		}))
-		if (!selectedConversationKey.value && conversations.value.length > 0) {
-			selectedConversationKey.value = conversations.value[0].key
-		}
-		if (selectedConversationKey.value) {
-			await fetchConversationMessages(selectedConversationKey.value)
-		}
-	} catch (e) {
-		conversationsError.value = `Failed to load conversations: ${e.message || e}`
-		conversations.value = []
-	} finally {
-		conversationsLoading.value = false
-	}
-}
-
-async function fetchConversationMessages(conversationKey) {
-	if (!bot.value || !conversationKey) {
-		messages.value = []
-		return
-	}
-	messagesLoading.value = true
-	messagesError.value = ''
-	try {
-		const routeIdentityValue = identity.value === '_' ? '' : (identity.value || '')
-		const res = await window.client.getBotConversationMessages({
-			connector: bot.value.connector,
-			identity: routeIdentityValue,
-			conversationKey,
-			limit: 500
-		})
-		messages.value = (res.messages || []).map(m => ({
-			id: Number(m.id || 0),
-			author: String(m.author || ''),
-			content: String(m.content || ''),
-			direction: String(m.direction || ''),
-			channel: String(m.channel || ''),
-			messageId: String(m.messageId || ''),
-			timestampUnix: Number(m.timestampUnix || 0)
-		}))
-	} catch (e) {
-		messagesError.value = `Failed to load messages: ${e.message || e}`
-		messages.value = []
-	} finally {
-		messagesLoading.value = false
-	}
-}
-
-function selectConversation(key) {
-	selectedConversationKey.value = key
-	replyMessage.value = ''
-	fetchConversationMessages(key)
-}
-
-async function sendReply() {
-	if (!bot.value || !selectedConversationKey.value || !replyContent.value.trim()) {
-		return
-	}
-	sendingReply.value = true
-	replyMessage.value = ''
-	replyMessageType.value = ''
-	try {
-		const routeIdentityValue = identity.value === '_' ? '' : (identity.value || '')
-		const res = await window.client.sendBotConversationMessage({
-			connector: bot.value.connector,
-			identity: routeIdentityValue,
-			conversationKey: selectedConversationKey.value,
-			content: replyContent.value.trim()
-		})
-		if (res.standardResponse?.success) {
-			replyContent.value = ''
-			replyMessage.value = 'Reply sent'
-			replyMessageType.value = 'note'
-			await fetchConversationMessages(selectedConversationKey.value)
-			await fetchConversations()
-		} else {
-			replyMessage.value = res.standardResponse?.message || 'Failed to send reply'
-			replyMessageType.value = 'error'
-		}
-	} catch (e) {
-		replyMessage.value = `Failed to send reply: ${e.message || e}`
-		replyMessageType.value = 'error'
-	} finally {
-		sendingReply.value = false
-	}
-}
-
 	onMounted(async () => {
 		connector.value = route.params.connector ? decodeURIComponent(route.params.connector) : ''
 		identity.value = route.params.identity ? decodeURIComponent(route.params.identity) : ''
@@ -498,7 +249,7 @@ async function sendReply() {
 		clientReady.value = true
 		await fetchBot()
 		if (bot.value) {
-			await Promise.all([fetchChannels(), fetchHooks(), fetchConversations()])
+			await fetchChannels()
 		}
 	})
 </script>
@@ -509,220 +260,13 @@ async function sendReply() {
 		text-decoration: line-through;
 	}
 
-	.hook-item {
-		padding: 1em;
-		background: #2a2a2a;
-		border-radius: 0.25em;
-		margin-bottom: 0.75em;
-		border: 1px solid #333;
+	.bot-detail-nav-wrap {
+		margin-top: 1.5em;
 	}
 
-	.hook-item-content {
-		display: grid;
-		grid-template-columns: auto 1fr auto;
-		gap: 1em;
+	.connector-with-icon {
+		display: inline-flex;
 		align-items: center;
-	}
-
-	.hook-checkbox-label {
-		display: flex;
-		align-items: center;
-		gap: 0.5em;
-		cursor: pointer;
-		white-space: nowrap;
-	}
-
-	.hook-checkbox-label input[type="checkbox"] {
-		cursor: pointer;
-		margin: 0;
-	}
-
-	.hook-status-label {
-		font-size: 0.9em;
-		color: #aaa;
-		min-width: 60px;
-	}
-
-	.hook-url-container {
-		flex: 1;
-		min-width: 0;
-		overflow: hidden;
-	}
-
-	.hook-url-container.hook-disabled {
-		opacity: 0.5;
-	}
-
-	.hook-url {
-		display: block;
-		padding: 0.5em 0.75em;
-		background: #1a1a1a;
-		border: 1px solid #444;
-		border-radius: 0.25em;
-		color: #fff;
-		font-size: 0.9em;
-		font-family: 'Courier New', monospace;
-		word-break: break-all;
-		overflow-wrap: break-word;
-		white-space: normal;
-		line-height: 1.4;
-	}
-
-	.hook-remove-button {
-		cursor: pointer;
-		border: none;
-		border-radius: 0.25em;
-		font-size: 0.9em;
-		padding: 0.5em 1em;
-		white-space: nowrap;
-	}
-
-	.add-hook-form input {
-		background: #1a1a1a;
-		border: 1px solid #444;
-		border-radius: 0.25em;
-		color: #fff;
-		font-size: 1em;
-	}
-
-	.add-hook-form input:focus {
-		outline: none;
-		border-color: #666;
-	}
-
-	.add-hook-form button:disabled {
-		opacity: 0.5;
-		cursor: not-allowed;
-	}
-
-	@media (max-width: 768px) {
-		.hook-item-content {
-			grid-template-columns: 1fr;
-			gap: 0.75em;
-		}
-
-		.hook-checkbox-label {
-			order: 1;
-		}
-
-		.hook-url-container {
-			order: 2;
-		}
-
-		.hook-remove-button {
-			order: 3;
-			width: 100%;
-		}
-	}
-
-	.conversation-layout {
-		display: grid;
-		grid-template-columns: 300px 1fr;
-		gap: 1rem;
-	}
-
-	.conversation-list {
-		border: 1px solid #333;
-		border-radius: 0.25em;
-		overflow: hidden;
-		max-height: 520px;
-		overflow-y: auto;
-	}
-
-	.conversation-list-item {
-		width: 100%;
-		text-align: left;
-		background: #1f1f1f;
-		border: 0;
-		border-bottom: 1px solid #333;
-		padding: 0.75em;
-		cursor: pointer;
-	}
-
-	.conversation-list-item.active {
-		background: #2b2b2b;
-	}
-
-	.conversation-title {
-		font-weight: 600;
-		margin-bottom: 0.25em;
-	}
-
-	.conversation-preview {
-		font-size: 0.85em;
-		color: #aaa;
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-
-	.conversation-thread {
-		border: 1px solid #333;
-		border-radius: 0.25em;
-		padding: 0.75em;
-		background: #1a1a1a;
-	}
-
-	.messages-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5em;
-		max-height: 420px;
-		overflow-y: auto;
-	}
-
-	.message-item {
-		padding: 0.65em;
-		border-radius: 0.25em;
-	}
-
-	.message-incoming {
-		background: #2b2b2b;
-	}
-
-	.message-outgoing {
-		background: #183024;
-	}
-
-	.message-meta {
-		display: flex;
-		justify-content: space-between;
-		font-size: 0.78em;
-		color: #aaa;
-		margin-bottom: 0.35em;
-	}
-
-	.message-content {
-		white-space: pre-wrap;
-		word-break: break-word;
-	}
-
-	.reply-box {
-		margin-top: 0.75em;
-		padding-top: 0.75em;
-		border-top: 1px solid #333;
-	}
-
-	.reply-box textarea {
-		width: 100%;
-		min-height: 85px;
-		background: #101010;
-		border: 1px solid #444;
-		border-radius: 0.25em;
-		color: #fff;
-		padding: 0.5em;
-		resize: vertical;
-	}
-
-	.reply-actions {
-		display: flex;
-		justify-content: flex-end;
-		margin-top: 0.5em;
-	}
-
-	@media (max-width: 900px) {
-		.conversation-layout {
-			grid-template-columns: 1fr;
-		}
+		gap: 0.4em;
 	}
 </style>

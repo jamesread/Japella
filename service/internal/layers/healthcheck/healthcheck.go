@@ -1,28 +1,34 @@
 package healthcheck
 
 import (
+	"net/http"
+
 	"github.com/jamesread/japella/internal/layers/api"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 )
 
-type HealthCheckLayer struct {
-	srv *api.ControlApi
-}
-
-func NewHealthCheckLayer(srv *api.ControlApi) *HealthCheckLayer {
-	return &HealthCheckLayer{srv: srv}
-}
-
-func (h *HealthCheckLayer) Wrap(apiHandler http.Handler) http.Handler {
+// ReadinessMiddleware serves /healthz and /metrics without a database check (liveness / observability).
+// All other routes, including /readyz, return HTTP 500 until the API reports ready (database + connector controller).
+func ReadinessMiddleware(srv *api.ControlApi, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if h.srv.DB.GetErrorMessage() != "" {
-			log.Errorf("Healthcheck database error: %s", h.srv.DB.GetErrorMessage())
+		path := r.URL.Path
 
-			http.Error(w, h.srv.DB.GetErrorMessage(), http.StatusInternalServerError)
+		switch path {
+		case "/healthz", "/metrics":
+			next.ServeHTTP(w, r)
 			return
 		}
 
-		apiHandler.ServeHTTP(w, r)
+		if !srv.IsReady() {
+			internal := srv.ReadinessErrorMessage()
+			if internal == "" {
+				internal = "service not ready"
+			}
+			log.Debugf("Readiness: rejecting %s %s: %s", r.Method, path, internal)
+			http.Error(w, srv.ReadinessClientMessage(), http.StatusInternalServerError)
+			return
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }

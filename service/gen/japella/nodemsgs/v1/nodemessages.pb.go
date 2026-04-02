@@ -128,8 +128,10 @@ type OutgoingMessage struct {
 	Protocol           string                 `protobuf:"bytes,3,opt,name=protocol,proto3" json:"protocol,omitempty"`
 	IncommingMessageId string                 `protobuf:"bytes,4,opt,name=incomming_message_id,json=incommingMessageId,proto3" json:"incomming_message_id,omitempty"`
 	Identity           string                 `protobuf:"bytes,5,opt,name=identity,proto3" json:"identity,omitempty"` // Bot identity/username to identify which bot instance should handle this message
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	// When set (e.g. from the control panel), used for chat_bot_messages logging so outgoing rows share the same conversation_key as incoming.
+	ConversationKey string `protobuf:"bytes,6,opt,name=conversation_key,json=conversationKey,proto3" json:"conversation_key,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *OutgoingMessage) Reset() {
@@ -193,6 +195,13 @@ func (x *OutgoingMessage) GetIncommingMessageId() string {
 func (x *OutgoingMessage) GetIdentity() string {
 	if x != nil {
 		return x.Identity
+	}
+	return ""
+}
+
+func (x *OutgoingMessage) GetConversationKey() string {
+	if x != nil {
+		return x.ConversationKey
 	}
 	return ""
 }
@@ -343,13 +352,14 @@ const file_japella_nodemsgs_v1_nodemessages_proto_rawDesc = "" +
 	"\n" +
 	"message_id\x18\x06 \x01(\tR\tmessageId\x12\x1c\n" +
 	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\x12\x1a\n" +
-	"\bidentity\x18\b \x01(\tR\bidentity\"\xaf\x01\n" +
+	"\bidentity\x18\b \x01(\tR\bidentity\"\xda\x01\n" +
 	"\x0fOutgoingMessage\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12\x18\n" +
 	"\achannel\x18\x02 \x01(\tR\achannel\x12\x1a\n" +
 	"\bprotocol\x18\x03 \x01(\tR\bprotocol\x120\n" +
 	"\x14incomming_message_id\x18\x04 \x01(\tR\x12incommingMessageId\x12\x1a\n" +
-	"\bidentity\x18\x05 \x01(\tR\bidentity\"1\n" +
+	"\bidentity\x18\x05 \x01(\tR\bidentity\x12)\n" +
+	"\x10conversation_key\x18\x06 \x01(\tR\x0fconversationKey\"1\n" +
 	"\x13ThreadSearchRequest\x12\x1a\n" +
 	"\bprotocol\x18\x01 \x01(\tR\bprotocol\"M\n" +
 	"\x14ThreadSearchResponse\x125\n" +

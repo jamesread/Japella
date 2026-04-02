@@ -1,3 +1,6 @@
+-- Replace legacy table from old 3_campaigns.up.sql (different columns) or fix "already exists" when re-running migrations.
+DROP TABLE IF EXISTS `campaign_social_accounts`;
+
 CREATE TABLE `campaign_social_accounts` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `created_at` datetime(3) DEFAULT NULL,

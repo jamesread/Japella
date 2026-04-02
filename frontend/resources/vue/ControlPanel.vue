@@ -217,6 +217,7 @@
 		GridViewIcon,
 		InformationCircleIcon,
 		UserMultiple02Icon,
+		UserGroupIcon,
 		HardDriveIcon,
 		Database01Icon,
 		LeftToRightListNumberIcon,
@@ -227,13 +228,13 @@
 		CancelCircleIcon,
 		ApproximatelyEqualCircleIcon,
 		ActivityIcon,
-		WebSecurityIcon
+		WebSecurityIcon,
+		Flowchart01Icon,
 	} from '@hugeicons/core-free-icons';
 
 	const clientReady = ref(false);
 	const errorMessage = ref('');
 	const systemStatus = ref({});
-	const cleaningFeed = ref(false);
 	const localNavigation = ref(null);
 	const jobs = ref([]);
 	const jobsLoading = ref(false);
@@ -272,29 +273,6 @@
 
 	function goToRoute(route) {
 		window.router.push(route);
-	}
-
-	async function cleanupFeedPosts() {
-		if (!confirm('This will delete old feed posts, keeping only the newest 100 per social account. Continue?')) {
-			return;
-		}
-
-		cleaningFeed.value = true;
-		errorMessage.value = '';
-
-		try {
-			const response = await window.client.cleanupFeedPosts({});
-			if (response.standardResponse?.success) {
-				alert('Feed cleanup completed successfully: ' + (response.standardResponse.message || ''));
-			} else {
-				errorMessage.value = 'Feed cleanup failed: ' + (response.standardResponse?.message || 'Unknown error');
-			}
-		} catch (error) {
-			errorMessage.value = `Failed to cleanup feed posts: ${error.message}`;
-			console.error('Error cleaning up feed posts:', error);
-		} finally {
-			cleaningFeed.value = false;
-		}
 	}
 
 	function getMessageIcon(type) {
@@ -383,87 +361,79 @@
 			return;
 		}
 
-		// Setup administration actions navigation
+		// Setup administration actions navigation (order: Users → … → System Architecture → System Logs)
 		if (localNavigation.value) {
+			const st = systemStatus.value;
 			const canUsers =
-				systemStatus.value?.rbacIsSuperuser ||
-				(Array.isArray(systemStatus.value?.rbacPermissions) &&
-					systemStatus.value.rbacPermissions.includes('users.view'));
-			if (canUsers) {
-				localNavigation.value.addCallback('User Management', () => goToRoute('/users'), {
-					icon: UserMultiple02Icon,
-					name: 'user-management',
-					description: 'Manage system users and permissions'
-				});
-			}
-
-			const canRbac =
-				systemStatus.value?.rbacIsSuperuser ||
-				(Array.isArray(systemStatus.value?.rbacPermissions) &&
-					systemStatus.value.rbacPermissions.includes('rbac.view'));
-			if (canRbac) {
-				localNavigation.value.addCallback('Roles & permissions', () => goToRoute('/settings/rbac'), {
-					icon: WebSecurityIcon,
-					name: 'rbac-settings',
-					description: 'Manage RBAC roles and user assignments'
-				});
-			}
-
+				st?.rbacIsSuperuser ||
+				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('users.view'));
 			const canUserGroups =
-				systemStatus.value?.rbacIsSuperuser ||
-				(Array.isArray(systemStatus.value?.rbacPermissions) &&
-					systemStatus.value.rbacPermissions.includes('usergroups.view'));
+				st?.rbacIsSuperuser ||
+				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('usergroups.view'));
+			const canRbac =
+				st?.rbacIsSuperuser ||
+				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('rbac.view'));
+			const canConnectors =
+				st?.rbacIsSuperuser ||
+				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('system.connectors'));
+			const canSettings =
+				st?.rbacIsSuperuser ||
+				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('system.settings'));
+			const canLogsNav =
+				st?.rbacIsSuperuser ||
+				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('system.logs'));
+
+			if (canUsers) {
+				localNavigation.value.addCallback('Users', () => goToRoute('/users'), {
+					icon: UserMultiple02Icon,
+					name: 'users',
+					description: 'Manage system users',
+				});
+			}
+
 			if (canUserGroups) {
 				localNavigation.value.addCallback('User Groups', () => goToRoute('/user-groups'), {
-					icon: UserMultiple02Icon,
+					icon: UserGroupIcon,
 					name: 'user-groups',
-					description: 'Manage user groups and membership'
+					description: 'Manage user groups and membership',
 				});
 			}
 
-			const canConnectors =
-				systemStatus.value?.rbacIsSuperuser ||
-				(Array.isArray(systemStatus.value?.rbacPermissions) &&
-					systemStatus.value.rbacPermissions.includes('system.connectors'));
+			if (canRbac) {
+				localNavigation.value.addCallback('Roles & Permissions', () => goToRoute('/settings/rbac'), {
+					icon: WebSecurityIcon,
+					name: 'rbac-settings',
+					description: 'Manage RBAC roles and user assignments',
+				});
+			}
+
 			if (canConnectors) {
 				localNavigation.value.addCallback('Connectors', () => goToRoute('/connectors'), {
 					icon: GridViewIcon,
 					name: 'connectors',
-					description: 'View currently started connectors'
+					description: 'View currently started connectors',
 				});
 			}
 
-			const canSettings =
-				systemStatus.value?.rbacIsSuperuser ||
-				(Array.isArray(systemStatus.value?.rbacPermissions) &&
-					systemStatus.value.rbacPermissions.includes('system.settings'));
 			if (canSettings) {
 				localNavigation.value.addCallback('System Settings', () => goToRoute('/settings'), {
 					icon: Settings01Icon,
 					name: 'system-settings',
-					description: 'Configure system settings'
+					description: 'Configure system settings',
 				});
 			}
 
-			const canLogs =
-				systemStatus.value?.rbacIsSuperuser ||
-				(Array.isArray(systemStatus.value?.rbacPermissions) &&
-					systemStatus.value.rbacPermissions.includes('system.logs'));
-			if (canLogs) {
-				localNavigation.value.addCallback('Cleanup Feed Posts', () => {
-					if (clientReady.value && !cleaningFeed.value) {
-						cleanupFeedPosts();
-					}
-				}, {
-					icon: RefreshIcon,
-					name: 'cleanup-feed',
-					description: 'Clean up old feed posts (keeps newest 100 per social account)'
-				});
+			localNavigation.value.addCallback('System Architecture', () => goToRoute('/control-panel/system-architecture'), {
+				icon: Flowchart01Icon,
+				name: 'system-architecture',
+				description: 'Diagram of services, database, and message broker',
+			});
 
-				localNavigation.value.addCallback('Logs', () => goToRoute('/logs'), {
+			if (canLogsNav) {
+				localNavigation.value.addCallback('System Logs', () => goToRoute('/logs'), {
 					icon: ActivityIcon,
-					name: 'logs',
-					description: 'View application logs and events'
+					name: 'system-logs',
+					description: 'View application logs and events',
 				});
 			}
 		}

@@ -72,7 +72,6 @@ section p:last-child {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding-bottom: 1em;
 }
 
 .notification {
