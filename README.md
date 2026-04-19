@@ -35,4 +35,4 @@ There is ready-to-go docker-compose.yml file here: <https://jamesread.github.io/
 
 ## Docs
 
-Documentation for how to install and use Faridoon is available at <https://jamesread.github.io/Japella/>
+Documentation for how to install and use Japella is available at <https://jamesread.github.io/Japella/>
