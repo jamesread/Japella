@@ -19,7 +19,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.29.0
 	github.com/jamesread/golure v0.0.0-20260104005024-ad0d6ec8c0ac
-	github.com/jamesread/httpauthshim v0.0.0-20260105213400-05f17b5dc048
+	github.com/jamesread/httpauthshim v0.0.0-20260425181836-77e8fc53aeb0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mattn/go-sqlite3 v1.14.28
 	github.com/prometheus/client_golang v1.23.2
