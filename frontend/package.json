@@ -10,30 +10,30 @@
 	"license": "ISC",
 	"description": "",
 	"dependencies": {
-		"@iconify/vue": "^5.0.0",
-		"@vitejs/plugin-vue": "^6.0.6",
+		"@iconify/vue": "^5.0.1",
+		"@vitejs/plugin-vue": "^6.0.7",
 		"@vue/tsconfig": "^0.9.1",
 		"iconify-icon": "^3.0.2",
-		"mermaid": "^11.14.0",
-		"npm-check-updates": "^22.0.1",
-		"picocrank": "^1.14.1",
-		"vite-plugin-mkcert": "^2.0.0",
-		"vue": "^3.5.33",
-		"vue-i18n": "^11.4.0",
-		"vue-router": "^5.0.6"
+		"mermaid": "^11.15.0",
+		"npm-check-updates": "^22.2.3",
+		"picocrank": "^1.15.0",
+		"vite-plugin-mkcert": "^2.1.0",
+		"vue": "^3.5.35",
+		"vue-i18n": "^11.4.5",
+		"vue-router": "^5.1.0"
 	},
 	"devDependencies": {
-		"@bufbuild/buf": "^1.68.4",
+		"@bufbuild/buf": "^1.70.0",
 		"@bufbuild/protobuf": "^2.12.0",
 		"@bufbuild/protoc-gen-es": "^2.12.0",
 		"@connectrpc/connect": "^2.1.1",
 		"@connectrpc/connect-web": "^2.1.1",
-		"eslint": "^10.2.1",
-		"eslint-plugin-vue": "^10.9.0",
+		"eslint": "^10.4.1",
+		"eslint-plugin-vue": "^10.9.2",
 		"process": "^0.11.10",
 		"typescript": "~6.0.3",
-		"unplugin-vue-components": "^32.0.0",
-		"vite": "^8.0.10",
-		"vue-eslint-parser": "^10.4.0"
+		"unplugin-vue-components": "^32.1.0",
+		"vite": "^8.0.16",
+		"vue-eslint-parser": "^10.4.1"
 	}
 }
