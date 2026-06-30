@@ -148,7 +148,12 @@ func (db *DB) checkConnNotNil(chain *ConnectionChain) {
 }
 
 func (db *DB) buildDsn(chain *ConnectionChain) {
-	db.dsn = fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8mb4&parseTime=True", db.dbconfig.User, db.dbconfig.Pass, db.dbconfig.Host, db.dbconfig.Name)
+	hostPort := db.dbconfig.Host
+	if db.dbconfig.Port > 0 {
+		hostPort = fmt.Sprintf("%s:%d", db.dbconfig.Host, db.dbconfig.Port)
+	}
+
+	db.dsn = fmt.Sprintf("%v:%v@tcp(%v)/%v?charset=utf8mb4&parseTime=True", db.dbconfig.User, db.dbconfig.Pass, hostPort, db.dbconfig.Name)
 }
 
 func (db *DB) connectToDatabase(chain *ConnectionChain) {

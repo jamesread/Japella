@@ -125,7 +125,7 @@
 
 <script setup>
     import { waitForClient } from '../javascript/util.js'
-    import { ref, computed, onMounted, provide } from 'vue';
+    import { ref, computed, onMounted, provide, watch } from 'vue';
     import { Icon } from '@iconify/vue';
     import { useI18n } from 'vue-i18n';
 	import LoginForm from './LoginForm.vue';
@@ -308,5 +308,21 @@
         await waitForClient();
         clientReady.value = true;
         getStatus();
+    });
+
+    watch(clientReady, (ready) => {
+        if (ready) {
+            document.body.setAttribute('loaded-app', 'true');
+        } else {
+            document.body.removeAttribute('loaded-app');
+        }
+    });
+
+    watch(isLoggedIn, (loggedIn) => {
+        if (loggedIn) {
+            document.body.setAttribute('logged-in', 'true');
+        } else {
+            document.body.removeAttribute('logged-in');
+        }
     });
 </script>

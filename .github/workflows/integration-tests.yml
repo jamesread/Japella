@@ -1,0 +1,64 @@
+---
+name: Integration Tests
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/integration-tests.yml'
+      - 'integration-tests/**'
+      - 'frontend/**'
+      - 'service/**'
+      - 'proto/**'
+      - 'var/**'
+      - 'Makefile'
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/integration-tests.yml'
+      - 'integration-tests/**'
+      - 'frontend/**'
+      - 'service/**'
+      - 'proto/**'
+      - 'var/**'
+      - 'Makefile'
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: service/go.mod
+          cache: true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: integration-tests/package-lock.json
+
+      - name: Install Chrome
+        uses: browser-actions/setup-chrome@v1
+
+      - name: Build frontend
+        run: make -w frontend
+
+      - name: Build service
+        run: make -w service
+
+      - name: Run integration tests
+        run: make -w integration-tests
+
+      - name: Archive integration test screenshots
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: integration-test-screenshots
+          path: integration-tests/screenshots

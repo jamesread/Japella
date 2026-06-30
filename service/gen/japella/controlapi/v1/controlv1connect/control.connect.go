@@ -66,6 +66,9 @@ const (
 	// JapellaControlApiServiceRefreshConnectorsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's RefreshConnectors RPC.
 	JapellaControlApiServiceRefreshConnectorsProcedure = "/japella.controlapi.v1.JapellaControlApiService/RefreshConnectors"
+	// JapellaControlApiServiceStopServiceProcedure is the fully-qualified name of the
+	// JapellaControlApiService's StopService RPC.
+	JapellaControlApiServiceStopServiceProcedure = "/japella.controlapi.v1.JapellaControlApiService/StopService"
 	// JapellaControlApiServiceStartOAuthProcedure is the fully-qualified name of the
 	// JapellaControlApiService's StartOAuth RPC.
 	JapellaControlApiServiceStartOAuthProcedure = "/japella.controlapi.v1.JapellaControlApiService/StartOAuth"
@@ -256,6 +259,7 @@ type JapellaControlApiServiceClient interface {
 	RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error)
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	RefreshConnectors(context.Context, *connect.Request[v1.RefreshConnectorsRequest]) (*connect.Response[v1.RefreshConnectorsResponse], error)
+	StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
 	GetFeed(context.Context, *connect.Request[v1.GetFeedRequest]) (*connect.Response[v1.GetFeedResponse], error)
@@ -392,6 +396,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceRefreshConnectorsProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("RefreshConnectors")),
+			connect.WithClientOptions(opts...),
+		),
+		stopService: connect.NewClient[v1.StopServiceRequest, v1.StopServiceResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceStopServiceProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("StopService")),
 			connect.WithClientOptions(opts...),
 		),
 		startOAuth: connect.NewClient[v1.StartOAuthRequest, v1.StartOAuthResponse](
@@ -758,6 +768,7 @@ type japellaControlApiServiceClient struct {
 	refreshSocialAccount            *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
 	getConnectors                   *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
 	refreshConnectors               *connect.Client[v1.RefreshConnectorsRequest, v1.RefreshConnectorsResponse]
+	stopService                     *connect.Client[v1.StopServiceRequest, v1.StopServiceResponse]
 	startOAuth                      *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
 	getTimeline                     *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
 	getFeed                         *connect.Client[v1.GetFeedRequest, v1.GetFeedResponse]
@@ -871,6 +882,11 @@ func (c *japellaControlApiServiceClient) GetConnectors(ctx context.Context, req 
 // RefreshConnectors calls japella.controlapi.v1.JapellaControlApiService.RefreshConnectors.
 func (c *japellaControlApiServiceClient) RefreshConnectors(ctx context.Context, req *connect.Request[v1.RefreshConnectorsRequest]) (*connect.Response[v1.RefreshConnectorsResponse], error) {
 	return c.refreshConnectors.CallUnary(ctx, req)
+}
+
+// StopService calls japella.controlapi.v1.JapellaControlApiService.StopService.
+func (c *japellaControlApiServiceClient) StopService(ctx context.Context, req *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error) {
+	return c.stopService.CallUnary(ctx, req)
 }
 
 // StartOAuth calls japella.controlapi.v1.JapellaControlApiService.StartOAuth.
@@ -1187,6 +1203,7 @@ type JapellaControlApiServiceHandler interface {
 	RefreshSocialAccount(context.Context, *connect.Request[v1.RefreshSocialAccountRequest]) (*connect.Response[v1.RefreshSocialAccountResponse], error)
 	GetConnectors(context.Context, *connect.Request[v1.GetConnectorsRequest]) (*connect.Response[v1.GetConnectorsResponse], error)
 	RefreshConnectors(context.Context, *connect.Request[v1.RefreshConnectorsRequest]) (*connect.Response[v1.RefreshConnectorsResponse], error)
+	StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error)
 	StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error)
 	GetTimeline(context.Context, *connect.Request[v1.GetTimelineRequest]) (*connect.Response[v1.GetTimelineResponse], error)
 	GetFeed(context.Context, *connect.Request[v1.GetFeedRequest]) (*connect.Response[v1.GetFeedResponse], error)
@@ -1318,6 +1335,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceRefreshConnectorsProcedure,
 		svc.RefreshConnectors,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("RefreshConnectors")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceStopServiceHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceStopServiceProcedure,
+		svc.StopService,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("StopService")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceStartOAuthHandler := connect.NewUnaryHandler(
@@ -1692,6 +1715,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetConnectorsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceRefreshConnectorsProcedure:
 			japellaControlApiServiceRefreshConnectorsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceStopServiceProcedure:
+			japellaControlApiServiceStopServiceHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceStartOAuthProcedure:
 			japellaControlApiServiceStartOAuthHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetTimelineProcedure:
@@ -1859,6 +1884,10 @@ func (UnimplementedJapellaControlApiServiceHandler) GetConnectors(context.Contex
 
 func (UnimplementedJapellaControlApiServiceHandler) RefreshConnectors(context.Context, *connect.Request[v1.RefreshConnectorsRequest]) (*connect.Response[v1.RefreshConnectorsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RefreshConnectors is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) StopService(context.Context, *connect.Request[v1.StopServiceRequest]) (*connect.Response[v1.StopServiceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.StopService is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) StartOAuth(context.Context, *connect.Request[v1.StartOAuthRequest]) (*connect.Response[v1.StartOAuthResponse], error) {

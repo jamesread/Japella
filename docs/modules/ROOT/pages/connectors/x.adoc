@@ -2,6 +2,16 @@
 
 Use the X connector to post messages and media to X (Twitter) via OAuth2.
 
+Configure these values in Japella Settings:
+
+```yaml title="config.x.yaml"
+configversion: 2
+
+x:
+  client_id: "abcdefghijklmnopqrstuvwxyz01234567" #notsecret
+  client_secret: "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwx" #notsecret
+```
+
 == What you need
 
 * An X Developer account.

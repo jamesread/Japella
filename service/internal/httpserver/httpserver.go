@@ -13,6 +13,7 @@ import (
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/layers/healthcheck"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
@@ -181,9 +182,7 @@ func startHttpsServer(crt string, key string) {
 
 	log.Infof("Using TLS certificates for HTTPS")
 
-	if err := server.ListenAndServeTLS(crt, key); err != nil {
-		log.Errorf("Error: %v", err)
-	}
+	serve(server, true, crt, key)
 }
 
 func startHttpServer() {
@@ -203,7 +202,20 @@ func startHttpServer() {
 
 	log.Infof("No TLS certificates found, using HTTP")
 
-	if err := server.ListenAndServe(); err != nil {
+	serve(server, false, "", "")
+}
+
+func serve(server *http.Server, useTLS bool, crt, key string) {
+	shutdown.RegisterServer(server)
+
+	var err error
+	if useTLS {
+		err = server.ListenAndServeTLS(crt, key)
+	} else {
+		err = server.ListenAndServe()
+	}
+
+	if err != nil && err != http.ErrServerClosed {
 		log.Errorf("Error: %v", err)
 	}
 }

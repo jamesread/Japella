@@ -33,7 +33,8 @@ func RequiredPermission(procedureName string) string {
 		return rbac.PermissionRbacManage
 
 	case controlv1.JapellaControlApiServiceGetCvarsProcedure,
-		controlv1.JapellaControlApiServiceSetCvarProcedure:
+		controlv1.JapellaControlApiServiceSetCvarProcedure,
+		controlv1.JapellaControlApiServiceStopServiceProcedure:
 		return rbac.PermissionSystemSettings
 
 	case controlv1.JapellaControlApiServiceGetConnectorsProcedure,

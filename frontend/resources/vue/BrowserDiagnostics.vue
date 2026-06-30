@@ -1,146 +1,66 @@
 <template>
 	<Section
 		title="Browser Diagnostics"
-		subtitle="View browser and system information for troubleshooting"
+		subtitle="Browser and client environment information for troubleshooting"
+		classes="browser-diagnostics"
 	>
 		<template #toolbar>
-			<button @click="refreshDiagnostics" class="neutral">
+			<button type="button" class="neutral" title="Refresh" :disabled="loading" @click="refreshDiagnostics">
 				<Icon icon="material-symbols:refresh" />
 			</button>
 		</template>
 
-		<div v-if="loading" class="icon-and-text">
-			<Icon icon="eos-icons:loading" width="24" height="24" />
-			<span>Loading diagnostics...</span>
-		</div>
+		<p v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</p>
 
-		<div v-else>
-			<!-- Browser Information -->
-			<h3>Browser Information</h3>
-			<dl class="diagnostics-info">
-				<dt>User Agent</dt>
-				<dd>{{ diagnostics.userAgent }}</dd>
+		<p v-if="loading" class="muted">Loading diagnostics…</p>
 
-				<dt>Browser Name</dt>
-				<dd>{{ diagnostics.browserName }}</dd>
-
-				<dt>Browser Version</dt>
-				<dd>{{ diagnostics.browserVersion }}</dd>
-
-				<dt>Platform</dt>
-				<dd>{{ diagnostics.platform }}</dd>
-
-				<dt>Language</dt>
-				<dd>{{ diagnostics.language }}</dd>
-
-				<dt>Languages</dt>
-				<dd>{{ diagnostics.languages.join(', ') }}</dd>
-
-				<dt>Screen Resolution</dt>
-				<dd>{{ diagnostics.screenWidth }} × {{ diagnostics.screenHeight }}</dd>
-
-				<dt>Window Size</dt>
-				<dd>{{ diagnostics.windowWidth }} × {{ diagnostics.windowHeight }}</dd>
-
-				<dt>Color Depth</dt>
-				<dd>{{ diagnostics.colorDepth }} bits</dd>
-
-				<dt>Pixel Ratio</dt>
-				<dd>{{ diagnostics.pixelRatio }}</dd>
-			</dl>
-
-			<!-- System Information -->
-			<h3>System Information</h3>
-			<dl class="diagnostics-info">
-				<dt>Timezone</dt>
-				<dd>{{ diagnostics.timezone }}</dd>
-
-				<dt>Timezone Offset</dt>
-				<dd>{{ diagnostics.timezoneOffset }} minutes</dd>
-
-				<dt>Cookies Enabled</dt>
-				<dd>{{ diagnostics.cookiesEnabled ? 'Yes' : 'No' }}</dd>
-
-				<dt>Local Storage</dt>
-				<dd>{{ diagnostics.localStorageAvailable ? 'Available' : 'Not Available' }}</dd>
-
-				<dt>Session Storage</dt>
-				<dd>{{ diagnostics.sessionStorageAvailable ? 'Available' : 'Not Available' }}</dd>
-
-				<dt>IndexedDB</dt>
-				<dd>{{ diagnostics.indexedDBAvailable ? 'Available' : 'Not Available' }}</dd>
-
-				<dt>Secure Context</dt>
-				<dd>{{ diagnostics.isSecureContext ? 'Yes' : 'No' }}</dd>
-
-				<dt>Online Status</dt>
-				<dd>{{ diagnostics.online ? 'Online' : 'Offline' }}</dd>
-			</dl>
-
-			<!-- Feature Detection -->
-			<h3>Feature Detection</h3>
-			<dl class="diagnostics-info">
-				<dt>WebSocket</dt>
-				<dd>{{ diagnostics.webSocketSupported ? 'Supported' : 'Not Supported' }}</dd>
-
-				<dt>Web Workers</dt>
-				<dd>{{ diagnostics.webWorkersSupported ? 'Supported' : 'Not Supported' }}</dd>
-
-				<dt>Service Workers</dt>
-				<dd>{{ diagnostics.serviceWorkersSupported ? 'Supported' : 'Not Supported' }}</dd>
-
-				<dt>Fetch API</dt>
-				<dd>{{ diagnostics.fetchSupported ? 'Supported' : 'Not Supported' }}</dd>
-
-				<dt>Geolocation</dt>
-				<dd>{{ diagnostics.geolocationSupported ? 'Supported' : 'Not Supported' }}</dd>
-
-				<dt>Notifications</dt>
-				<dd>{{ diagnostics.notificationsSupported ? 'Supported' : 'Not Supported' }}</dd>
-			</dl>
-
-			<!-- Performance Information -->
-			<h3>Performance Information</h3>
-			<dl class="diagnostics-info">
-				<dt>Hardware Concurrency</dt>
-				<dd>{{ diagnostics.hardwareConcurrency || 'Unknown' }} cores</dd>
-
-				<dt>Device Memory</dt>
-				<dd>{{ diagnostics.deviceMemory ? diagnostics.deviceMemory + ' GB' : 'Unknown' }}</dd>
-
-				<dt>Connection Type</dt>
-				<dd>{{ diagnostics.connectionType || 'Unknown' }}</dd>
-
-				<dt>Connection Effective Type</dt>
-				<dd>{{ diagnostics.effectiveType || 'Unknown' }}</dd>
-			</dl>
-
-			<!-- PWA Information -->
-			<h3>PWA Information</h3>
-			<dl class="diagnostics-info">
-				<dt>Service Worker Registered</dt>
-				<dd>{{ diagnostics.serviceWorkerRegistered ? 'Yes' : 'No' }}</dd>
-
-				<dt>Service Worker Version</dt>
-				<dd>{{ diagnostics.serviceWorkerVersion || 'Not Available' }}</dd>
-
-				<dt>Service Worker State</dt>
-				<dd>{{ diagnostics.serviceWorkerState || 'Not Available' }}</dd>
-
-				<dt>Service Worker Scope</dt>
-				<dd>{{ diagnostics.serviceWorkerScope || 'Not Available' }}</dd>
-			</dl>
-		</div>
+		<ReadOnlyTextArea
+			ref="diagnosticsRef"
+			v-model="diagnosticsYaml"
+			label="Diagnostics (YAML)"
+			:rows="22"
+			markdown-ticks
+			markdown-lang="yaml"
+		/>
 	</Section>
 </template>
 
 <script setup>
-	import { ref, onMounted } from 'vue';
+	import { ref, onMounted, nextTick } from 'vue';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import ReadOnlyTextArea from 'picocrank/vue/components/ReadOnlyTextArea.vue';
 
 	const loading = ref(true);
+	const errorMessage = ref('');
 	const diagnostics = ref({});
+	const diagnosticsYaml = ref('');
+	const diagnosticsRef = ref(null);
+
+	function yamlValue(value) {
+		if (value === null || value === undefined || value === '') {
+			return 'unknown';
+		}
+		if (typeof value === 'boolean') {
+			return value ? 'true' : 'false';
+		}
+		return String(value);
+	}
+
+	function yamlList(items) {
+		if (!Array.isArray(items) || items.length === 0) {
+			return 'none';
+		}
+		return items.join(', ');
+	}
+
+	function yamlAvailable(value) {
+		return value ? 'available' : 'not available';
+	}
+
+	function yamlSupported(value) {
+		return value ? 'supported' : 'not supported';
+	}
 
 	function detectBrowser() {
 		const ua = navigator.userAgent;
@@ -176,7 +96,7 @@
 		const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
 		return {
 			type: connection?.type || 'Unknown',
-			effectiveType: connection?.effectiveType || 'Unknown'
+			effectiveType: connection?.effectiveType || 'Unknown',
 		};
 	}
 
@@ -186,7 +106,7 @@
 				registered: false,
 				version: null,
 				state: null,
-				scope: null
+				scope: null,
 			};
 		}
 
@@ -197,14 +117,13 @@
 					registered: false,
 					version: null,
 					state: null,
-					scope: null
+					scope: null,
 				};
 			}
 
 			const worker = registration.active || registration.waiting || registration.installing;
 			let version = null;
 
-			// Try to get version from service worker
 			if (worker) {
 				try {
 					const messageChannel = new MessageChannel();
@@ -216,7 +135,6 @@
 								resolve(null);
 							}
 						};
-						// Timeout after 1 second
 						setTimeout(() => resolve(null), 1000);
 					});
 
@@ -231,7 +149,7 @@
 				registered: true,
 				version: version || 'Unknown',
 				state: worker ? worker.state : 'Not Available',
-				scope: registration.scope
+				scope: registration.scope,
 			};
 		} catch (error) {
 			console.error('Error getting service worker info:', error);
@@ -239,7 +157,7 @@
 				registered: false,
 				version: null,
 				state: null,
-				scope: null
+				scope: null,
 			};
 		}
 	}
@@ -301,50 +219,89 @@
 			serviceWorkerRegistered: swInfo.registered,
 			serviceWorkerVersion: swInfo.version,
 			serviceWorkerState: swInfo.state,
-			serviceWorkerScope: swInfo.scope
+			serviceWorkerScope: swInfo.scope,
 		};
+	}
+
+	async function buildDiagnosticsYaml() {
+		diagnosticsYaml.value = '';
+		await nextTick();
+
+		const area = diagnosticsRef.value;
+		if (!area) {
+			return;
+		}
+
+		const d = diagnostics.value;
+
+		area.appendSection('Browser');
+		area.appendYamlProperty('userAgent', yamlValue(d.userAgent));
+		area.appendYamlProperty('browserName', yamlValue(d.browserName));
+		area.appendYamlProperty('browserVersion', yamlValue(d.browserVersion));
+		area.appendYamlProperty('platform', yamlValue(d.platform));
+		area.appendYamlProperty('language', yamlValue(d.language));
+		area.appendYamlProperty('languages', yamlList(d.languages));
+		area.appendYamlProperty('screenWidth', yamlValue(d.screenWidth));
+		area.appendYamlProperty('screenHeight', yamlValue(d.screenHeight));
+		area.appendYamlProperty('windowWidth', yamlValue(d.windowWidth));
+		area.appendYamlProperty('windowHeight', yamlValue(d.windowHeight));
+		area.appendYamlProperty('colorDepth', yamlValue(d.colorDepth));
+		area.appendYamlProperty('pixelRatio', yamlValue(d.pixelRatio));
+
+		area.appendSection('System');
+		area.appendYamlProperty('timezone', yamlValue(d.timezone));
+		area.appendYamlProperty('timezoneOffsetMinutes', yamlValue(d.timezoneOffset));
+		area.appendYamlProperty('cookiesEnabled', yamlValue(d.cookiesEnabled));
+		area.appendYamlProperty('localStorage', yamlAvailable(d.localStorageAvailable));
+		area.appendYamlProperty('sessionStorage', yamlAvailable(d.sessionStorageAvailable));
+		area.appendYamlProperty('indexedDB', yamlAvailable(d.indexedDBAvailable));
+		area.appendYamlProperty('secureContext', yamlValue(d.isSecureContext));
+		area.appendYamlProperty('online', yamlValue(d.online));
+
+		area.appendSection('Features');
+		area.appendYamlProperty('webSocket', yamlSupported(d.webSocketSupported));
+		area.appendYamlProperty('webWorkers', yamlSupported(d.webWorkersSupported));
+		area.appendYamlProperty('serviceWorkers', yamlSupported(d.serviceWorkersSupported));
+		area.appendYamlProperty('fetch', yamlSupported(d.fetchSupported));
+		area.appendYamlProperty('geolocation', yamlSupported(d.geolocationSupported));
+		area.appendYamlProperty('notifications', yamlSupported(d.notificationsSupported));
+
+		area.appendSection('Performance');
+		area.appendYamlProperty('hardwareConcurrency', yamlValue(d.hardwareConcurrency));
+		area.appendYamlProperty('deviceMemoryGb', yamlValue(d.deviceMemory));
+		area.appendYamlProperty('connectionType', yamlValue(d.connectionType));
+		area.appendYamlProperty('connectionEffectiveType', yamlValue(d.effectiveType));
+
+		area.appendSection('PWA');
+		area.appendYamlProperty('serviceWorkerRegistered', yamlValue(d.serviceWorkerRegistered));
+		area.appendYamlProperty('serviceWorkerVersion', yamlValue(d.serviceWorkerVersion));
+		area.appendYamlProperty('serviceWorkerState', yamlValue(d.serviceWorkerState));
+		area.appendYamlProperty('serviceWorkerScope', yamlValue(d.serviceWorkerScope));
 	}
 
 	async function refreshDiagnostics() {
 		loading.value = true;
+		errorMessage.value = '';
+
 		try {
 			diagnostics.value = await collectDiagnostics();
+			await buildDiagnosticsYaml();
 		} catch (error) {
 			console.error('Error collecting diagnostics:', error);
+			errorMessage.value = `Failed to collect browser diagnostics: ${error.message}`;
 		} finally {
 			loading.value = false;
 		}
 	}
 
-	onMounted(() => {
-		refreshDiagnostics();
+	onMounted(async () => {
+		await nextTick();
+		await refreshDiagnostics();
 	});
 </script>
 
 <style scoped>
-	.diagnostics-info {
-		display: grid;
-		grid-template-columns: 200px 1fr;
-		column-gap: 1em;
-		row-gap: 0.5em;
-		margin: 0 0 2em 0;
-	}
-
-	.diagnostics-info dt {
-		font-weight: bold;
-	}
-
-	.diagnostics-info dd {
-		margin: 0;
-		word-break: break-word;
-	}
-
-	h3 {
-		margin-top: 2em;
-		margin-bottom: 1em;
-	}
-
-	h3:first-child {
-		margin-top: 0;
+	.muted {
+		opacity: 0.7;
 	}
 </style>

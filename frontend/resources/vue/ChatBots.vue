@@ -33,6 +33,7 @@
 	const bots = ref([]);
 	const loading = ref(true);
 	const localNavigation = ref(null);
+	const STOPPED_BOT_ICON_COLOR = '#dc3545';
 
 	function getBotRoute(bot) {
 		if (!bot) {
@@ -82,6 +83,8 @@
 			return;
 		}
 
+		localNavigation.value.clearNavigationLinks();
+
 		// Add each bot as a navigation item using addCallback
 		for (const bot of bots.value) {
 			const route = getBotRoute(bot);
@@ -96,9 +99,10 @@
 			localNavigation.value.addCallback(displayName, () => {
 				router.push(route);
 			}, {
-				icon: getBotIcon(bot), // Use protocol-specific icon
+				icon: getBotIcon(bot),
 				name: `bot-${bot.connector}-${bot.identity || ''}`,
-				description: fullDescription
+				description: fullDescription,
+				iconColor: bot.isRunning ? null : STOPPED_BOT_ICON_COLOR,
 			});
 		}
 	}

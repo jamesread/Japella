@@ -143,6 +143,12 @@ message RefreshConnectorsResponse {
 	StandardResponse standard_response = 1;
 }
 
+message StopServiceRequest {}
+
+message StopServiceResponse {
+	StandardResponse standard_response = 1;
+}
+
 message GetConnectorsResponse {
 	repeated Connector connectors = 1;
 	repeated UnregisteredConnector unregistered_connectors = 2; // Connectors that exist but aren't started
@@ -860,6 +866,8 @@ service JapellaControlApiService {
 	rpc GetConnectors(GetConnectorsRequest) returns (GetConnectorsResponse) {}
 
 	rpc RefreshConnectors(RefreshConnectorsRequest) returns (RefreshConnectorsResponse) {}
+
+	rpc StopService(StopServiceRequest) returns (StopServiceResponse) {}
 
 	rpc StartOAuth(StartOAuthRequest) returns (StartOAuthResponse) {}
 

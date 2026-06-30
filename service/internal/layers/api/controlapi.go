@@ -32,6 +32,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connectorcontroller"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/media"
 	"github.com/jamesread/japella/internal/rbac"
@@ -832,6 +833,26 @@ func (s *ControlApi) RefreshConnectors(ctx context.Context, req *connect.Request
 
 	return connect.NewResponse(&controlv1.RefreshConnectorsResponse{
 		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Connectors refreshed"},
+	}), nil
+}
+
+func (s *ControlApi) StopService(ctx context.Context, req *connect.Request[controlv1.StopServiceRequest]) (*connect.Response[controlv1.StopServiceResponse], error) {
+	au := s.getAuthenticatedUser(ctx)
+	if au == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+	if !au.HasPermission(rbac.PermissionSystemSettings) {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("system.settings permission required"))
+	}
+
+	log.Warnf("Service stop requested by user %q", au.User.Username)
+	shutdown.RequestStop()
+
+	return connect.NewResponse(&controlv1.StopServiceResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Service stop initiated",
+		},
 	}), nil
 }
 

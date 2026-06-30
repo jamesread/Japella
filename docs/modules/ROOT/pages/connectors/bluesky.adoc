@@ -2,6 +2,20 @@
 
 Use the Bluesky connector to post to AT Protocol accounts with OAuth2 + DPoP.
 
+Configure these values in Japella Settings:
+
+```yaml title="config.bluesky.yaml"
+configversion: 2
+
+general:
+  base_url: "https://japella.example.com" #notsecret
+  oauth2_redirect_url: "https://japella.example.com/oauth2callback" #notsecret
+  is_publicly_accessible: true
+
+bluesky:
+  client_id: "https://japella.example.com/oauth/client-metadata.json" #notsecret
+```
+
 == What you need
 
 * A Bluesky account.

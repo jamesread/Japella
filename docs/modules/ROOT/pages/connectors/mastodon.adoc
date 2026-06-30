@@ -2,6 +2,16 @@
 
 Use the Mastodon connector to post status updates and media through Mastodon OAuth.
 
+Configure these values in Japella Settings:
+
+```yaml title="config.mastodon.yaml"
+configversion: 2
+
+mastodon:
+  client_id: "asdf12344kjdfsdf323l4kj23lk4jg" #notsecret
+  client_secret: "asdfasdf234lk2j34lkjasasdf" #notsecret
+```
+
 == What you need
 
 * A Mastodon account.

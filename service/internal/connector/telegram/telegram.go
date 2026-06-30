@@ -93,14 +93,20 @@ func (c *TelegramConnector) GetChatBot() *connector.ChatBot {
 	}
 }
 
+func (c *TelegramConnector) failStartup(statusMsg, errMsg string) {
+	c.isRunning = false
+	c.statusMessage = statusMsg
+	c.errorMessage = errMsg
+	connector.LogChatBotStartupFailure(c.db, c.GetProtocol(), c.nickname, errMsg)
+}
+
 func (c *TelegramConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
+	c.db = startup.DB
 	config, _ := startup.Config.(*runtimeconfig.TelegramConfig)
 
 	if config == nil || config.Token == "" {
 		c.Logger().Errorf("Telegram bot token is not set in configuration")
-		c.statusMessage = "Configuration error: Bot token is not set"
-		c.errorMessage = "Bot token is missing from configuration"
-		c.isRunning = false
+		c.failStartup("Configuration error: Bot token is not set", "Bot token is missing from configuration")
 		return
 	}
 
@@ -109,7 +115,6 @@ func (c *TelegramConnector) SetStartupConfiguration(startup *connector.Controlle
 	}
 
 	// Store DB reference for later hook loading (after bot starts and nickname is available)
-	c.db = startup.DB
 	c.hooks = config.IncomingMessageHooks
 	if len(c.hooks) > 0 {
 		c.Logger().Infof("Configured %d incoming message hook(s) from config (will load from DB after bot starts)", len(c.hooks))
@@ -178,9 +183,7 @@ func (c *TelegramConnector) startBot(botToken string) {
 
 	if err != nil {
 		c.Logger().Errorf("Error creating bot: %v", err)
-		c.isRunning = false
-		c.errorMessage = "Failed to create bot instance: " + err.Error()
-		c.statusMessage = "Failed to initialize bot connection"
+		c.failStartup("Failed to initialize bot connection", "Failed to create bot instance: "+err.Error())
 		return
 	}
 
@@ -194,9 +197,7 @@ func (c *TelegramConnector) startBot(botToken string) {
 	me, err := c.botInstance.GetMe(getMeCtx)
 	if err != nil {
 		c.Logger().Errorf("Error getting bot info: %v", err)
-		c.isRunning = false
-		c.errorMessage = "Failed to verify bot token: " + err.Error()
-		c.statusMessage = "Bot token validation failed"
+		c.failStartup("Bot token validation failed", "Failed to verify bot token: "+err.Error())
 		return
 	}
 

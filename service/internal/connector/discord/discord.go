@@ -24,7 +24,7 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 
 	if err != nil {
 		a.Logger().Errorf("Cannot create new discord bot: %v", err)
-		a.isRunning = false
+		a.failStartup("Failed to initialize bot connection", "Failed to create Discord bot: "+err.Error())
 		return nil
 	}
 
@@ -38,7 +38,7 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 
 	if err != nil {
 		a.Logger().Errorf("Error opening Discord connection: %v", err)
-		a.isRunning = false
+		a.failStartup("Failed to connect to Discord", "Failed to open Discord connection: "+err.Error())
 		return nil
 	}
 
@@ -56,6 +56,8 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 	}
 
 	a.isRunning = true
+	a.statusMessage = "Bot is running and connected"
+	a.errorMessage = ""
 
 	// Load hooks from database now that we have the nickname
 	if a.db != nil {
@@ -176,12 +178,26 @@ func (a *DiscordConnector) GetChatBot() *connector.ChatBot {
 	if a.nickname != "" {
 		name = a.nickname
 	}
+
+	statusMsg := ""
+	if a.isRunning {
+		statusMsg = "Bot is running and connected"
+	} else if a.errorMessage != "" {
+		statusMsg = a.errorMessage
+	} else if a.statusMessage != "" {
+		statusMsg = a.statusMessage
+	} else {
+		statusMsg = "Bot is not running"
+	}
+
 	return &connector.ChatBot{
-		Connector:          a.GetProtocol(),
-		Name:               name,
-		Identity:           a.nickname,
-		Icon:               a.GetIcon(),
-		IsRunning:          a.isRunning,
+		Connector:           a.GetProtocol(),
+		Name:                name,
+		Identity:            a.nickname,
+		Icon:                a.GetIcon(),
+		IsRunning:           a.isRunning,
+		StatusMessage:       statusMsg,
+		ErrorMessage:        a.errorMessage,
 		ProtocolDisplayName: "", // Discord doesn't have a protocol-specific display name
 	}
 }

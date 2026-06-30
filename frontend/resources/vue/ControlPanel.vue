@@ -70,7 +70,7 @@
 
 				<div class="stat-display">
 					<div class="status-header">
-						<HugeiconsIcon :icon="InfoCircleIcon" />
+						<HugeiconsIcon :icon="InformationCircleIcon" />
 						<span>Version</span>
 					</div>
 					<div class="stat">
@@ -175,7 +175,7 @@
 		<div v-else-if="jobs.length === 0" class="inline-notification note">
 			No background jobs found.
 		</div>
-		<table v-else class="data-table">
+		<table v-else class="data-table row-hover">
 			<thead>
 				<tr>
 					<th>Job Name</th>
@@ -221,7 +221,6 @@
 		HardDriveIcon,
 		Database01Icon,
 		LeftToRightListNumberIcon,
-		AlertCircleIcon,
 		Settings01Icon,
 		LinkSquare01Icon,
 		Loading01Icon,
@@ -230,6 +229,7 @@
 		ActivityIcon,
 		WebSecurityIcon,
 		Flowchart01Icon,
+		AlertCircleIcon,
 	} from '@hugeicons/core-free-icons';
 
 	const clientReady = ref(false);
@@ -382,6 +382,7 @@
 			const canLogsNav =
 				st?.rbacIsSuperuser ||
 				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('system.logs'));
+			const canDiagnosticsNav = canViewSystemDiagnosticsFromStatus(st);
 
 			if (canUsers) {
 				localNavigation.value.addCallback('Users', () => goToRoute('/users'), {
@@ -428,6 +429,14 @@
 				name: 'system-architecture',
 				description: 'Diagram of services, database, and message broker',
 			});
+
+			if (canDiagnosticsNav) {
+				localNavigation.value.addCallback('System Diagnostics', () => goToRoute('/control-panel/system-diagnostics'), {
+					icon: HardDriveIcon,
+					name: 'system-diagnostics',
+					description: 'YAML diagnostics for server, database, and runtime',
+				});
+			}
 
 			if (canLogsNav) {
 				localNavigation.value.addCallback('System Logs', () => goToRoute('/logs'), {
@@ -485,7 +494,9 @@
 		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 		font-size: 0.85rem;
 		line-height: 1.45;
-		word-break: break-all;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 		color: inherit;
 		background: transparent;
 	}
@@ -497,12 +508,30 @@
 		margin-top: 1rem;
 	}
 
+	.stat-display {
+		min-width: 0;
+		overflow: hidden;
+	}
+
+	.stat-display .stat {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
 	.status-header {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		margin-bottom: 0.5rem;
 		font-weight: bold;
+		min-width: 0;
+	}
+
+	.status-header span {
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	.quick-actions {

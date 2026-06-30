@@ -34,9 +34,11 @@ import ChatBotHooksPage from '../vue/ChatBotHooksPage.vue'
 import CreateUser from '../vue/CreateUser.vue'
 import Connectors from '../vue/Connectors.vue'
 import SystemArchitecture from '../vue/SystemArchitecture.vue'
+import SystemDiagnostics from '../vue/SystemDiagnostics.vue'
 import UserGroups from '../vue/UserGroups.vue'
 import AddSocialAccount from '../vue/AddSocialAccount.vue'
-import { canAccessControlPanelFromStatus } from './rbacAccess.js'
+import SocialAccountPreAdd from '../vue/SocialAccountPreAdd.vue'
+import { canAccessControlPanelFromStatus, canViewSystemDiagnosticsFromStatus } from './rbacAccess.js'
 
 import {
   SettingsIcon,
@@ -241,6 +243,15 @@ const routes = [
     }
   },
   {
+    path: '/social-accounts/add/:connectorId',
+    name: 'socialAccountPreAdd',
+    component: SocialAccountPreAdd,
+    meta: {
+      title: 'Connect Account',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/social-accounts/:id',
     name: 'socialAccountDetails',
     component: SocialAccountDetails,
@@ -379,6 +390,16 @@ const routes = [
     }
   },
   {
+    path: '/control-panel/system-diagnostics',
+    name: 'systemDiagnostics',
+    component: SystemDiagnostics,
+    meta: {
+      title: 'System Diagnostics',
+      requiresAuth: true,
+      requiresSystemDiagnostics: true
+    }
+  },
+  {
     path: '/user-control-panel',
     name: 'userControlPanel',
     component: UserControlPanel,
@@ -408,7 +429,18 @@ const router = createRouter({
   routes
 })
 
-// Helper function to wait for client to be ready
+const APP_TITLE = 'Japella'
+
+function updateDocumentTitle(to) {
+  const pageTitle = to.meta?.title || to.name || APP_TITLE
+  document.title = `${pageTitle} « ${APP_TITLE}`
+}
+
+router.afterEach((to) => {
+  updateDocumentTitle(to)
+})
+
+// Navigation guard to handle authentication
 function waitForClient() {
   return new Promise((resolve) => {
     const check = () => {
@@ -462,6 +494,21 @@ router.beforeEach(async (to, from, next) => {
       }
     } catch (error) {
       console.error('Error checking control panel access:', error)
+      next('/')
+      return
+    }
+  }
+
+  if (to.meta.requiresSystemDiagnostics) {
+    try {
+      await waitForClient()
+      const status = await window.client.getStatus()
+      if (!canViewSystemDiagnosticsFromStatus(status)) {
+        next('/')
+        return
+      }
+    } catch (error) {
+      console.error('Error checking system diagnostics access:', error)
       next('/')
       return
     }

@@ -1,21 +1,24 @@
-# Connectors
+= Connectors
 
-Connectors are a way to connect Japella to a chat protocol. This means they are responsible for sending and receiving messages from the chat protocol, they are also responsible for handling the connection to the chat protocol.
+Connectors connect Japella to chat and social platforms. They send and receive messages and handle authentication for each protocol.
 
-You can see a list of chat protocols supported by Japella adaptors in the sidebar of this documentation page.
+Supported connector guides are listed below and in the sidebar.
 
 == Common prerequisites
 
-Before adding accounts for any connector:
+Before adding accounts for any OAuth connector:
 
-* Set `baseUrl` in Japella settings so OAuth callbacks can return to your instance.
-* Ensure `oauth2.redirect_url` is valid for your deployment.
+* Set `base_url` in Japella **Settings** so OAuth callbacks can return to your instance.
+* Set `oauth2_redirect_url` to your base URL plus `/oauth2callback`.
+* Enable **Is Publicly Accessible** in Settings so OAuth connectors (Mastodon, X, Bluesky, and others) are started.
 * Use HTTPS in production (many providers require secure callback URLs).
+
+YAML-configured connectors (Telegram, Discord) are started from `config.yaml` instead; see each guide below.
 
 == Connector guides
 
-* xref:x.adoc[X]
-* xref:mastodon.adoc[Mastodon]
-* xref:bluesky.adoc[Bluesky]
-* xref:discord.adoc[Discord]
-* xref:telegram.adoc[Telegram]
+* xref:connectors/telegram.adoc[Telegram]
+* xref:connectors/discord.adoc[Discord]
+* xref:connectors/x.adoc[X]
+* xref:connectors/mastodon.adoc[Mastodon]
+* xref:connectors/bluesky.adoc[Bluesky]

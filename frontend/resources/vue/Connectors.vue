@@ -1,91 +1,53 @@
 <template>
-	<section class = "connectors">
-		<div class = "header-row">
-			<div>
-				<h2>Connectors</h2>
-				<p>These connectors are currently started by the server.</p>
-			</div>
-			<button v-if="canAccess" class = "refresh-btn" :disabled = "loading" @click = "applyRefresh" title = "Apply IsPubliclyAccessible setting and refresh connector list">
-				<Icon icon = "mdi:refresh" width = "18" height = "18" />
-				<span>Refresh</span>
+	<Section
+		title="Connectors"
+		subtitle="Connectors currently started by the server."
+		classes="connectors"
+	>
+		<template #toolbar>
+			<router-link :to="{ name: 'controlPanel' }" class="button neutral">
+				<Icon icon="material-symbols:arrow-back" />
+				Control Panel
+			</router-link>
+			<button
+				v-if="canAccess"
+				type="button"
+				class="neutral"
+				title="Apply IsPubliclyAccessible setting and refresh connector list"
+				:disabled="loading"
+				@click="applyRefresh"
+			>
+				<Icon icon="material-symbols:refresh" />
 			</button>
-		</div>
+		</template>
 
-		<div v-if="!loaded">
-			<p>Loading...</p>
-		</div>
-		<div v-else-if="!canAccess">
-			<p class="inline-notification error">You do not have permission to view connectors.</p>
-		</div>
+		<div v-if="!loaded" class="muted">Loading…</div>
+		<p v-else-if="!canAccess" class="inline-notification error">
+			You do not have permission to view connectors.
+		</p>
 
-		<div v-else-if = "loading" class = "icon-and-text" style = "margin-top: 1em;">
-			<Icon icon = "eos-icons:loading" width = "24" height = "24" />
-			<span style = "margin-left: .5em;">Loading connectors...</span>
-		</div>
+		<template v-else>
+			<div v-if="loading && !connectors.length" class="muted">Loading connectors…</div>
 
-		<div v-else>
-			<!-- Started Connectors -->
-			<div v-if = "connectors.length > 0">
-				<h3 style = "margin-top: 1.5em; margin-bottom: 0.5em;">Started Connectors</h3>
-				<div class = "connector-list">
-					<div v-for = "c in connectors" :key = "c.name" class = "connector-card">
-						<div class = "header">
-							<Icon :icon = "c.icon || 'mdi:help-circle-outline'" width = "20" height = "20" />
-							<h3>
-								<span v-if = "c.customName">{{ c.protocol }} ({{ c.customName }})</span>
-								<span v-else>{{ c.name }}</span>
-							</h3>
-						</div>
-						<div class = "meta">
-							<div class = "tag fg-good" v-if = "c.hasOauth">
-								OAuth
-							</div>
-							<div class = "tag fg-good" v-else-if = "c.usesYamlConfig">
-								YAML Config
-							</div>
-							<div class = "tag fg-good" v-if = "c.supportsSocialAccounts">
-								Social Account
-							</div>
-							<div class = "tag fg-good" v-if = "c.supportsChatbot">
-								Chat Bot
-							</div>
-						</div>
-						<div v-if = "c.issues && c.issues.length > 0" class = "issues">
-							<strong>Issues:</strong>
-							<ul>
-								<li v-for = "issue in c.issues" :key = "issue" class = "inline-notification bad">{{ issue }}</li>
-							</ul>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<!-- Unregistered Connectors -->
-			<div v-if = "unregisteredConnectors.length > 0">
-				<h3 style = "margin-top: 1.5em; margin-bottom: 0.5em;">Unregistered Connectors</h3>
-				<p class = "inline-notification note" style = "margin-bottom: 0.5em;">These connector types are available but not currently started or configured.</p>
-				<div class = "connector-list">
-					<div v-for = "c in unregisteredConnectors" :key = "c.protocol" class = "connector-card unregistered">
-						<div class = "header">
-							<Icon :icon = "c.icon || 'mdi:help-circle-outline'" width = "20" height = "20" />
-							<h3>{{ c.name }}</h3>
-						</div>
-						<div class = "meta">
-							<div class = "tag fg-neutral">{{ c.notStartedReason || 'Not started' }}</div>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<p v-if = "connectors.length === 0 && unregisteredConnectors.length === 0" class = "inline-notification note">No connectors found.</p>
-		</div>
-	</section>
+			<ConnectorCatalog
+				v-else
+				:connectors="connectors"
+				:unregistered-connectors="unregisteredConnectors"
+				started-title="Started Connectors"
+				unregistered-title="Unavailable Connectors"
+				unregistered-description="These connector types are available but not currently started or configured."
+				empty-message="No connectors found."
+			/>
+		</template>
+	</Section>
 </template>
 
 <script setup>
 	import { ref, computed, onMounted } from 'vue';
 	import { Icon } from '@iconify/vue';
 	import { waitForClient } from '../javascript/util';
+	import Section from 'picocrank/vue/components/Section.vue';
+	import ConnectorCatalog from './ConnectorCatalog.vue';
 
 	const connectors = ref([]);
 	const unregisteredConnectors = ref([]);
@@ -115,34 +77,27 @@
 		await waitForClient();
 		try {
 			const res = await window.client.getConnectors({ onlyWantOauth: false });
-			// Normalize and sort connectors by name
-			const list = (res.connectors || []).map(c => {
+			const list = (res.connectors || []).map((c) => {
 				const protocol = c.protocol || c.name;
-				const displayName = c.name;
-				const hasCustomName = displayName !== protocol;
-
 				return {
-					name: displayName,
-					protocol: protocol,
-					customName: hasCustomName ? displayName : null,
+					name: c.name,
+					protocol,
 					icon: c.icon,
 					hasOauth: !!c.hasOauth,
 					usesYamlConfig: !!c.usesYamlConfig,
-					isRegistered: c.isRegistered !== false, // default true if not provided
 					supportsSocialAccounts: !!c.supportsSocialAccounts,
 					supportsChatbot: !!c.supportsChatbot,
-					issues: c.issues || []
+					issues: c.issues || [],
 				};
 			});
 			list.sort((a, b) => a.name.localeCompare(b.name));
 			connectors.value = list;
 
-			// Normalize and sort unregistered connectors
-			const unregisteredList = (res.unregisteredConnectors || []).map(c => ({
+			const unregisteredList = (res.unregisteredConnectors || []).map((c) => ({
 				protocol: c.protocol,
 				name: c.name || c.protocol,
 				icon: c.icon,
-				notStartedReason: c.notStartedReason || ''
+				notStartedReason: c.notStartedReason || '',
 			}));
 			unregisteredList.sort((a, b) => a.name.localeCompare(b.name));
 			unregisteredConnectors.value = unregisteredList;
@@ -170,62 +125,7 @@
 </script>
 
 <style scoped>
-	.header-row {
-		display: flex;
-		justify-content: space-between;
-		align-items: flex-start;
-		gap: 1em;
-		margin-bottom: 0.5em;
-	}
-
-	.refresh-btn {
-		display: flex;
-		align-items: center;
-		gap: 0.4em;
-		padding: 0.4em 0.8em;
-		white-space: nowrap;
-	}
-
-	.refresh-btn:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.connector-list {
-		display: grid;
-		grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-		gap: 1em;
-		margin-top: 1em;
-	}
-
-	.connector-card {
-		border: 1px solid #555;
-		border-radius: .5em;
-		padding: .75em;
-	}
-
-	.header {
-		display: flex;
-		align-items: center;
-		gap: .5em;
-	}
-
-	h3 {
-		margin: 0;
-	}
-
-	.meta {
-		display: flex;
-		gap: .5em;
-		margin-top: .5em;
-	}
-
-	.issues {
-		margin-top: .75em;
-	}
-
-	.connector-card.unregistered {
+	.muted {
 		opacity: 0.7;
 	}
-
 </style>

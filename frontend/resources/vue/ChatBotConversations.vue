@@ -1,6 +1,5 @@
 <template>
 	<div class="conversations-section">
-		<h3>Conversations</h3>
 		<p class="conversations-intro">
 			<template v-if="isMultiBot">
 				Select a thread to read messages and reply. Threads from every configured chat bot are listed together, newest activity first.
@@ -472,7 +471,7 @@
 	}
 
 	.conversations-intro {
-		margin-top: 0.5em;
+		margin-top: 0;
 		margin-bottom: 1em;
 		color: var(--text-muted, #666);
 	}

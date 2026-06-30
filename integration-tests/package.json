@@ -1,0 +1,16 @@
+{
+  "name": "japella-integration-tests",
+  "version": "1.0.0",
+  "repository": "https://github.com/jamesread/Japella",
+  "description": "Integration tests for Japella's web UI.",
+  "type": "module",
+  "license": "AGPL-3.0-only",
+  "devDependencies": {
+    "chai": "^6.2.2",
+    "mocha": "^11.7.6",
+    "selenium-webdriver": "^4.45.0"
+  },
+  "dependencies": {
+    "wait-on": "^9.0.10"
+  }
+}
