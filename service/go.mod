@@ -1,6 +1,6 @@
 module github.com/jamesread/japella
 
-go 1.25.10
+go 1.26.0
 
 require (
 	connectrpc.com/authn v0.2.0
@@ -62,7 +62,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bep/godartsass/v2 v2.5.0 // indirect
 	github.com/bep/golibsass v1.2.0 // indirect
-	github.com/bits-and-blooms/bitset v1.24.4 // indirect
+	github.com/bits-and-blooms/bitset v1.24.5 // indirect
 	github.com/bufbuild/protocompile v0.14.2-0.20260522222248-64e6ad034132 // indirect
 	github.com/bufbuild/protoplugin v0.0.0-20260414125817-25d1d281b46b // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -94,7 +94,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
 	github.com/gohugoio/hashstructure v0.6.0 // indirect
-	github.com/gohugoio/hugo v0.161.0 // indirect
+	github.com/gohugoio/hugo v0.163.3 // indirect
 	github.com/google/cel-go v0.28.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.21.6 // indirect
@@ -117,7 +117,7 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
-	github.com/pelletier/go-toml/v2 v2.3.0 // indirect
+	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
 	github.com/petermattis/goid v0.0.0-20260330135022-df67b199bc81 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
@@ -160,10 +160,10 @@ require (
 	golang.org/x/exp v0.0.0-20260603202125-055de637280b // indirect
 	golang.org/x/exp/typeparams v0.0.0-20260603202125-055de637280b // indirect
 	golang.org/x/mod v0.36.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.38.0 // indirect
 	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
