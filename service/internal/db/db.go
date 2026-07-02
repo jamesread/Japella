@@ -453,8 +453,11 @@ func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
 	}
 
 	// Account doesn't exist, insert a new one
+	if socialAccount.State == "" {
+		socialAccount.State = "active"
+	}
 	db.Logger().Infof("Registering new social account for connector: %s, identity: %s", socialAccount.Connector, socialAccount.Identity)
-	_, err = db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, did, homeserver, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :did, :homeserver, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :dpop_key, NOW(), NOW())`, socialAccount)
+	_, err = db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, did, homeserver, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, state, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :did, :homeserver, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :state, :dpop_key, NOW(), NOW())`, socialAccount)
 	if err != nil {
 		db.Logger().Errorf("Failed to register social account: %v", err)
 		return err

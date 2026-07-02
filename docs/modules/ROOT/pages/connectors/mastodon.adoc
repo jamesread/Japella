@@ -2,38 +2,33 @@
 
 Use the Mastodon connector to post status updates and media through Mastodon OAuth.
 
-Configure these values in Japella Settings:
-
-```yaml title="config.mastodon.yaml"
-configversion: 2
-
-mastodon:
-  client_id: "asdf12344kjdfsdf323l4kj23lk4jg" #notsecret
-  client_secret: "asdfasdf234lk2j34lkjasasdf" #notsecret
-```
-
 == What you need
 
-* A Mastodon account.
-* OAuth app credentials for your Mastodon instance (or `mastodon.social`).
+* A Mastodon account on `https://mastodon.social` (the default instance Japella registers against).
+* Japella **Base URL** and **OAuth2 Redirect URL** configured in Settings (`base_url` and `oauth2_redirect_url`, typically `https://your-host/oauth2callback`).
+* **Is Publicly Accessible** enabled so OAuth connectors start.
 
-== Configure credentials
+== OAuth application registration
 
-Set these connector values in Japella settings:
+Unlike X, Mastodon lets Japella register its own OAuth application automatically.
+
+When the Mastodon connector starts, Japella calls Mastodon's `POST /api/v1/apps` API using your configured **OAuth2 Redirect URL** as the `redirect_uris` value. The returned **client ID** and **client secret** are stored in Settings as:
 
 * `mastodon.client_id`
 * `mastodon.client_secret`
 
-The connector uses these for OAuth and account authorization.
+You can also register manually from the connector pre-add page (**Register OAuth application**) if auto-registration did not run or failed.
 
 == Notes
 
-* Japella defaults to `https://mastodon.social` when no homeserver is configured.
+* Japella defaults to `https://mastodon.social` when no homeserver is configured on a linked account.
 * Media uploads are sent to Mastodon's media API before creating a status.
 
 == Add an account
 
+. Ensure Settings has a public `base_url` and matching `oauth2_redirect_url`.
 . Open Japella and go to social accounts.
 . Choose **Add social account** and select **Mastodon**.
-. Complete the OAuth flow.
+. If prompted, choose **Register OAuth application** and wait for registration to complete.
+. Choose **Connect with Mastodon** and complete the OAuth flow.
 . Test a post to confirm your account is connected.

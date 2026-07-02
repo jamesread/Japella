@@ -39,9 +39,12 @@
 </template>
 
 <script setup>
-    import { ref, computed, onMounted } from 'vue';
+    import { ref, computed, onMounted, nextTick } from 'vue';
+    import { useRoute } from 'vue-router';
     import { waitForClient } from '../javascript/util';
     import InlineNotification from './InlineNotification.vue';
+
+    const route = useRoute();
 
     const categories = ref([]);
     const loaded = ref(false);
@@ -54,11 +57,29 @@
 
     function refreshCvars() {
         categories.value = [];
-        window.client.getCvars().then((ret) => {
+        return window.client.getCvars().then((ret) => {
             categories.value = ret.cvarCategories;
         }).catch((error) => {
             console.error('Error fetching cvars:', error);
         });
+    }
+
+    async function focusCvarFromHash() {
+        const hash = route.hash?.replace(/^#/, '');
+        if (!hash) {
+            return;
+        }
+
+        await nextTick();
+        const field = document.getElementById(hash);
+        if (!field) {
+            return;
+        }
+
+        field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        field.focus({ preventScroll: true });
+        field.classList.add('settings-field-highlight');
+        setTimeout(() => field.classList.remove('settings-field-highlight'), 2500);
     }
 
     function setCvar(cvar) {
@@ -96,7 +117,8 @@
         loaded.value = true;
 
         if (canAccess.value) {
-            refreshCvars();
+            await refreshCvars();
+            await focusCvarFromHash();
         }
     });
 </script>
@@ -112,5 +134,10 @@
 
     label {
         justify-self: end;
+    }
+
+    :deep(.settings-field-highlight) {
+        outline: 2px solid var(--pico-primary, #1a73e8);
+        outline-offset: 2px;
     }
 </style>

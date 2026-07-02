@@ -890,6 +890,8 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 		// Check if connector supports chatbot functionality
 		_, supportsChatBot := svc.(connector.ConnectorWithChatBot)
 
+		_, supportsClientRegistration := svc.(connector.OAuth2ConnectorWithClientRegistration)
+
 		srv := &controlv1.Connector{
 			Name:                  displayName,
 			Protocol:              protocolName,
@@ -899,12 +901,21 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 			UsesYamlConfig:        usesYamlConfig,
 			SupportsSocialAccounts: supportsSocialAccounts,
 			SupportsChatbot:        supportsChatBot,
+			SupportsClientRegistration: supportsClientRegistration,
 		}
 
 		cfgProvider, isConfigProvider := svc.(connector.ConfigProvider)
 
 		if isConfigProvider {
-			srv.Issues = cfgProvider.CheckConfiguration().Issues
+			for _, issue := range cfgProvider.CheckConfiguration().Issues {
+				srv.Issues = append(srv.Issues, &controlv1.ConnectorIssue{
+					Message:   issue.Message,
+					FixPath:   issue.FixPath,
+					FixHash:   issue.FixHash,
+					FixLabel:  issue.FixLabel,
+					FixAction: issue.FixAction,
+				})
+			}
 		}
 
 		services = append(services, srv)
@@ -990,6 +1001,9 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 	state := s.oauth2states[stateKey]
 
 	if state == nil {
+		msg := fmt.Sprintf("OAuth2 callback: state not found: %v", stateKey)
+		log.Errorf(msg)
+		_ = s.DB.InsertTableLog(msg, "error", nil)
 		redirect(baseUrl, w, fmt.Sprintf("state not found: %v", stateKey), "bad")
 		return
 	}
@@ -1004,7 +1018,9 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 	err := state.connector.OnOAuth2Callback(code, state.verifier, headers)
 
 	if err != nil {
-		log.Errorf("Error registering account: %v", err)
+		msg := fmt.Sprintf("Error registering account (%s): %v", state.connector.GetProtocol(), err)
+		log.Errorf(msg)
+		_ = s.DB.InsertTableLog(msg, "error", nil)
 		redirect(baseUrl, w, fmt.Sprintf("Error registering account: %v", err), "bad")
 	} else {
 		if state.userID != 0 {

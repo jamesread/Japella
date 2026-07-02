@@ -34,6 +34,7 @@ type SocialAccount struct {
 	OAuth2RefreshToken string         `db:"oauth2_refresh_token"`
 	DpopKey            sql.NullString `db:"dpop_key"`
 	Active             bool           `db:"active"`
+	State              string         `db:"state"`
 	OwnerUserID        sql.NullInt32  `db:"owner_user_id"`
 }
 

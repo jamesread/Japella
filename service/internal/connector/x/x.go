@@ -67,28 +67,28 @@ func (x *XConnector) GetCvars() map[string]*db.Cvar {
 
 func (x *XConnector) CheckConfiguration() *connector.ConfigurationCheckResult {
 	res := &connector.ConfigurationCheckResult{
-		Issues: []string{},
+		Issues: []connector.ConfigurationIssue{},
 	}
 
 	clientId := x.db.GetCvarString(CFG_X_CLIENT_ID)
 
 	if clientId == "" {
-		res.AddIssue("X Client ID is not set in the database, please configure it in the settings.")
+		res.AddSettingsIssue("X Client ID is not set in the database, please configure it in the settings.", CFG_X_CLIENT_ID)
 	}
 
 	if len(clientId) != EXPECTED_CLIENT_ID_LENGTH {
-		res.AddIssue("X Client ID is not valid, it should be 34 characters long.")
+		res.AddSettingsIssue("X Client ID is not valid, it should be 34 characters long.", CFG_X_CLIENT_ID)
 		return res
 	}
 
 	clientSecret := x.db.GetCvarString(CFG_X_CLIENT_SECRET)
 
 	if clientSecret == "" {
-		res.AddIssue("X Client Secret is not set in the database, please configure it in the settings.")
+		res.AddSettingsIssue("X Client Secret is not set in the database, please configure it in the settings.", CFG_X_CLIENT_SECRET)
 	}
 
 	if len(clientSecret) != EXPECTED_CLIENT_SECRET_LENGTH {
-		res.AddIssue("X Client Secret is not valid, it should be 50 characters long.")
+		res.AddSettingsIssue("X Client Secret is not valid, it should be 50 characters long.", CFG_X_CLIENT_SECRET)
 	}
 
 	return res

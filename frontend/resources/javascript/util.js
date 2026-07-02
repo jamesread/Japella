@@ -93,3 +93,43 @@ export function connectorUsesOauth(protocol) {
 export function connectorUsesYamlConfig(protocol) {
   return YAML_PROTOCOLS.has(protocol?.toLowerCase());
 }
+
+export function normalizeConnectorIssues(issues) {
+  return (issues || []).map((issue) => {
+    if (typeof issue === 'string') {
+      return { message: issue };
+    }
+
+    return {
+      message: issue.message || '',
+      fixPath: issue.fixPath || '',
+      fixHash: issue.fixHash || '',
+      fixLabel: issue.fixLabel || '',
+      fixAction: issue.fixAction || '',
+    };
+  });
+}
+
+export function connectorIssueFixRoute(issue) {
+  if (!issue?.fixPath) {
+    return null;
+  }
+
+  const route = { path: issue.fixPath };
+  if (issue.fixHash) {
+    route.hash = `#${issue.fixHash}`;
+  }
+  return route;
+}
+
+export function connectorIssueSummary(issues) {
+  return normalizeConnectorIssues(issues)
+    .map((issue) => issue.message)
+    .join('; ');
+}
+
+export function connectorHasBlockingIssues(issues) {
+  return normalizeConnectorIssues(issues).length > 0;
+}
+
+export const CONNECTOR_FIX_ACTION_REGISTER_CLIENT = 'register_client';

@@ -24,7 +24,7 @@
 <script setup>
 	import { ref, watch, nextTick } from 'vue';
 	import { useRouter } from 'vue-router';
-	import { connectorDocsUrl, connectorHugeIcon } from '../javascript/util';
+	import { connectorDocsUrl, connectorHugeIcon, connectorIssueSummary, connectorHasBlockingIssues } from '../javascript/util';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 
@@ -101,7 +101,7 @@
 		}
 
 		if (connector.issues?.length) {
-			parts.push(connector.issues.join('; '));
+			parts.push(connectorIssueSummary(connector.issues));
 		}
 
 		if (props.selectionMode === 'preAdd') {
@@ -109,9 +109,9 @@
 		} else if (props.showOAuthActions) {
 			if (props.connectingId === connector.name) {
 				parts.push('Redirecting to OAuth provider…');
-			} else if (connector.hasOauth && !connector.issues?.length) {
+			} else if (connector.hasOauth && !connectorHasBlockingIssues(connector.issues)) {
 				parts.push('Connect with OAuth');
-			} else if (connector.hasOauth && connector.issues?.length) {
+			} else if (connector.hasOauth && connectorHasBlockingIssues(connector.issues)) {
 				parts.push('Resolve issues before connecting');
 			} else if (connector.usesYamlConfig) {
 				parts.push('Configured via YAML; no OAuth login required');
@@ -153,7 +153,7 @@
 		if (
 			props.showOAuthActions &&
 			connector.hasOauth &&
-			!connector.issues?.length &&
+			!connectorHasBlockingIssues(connector.issues) &&
 			props.connectingId !== connector.name
 		) {
 			emit('connect-oauth', connector);

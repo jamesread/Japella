@@ -1203,8 +1203,29 @@ func (b *BlueskyConnector) GetCvars() map[string]*db.Cvar {
 	}
 }
 
-func (b *BlueskyConnector) CheckConfiguration() error {
-	return nil
+func (b *BlueskyConnector) CheckConfiguration() *connector.ConfigurationCheckResult {
+	res := &connector.ConfigurationCheckResult{
+		Issues: []connector.ConfigurationIssue{},
+	}
+
+	baseURL := b.db.GetCvarString(db.CvarKeys.BaseUrl)
+	if baseURL == "" || baseURL == "http://localhost:8080" {
+		res.AddSettingsIssue("Base URL must be set to your public Japella URL for Bluesky OAuth.", db.CvarKeys.BaseUrl)
+	}
+
+	redirectURL := b.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL)
+	expectedRedirect := baseURL + "/oauth2callback"
+	if redirectURL == "" {
+		res.AddSettingsIssue("OAuth2 Redirect URL is not set.", db.CvarKeys.OAuth2RedirectURL)
+	} else if baseURL != "" && redirectURL != expectedRedirect {
+		res.AddSettingsIssue("OAuth2 Redirect URL should match your base URL plus /oauth2callback.", db.CvarKeys.OAuth2RedirectURL)
+	}
+
+	if !b.db.GetCvarBool(db.CvarKeys.IsPubliclyAccessible) {
+		res.AddSettingsIssue("Bluesky OAuth requires Is Publicly Accessible to be enabled.", db.CvarKeys.IsPubliclyAccessible)
+	}
+
+	return res
 }
 
 func findHeader(res *http.Response) string {
@@ -1365,6 +1386,7 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 		Did:                identity,
 		Homeserver:         "https://bsky.social",
 		Active:             true,
+		State:              "active",
 		OAuth2Token:        token.AccessToken,
 		OAuth2TokenExpiry:  token.Expiry,
 		OAuth2RefreshToken: token.RefreshToken,

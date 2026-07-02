@@ -45,7 +45,7 @@
 <script setup>
 	import { ref, computed, onMounted } from 'vue';
 	import { Icon } from '@iconify/vue';
-	import { waitForClient } from '../javascript/util';
+	import { waitForClient, normalizeConnectorIssues } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import ConnectorCatalog from './ConnectorCatalog.vue';
 
@@ -87,7 +87,7 @@
 					usesYamlConfig: !!c.usesYamlConfig,
 					supportsSocialAccounts: !!c.supportsSocialAccounts,
 					supportsChatbot: !!c.supportsChatbot,
-					issues: c.issues || [],
+					issues: normalizeConnectorIssues(c.issues),
 				};
 			});
 			list.sort((a, b) => a.name.localeCompare(b.name));

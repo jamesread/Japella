@@ -73,11 +73,58 @@ type PreviewCard struct {
 const CFG_MASTODON_CLIENT_ID = "mastodon.client_id"
 const CFG_MASTODON_CLIENT_SECRET = "mastodon.client_secret"
 
-func (c *MastodonConnector) IsRegistered() bool {
-	clientID := c.db.GetCvarString(CFG_MASTODON_CLIENT_ID)
-	clientSecret := c.db.GetCvarString(CFG_MASTODON_CLIENT_SECRET)
+func (c *MastodonConnector) RegisterClient() error {
+	if c.db == nil {
+		return fmt.Errorf("mastodon connector database is not configured")
+	}
 
-	return clientID != "" || clientSecret != ""
+	redirectURL := c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL)
+	if redirectURL == "" {
+		return fmt.Errorf("OAuth2 redirect URL is not configured")
+	}
+
+	instanceURL := c.defaultInstanceURL()
+	website := c.db.GetCvarString(db.CvarKeys.BaseUrl)
+	if website == "" {
+		website = "https://jamesread.github.io/Japella"
+	}
+
+	appConfig := &AppConfig{
+		Server:       instanceURL,
+		ClientName:   "Japella",
+		Scopes:       "read write follow",
+		Website:      website,
+		RedirectURIs: redirectURL,
+	}
+
+	client := utils.NewClient(c.Logger())
+	client.PostWithJson(instanceURL+"/api/v1/apps", appConfig)
+
+	if client.Err != nil {
+		return fmt.Errorf("mastodon app registration request failed: %w", client.Err)
+	}
+
+	resp := &RegistrationResponse{}
+	client.AsJson(resp)
+
+	if client.Err != nil {
+		return fmt.Errorf("mastodon app registration response invalid: %w", client.Err)
+	}
+
+	if resp.ClientID == "" || resp.ClientSecret == "" {
+		body := string(client.ResBody)
+		return fmt.Errorf("mastodon app registration returned empty credentials: %s", body)
+	}
+
+	if err := c.db.SetCvarString(CFG_MASTODON_CLIENT_ID, resp.ClientID); err != nil {
+		return err
+	}
+	if err := c.db.SetCvarString(CFG_MASTODON_CLIENT_SECRET, resp.ClientSecret); err != nil {
+		return err
+	}
+
+	c.Logger().Infof("Registered Mastodon OAuth app on %s with redirect URI %s", instanceURL, redirectURL)
+	return nil
 }
 
 func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
@@ -86,7 +133,7 @@ func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
 			KeyName:      CFG_MASTODON_CLIENT_ID,
 			DefaultValue: "",
 			Title:        "Mastodon Client ID",
-			Description:  "https://docs.joinmastodon.org/client/token/",
+			Description:  "Populated automatically when the Mastodon OAuth application is registered.",
 			Category:     "Mastodon",
 			Type:         "text",
 		},
@@ -94,7 +141,7 @@ func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
 			KeyName:      CFG_MASTODON_CLIENT_SECRET,
 			DefaultValue: "",
 			Title:        "Mastodon Client Secret",
-			Description:  "https://docs.joinmastodon.org/client/token/",
+			Description:  "Populated automatically when the Mastodon OAuth application is registered.",
 			Category:     "Mastodon",
 			Type:         "password",
 		},
@@ -103,11 +150,21 @@ func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
 
 func (c *MastodonConnector) CheckConfiguration() *connector.ConfigurationCheckResult {
 	res := &connector.ConfigurationCheckResult{
-		Issues: []string{},
+		Issues: []connector.ConfigurationIssue{},
+	}
+
+	redirectURL := c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL)
+	if redirectURL == "" {
+		res.AddSettingsIssue("OAuth2 Redirect URL must be set before registering the Mastodon OAuth application.", db.CvarKeys.OAuth2RedirectURL)
+		return res
 	}
 
 	if !c.IsRegistered() {
-		res.AddIssue("Mastodon client is not registered. Please register the client first.")
+		res.AddRegisterClientIssue(fmt.Sprintf(
+			"Mastodon OAuth application is not registered. Register Japella on %s with redirect URI %s.",
+			c.defaultInstanceURL(),
+			redirectURL,
+		))
 	}
 
 	return res
@@ -123,6 +180,7 @@ func (c *MastodonConnector) GetProtocol() string {
 
 func (c *MastodonConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
 	c.db = startup.DB
+	c.tryRegisterClientIfNeeded()
 }
 
 type AppConfig struct {
@@ -136,38 +194,6 @@ type AppConfig struct {
 type RegistrationResponse struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"client_secret"`
-}
-
-func (c *MastodonConnector) RegisterClient() error {
-	client := utils.NewClient(c.Logger())
-
-	appConfig := &AppConfig{
-		Server:       "https://mastodon.social",
-		ClientName:   "japella",
-		Scopes:       "read write follow",
-		Website:      "https://jamesread.github.io/Japella",
-		RedirectURIs: c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL),
-	}
-
-	client.PostWithJson("https://mastodon.social/api/v1/apps", appConfig)
-
-	if client.Err != nil {
-		log.Errorf("Error: %s", client.Err)
-	}
-
-	resp := &RegistrationResponse{}
-
-	client.AsJson(resp)
-
-	if client.Err != nil {
-		log.Errorf("Error registering Mastodon app: %v", client.Err)
-		return nil
-	}
-
-	c.db.SetCvarString(CFG_MASTODON_CLIENT_ID, resp.ClientID)
-	c.db.SetCvarString(CFG_MASTODON_CLIENT_SECRET, resp.ClientSecret)
-
-	return nil
 }
 
 func (c *MastodonConnector) Start() {
@@ -360,10 +386,11 @@ func (c *MastodonConnector) GetIcon() string {
 }
 
 func (c *MastodonConnector) GetOAuth2Config() *oauth2.Config {
+	instanceURL := c.defaultInstanceURL()
 	c.Logger().Infof("Getting OAuth2 config for Mastodon, client_id: %v", redact.RedactString(c.db.GetCvarString(CFG_MASTODON_CLIENT_ID)))
 	ep := oauth2.Endpoint{
-		AuthURL:  "https://mastodon.social/oauth/authorize",
-		TokenURL: "https://mastodon.social/oauth/token",
+		AuthURL:  instanceURL + "/oauth/authorize",
+		TokenURL: instanceURL + "/oauth/token",
 	}
 
 	log.Infof("OAuth2 Redirect URL: %s", c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL))
@@ -427,8 +454,7 @@ func (c *MastodonConnector) OnOAuth2Callback(code string, verifier string, heade
 	c.Logger().Debugf("OAuth2 token received: %+v", token)
 
 	// Get identity (username) before registering to match existing accounts
-	// Use default instance URL (homeserver will be set from the account if updating)
-	instanceURL := "https://mastodon.social"
+	instanceURL := c.defaultInstanceURL()
 
 	identity := ""
 	whoamiClient := utils.NewClient(c.Logger())

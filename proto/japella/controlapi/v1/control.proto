@@ -154,17 +154,26 @@ message GetConnectorsResponse {
 	repeated UnregisteredConnector unregistered_connectors = 2; // Connectors that exist but aren't started
 }
 
+message ConnectorIssue {
+	string message = 1;
+	string fix_path = 2;
+	string fix_hash = 3;
+	string fix_label = 4;
+	string fix_action = 5;
+}
+
 message Connector {
 	string name = 2;
 	string protocol = 9; // The connector protocol (e.g., "telegram", "discord")
 	string icon = 3;
 	bool has_oauth = 4;
-    repeated string issues = 5;
+    repeated ConnectorIssue issues = 5;
     bool is_registered = 6;
 	bool is_started = 7; // Whether the connector is currently started
 	bool uses_yaml_config = 8; // Whether the connector uses YAML configuration (as opposed to OAuth)
 	bool supports_social_accounts = 10; // Whether the connector supports social accounts
 	bool supports_chatbot = 11; // Whether the connector supports chatbot functionality
+	bool supports_client_registration = 12;
 }
 
 message UnregisteredConnector {

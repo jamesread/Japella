@@ -68,10 +68,11 @@
 				</dd>
 			</dl>
 
-			<div v-if="connector.issues?.length" class="connector-issues">
-				<h3>Configuration issues</h3>
-				<p v-for="issue in connector.issues" :key="issue" class="inline-notification error small">{{ issue }}</p>
-			</div>
+			<ConnectorConfigurationIssues
+				:issues="connector.issues"
+				:registering="registeringClient"
+				@register-client="registerOAuthClient"
+			/>
 		</template>
 	</Section>
 
@@ -85,7 +86,7 @@
 		</div>
 
 		<template v-else-if="connector.hasOauth">
-			<p v-if="connector.issues?.length" class="muted">
+			<p v-if="connectorHasBlockingIssues(connector.issues)" class="muted">
 				Resolve the configuration issues above before connecting.
 			</p>
 			<button
@@ -117,6 +118,7 @@
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import ConnectorConfigurationIssues from './ConnectorConfigurationIssues.vue';
 	import {
 		waitForClient,
 		connectorDocsUrl,
@@ -124,6 +126,8 @@
 		connectorIntroText,
 		connectorUsesOauth,
 		connectorUsesYamlConfig,
+		normalizeConnectorIssues,
+		connectorHasBlockingIssues,
 	} from '../javascript/util';
 
 	const route = useRoute();
@@ -131,6 +135,7 @@
 	const loading = ref(true);
 	const errorMessage = ref('');
 	const connecting = ref(false);
+	const registeringClient = ref(false);
 	const connectors = ref([]);
 	const unregisteredConnectors = ref([]);
 
@@ -158,7 +163,9 @@
 			usesYamlConfig: !!c.usesYamlConfig,
 			supportsSocialAccounts: !!c.supportsSocialAccounts,
 			supportsChatbot: !!c.supportsChatbot,
-			issues: c.issues || [],
+			supportsClientRegistration: !!c.supportsClientRegistration,
+			isRegistered: !!c.isRegistered,
+			issues: normalizeConnectorIssues(c.issues),
 		};
 	}
 
@@ -195,8 +202,32 @@
 		}
 	}
 
+	async function registerOAuthClient() {
+		if (!connector.value?.supportsClientRegistration || registeringClient.value) {
+			return;
+		}
+
+		registeringClient.value = true;
+		errorMessage.value = '';
+
+		try {
+			await waitForClient();
+			const res = await window.client.registerConnector({ name: connector.value.name });
+			if (!res.standardResponse?.success) {
+				errorMessage.value = res.standardResponse?.message || 'Failed to register OAuth application.';
+				return;
+			}
+			await fetchConnectors();
+		} catch (e) {
+			console.error(e);
+			errorMessage.value = e.message || 'Failed to register OAuth application.';
+		} finally {
+			registeringClient.value = false;
+		}
+	}
+
 	async function startOAuth() {
-		if (!connector.value?.hasOauth || connector.value.issues?.length) {
+		if (!connector.value?.hasOauth || connectorHasBlockingIssues(connector.value.issues)) {
 			return;
 		}
 
@@ -276,18 +307,6 @@
 	.good-tag {
 		background: rgba(46, 125, 50, 0.2);
 		color: #2e7d32;
-	}
-
-	.connector-issues h3 {
-		margin: 0 0 0.5rem;
-		font-size: 1rem;
-	}
-
-	.connector-issues {
-		margin-top: 1.5rem;
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
 	}
 
 	.connect-btn {

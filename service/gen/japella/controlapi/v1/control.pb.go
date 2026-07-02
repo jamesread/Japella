@@ -1543,25 +1543,102 @@ func (x *GetConnectorsResponse) GetUnregisteredConnectors() []*UnregisteredConne
 	return nil
 }
 
+type ConnectorIssue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Message       string                 `protobuf:"bytes,1,opt,name=message,proto3" json:"message,omitempty"`
+	FixPath       string                 `protobuf:"bytes,2,opt,name=fix_path,json=fixPath,proto3" json:"fix_path,omitempty"`
+	FixHash       string                 `protobuf:"bytes,3,opt,name=fix_hash,json=fixHash,proto3" json:"fix_hash,omitempty"`
+	FixLabel      string                 `protobuf:"bytes,4,opt,name=fix_label,json=fixLabel,proto3" json:"fix_label,omitempty"`
+	FixAction     string                 `protobuf:"bytes,5,opt,name=fix_action,json=fixAction,proto3" json:"fix_action,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConnectorIssue) Reset() {
+	*x = ConnectorIssue{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConnectorIssue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConnectorIssue) ProtoMessage() {}
+
+func (x *ConnectorIssue) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConnectorIssue.ProtoReflect.Descriptor instead.
+func (*ConnectorIssue) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ConnectorIssue) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *ConnectorIssue) GetFixPath() string {
+	if x != nil {
+		return x.FixPath
+	}
+	return ""
+}
+
+func (x *ConnectorIssue) GetFixHash() string {
+	if x != nil {
+		return x.FixHash
+	}
+	return ""
+}
+
+func (x *ConnectorIssue) GetFixLabel() string {
+	if x != nil {
+		return x.FixLabel
+	}
+	return ""
+}
+
+func (x *ConnectorIssue) GetFixAction() string {
+	if x != nil {
+		return x.FixAction
+	}
+	return ""
+}
+
 type Connector struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	Name                   string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Protocol               string                 `protobuf:"bytes,9,opt,name=protocol,proto3" json:"protocol,omitempty"` // The connector protocol (e.g., "telegram", "discord")
-	Icon                   string                 `protobuf:"bytes,3,opt,name=icon,proto3" json:"icon,omitempty"`
-	HasOauth               bool                   `protobuf:"varint,4,opt,name=has_oauth,json=hasOauth,proto3" json:"has_oauth,omitempty"`
-	Issues                 []string               `protobuf:"bytes,5,rep,name=issues,proto3" json:"issues,omitempty"`
-	IsRegistered           bool                   `protobuf:"varint,6,opt,name=is_registered,json=isRegistered,proto3" json:"is_registered,omitempty"`
-	IsStarted              bool                   `protobuf:"varint,7,opt,name=is_started,json=isStarted,proto3" json:"is_started,omitempty"`                                           // Whether the connector is currently started
-	UsesYamlConfig         bool                   `protobuf:"varint,8,opt,name=uses_yaml_config,json=usesYamlConfig,proto3" json:"uses_yaml_config,omitempty"`                          // Whether the connector uses YAML configuration (as opposed to OAuth)
-	SupportsSocialAccounts bool                   `protobuf:"varint,10,opt,name=supports_social_accounts,json=supportsSocialAccounts,proto3" json:"supports_social_accounts,omitempty"` // Whether the connector supports social accounts
-	SupportsChatbot        bool                   `protobuf:"varint,11,opt,name=supports_chatbot,json=supportsChatbot,proto3" json:"supports_chatbot,omitempty"`                        // Whether the connector supports chatbot functionality
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                      protoimpl.MessageState `protogen:"open.v1"`
+	Name                       string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Protocol                   string                 `protobuf:"bytes,9,opt,name=protocol,proto3" json:"protocol,omitempty"` // The connector protocol (e.g., "telegram", "discord")
+	Icon                       string                 `protobuf:"bytes,3,opt,name=icon,proto3" json:"icon,omitempty"`
+	HasOauth                   bool                   `protobuf:"varint,4,opt,name=has_oauth,json=hasOauth,proto3" json:"has_oauth,omitempty"`
+	Issues                     []*ConnectorIssue      `protobuf:"bytes,5,rep,name=issues,proto3" json:"issues,omitempty"`
+	IsRegistered               bool                   `protobuf:"varint,6,opt,name=is_registered,json=isRegistered,proto3" json:"is_registered,omitempty"`
+	IsStarted                  bool                   `protobuf:"varint,7,opt,name=is_started,json=isStarted,proto3" json:"is_started,omitempty"`                                           // Whether the connector is currently started
+	UsesYamlConfig             bool                   `protobuf:"varint,8,opt,name=uses_yaml_config,json=usesYamlConfig,proto3" json:"uses_yaml_config,omitempty"`                          // Whether the connector uses YAML configuration (as opposed to OAuth)
+	SupportsSocialAccounts     bool                   `protobuf:"varint,10,opt,name=supports_social_accounts,json=supportsSocialAccounts,proto3" json:"supports_social_accounts,omitempty"` // Whether the connector supports social accounts
+	SupportsChatbot            bool                   `protobuf:"varint,11,opt,name=supports_chatbot,json=supportsChatbot,proto3" json:"supports_chatbot,omitempty"`                        // Whether the connector supports chatbot functionality
+	SupportsClientRegistration bool                   `protobuf:"varint,12,opt,name=supports_client_registration,json=supportsClientRegistration,proto3" json:"supports_client_registration,omitempty"`
+	unknownFields              protoimpl.UnknownFields
+	sizeCache                  protoimpl.SizeCache
 }
 
 func (x *Connector) Reset() {
 	*x = Connector{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[26]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1573,7 +1650,7 @@ func (x *Connector) String() string {
 func (*Connector) ProtoMessage() {}
 
 func (x *Connector) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[26]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1586,7 +1663,7 @@ func (x *Connector) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Connector.ProtoReflect.Descriptor instead.
 func (*Connector) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{26}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *Connector) GetName() string {
@@ -1617,7 +1694,7 @@ func (x *Connector) GetHasOauth() bool {
 	return false
 }
 
-func (x *Connector) GetIssues() []string {
+func (x *Connector) GetIssues() []*ConnectorIssue {
 	if x != nil {
 		return x.Issues
 	}
@@ -1659,6 +1736,13 @@ func (x *Connector) GetSupportsChatbot() bool {
 	return false
 }
 
+func (x *Connector) GetSupportsClientRegistration() bool {
+	if x != nil {
+		return x.SupportsClientRegistration
+	}
+	return false
+}
+
 type UnregisteredConnector struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Protocol         string                 `protobuf:"bytes,1,opt,name=protocol,proto3" json:"protocol,omitempty"`                                           // The connector protocol (e.g., "telegram", "discord")
@@ -1671,7 +1755,7 @@ type UnregisteredConnector struct {
 
 func (x *UnregisteredConnector) Reset() {
 	*x = UnregisteredConnector{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[27]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1683,7 +1767,7 @@ func (x *UnregisteredConnector) String() string {
 func (*UnregisteredConnector) ProtoMessage() {}
 
 func (x *UnregisteredConnector) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[27]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1696,7 +1780,7 @@ func (x *UnregisteredConnector) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UnregisteredConnector.ProtoReflect.Descriptor instead.
 func (*UnregisteredConnector) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{27}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *UnregisteredConnector) GetProtocol() string {
@@ -1736,7 +1820,7 @@ type StartOAuthRequest struct {
 
 func (x *StartOAuthRequest) Reset() {
 	*x = StartOAuthRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[28]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1748,7 +1832,7 @@ func (x *StartOAuthRequest) String() string {
 func (*StartOAuthRequest) ProtoMessage() {}
 
 func (x *StartOAuthRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[28]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1761,7 +1845,7 @@ func (x *StartOAuthRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartOAuthRequest.ProtoReflect.Descriptor instead.
 func (*StartOAuthRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{28}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *StartOAuthRequest) GetConnectorId() string {
@@ -1780,7 +1864,7 @@ type StartOAuthResponse struct {
 
 func (x *StartOAuthResponse) Reset() {
 	*x = StartOAuthResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[29]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1792,7 +1876,7 @@ func (x *StartOAuthResponse) String() string {
 func (*StartOAuthResponse) ProtoMessage() {}
 
 func (x *StartOAuthResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[29]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1805,7 +1889,7 @@ func (x *StartOAuthResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StartOAuthResponse.ProtoReflect.Descriptor instead.
 func (*StartOAuthResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{29}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *StartOAuthResponse) GetUrl() string {
@@ -1824,7 +1908,7 @@ type DeleteSocialAccountRequest struct {
 
 func (x *DeleteSocialAccountRequest) Reset() {
 	*x = DeleteSocialAccountRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[30]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1836,7 +1920,7 @@ func (x *DeleteSocialAccountRequest) String() string {
 func (*DeleteSocialAccountRequest) ProtoMessage() {}
 
 func (x *DeleteSocialAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[30]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1849,7 +1933,7 @@ func (x *DeleteSocialAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSocialAccountRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSocialAccountRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{30}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *DeleteSocialAccountRequest) GetId() uint32 {
@@ -1868,7 +1952,7 @@ type DeleteSocialAccountResponse struct {
 
 func (x *DeleteSocialAccountResponse) Reset() {
 	*x = DeleteSocialAccountResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[31]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[32]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1880,7 +1964,7 @@ func (x *DeleteSocialAccountResponse) String() string {
 func (*DeleteSocialAccountResponse) ProtoMessage() {}
 
 func (x *DeleteSocialAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[31]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[32]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1893,7 +1977,7 @@ func (x *DeleteSocialAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSocialAccountResponse.ProtoReflect.Descriptor instead.
 func (*DeleteSocialAccountResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{31}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{32}
 }
 
 func (x *DeleteSocialAccountResponse) GetStandardResponse() *StandardResponse {
@@ -1912,7 +1996,7 @@ type RefreshSocialAccountRequest struct {
 
 func (x *RefreshSocialAccountRequest) Reset() {
 	*x = RefreshSocialAccountRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[32]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[33]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1924,7 +2008,7 @@ func (x *RefreshSocialAccountRequest) String() string {
 func (*RefreshSocialAccountRequest) ProtoMessage() {}
 
 func (x *RefreshSocialAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[32]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[33]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1937,7 +2021,7 @@ func (x *RefreshSocialAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSocialAccountRequest.ProtoReflect.Descriptor instead.
 func (*RefreshSocialAccountRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{32}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{33}
 }
 
 func (x *RefreshSocialAccountRequest) GetId() uint32 {
@@ -1956,7 +2040,7 @@ type RefreshSocialAccountResponse struct {
 
 func (x *RefreshSocialAccountResponse) Reset() {
 	*x = RefreshSocialAccountResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[33]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[34]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1968,7 +2052,7 @@ func (x *RefreshSocialAccountResponse) String() string {
 func (*RefreshSocialAccountResponse) ProtoMessage() {}
 
 func (x *RefreshSocialAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[33]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[34]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1981,7 +2065,7 @@ func (x *RefreshSocialAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RefreshSocialAccountResponse.ProtoReflect.Descriptor instead.
 func (*RefreshSocialAccountResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{33}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{34}
 }
 
 func (x *RefreshSocialAccountResponse) GetStandardResponse() *StandardResponse {
@@ -2002,7 +2086,7 @@ type StandardResponse struct {
 
 func (x *StandardResponse) Reset() {
 	*x = StandardResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[34]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[35]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2014,7 +2098,7 @@ func (x *StandardResponse) String() string {
 func (*StandardResponse) ProtoMessage() {}
 
 func (x *StandardResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[34]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[35]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2027,7 +2111,7 @@ func (x *StandardResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StandardResponse.ProtoReflect.Descriptor instead.
 func (*StandardResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{34}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{35}
 }
 
 func (x *StandardResponse) GetSuccess() bool {
@@ -2063,7 +2147,7 @@ type GetTimelineRequest struct {
 
 func (x *GetTimelineRequest) Reset() {
 	*x = GetTimelineRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[35]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2075,7 +2159,7 @@ func (x *GetTimelineRequest) String() string {
 func (*GetTimelineRequest) ProtoMessage() {}
 
 func (x *GetTimelineRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[35]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2088,7 +2172,7 @@ func (x *GetTimelineRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTimelineRequest.ProtoReflect.Descriptor instead.
 func (*GetTimelineRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{35}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *GetTimelineRequest) GetPage() uint32 {
@@ -2117,7 +2201,7 @@ type GetTimelineResponse struct {
 
 func (x *GetTimelineResponse) Reset() {
 	*x = GetTimelineResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[36]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2129,7 +2213,7 @@ func (x *GetTimelineResponse) String() string {
 func (*GetTimelineResponse) ProtoMessage() {}
 
 func (x *GetTimelineResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[36]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2142,7 +2226,7 @@ func (x *GetTimelineResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTimelineResponse.ProtoReflect.Descriptor instead.
 func (*GetTimelineResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{36}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *GetTimelineResponse) GetPosts() []*PostStatus {
@@ -2169,7 +2253,7 @@ type UpdatePostCampaignRequest struct {
 
 func (x *UpdatePostCampaignRequest) Reset() {
 	*x = UpdatePostCampaignRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[37]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[38]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2181,7 +2265,7 @@ func (x *UpdatePostCampaignRequest) String() string {
 func (*UpdatePostCampaignRequest) ProtoMessage() {}
 
 func (x *UpdatePostCampaignRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[37]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[38]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2194,7 +2278,7 @@ func (x *UpdatePostCampaignRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePostCampaignRequest.ProtoReflect.Descriptor instead.
 func (*UpdatePostCampaignRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{37}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{38}
 }
 
 func (x *UpdatePostCampaignRequest) GetPostId() uint32 {
@@ -2220,7 +2304,7 @@ type UpdatePostCampaignResponse struct {
 
 func (x *UpdatePostCampaignResponse) Reset() {
 	*x = UpdatePostCampaignResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[38]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[39]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2232,7 +2316,7 @@ func (x *UpdatePostCampaignResponse) String() string {
 func (*UpdatePostCampaignResponse) ProtoMessage() {}
 
 func (x *UpdatePostCampaignResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[38]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[39]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2245,7 +2329,7 @@ func (x *UpdatePostCampaignResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdatePostCampaignResponse.ProtoReflect.Descriptor instead.
 func (*UpdatePostCampaignResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{38}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{39}
 }
 
 func (x *UpdatePostCampaignResponse) GetStandardResponse() *StandardResponse {
@@ -2264,7 +2348,7 @@ type ForgetPostRequest struct {
 
 func (x *ForgetPostRequest) Reset() {
 	*x = ForgetPostRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[39]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2276,7 +2360,7 @@ func (x *ForgetPostRequest) String() string {
 func (*ForgetPostRequest) ProtoMessage() {}
 
 func (x *ForgetPostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[39]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2289,7 +2373,7 @@ func (x *ForgetPostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForgetPostRequest.ProtoReflect.Descriptor instead.
 func (*ForgetPostRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{39}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *ForgetPostRequest) GetPostId() uint32 {
@@ -2308,7 +2392,7 @@ type ForgetPostResponse struct {
 
 func (x *ForgetPostResponse) Reset() {
 	*x = ForgetPostResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[40]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2320,7 +2404,7 @@ func (x *ForgetPostResponse) String() string {
 func (*ForgetPostResponse) ProtoMessage() {}
 
 func (x *ForgetPostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[40]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2333,7 +2417,7 @@ func (x *ForgetPostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ForgetPostResponse.ProtoReflect.Descriptor instead.
 func (*ForgetPostResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{40}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *ForgetPostResponse) GetStandardResponse() *StandardResponse {
@@ -2352,7 +2436,7 @@ type RetryPostRequest struct {
 
 func (x *RetryPostRequest) Reset() {
 	*x = RetryPostRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[41]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2364,7 +2448,7 @@ func (x *RetryPostRequest) String() string {
 func (*RetryPostRequest) ProtoMessage() {}
 
 func (x *RetryPostRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[41]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2377,7 +2461,7 @@ func (x *RetryPostRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryPostRequest.ProtoReflect.Descriptor instead.
 func (*RetryPostRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{41}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *RetryPostRequest) GetPostId() uint32 {
@@ -2397,7 +2481,7 @@ type RetryPostResponse struct {
 
 func (x *RetryPostResponse) Reset() {
 	*x = RetryPostResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[42]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2409,7 +2493,7 @@ func (x *RetryPostResponse) String() string {
 func (*RetryPostResponse) ProtoMessage() {}
 
 func (x *RetryPostResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[42]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2422,7 +2506,7 @@ func (x *RetryPostResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RetryPostResponse.ProtoReflect.Descriptor instead.
 func (*RetryPostResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{42}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *RetryPostResponse) GetStandardResponse() *StandardResponse {
@@ -2447,7 +2531,7 @@ type GetFeedRequest struct {
 
 func (x *GetFeedRequest) Reset() {
 	*x = GetFeedRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[43]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2459,7 +2543,7 @@ func (x *GetFeedRequest) String() string {
 func (*GetFeedRequest) ProtoMessage() {}
 
 func (x *GetFeedRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[43]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2472,7 +2556,7 @@ func (x *GetFeedRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFeedRequest.ProtoReflect.Descriptor instead.
 func (*GetFeedRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{43}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{44}
 }
 
 type GetFeedResponse struct {
@@ -2484,7 +2568,7 @@ type GetFeedResponse struct {
 
 func (x *GetFeedResponse) Reset() {
 	*x = GetFeedResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[44]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2496,7 +2580,7 @@ func (x *GetFeedResponse) String() string {
 func (*GetFeedResponse) ProtoMessage() {}
 
 func (x *GetFeedResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[44]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2509,7 +2593,7 @@ func (x *GetFeedResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetFeedResponse.ProtoReflect.Descriptor instead.
 func (*GetFeedResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{44}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *GetFeedResponse) GetPosts() []*FeedPost {
@@ -2541,7 +2625,7 @@ type FeedPost struct {
 
 func (x *FeedPost) Reset() {
 	*x = FeedPost{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[45]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[46]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2553,7 +2637,7 @@ func (x *FeedPost) String() string {
 func (*FeedPost) ProtoMessage() {}
 
 func (x *FeedPost) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[45]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[46]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2566,7 +2650,7 @@ func (x *FeedPost) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FeedPost.ProtoReflect.Descriptor instead.
 func (*FeedPost) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{45}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{46}
 }
 
 func (x *FeedPost) GetId() uint32 {
@@ -2677,7 +2761,7 @@ type SetSocialAccountActiveRequest struct {
 
 func (x *SetSocialAccountActiveRequest) Reset() {
 	*x = SetSocialAccountActiveRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[46]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[47]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2689,7 +2773,7 @@ func (x *SetSocialAccountActiveRequest) String() string {
 func (*SetSocialAccountActiveRequest) ProtoMessage() {}
 
 func (x *SetSocialAccountActiveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[46]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[47]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2702,7 +2786,7 @@ func (x *SetSocialAccountActiveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSocialAccountActiveRequest.ProtoReflect.Descriptor instead.
 func (*SetSocialAccountActiveRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{46}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{47}
 }
 
 func (x *SetSocialAccountActiveRequest) GetId() uint32 {
@@ -2728,7 +2812,7 @@ type SetSocialAccountActiveResponse struct {
 
 func (x *SetSocialAccountActiveResponse) Reset() {
 	*x = SetSocialAccountActiveResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[47]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[48]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2740,7 +2824,7 @@ func (x *SetSocialAccountActiveResponse) String() string {
 func (*SetSocialAccountActiveResponse) ProtoMessage() {}
 
 func (x *SetSocialAccountActiveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[47]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[48]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2753,7 +2837,7 @@ func (x *SetSocialAccountActiveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSocialAccountActiveResponse.ProtoReflect.Descriptor instead.
 func (*SetSocialAccountActiveResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{47}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{48}
 }
 
 func (x *SetSocialAccountActiveResponse) GetStandardResponse() *StandardResponse {
@@ -2771,7 +2855,7 @@ type CleanupFeedPostsRequest struct {
 
 func (x *CleanupFeedPostsRequest) Reset() {
 	*x = CleanupFeedPostsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[48]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[49]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2783,7 +2867,7 @@ func (x *CleanupFeedPostsRequest) String() string {
 func (*CleanupFeedPostsRequest) ProtoMessage() {}
 
 func (x *CleanupFeedPostsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[48]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[49]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2796,7 +2880,7 @@ func (x *CleanupFeedPostsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CleanupFeedPostsRequest.ProtoReflect.Descriptor instead.
 func (*CleanupFeedPostsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{48}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{49}
 }
 
 type CleanupFeedPostsResponse struct {
@@ -2808,7 +2892,7 @@ type CleanupFeedPostsResponse struct {
 
 func (x *CleanupFeedPostsResponse) Reset() {
 	*x = CleanupFeedPostsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[49]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[50]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2820,7 +2904,7 @@ func (x *CleanupFeedPostsResponse) String() string {
 func (*CleanupFeedPostsResponse) ProtoMessage() {}
 
 func (x *CleanupFeedPostsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[49]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[50]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2833,7 +2917,7 @@ func (x *CleanupFeedPostsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CleanupFeedPostsResponse.ProtoReflect.Descriptor instead.
 func (*CleanupFeedPostsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{49}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{50}
 }
 
 func (x *CleanupFeedPostsResponse) GetStandardResponse() *StandardResponse {
@@ -2853,7 +2937,7 @@ type LoginWithUsernameAndPasswordRequest struct {
 
 func (x *LoginWithUsernameAndPasswordRequest) Reset() {
 	*x = LoginWithUsernameAndPasswordRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[50]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[51]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2865,7 +2949,7 @@ func (x *LoginWithUsernameAndPasswordRequest) String() string {
 func (*LoginWithUsernameAndPasswordRequest) ProtoMessage() {}
 
 func (x *LoginWithUsernameAndPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[50]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[51]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2878,7 +2962,7 @@ func (x *LoginWithUsernameAndPasswordRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use LoginWithUsernameAndPasswordRequest.ProtoReflect.Descriptor instead.
 func (*LoginWithUsernameAndPasswordRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{50}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{51}
 }
 
 func (x *LoginWithUsernameAndPasswordRequest) GetUsername() string {
@@ -2906,7 +2990,7 @@ type LoginWithUsernameAndPasswordResponse struct {
 
 func (x *LoginWithUsernameAndPasswordResponse) Reset() {
 	*x = LoginWithUsernameAndPasswordResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[51]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[52]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2918,7 +3002,7 @@ func (x *LoginWithUsernameAndPasswordResponse) String() string {
 func (*LoginWithUsernameAndPasswordResponse) ProtoMessage() {}
 
 func (x *LoginWithUsernameAndPasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[51]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[52]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2931,7 +3015,7 @@ func (x *LoginWithUsernameAndPasswordResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use LoginWithUsernameAndPasswordResponse.ProtoReflect.Descriptor instead.
 func (*LoginWithUsernameAndPasswordResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{51}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{52}
 }
 
 func (x *LoginWithUsernameAndPasswordResponse) GetStandardResponse() *StandardResponse {
@@ -2965,7 +3049,7 @@ type ChangePasswordRequest struct {
 
 func (x *ChangePasswordRequest) Reset() {
 	*x = ChangePasswordRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[52]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[53]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2977,7 +3061,7 @@ func (x *ChangePasswordRequest) String() string {
 func (*ChangePasswordRequest) ProtoMessage() {}
 
 func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[52]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[53]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2990,7 +3074,7 @@ func (x *ChangePasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordRequest.ProtoReflect.Descriptor instead.
 func (*ChangePasswordRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{52}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{53}
 }
 
 func (x *ChangePasswordRequest) GetCurrentPassword() string {
@@ -3016,7 +3100,7 @@ type ChangePasswordResponse struct {
 
 func (x *ChangePasswordResponse) Reset() {
 	*x = ChangePasswordResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[53]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[54]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3028,7 +3112,7 @@ func (x *ChangePasswordResponse) String() string {
 func (*ChangePasswordResponse) ProtoMessage() {}
 
 func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[53]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[54]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3041,7 +3125,7 @@ func (x *ChangePasswordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChangePasswordResponse.ProtoReflect.Descriptor instead.
 func (*ChangePasswordResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{53}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{54}
 }
 
 func (x *ChangePasswordResponse) GetStandardResponse() *StandardResponse {
@@ -3061,7 +3145,7 @@ type ResetUserPasswordRequest struct {
 
 func (x *ResetUserPasswordRequest) Reset() {
 	*x = ResetUserPasswordRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[54]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[55]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3073,7 +3157,7 @@ func (x *ResetUserPasswordRequest) String() string {
 func (*ResetUserPasswordRequest) ProtoMessage() {}
 
 func (x *ResetUserPasswordRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[54]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[55]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3086,7 +3170,7 @@ func (x *ResetUserPasswordRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetUserPasswordRequest.ProtoReflect.Descriptor instead.
 func (*ResetUserPasswordRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{54}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{55}
 }
 
 func (x *ResetUserPasswordRequest) GetUserId() uint32 {
@@ -3112,7 +3196,7 @@ type ResetUserPasswordResponse struct {
 
 func (x *ResetUserPasswordResponse) Reset() {
 	*x = ResetUserPasswordResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[55]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[56]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3124,7 +3208,7 @@ func (x *ResetUserPasswordResponse) String() string {
 func (*ResetUserPasswordResponse) ProtoMessage() {}
 
 func (x *ResetUserPasswordResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[55]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[56]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3137,7 +3221,7 @@ func (x *ResetUserPasswordResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ResetUserPasswordResponse.ProtoReflect.Descriptor instead.
 func (*ResetUserPasswordResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{55}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{56}
 }
 
 func (x *ResetUserPasswordResponse) GetStandardResponse() *StandardResponse {
@@ -3155,7 +3239,7 @@ type LogoutRequest struct {
 
 func (x *LogoutRequest) Reset() {
 	*x = LogoutRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[56]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[57]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3167,7 +3251,7 @@ func (x *LogoutRequest) String() string {
 func (*LogoutRequest) ProtoMessage() {}
 
 func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[56]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[57]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3180,7 +3264,7 @@ func (x *LogoutRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutRequest.ProtoReflect.Descriptor instead.
 func (*LogoutRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{56}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{57}
 }
 
 type LogoutResponse struct {
@@ -3192,7 +3276,7 @@ type LogoutResponse struct {
 
 func (x *LogoutResponse) Reset() {
 	*x = LogoutResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[57]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[58]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3204,7 +3288,7 @@ func (x *LogoutResponse) String() string {
 func (*LogoutResponse) ProtoMessage() {}
 
 func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[57]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[58]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3217,7 +3301,7 @@ func (x *LogoutResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogoutResponse.ProtoReflect.Descriptor instead.
 func (*LogoutResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{57}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{58}
 }
 
 func (x *LogoutResponse) GetStandardResponse() *StandardResponse {
@@ -3235,7 +3319,7 @@ type GetUsersRequest struct {
 
 func (x *GetUsersRequest) Reset() {
 	*x = GetUsersRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[58]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[59]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3247,7 +3331,7 @@ func (x *GetUsersRequest) String() string {
 func (*GetUsersRequest) ProtoMessage() {}
 
 func (x *GetUsersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[58]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[59]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3260,7 +3344,7 @@ func (x *GetUsersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersRequest.ProtoReflect.Descriptor instead.
 func (*GetUsersRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{58}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{59}
 }
 
 type GetUsersResponse struct {
@@ -3272,7 +3356,7 @@ type GetUsersResponse struct {
 
 func (x *GetUsersResponse) Reset() {
 	*x = GetUsersResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[59]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[60]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3284,7 +3368,7 @@ func (x *GetUsersResponse) String() string {
 func (*GetUsersResponse) ProtoMessage() {}
 
 func (x *GetUsersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[59]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[60]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3297,7 +3381,7 @@ func (x *GetUsersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUsersResponse.ProtoReflect.Descriptor instead.
 func (*GetUsersResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{59}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{60}
 }
 
 func (x *GetUsersResponse) GetUsers() []*UserAccount {
@@ -3316,7 +3400,7 @@ type GetUserRequest struct {
 
 func (x *GetUserRequest) Reset() {
 	*x = GetUserRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[60]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[61]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3328,7 +3412,7 @@ func (x *GetUserRequest) String() string {
 func (*GetUserRequest) ProtoMessage() {}
 
 func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[60]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[61]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3341,7 +3425,7 @@ func (x *GetUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{60}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{61}
 }
 
 func (x *GetUserRequest) GetUserId() uint32 {
@@ -3360,7 +3444,7 @@ type GetUserResponse struct {
 
 func (x *GetUserResponse) Reset() {
 	*x = GetUserResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[61]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[62]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3372,7 +3456,7 @@ func (x *GetUserResponse) String() string {
 func (*GetUserResponse) ProtoMessage() {}
 
 func (x *GetUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[61]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[62]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3385,7 +3469,7 @@ func (x *GetUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserResponse.ProtoReflect.Descriptor instead.
 func (*GetUserResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{61}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{62}
 }
 
 func (x *GetUserResponse) GetUser() *UserAccount {
@@ -3406,7 +3490,7 @@ type UserAccount struct {
 
 func (x *UserAccount) Reset() {
 	*x = UserAccount{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[62]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[63]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3418,7 +3502,7 @@ func (x *UserAccount) String() string {
 func (*UserAccount) ProtoMessage() {}
 
 func (x *UserAccount) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[62]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[63]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3431,7 +3515,7 @@ func (x *UserAccount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserAccount.ProtoReflect.Descriptor instead.
 func (*UserAccount) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{62}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{63}
 }
 
 func (x *UserAccount) GetId() uint32 {
@@ -3465,7 +3549,7 @@ type CreateUserRequest struct {
 
 func (x *CreateUserRequest) Reset() {
 	*x = CreateUserRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[63]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[64]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3477,7 +3561,7 @@ func (x *CreateUserRequest) String() string {
 func (*CreateUserRequest) ProtoMessage() {}
 
 func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[63]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[64]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3490,7 +3574,7 @@ func (x *CreateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserRequest.ProtoReflect.Descriptor instead.
 func (*CreateUserRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{63}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{64}
 }
 
 func (x *CreateUserRequest) GetUsername() string {
@@ -3517,7 +3601,7 @@ type CreateUserResponse struct {
 
 func (x *CreateUserResponse) Reset() {
 	*x = CreateUserResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[64]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[65]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3529,7 +3613,7 @@ func (x *CreateUserResponse) String() string {
 func (*CreateUserResponse) ProtoMessage() {}
 
 func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[64]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[65]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3542,7 +3626,7 @@ func (x *CreateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserResponse.ProtoReflect.Descriptor instead.
 func (*CreateUserResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{64}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{65}
 }
 
 func (x *CreateUserResponse) GetStandardResponse() *StandardResponse {
@@ -3568,7 +3652,7 @@ type DeleteUserRequest struct {
 
 func (x *DeleteUserRequest) Reset() {
 	*x = DeleteUserRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[65]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[66]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3580,7 +3664,7 @@ func (x *DeleteUserRequest) String() string {
 func (*DeleteUserRequest) ProtoMessage() {}
 
 func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[65]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[66]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3593,7 +3677,7 @@ func (x *DeleteUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{65}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{66}
 }
 
 func (x *DeleteUserRequest) GetUserId() uint32 {
@@ -3612,7 +3696,7 @@ type DeleteUserResponse struct {
 
 func (x *DeleteUserResponse) Reset() {
 	*x = DeleteUserResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[66]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[67]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3624,7 +3708,7 @@ func (x *DeleteUserResponse) String() string {
 func (*DeleteUserResponse) ProtoMessage() {}
 
 func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[66]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[67]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3637,7 +3721,7 @@ func (x *DeleteUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{66}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{67}
 }
 
 func (x *DeleteUserResponse) GetStandardResponse() *StandardResponse {
@@ -3658,7 +3742,7 @@ type RbacPermission struct {
 
 func (x *RbacPermission) Reset() {
 	*x = RbacPermission{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[67]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[68]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3670,7 +3754,7 @@ func (x *RbacPermission) String() string {
 func (*RbacPermission) ProtoMessage() {}
 
 func (x *RbacPermission) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[67]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[68]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3683,7 +3767,7 @@ func (x *RbacPermission) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RbacPermission.ProtoReflect.Descriptor instead.
 func (*RbacPermission) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{67}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{68}
 }
 
 func (x *RbacPermission) GetId() uint32 {
@@ -3719,7 +3803,7 @@ type RbacRole struct {
 
 func (x *RbacRole) Reset() {
 	*x = RbacRole{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[68]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[69]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3731,7 +3815,7 @@ func (x *RbacRole) String() string {
 func (*RbacRole) ProtoMessage() {}
 
 func (x *RbacRole) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[68]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[69]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3744,7 +3828,7 @@ func (x *RbacRole) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RbacRole.ProtoReflect.Descriptor instead.
 func (*RbacRole) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{68}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{69}
 }
 
 func (x *RbacRole) GetId() uint32 {
@@ -3783,7 +3867,7 @@ type ListRbacPermissionsRequest struct {
 
 func (x *ListRbacPermissionsRequest) Reset() {
 	*x = ListRbacPermissionsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[69]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[70]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3795,7 +3879,7 @@ func (x *ListRbacPermissionsRequest) String() string {
 func (*ListRbacPermissionsRequest) ProtoMessage() {}
 
 func (x *ListRbacPermissionsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[69]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[70]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3808,7 +3892,7 @@ func (x *ListRbacPermissionsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRbacPermissionsRequest.ProtoReflect.Descriptor instead.
 func (*ListRbacPermissionsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{69}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{70}
 }
 
 type ListRbacPermissionsResponse struct {
@@ -3820,7 +3904,7 @@ type ListRbacPermissionsResponse struct {
 
 func (x *ListRbacPermissionsResponse) Reset() {
 	*x = ListRbacPermissionsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[70]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[71]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3832,7 +3916,7 @@ func (x *ListRbacPermissionsResponse) String() string {
 func (*ListRbacPermissionsResponse) ProtoMessage() {}
 
 func (x *ListRbacPermissionsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[70]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[71]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3845,7 +3929,7 @@ func (x *ListRbacPermissionsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRbacPermissionsResponse.ProtoReflect.Descriptor instead.
 func (*ListRbacPermissionsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{70}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{71}
 }
 
 func (x *ListRbacPermissionsResponse) GetPermissions() []*RbacPermission {
@@ -3863,7 +3947,7 @@ type ListRbacRolesRequest struct {
 
 func (x *ListRbacRolesRequest) Reset() {
 	*x = ListRbacRolesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[71]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[72]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3875,7 +3959,7 @@ func (x *ListRbacRolesRequest) String() string {
 func (*ListRbacRolesRequest) ProtoMessage() {}
 
 func (x *ListRbacRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[71]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[72]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3888,7 +3972,7 @@ func (x *ListRbacRolesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRbacRolesRequest.ProtoReflect.Descriptor instead.
 func (*ListRbacRolesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{71}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{72}
 }
 
 type ListRbacRolesResponse struct {
@@ -3900,7 +3984,7 @@ type ListRbacRolesResponse struct {
 
 func (x *ListRbacRolesResponse) Reset() {
 	*x = ListRbacRolesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[72]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[73]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3912,7 +3996,7 @@ func (x *ListRbacRolesResponse) String() string {
 func (*ListRbacRolesResponse) ProtoMessage() {}
 
 func (x *ListRbacRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[72]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[73]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3925,7 +4009,7 @@ func (x *ListRbacRolesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListRbacRolesResponse.ProtoReflect.Descriptor instead.
 func (*ListRbacRolesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{72}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{73}
 }
 
 func (x *ListRbacRolesResponse) GetRoles() []*RbacRole {
@@ -3946,7 +4030,7 @@ type CreateRbacRoleRequest struct {
 
 func (x *CreateRbacRoleRequest) Reset() {
 	*x = CreateRbacRoleRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[73]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[74]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3958,7 +4042,7 @@ func (x *CreateRbacRoleRequest) String() string {
 func (*CreateRbacRoleRequest) ProtoMessage() {}
 
 func (x *CreateRbacRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[73]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[74]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3971,7 +4055,7 @@ func (x *CreateRbacRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRbacRoleRequest.ProtoReflect.Descriptor instead.
 func (*CreateRbacRoleRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{73}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{74}
 }
 
 func (x *CreateRbacRoleRequest) GetName() string {
@@ -4005,7 +4089,7 @@ type CreateRbacRoleResponse struct {
 
 func (x *CreateRbacRoleResponse) Reset() {
 	*x = CreateRbacRoleResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[74]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[75]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4017,7 +4101,7 @@ func (x *CreateRbacRoleResponse) String() string {
 func (*CreateRbacRoleResponse) ProtoMessage() {}
 
 func (x *CreateRbacRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[74]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[75]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4030,7 +4114,7 @@ func (x *CreateRbacRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateRbacRoleResponse.ProtoReflect.Descriptor instead.
 func (*CreateRbacRoleResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{74}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{75}
 }
 
 func (x *CreateRbacRoleResponse) GetStandardResponse() *StandardResponse {
@@ -4059,7 +4143,7 @@ type UpdateRbacRoleRequest struct {
 
 func (x *UpdateRbacRoleRequest) Reset() {
 	*x = UpdateRbacRoleRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[75]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[76]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4071,7 +4155,7 @@ func (x *UpdateRbacRoleRequest) String() string {
 func (*UpdateRbacRoleRequest) ProtoMessage() {}
 
 func (x *UpdateRbacRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[75]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[76]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4084,7 +4168,7 @@ func (x *UpdateRbacRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRbacRoleRequest.ProtoReflect.Descriptor instead.
 func (*UpdateRbacRoleRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{75}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{76}
 }
 
 func (x *UpdateRbacRoleRequest) GetRoleId() uint32 {
@@ -4124,7 +4208,7 @@ type UpdateRbacRoleResponse struct {
 
 func (x *UpdateRbacRoleResponse) Reset() {
 	*x = UpdateRbacRoleResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[76]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[77]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4136,7 +4220,7 @@ func (x *UpdateRbacRoleResponse) String() string {
 func (*UpdateRbacRoleResponse) ProtoMessage() {}
 
 func (x *UpdateRbacRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[76]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[77]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4149,7 +4233,7 @@ func (x *UpdateRbacRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateRbacRoleResponse.ProtoReflect.Descriptor instead.
 func (*UpdateRbacRoleResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{76}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{77}
 }
 
 func (x *UpdateRbacRoleResponse) GetStandardResponse() *StandardResponse {
@@ -4168,7 +4252,7 @@ type DeleteRbacRoleRequest struct {
 
 func (x *DeleteRbacRoleRequest) Reset() {
 	*x = DeleteRbacRoleRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[77]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[78]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4180,7 +4264,7 @@ func (x *DeleteRbacRoleRequest) String() string {
 func (*DeleteRbacRoleRequest) ProtoMessage() {}
 
 func (x *DeleteRbacRoleRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[77]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[78]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4193,7 +4277,7 @@ func (x *DeleteRbacRoleRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRbacRoleRequest.ProtoReflect.Descriptor instead.
 func (*DeleteRbacRoleRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{77}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{78}
 }
 
 func (x *DeleteRbacRoleRequest) GetRoleId() uint32 {
@@ -4212,7 +4296,7 @@ type DeleteRbacRoleResponse struct {
 
 func (x *DeleteRbacRoleResponse) Reset() {
 	*x = DeleteRbacRoleResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[78]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[79]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4224,7 +4308,7 @@ func (x *DeleteRbacRoleResponse) String() string {
 func (*DeleteRbacRoleResponse) ProtoMessage() {}
 
 func (x *DeleteRbacRoleResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[78]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[79]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4237,7 +4321,7 @@ func (x *DeleteRbacRoleResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteRbacRoleResponse.ProtoReflect.Descriptor instead.
 func (*DeleteRbacRoleResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{78}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{79}
 }
 
 func (x *DeleteRbacRoleResponse) GetStandardResponse() *StandardResponse {
@@ -4256,7 +4340,7 @@ type GetUserRbacRolesRequest struct {
 
 func (x *GetUserRbacRolesRequest) Reset() {
 	*x = GetUserRbacRolesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[79]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[80]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4268,7 +4352,7 @@ func (x *GetUserRbacRolesRequest) String() string {
 func (*GetUserRbacRolesRequest) ProtoMessage() {}
 
 func (x *GetUserRbacRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[79]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[80]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4281,7 +4365,7 @@ func (x *GetUserRbacRolesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRbacRolesRequest.ProtoReflect.Descriptor instead.
 func (*GetUserRbacRolesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{79}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{80}
 }
 
 func (x *GetUserRbacRolesRequest) GetUserId() uint32 {
@@ -4300,7 +4384,7 @@ type GetUserRbacRolesResponse struct {
 
 func (x *GetUserRbacRolesResponse) Reset() {
 	*x = GetUserRbacRolesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[80]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[81]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4312,7 +4396,7 @@ func (x *GetUserRbacRolesResponse) String() string {
 func (*GetUserRbacRolesResponse) ProtoMessage() {}
 
 func (x *GetUserRbacRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[80]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[81]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4325,7 +4409,7 @@ func (x *GetUserRbacRolesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserRbacRolesResponse.ProtoReflect.Descriptor instead.
 func (*GetUserRbacRolesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{80}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{81}
 }
 
 func (x *GetUserRbacRolesResponse) GetRoleIds() []uint32 {
@@ -4345,7 +4429,7 @@ type SetUserRbacRolesRequest struct {
 
 func (x *SetUserRbacRolesRequest) Reset() {
 	*x = SetUserRbacRolesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[81]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[82]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4357,7 +4441,7 @@ func (x *SetUserRbacRolesRequest) String() string {
 func (*SetUserRbacRolesRequest) ProtoMessage() {}
 
 func (x *SetUserRbacRolesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[81]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[82]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4370,7 +4454,7 @@ func (x *SetUserRbacRolesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserRbacRolesRequest.ProtoReflect.Descriptor instead.
 func (*SetUserRbacRolesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{81}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{82}
 }
 
 func (x *SetUserRbacRolesRequest) GetUserId() uint32 {
@@ -4396,7 +4480,7 @@ type SetUserRbacRolesResponse struct {
 
 func (x *SetUserRbacRolesResponse) Reset() {
 	*x = SetUserRbacRolesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[82]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[83]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4408,7 +4492,7 @@ func (x *SetUserRbacRolesResponse) String() string {
 func (*SetUserRbacRolesResponse) ProtoMessage() {}
 
 func (x *SetUserRbacRolesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[82]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[83]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4421,7 +4505,7 @@ func (x *SetUserRbacRolesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserRbacRolesResponse.ProtoReflect.Descriptor instead.
 func (*SetUserRbacRolesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{82}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{83}
 }
 
 func (x *SetUserRbacRolesResponse) GetStandardResponse() *StandardResponse {
@@ -4439,7 +4523,7 @@ type GetApiKeysRequest struct {
 
 func (x *GetApiKeysRequest) Reset() {
 	*x = GetApiKeysRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[83]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[84]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4451,7 +4535,7 @@ func (x *GetApiKeysRequest) String() string {
 func (*GetApiKeysRequest) ProtoMessage() {}
 
 func (x *GetApiKeysRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[83]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[84]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4464,7 +4548,7 @@ func (x *GetApiKeysRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetApiKeysRequest.ProtoReflect.Descriptor instead.
 func (*GetApiKeysRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{83}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{84}
 }
 
 type GetApiKeysResponse struct {
@@ -4476,7 +4560,7 @@ type GetApiKeysResponse struct {
 
 func (x *GetApiKeysResponse) Reset() {
 	*x = GetApiKeysResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[84]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[85]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4488,7 +4572,7 @@ func (x *GetApiKeysResponse) String() string {
 func (*GetApiKeysResponse) ProtoMessage() {}
 
 func (x *GetApiKeysResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[84]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[85]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4501,7 +4585,7 @@ func (x *GetApiKeysResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetApiKeysResponse.ProtoReflect.Descriptor instead.
 func (*GetApiKeysResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{84}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{85}
 }
 
 func (x *GetApiKeysResponse) GetKeys() []*ApiKey {
@@ -4524,7 +4608,7 @@ type ApiKey struct {
 
 func (x *ApiKey) Reset() {
 	*x = ApiKey{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[85]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[86]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4536,7 +4620,7 @@ func (x *ApiKey) String() string {
 func (*ApiKey) ProtoMessage() {}
 
 func (x *ApiKey) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[85]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[86]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4549,7 +4633,7 @@ func (x *ApiKey) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ApiKey.ProtoReflect.Descriptor instead.
 func (*ApiKey) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{85}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{86}
 }
 
 func (x *ApiKey) GetId() uint32 {
@@ -4595,7 +4679,7 @@ type GetCvarsRequest struct {
 
 func (x *GetCvarsRequest) Reset() {
 	*x = GetCvarsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[86]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[87]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4607,7 +4691,7 @@ func (x *GetCvarsRequest) String() string {
 func (*GetCvarsRequest) ProtoMessage() {}
 
 func (x *GetCvarsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[86]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[87]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4620,7 +4704,7 @@ func (x *GetCvarsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCvarsRequest.ProtoReflect.Descriptor instead.
 func (*GetCvarsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{86}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{87}
 }
 
 type GetCvarsResponse struct {
@@ -4632,7 +4716,7 @@ type GetCvarsResponse struct {
 
 func (x *GetCvarsResponse) Reset() {
 	*x = GetCvarsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[87]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[88]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4644,7 +4728,7 @@ func (x *GetCvarsResponse) String() string {
 func (*GetCvarsResponse) ProtoMessage() {}
 
 func (x *GetCvarsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[87]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[88]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4657,7 +4741,7 @@ func (x *GetCvarsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCvarsResponse.ProtoReflect.Descriptor instead.
 func (*GetCvarsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{87}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{88}
 }
 
 func (x *GetCvarsResponse) GetCvarCategories() map[string]*CvarCategory {
@@ -4677,7 +4761,7 @@ type CvarCategory struct {
 
 func (x *CvarCategory) Reset() {
 	*x = CvarCategory{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[88]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[89]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4689,7 +4773,7 @@ func (x *CvarCategory) String() string {
 func (*CvarCategory) ProtoMessage() {}
 
 func (x *CvarCategory) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[88]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[89]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4702,7 +4786,7 @@ func (x *CvarCategory) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CvarCategory.ProtoReflect.Descriptor instead.
 func (*CvarCategory) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{88}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{89}
 }
 
 func (x *CvarCategory) GetCvars() []*Cvar {
@@ -4737,7 +4821,7 @@ type Cvar struct {
 
 func (x *Cvar) Reset() {
 	*x = Cvar{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[89]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[90]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4749,7 +4833,7 @@ func (x *Cvar) String() string {
 func (*Cvar) ProtoMessage() {}
 
 func (x *Cvar) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[89]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[90]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4762,7 +4846,7 @@ func (x *Cvar) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Cvar.ProtoReflect.Descriptor instead.
 func (*Cvar) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{89}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{90}
 }
 
 func (x *Cvar) GetKeyName() string {
@@ -4844,7 +4928,7 @@ type SaveUserPreferencesRequest struct {
 
 func (x *SaveUserPreferencesRequest) Reset() {
 	*x = SaveUserPreferencesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[90]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[91]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4856,7 +4940,7 @@ func (x *SaveUserPreferencesRequest) String() string {
 func (*SaveUserPreferencesRequest) ProtoMessage() {}
 
 func (x *SaveUserPreferencesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[90]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[91]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4869,7 +4953,7 @@ func (x *SaveUserPreferencesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveUserPreferencesRequest.ProtoReflect.Descriptor instead.
 func (*SaveUserPreferencesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{90}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{91}
 }
 
 func (x *SaveUserPreferencesRequest) GetLanguage() string {
@@ -4889,7 +4973,7 @@ type SaveUserPreferencesResponse struct {
 
 func (x *SaveUserPreferencesResponse) Reset() {
 	*x = SaveUserPreferencesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[91]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[92]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4901,7 +4985,7 @@ func (x *SaveUserPreferencesResponse) String() string {
 func (*SaveUserPreferencesResponse) ProtoMessage() {}
 
 func (x *SaveUserPreferencesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[91]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[92]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4914,7 +4998,7 @@ func (x *SaveUserPreferencesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SaveUserPreferencesResponse.ProtoReflect.Descriptor instead.
 func (*SaveUserPreferencesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{91}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{92}
 }
 
 func (x *SaveUserPreferencesResponse) GetStandardResponse() *StandardResponse {
@@ -4939,7 +5023,7 @@ type CreateApiKeyRequest struct {
 
 func (x *CreateApiKeyRequest) Reset() {
 	*x = CreateApiKeyRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[92]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[93]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4951,7 +5035,7 @@ func (x *CreateApiKeyRequest) String() string {
 func (*CreateApiKeyRequest) ProtoMessage() {}
 
 func (x *CreateApiKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[92]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[93]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -4964,7 +5048,7 @@ func (x *CreateApiKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateApiKeyRequest.ProtoReflect.Descriptor instead.
 func (*CreateApiKeyRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{92}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{93}
 }
 
 type CreateApiKeyResponse struct {
@@ -4977,7 +5061,7 @@ type CreateApiKeyResponse struct {
 
 func (x *CreateApiKeyResponse) Reset() {
 	*x = CreateApiKeyResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[93]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[94]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -4989,7 +5073,7 @@ func (x *CreateApiKeyResponse) String() string {
 func (*CreateApiKeyResponse) ProtoMessage() {}
 
 func (x *CreateApiKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[93]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[94]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5002,7 +5086,7 @@ func (x *CreateApiKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateApiKeyResponse.ProtoReflect.Descriptor instead.
 func (*CreateApiKeyResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{93}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{94}
 }
 
 func (x *CreateApiKeyResponse) GetStandardResponse() *StandardResponse {
@@ -5028,7 +5112,7 @@ type RevokeApiKeyRequest struct {
 
 func (x *RevokeApiKeyRequest) Reset() {
 	*x = RevokeApiKeyRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[94]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[95]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5040,7 +5124,7 @@ func (x *RevokeApiKeyRequest) String() string {
 func (*RevokeApiKeyRequest) ProtoMessage() {}
 
 func (x *RevokeApiKeyRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[94]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[95]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5053,7 +5137,7 @@ func (x *RevokeApiKeyRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeApiKeyRequest.ProtoReflect.Descriptor instead.
 func (*RevokeApiKeyRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{94}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{95}
 }
 
 func (x *RevokeApiKeyRequest) GetId() uint32 {
@@ -5072,7 +5156,7 @@ type RevokeApiKeyResponse struct {
 
 func (x *RevokeApiKeyResponse) Reset() {
 	*x = RevokeApiKeyResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[95]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[96]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5084,7 +5168,7 @@ func (x *RevokeApiKeyResponse) String() string {
 func (*RevokeApiKeyResponse) ProtoMessage() {}
 
 func (x *RevokeApiKeyResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[95]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[96]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5097,7 +5181,7 @@ func (x *RevokeApiKeyResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RevokeApiKeyResponse.ProtoReflect.Descriptor instead.
 func (*RevokeApiKeyResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{95}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{96}
 }
 
 func (x *RevokeApiKeyResponse) GetStandardResponse() *StandardResponse {
@@ -5118,7 +5202,7 @@ type SetCvarRequest struct {
 
 func (x *SetCvarRequest) Reset() {
 	*x = SetCvarRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[96]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[97]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5130,7 +5214,7 @@ func (x *SetCvarRequest) String() string {
 func (*SetCvarRequest) ProtoMessage() {}
 
 func (x *SetCvarRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[96]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[97]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5143,7 +5227,7 @@ func (x *SetCvarRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetCvarRequest.ProtoReflect.Descriptor instead.
 func (*SetCvarRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{96}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{97}
 }
 
 func (x *SetCvarRequest) GetKeyName() string {
@@ -5179,7 +5263,7 @@ type SetCvarResponse struct {
 
 func (x *SetCvarResponse) Reset() {
 	*x = SetCvarResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[97]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[98]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5191,7 +5275,7 @@ func (x *SetCvarResponse) String() string {
 func (*SetCvarResponse) ProtoMessage() {}
 
 func (x *SetCvarResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[97]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[98]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5204,7 +5288,7 @@ func (x *SetCvarResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetCvarResponse.ProtoReflect.Descriptor instead.
 func (*SetCvarResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{97}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{98}
 }
 
 func (x *SetCvarResponse) GetStandardResponse() *StandardResponse {
@@ -5244,7 +5328,7 @@ type RegisterConnectorRequest struct {
 
 func (x *RegisterConnectorRequest) Reset() {
 	*x = RegisterConnectorRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[98]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[99]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5256,7 +5340,7 @@ func (x *RegisterConnectorRequest) String() string {
 func (*RegisterConnectorRequest) ProtoMessage() {}
 
 func (x *RegisterConnectorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[98]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[99]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5269,7 +5353,7 @@ func (x *RegisterConnectorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterConnectorRequest.ProtoReflect.Descriptor instead.
 func (*RegisterConnectorRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{98}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{99}
 }
 
 func (x *RegisterConnectorRequest) GetName() string {
@@ -5288,7 +5372,7 @@ type RegisterConnectorResponse struct {
 
 func (x *RegisterConnectorResponse) Reset() {
 	*x = RegisterConnectorResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[99]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[100]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5300,7 +5384,7 @@ func (x *RegisterConnectorResponse) String() string {
 func (*RegisterConnectorResponse) ProtoMessage() {}
 
 func (x *RegisterConnectorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[99]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[100]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5313,7 +5397,7 @@ func (x *RegisterConnectorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RegisterConnectorResponse.ProtoReflect.Descriptor instead.
 func (*RegisterConnectorResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{99}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{100}
 }
 
 func (x *RegisterConnectorResponse) GetStandardResponse() *StandardResponse {
@@ -5333,7 +5417,7 @@ type CreateCampaignRequest struct {
 
 func (x *CreateCampaignRequest) Reset() {
 	*x = CreateCampaignRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[100]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[101]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5345,7 +5429,7 @@ func (x *CreateCampaignRequest) String() string {
 func (*CreateCampaignRequest) ProtoMessage() {}
 
 func (x *CreateCampaignRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[100]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[101]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5358,7 +5442,7 @@ func (x *CreateCampaignRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCampaignRequest.ProtoReflect.Descriptor instead.
 func (*CreateCampaignRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{100}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{101}
 }
 
 func (x *CreateCampaignRequest) GetName() string {
@@ -5385,7 +5469,7 @@ type CreateCampaignResponse struct {
 
 func (x *CreateCampaignResponse) Reset() {
 	*x = CreateCampaignResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[101]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[102]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5397,7 +5481,7 @@ func (x *CreateCampaignResponse) String() string {
 func (*CreateCampaignResponse) ProtoMessage() {}
 
 func (x *CreateCampaignResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[101]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[102]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5410,7 +5494,7 @@ func (x *CreateCampaignResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateCampaignResponse.ProtoReflect.Descriptor instead.
 func (*CreateCampaignResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{101}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{102}
 }
 
 func (x *CreateCampaignResponse) GetStandardResponse() *StandardResponse {
@@ -5435,7 +5519,7 @@ type GetCampaignsRequest struct {
 
 func (x *GetCampaignsRequest) Reset() {
 	*x = GetCampaignsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[102]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[103]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5447,7 +5531,7 @@ func (x *GetCampaignsRequest) String() string {
 func (*GetCampaignsRequest) ProtoMessage() {}
 
 func (x *GetCampaignsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[102]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[103]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5460,7 +5544,7 @@ func (x *GetCampaignsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCampaignsRequest.ProtoReflect.Descriptor instead.
 func (*GetCampaignsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{102}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{103}
 }
 
 type GetCampaignsResponse struct {
@@ -5472,7 +5556,7 @@ type GetCampaignsResponse struct {
 
 func (x *GetCampaignsResponse) Reset() {
 	*x = GetCampaignsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[103]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[104]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5484,7 +5568,7 @@ func (x *GetCampaignsResponse) String() string {
 func (*GetCampaignsResponse) ProtoMessage() {}
 
 func (x *GetCampaignsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[103]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[104]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5497,7 +5581,7 @@ func (x *GetCampaignsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCampaignsResponse.ProtoReflect.Descriptor instead.
 func (*GetCampaignsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{103}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{104}
 }
 
 func (x *GetCampaignsResponse) GetCampaigns() []*Campaign {
@@ -5522,7 +5606,7 @@ type Campaign struct {
 
 func (x *Campaign) Reset() {
 	*x = Campaign{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[104]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[105]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5534,7 +5618,7 @@ func (x *Campaign) String() string {
 func (*Campaign) ProtoMessage() {}
 
 func (x *Campaign) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[104]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[105]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5547,7 +5631,7 @@ func (x *Campaign) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Campaign.ProtoReflect.Descriptor instead.
 func (*Campaign) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{104}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{105}
 }
 
 func (x *Campaign) GetId() uint32 {
@@ -5609,7 +5693,7 @@ type AddSocialAccountToCampaignRequest struct {
 
 func (x *AddSocialAccountToCampaignRequest) Reset() {
 	*x = AddSocialAccountToCampaignRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[105]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[106]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5621,7 +5705,7 @@ func (x *AddSocialAccountToCampaignRequest) String() string {
 func (*AddSocialAccountToCampaignRequest) ProtoMessage() {}
 
 func (x *AddSocialAccountToCampaignRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[105]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[106]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5634,7 +5718,7 @@ func (x *AddSocialAccountToCampaignRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use AddSocialAccountToCampaignRequest.ProtoReflect.Descriptor instead.
 func (*AddSocialAccountToCampaignRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{105}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{106}
 }
 
 func (x *AddSocialAccountToCampaignRequest) GetCampaignId() uint32 {
@@ -5660,7 +5744,7 @@ type AddSocialAccountToCampaignResponse struct {
 
 func (x *AddSocialAccountToCampaignResponse) Reset() {
 	*x = AddSocialAccountToCampaignResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[106]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[107]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5672,7 +5756,7 @@ func (x *AddSocialAccountToCampaignResponse) String() string {
 func (*AddSocialAccountToCampaignResponse) ProtoMessage() {}
 
 func (x *AddSocialAccountToCampaignResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[106]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[107]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5685,7 +5769,7 @@ func (x *AddSocialAccountToCampaignResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use AddSocialAccountToCampaignResponse.ProtoReflect.Descriptor instead.
 func (*AddSocialAccountToCampaignResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{106}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{107}
 }
 
 func (x *AddSocialAccountToCampaignResponse) GetStandardResponse() *StandardResponse {
@@ -5705,7 +5789,7 @@ type RemoveSocialAccountFromCampaignRequest struct {
 
 func (x *RemoveSocialAccountFromCampaignRequest) Reset() {
 	*x = RemoveSocialAccountFromCampaignRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[107]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[108]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5717,7 +5801,7 @@ func (x *RemoveSocialAccountFromCampaignRequest) String() string {
 func (*RemoveSocialAccountFromCampaignRequest) ProtoMessage() {}
 
 func (x *RemoveSocialAccountFromCampaignRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[107]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[108]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5730,7 +5814,7 @@ func (x *RemoveSocialAccountFromCampaignRequest) ProtoReflect() protoreflect.Mes
 
 // Deprecated: Use RemoveSocialAccountFromCampaignRequest.ProtoReflect.Descriptor instead.
 func (*RemoveSocialAccountFromCampaignRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{107}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{108}
 }
 
 func (x *RemoveSocialAccountFromCampaignRequest) GetCampaignId() uint32 {
@@ -5756,7 +5840,7 @@ type RemoveSocialAccountFromCampaignResponse struct {
 
 func (x *RemoveSocialAccountFromCampaignResponse) Reset() {
 	*x = RemoveSocialAccountFromCampaignResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[108]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[109]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5768,7 +5852,7 @@ func (x *RemoveSocialAccountFromCampaignResponse) String() string {
 func (*RemoveSocialAccountFromCampaignResponse) ProtoMessage() {}
 
 func (x *RemoveSocialAccountFromCampaignResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[108]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[109]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5781,7 +5865,7 @@ func (x *RemoveSocialAccountFromCampaignResponse) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use RemoveSocialAccountFromCampaignResponse.ProtoReflect.Descriptor instead.
 func (*RemoveSocialAccountFromCampaignResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{108}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{109}
 }
 
 func (x *RemoveSocialAccountFromCampaignResponse) GetStandardResponse() *StandardResponse {
@@ -5800,7 +5884,7 @@ type GetCampaignSocialAccountsRequest struct {
 
 func (x *GetCampaignSocialAccountsRequest) Reset() {
 	*x = GetCampaignSocialAccountsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[109]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[110]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5812,7 +5896,7 @@ func (x *GetCampaignSocialAccountsRequest) String() string {
 func (*GetCampaignSocialAccountsRequest) ProtoMessage() {}
 
 func (x *GetCampaignSocialAccountsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[109]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[110]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5825,7 +5909,7 @@ func (x *GetCampaignSocialAccountsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetCampaignSocialAccountsRequest.ProtoReflect.Descriptor instead.
 func (*GetCampaignSocialAccountsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{109}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{110}
 }
 
 func (x *GetCampaignSocialAccountsRequest) GetCampaignId() uint32 {
@@ -5844,7 +5928,7 @@ type GetCampaignSocialAccountsResponse struct {
 
 func (x *GetCampaignSocialAccountsResponse) Reset() {
 	*x = GetCampaignSocialAccountsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[110]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[111]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5856,7 +5940,7 @@ func (x *GetCampaignSocialAccountsResponse) String() string {
 func (*GetCampaignSocialAccountsResponse) ProtoMessage() {}
 
 func (x *GetCampaignSocialAccountsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[110]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[111]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5869,7 +5953,7 @@ func (x *GetCampaignSocialAccountsResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetCampaignSocialAccountsResponse.ProtoReflect.Descriptor instead.
 func (*GetCampaignSocialAccountsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{110}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{111}
 }
 
 func (x *GetCampaignSocialAccountsResponse) GetSocialAccountIds() []uint32 {
@@ -5890,7 +5974,7 @@ type UpdateCampaignRequest struct {
 
 func (x *UpdateCampaignRequest) Reset() {
 	*x = UpdateCampaignRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[111]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[112]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5902,7 +5986,7 @@ func (x *UpdateCampaignRequest) String() string {
 func (*UpdateCampaignRequest) ProtoMessage() {}
 
 func (x *UpdateCampaignRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[111]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[112]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5915,7 +5999,7 @@ func (x *UpdateCampaignRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCampaignRequest.ProtoReflect.Descriptor instead.
 func (*UpdateCampaignRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{111}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{112}
 }
 
 func (x *UpdateCampaignRequest) GetId() uint32 {
@@ -5948,7 +6032,7 @@ type UpdateCampaignResponse struct {
 
 func (x *UpdateCampaignResponse) Reset() {
 	*x = UpdateCampaignResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[112]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[113]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -5960,7 +6044,7 @@ func (x *UpdateCampaignResponse) String() string {
 func (*UpdateCampaignResponse) ProtoMessage() {}
 
 func (x *UpdateCampaignResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[112]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[113]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -5973,7 +6057,7 @@ func (x *UpdateCampaignResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateCampaignResponse.ProtoReflect.Descriptor instead.
 func (*UpdateCampaignResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{112}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{113}
 }
 
 func (x *UpdateCampaignResponse) GetStandardResponse() *StandardResponse {
@@ -5992,7 +6076,7 @@ type DeleteCampaignRequest struct {
 
 func (x *DeleteCampaignRequest) Reset() {
 	*x = DeleteCampaignRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[113]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[114]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6004,7 +6088,7 @@ func (x *DeleteCampaignRequest) String() string {
 func (*DeleteCampaignRequest) ProtoMessage() {}
 
 func (x *DeleteCampaignRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[113]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[114]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6017,7 +6101,7 @@ func (x *DeleteCampaignRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCampaignRequest.ProtoReflect.Descriptor instead.
 func (*DeleteCampaignRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{113}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{114}
 }
 
 func (x *DeleteCampaignRequest) GetId() uint32 {
@@ -6036,7 +6120,7 @@ type DeleteCampaignResponse struct {
 
 func (x *DeleteCampaignResponse) Reset() {
 	*x = DeleteCampaignResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[114]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[115]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6048,7 +6132,7 @@ func (x *DeleteCampaignResponse) String() string {
 func (*DeleteCampaignResponse) ProtoMessage() {}
 
 func (x *DeleteCampaignResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[114]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[115]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6061,7 +6145,7 @@ func (x *DeleteCampaignResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteCampaignResponse.ProtoReflect.Descriptor instead.
 func (*DeleteCampaignResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{114}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{115}
 }
 
 func (x *DeleteCampaignResponse) GetStandardResponse() *StandardResponse {
@@ -6080,7 +6164,7 @@ type GetLogsRequest struct {
 
 func (x *GetLogsRequest) Reset() {
 	*x = GetLogsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[115]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[116]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6092,7 +6176,7 @@ func (x *GetLogsRequest) String() string {
 func (*GetLogsRequest) ProtoMessage() {}
 
 func (x *GetLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[115]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[116]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6105,7 +6189,7 @@ func (x *GetLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLogsRequest.ProtoReflect.Descriptor instead.
 func (*GetLogsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{115}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{116}
 }
 
 func (x *GetLogsRequest) GetLimit() uint32 {
@@ -6124,7 +6208,7 @@ type GetLogsResponse struct {
 
 func (x *GetLogsResponse) Reset() {
 	*x = GetLogsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[116]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[117]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6136,7 +6220,7 @@ func (x *GetLogsResponse) String() string {
 func (*GetLogsResponse) ProtoMessage() {}
 
 func (x *GetLogsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[116]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[117]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6149,7 +6233,7 @@ func (x *GetLogsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetLogsResponse.ProtoReflect.Descriptor instead.
 func (*GetLogsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{116}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{117}
 }
 
 func (x *GetLogsResponse) GetLogs() []*LogEntry {
@@ -6173,7 +6257,7 @@ type LogEntry struct {
 
 func (x *LogEntry) Reset() {
 	*x = LogEntry{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[117]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[118]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6185,7 +6269,7 @@ func (x *LogEntry) String() string {
 func (*LogEntry) ProtoMessage() {}
 
 func (x *LogEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[117]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[118]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6198,7 +6282,7 @@ func (x *LogEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LogEntry.ProtoReflect.Descriptor instead.
 func (*LogEntry) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{117}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{118}
 }
 
 func (x *LogEntry) GetId() uint32 {
@@ -6251,7 +6335,7 @@ type GetJobsStatusRequest struct {
 
 func (x *GetJobsStatusRequest) Reset() {
 	*x = GetJobsStatusRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[118]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[119]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6263,7 +6347,7 @@ func (x *GetJobsStatusRequest) String() string {
 func (*GetJobsStatusRequest) ProtoMessage() {}
 
 func (x *GetJobsStatusRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[118]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[119]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6276,7 +6360,7 @@ func (x *GetJobsStatusRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJobsStatusRequest.ProtoReflect.Descriptor instead.
 func (*GetJobsStatusRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{118}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{119}
 }
 
 type GetJobsStatusResponse struct {
@@ -6288,7 +6372,7 @@ type GetJobsStatusResponse struct {
 
 func (x *GetJobsStatusResponse) Reset() {
 	*x = GetJobsStatusResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[119]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[120]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6300,7 +6384,7 @@ func (x *GetJobsStatusResponse) String() string {
 func (*GetJobsStatusResponse) ProtoMessage() {}
 
 func (x *GetJobsStatusResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[119]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[120]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6313,7 +6397,7 @@ func (x *GetJobsStatusResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetJobsStatusResponse.ProtoReflect.Descriptor instead.
 func (*GetJobsStatusResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{119}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{120}
 }
 
 func (x *GetJobsStatusResponse) GetJobs() []*JobStatus {
@@ -6335,7 +6419,7 @@ type JobStatus struct {
 
 func (x *JobStatus) Reset() {
 	*x = JobStatus{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[120]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[121]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6347,7 +6431,7 @@ func (x *JobStatus) String() string {
 func (*JobStatus) ProtoMessage() {}
 
 func (x *JobStatus) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[120]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[121]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6360,7 +6444,7 @@ func (x *JobStatus) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use JobStatus.ProtoReflect.Descriptor instead.
 func (*JobStatus) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{120}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{121}
 }
 
 func (x *JobStatus) GetName() string {
@@ -6399,7 +6483,7 @@ type ListMediaRequest struct {
 
 func (x *ListMediaRequest) Reset() {
 	*x = ListMediaRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[121]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[122]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6411,7 +6495,7 @@ func (x *ListMediaRequest) String() string {
 func (*ListMediaRequest) ProtoMessage() {}
 
 func (x *ListMediaRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[121]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[122]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6424,7 +6508,7 @@ func (x *ListMediaRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMediaRequest.ProtoReflect.Descriptor instead.
 func (*ListMediaRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{121}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{122}
 }
 
 type ListMediaResponse struct {
@@ -6436,7 +6520,7 @@ type ListMediaResponse struct {
 
 func (x *ListMediaResponse) Reset() {
 	*x = ListMediaResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[122]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[123]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6448,7 +6532,7 @@ func (x *ListMediaResponse) String() string {
 func (*ListMediaResponse) ProtoMessage() {}
 
 func (x *ListMediaResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[122]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[123]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6461,7 +6545,7 @@ func (x *ListMediaResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListMediaResponse.ProtoReflect.Descriptor instead.
 func (*ListMediaResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{122}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{123}
 }
 
 func (x *ListMediaResponse) GetItems() []*MediaItem {
@@ -6481,7 +6565,7 @@ type MediaItem struct {
 
 func (x *MediaItem) Reset() {
 	*x = MediaItem{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[123]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[124]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6493,7 +6577,7 @@ func (x *MediaItem) String() string {
 func (*MediaItem) ProtoMessage() {}
 
 func (x *MediaItem) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[123]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[124]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6506,7 +6590,7 @@ func (x *MediaItem) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use MediaItem.ProtoReflect.Descriptor instead.
 func (*MediaItem) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{123}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{124}
 }
 
 func (x *MediaItem) GetFilename() string {
@@ -6531,7 +6615,7 @@ type GetChatBotsRequest struct {
 
 func (x *GetChatBotsRequest) Reset() {
 	*x = GetChatBotsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[124]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[125]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6543,7 +6627,7 @@ func (x *GetChatBotsRequest) String() string {
 func (*GetChatBotsRequest) ProtoMessage() {}
 
 func (x *GetChatBotsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[124]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[125]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6556,7 +6640,7 @@ func (x *GetChatBotsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatBotsRequest.ProtoReflect.Descriptor instead.
 func (*GetChatBotsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{124}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{125}
 }
 
 type GetChatBotsResponse struct {
@@ -6568,7 +6652,7 @@ type GetChatBotsResponse struct {
 
 func (x *GetChatBotsResponse) Reset() {
 	*x = GetChatBotsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[125]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[126]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6580,7 +6664,7 @@ func (x *GetChatBotsResponse) String() string {
 func (*GetChatBotsResponse) ProtoMessage() {}
 
 func (x *GetChatBotsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[125]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[126]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6593,7 +6677,7 @@ func (x *GetChatBotsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatBotsResponse.ProtoReflect.Descriptor instead.
 func (*GetChatBotsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{125}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{126}
 }
 
 func (x *GetChatBotsResponse) GetBots() []*ChatBot {
@@ -6619,7 +6703,7 @@ type ChatBot struct {
 
 func (x *ChatBot) Reset() {
 	*x = ChatBot{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[126]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[127]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6631,7 +6715,7 @@ func (x *ChatBot) String() string {
 func (*ChatBot) ProtoMessage() {}
 
 func (x *ChatBot) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[126]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[127]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6644,7 +6728,7 @@ func (x *ChatBot) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatBot.ProtoReflect.Descriptor instead.
 func (*ChatBot) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{126}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{127}
 }
 
 func (x *ChatBot) GetConnector() string {
@@ -6713,7 +6797,7 @@ type GetBotChannelsRequest struct {
 
 func (x *GetBotChannelsRequest) Reset() {
 	*x = GetBotChannelsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[127]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[128]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6725,7 +6809,7 @@ func (x *GetBotChannelsRequest) String() string {
 func (*GetBotChannelsRequest) ProtoMessage() {}
 
 func (x *GetBotChannelsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[127]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[128]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6738,7 +6822,7 @@ func (x *GetBotChannelsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBotChannelsRequest.ProtoReflect.Descriptor instead.
 func (*GetBotChannelsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{127}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{128}
 }
 
 func (x *GetBotChannelsRequest) GetConnector() string {
@@ -6764,7 +6848,7 @@ type GetBotChannelsResponse struct {
 
 func (x *GetBotChannelsResponse) Reset() {
 	*x = GetBotChannelsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[128]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[129]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6776,7 +6860,7 @@ func (x *GetBotChannelsResponse) String() string {
 func (*GetBotChannelsResponse) ProtoMessage() {}
 
 func (x *GetBotChannelsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[128]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[129]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6789,7 +6873,7 @@ func (x *GetBotChannelsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBotChannelsResponse.ProtoReflect.Descriptor instead.
 func (*GetBotChannelsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{128}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{129}
 }
 
 func (x *GetBotChannelsResponse) GetChannels() []*BotChannel {
@@ -6811,7 +6895,7 @@ type BotChannel struct {
 
 func (x *BotChannel) Reset() {
 	*x = BotChannel{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[129]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[130]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6823,7 +6907,7 @@ func (x *BotChannel) String() string {
 func (*BotChannel) ProtoMessage() {}
 
 func (x *BotChannel) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[129]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[130]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6836,7 +6920,7 @@ func (x *BotChannel) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BotChannel.ProtoReflect.Descriptor instead.
 func (*BotChannel) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{129}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{130}
 }
 
 func (x *BotChannel) GetId() string {
@@ -6877,7 +6961,7 @@ type IncomingMessageHook struct {
 
 func (x *IncomingMessageHook) Reset() {
 	*x = IncomingMessageHook{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[130]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[131]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6889,7 +6973,7 @@ func (x *IncomingMessageHook) String() string {
 func (*IncomingMessageHook) ProtoMessage() {}
 
 func (x *IncomingMessageHook) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[130]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[131]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6902,7 +6986,7 @@ func (x *IncomingMessageHook) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use IncomingMessageHook.ProtoReflect.Descriptor instead.
 func (*IncomingMessageHook) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{130}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{131}
 }
 
 func (x *IncomingMessageHook) GetUrl() string {
@@ -6929,7 +7013,7 @@ type GetBotHooksRequest struct {
 
 func (x *GetBotHooksRequest) Reset() {
 	*x = GetBotHooksRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[131]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[132]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6941,7 +7025,7 @@ func (x *GetBotHooksRequest) String() string {
 func (*GetBotHooksRequest) ProtoMessage() {}
 
 func (x *GetBotHooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[131]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[132]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -6954,7 +7038,7 @@ func (x *GetBotHooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBotHooksRequest.ProtoReflect.Descriptor instead.
 func (*GetBotHooksRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{131}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{132}
 }
 
 func (x *GetBotHooksRequest) GetConnector() string {
@@ -6980,7 +7064,7 @@ type GetBotHooksResponse struct {
 
 func (x *GetBotHooksResponse) Reset() {
 	*x = GetBotHooksResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[132]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[133]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -6992,7 +7076,7 @@ func (x *GetBotHooksResponse) String() string {
 func (*GetBotHooksResponse) ProtoMessage() {}
 
 func (x *GetBotHooksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[132]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[133]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7005,7 +7089,7 @@ func (x *GetBotHooksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBotHooksResponse.ProtoReflect.Descriptor instead.
 func (*GetBotHooksResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{132}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{133}
 }
 
 func (x *GetBotHooksResponse) GetHooks() []*IncomingMessageHook {
@@ -7026,7 +7110,7 @@ type SetBotHooksRequest struct {
 
 func (x *SetBotHooksRequest) Reset() {
 	*x = SetBotHooksRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[133]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[134]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7038,7 +7122,7 @@ func (x *SetBotHooksRequest) String() string {
 func (*SetBotHooksRequest) ProtoMessage() {}
 
 func (x *SetBotHooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[133]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[134]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7051,7 +7135,7 @@ func (x *SetBotHooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBotHooksRequest.ProtoReflect.Descriptor instead.
 func (*SetBotHooksRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{133}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{134}
 }
 
 func (x *SetBotHooksRequest) GetConnector() string {
@@ -7084,7 +7168,7 @@ type SetBotHooksResponse struct {
 
 func (x *SetBotHooksResponse) Reset() {
 	*x = SetBotHooksResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[134]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[135]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7096,7 +7180,7 @@ func (x *SetBotHooksResponse) String() string {
 func (*SetBotHooksResponse) ProtoMessage() {}
 
 func (x *SetBotHooksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[134]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[135]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7109,7 +7193,7 @@ func (x *SetBotHooksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetBotHooksResponse.ProtoReflect.Descriptor instead.
 func (*SetBotHooksResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{134}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{135}
 }
 
 func (x *SetBotHooksResponse) GetStandardResponse() *StandardResponse {
@@ -7130,7 +7214,7 @@ type GetBotConversationsRequest struct {
 
 func (x *GetBotConversationsRequest) Reset() {
 	*x = GetBotConversationsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[135]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[136]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7142,7 +7226,7 @@ func (x *GetBotConversationsRequest) String() string {
 func (*GetBotConversationsRequest) ProtoMessage() {}
 
 func (x *GetBotConversationsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[135]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[136]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7155,7 +7239,7 @@ func (x *GetBotConversationsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBotConversationsRequest.ProtoReflect.Descriptor instead.
 func (*GetBotConversationsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{135}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{136}
 }
 
 func (x *GetBotConversationsRequest) GetConnector() string {
@@ -7192,7 +7276,7 @@ type BotConversation struct {
 
 func (x *BotConversation) Reset() {
 	*x = BotConversation{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[136]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[137]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7204,7 +7288,7 @@ func (x *BotConversation) String() string {
 func (*BotConversation) ProtoMessage() {}
 
 func (x *BotConversation) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[136]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[137]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7217,7 +7301,7 @@ func (x *BotConversation) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BotConversation.ProtoReflect.Descriptor instead.
 func (*BotConversation) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{136}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{137}
 }
 
 func (x *BotConversation) GetKey() string {
@@ -7264,7 +7348,7 @@ type GetBotConversationsResponse struct {
 
 func (x *GetBotConversationsResponse) Reset() {
 	*x = GetBotConversationsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[137]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[138]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7276,7 +7360,7 @@ func (x *GetBotConversationsResponse) String() string {
 func (*GetBotConversationsResponse) ProtoMessage() {}
 
 func (x *GetBotConversationsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[137]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[138]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7289,7 +7373,7 @@ func (x *GetBotConversationsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetBotConversationsResponse.ProtoReflect.Descriptor instead.
 func (*GetBotConversationsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{137}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{138}
 }
 
 func (x *GetBotConversationsResponse) GetConversations() []*BotConversation {
@@ -7311,7 +7395,7 @@ type GetBotConversationMessagesRequest struct {
 
 func (x *GetBotConversationMessagesRequest) Reset() {
 	*x = GetBotConversationMessagesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[138]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[139]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7323,7 +7407,7 @@ func (x *GetBotConversationMessagesRequest) String() string {
 func (*GetBotConversationMessagesRequest) ProtoMessage() {}
 
 func (x *GetBotConversationMessagesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[138]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[139]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7336,7 +7420,7 @@ func (x *GetBotConversationMessagesRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use GetBotConversationMessagesRequest.ProtoReflect.Descriptor instead.
 func (*GetBotConversationMessagesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{138}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{139}
 }
 
 func (x *GetBotConversationMessagesRequest) GetConnector() string {
@@ -7382,7 +7466,7 @@ type BotConversationMessage struct {
 
 func (x *BotConversationMessage) Reset() {
 	*x = BotConversationMessage{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[139]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[140]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7394,7 +7478,7 @@ func (x *BotConversationMessage) String() string {
 func (*BotConversationMessage) ProtoMessage() {}
 
 func (x *BotConversationMessage) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[139]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[140]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7407,7 +7491,7 @@ func (x *BotConversationMessage) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BotConversationMessage.ProtoReflect.Descriptor instead.
 func (*BotConversationMessage) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{139}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{140}
 }
 
 func (x *BotConversationMessage) GetId() uint32 {
@@ -7468,7 +7552,7 @@ type GetBotConversationMessagesResponse struct {
 
 func (x *GetBotConversationMessagesResponse) Reset() {
 	*x = GetBotConversationMessagesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[140]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[141]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7480,7 +7564,7 @@ func (x *GetBotConversationMessagesResponse) String() string {
 func (*GetBotConversationMessagesResponse) ProtoMessage() {}
 
 func (x *GetBotConversationMessagesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[140]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[141]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7493,7 +7577,7 @@ func (x *GetBotConversationMessagesResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use GetBotConversationMessagesResponse.ProtoReflect.Descriptor instead.
 func (*GetBotConversationMessagesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{140}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{141}
 }
 
 func (x *GetBotConversationMessagesResponse) GetMessages() []*BotConversationMessage {
@@ -7515,7 +7599,7 @@ type SendBotConversationMessageRequest struct {
 
 func (x *SendBotConversationMessageRequest) Reset() {
 	*x = SendBotConversationMessageRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[141]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[142]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7527,7 +7611,7 @@ func (x *SendBotConversationMessageRequest) String() string {
 func (*SendBotConversationMessageRequest) ProtoMessage() {}
 
 func (x *SendBotConversationMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[141]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[142]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7540,7 +7624,7 @@ func (x *SendBotConversationMessageRequest) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use SendBotConversationMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendBotConversationMessageRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{141}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{142}
 }
 
 func (x *SendBotConversationMessageRequest) GetConnector() string {
@@ -7580,7 +7664,7 @@ type SendBotConversationMessageResponse struct {
 
 func (x *SendBotConversationMessageResponse) Reset() {
 	*x = SendBotConversationMessageResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[142]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[143]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7592,7 +7676,7 @@ func (x *SendBotConversationMessageResponse) String() string {
 func (*SendBotConversationMessageResponse) ProtoMessage() {}
 
 func (x *SendBotConversationMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[142]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[143]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7605,7 +7689,7 @@ func (x *SendBotConversationMessageResponse) ProtoReflect() protoreflect.Message
 
 // Deprecated: Use SendBotConversationMessageResponse.ProtoReflect.Descriptor instead.
 func (*SendBotConversationMessageResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{142}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{143}
 }
 
 func (x *SendBotConversationMessageResponse) GetStandardResponse() *StandardResponse {
@@ -7630,7 +7714,7 @@ type StreamBotConversationUpdatesRequest struct {
 
 func (x *StreamBotConversationUpdatesRequest) Reset() {
 	*x = StreamBotConversationUpdatesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[143]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[144]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7642,7 +7726,7 @@ func (x *StreamBotConversationUpdatesRequest) String() string {
 func (*StreamBotConversationUpdatesRequest) ProtoMessage() {}
 
 func (x *StreamBotConversationUpdatesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[143]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[144]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7655,7 +7739,7 @@ func (x *StreamBotConversationUpdatesRequest) ProtoReflect() protoreflect.Messag
 
 // Deprecated: Use StreamBotConversationUpdatesRequest.ProtoReflect.Descriptor instead.
 func (*StreamBotConversationUpdatesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{143}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{144}
 }
 
 func (x *StreamBotConversationUpdatesRequest) GetConnector() string {
@@ -7695,7 +7779,7 @@ type StreamBotConversationUpdatesResponse struct {
 
 func (x *StreamBotConversationUpdatesResponse) Reset() {
 	*x = StreamBotConversationUpdatesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[144]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[145]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7707,7 +7791,7 @@ func (x *StreamBotConversationUpdatesResponse) String() string {
 func (*StreamBotConversationUpdatesResponse) ProtoMessage() {}
 
 func (x *StreamBotConversationUpdatesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[144]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[145]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7720,7 +7804,7 @@ func (x *StreamBotConversationUpdatesResponse) ProtoReflect() protoreflect.Messa
 
 // Deprecated: Use StreamBotConversationUpdatesResponse.ProtoReflect.Descriptor instead.
 func (*StreamBotConversationUpdatesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{144}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{145}
 }
 
 func (x *StreamBotConversationUpdatesResponse) GetNewMessages() []*BotConversationMessage {
@@ -7743,7 +7827,7 @@ type SocialAccountShareEntry struct {
 
 func (x *SocialAccountShareEntry) Reset() {
 	*x = SocialAccountShareEntry{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[145]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[146]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7755,7 +7839,7 @@ func (x *SocialAccountShareEntry) String() string {
 func (*SocialAccountShareEntry) ProtoMessage() {}
 
 func (x *SocialAccountShareEntry) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[145]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[146]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7768,7 +7852,7 @@ func (x *SocialAccountShareEntry) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SocialAccountShareEntry.ProtoReflect.Descriptor instead.
 func (*SocialAccountShareEntry) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{145}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{146}
 }
 
 func (x *SocialAccountShareEntry) GetUserGroupId() uint32 {
@@ -7815,7 +7899,7 @@ type GetSocialAccountSharesRequest struct {
 
 func (x *GetSocialAccountSharesRequest) Reset() {
 	*x = GetSocialAccountSharesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[146]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[147]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7827,7 +7911,7 @@ func (x *GetSocialAccountSharesRequest) String() string {
 func (*GetSocialAccountSharesRequest) ProtoMessage() {}
 
 func (x *GetSocialAccountSharesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[146]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[147]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7840,7 +7924,7 @@ func (x *GetSocialAccountSharesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSocialAccountSharesRequest.ProtoReflect.Descriptor instead.
 func (*GetSocialAccountSharesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{146}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{147}
 }
 
 func (x *GetSocialAccountSharesRequest) GetSocialAccountId() uint32 {
@@ -7859,7 +7943,7 @@ type GetSocialAccountSharesResponse struct {
 
 func (x *GetSocialAccountSharesResponse) Reset() {
 	*x = GetSocialAccountSharesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[147]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[148]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7871,7 +7955,7 @@ func (x *GetSocialAccountSharesResponse) String() string {
 func (*GetSocialAccountSharesResponse) ProtoMessage() {}
 
 func (x *GetSocialAccountSharesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[147]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[148]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7884,7 +7968,7 @@ func (x *GetSocialAccountSharesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetSocialAccountSharesResponse.ProtoReflect.Descriptor instead.
 func (*GetSocialAccountSharesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{147}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{148}
 }
 
 func (x *GetSocialAccountSharesResponse) GetShares() []*SocialAccountShareEntry {
@@ -7904,7 +7988,7 @@ type SetSocialAccountSharesRequest struct {
 
 func (x *SetSocialAccountSharesRequest) Reset() {
 	*x = SetSocialAccountSharesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[148]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[149]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7916,7 +8000,7 @@ func (x *SetSocialAccountSharesRequest) String() string {
 func (*SetSocialAccountSharesRequest) ProtoMessage() {}
 
 func (x *SetSocialAccountSharesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[148]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[149]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7929,7 +8013,7 @@ func (x *SetSocialAccountSharesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSocialAccountSharesRequest.ProtoReflect.Descriptor instead.
 func (*SetSocialAccountSharesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{148}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{149}
 }
 
 func (x *SetSocialAccountSharesRequest) GetSocialAccountId() uint32 {
@@ -7955,7 +8039,7 @@ type SetSocialAccountSharesResponse struct {
 
 func (x *SetSocialAccountSharesResponse) Reset() {
 	*x = SetSocialAccountSharesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[149]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[150]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -7967,7 +8051,7 @@ func (x *SetSocialAccountSharesResponse) String() string {
 func (*SetSocialAccountSharesResponse) ProtoMessage() {}
 
 func (x *SetSocialAccountSharesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[149]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[150]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -7980,7 +8064,7 @@ func (x *SetSocialAccountSharesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetSocialAccountSharesResponse.ProtoReflect.Descriptor instead.
 func (*SetSocialAccountSharesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{149}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{150}
 }
 
 func (x *SetSocialAccountSharesResponse) GetStandardResponse() *StandardResponse {
@@ -7999,7 +8083,7 @@ type ImpersonateUserRequest struct {
 
 func (x *ImpersonateUserRequest) Reset() {
 	*x = ImpersonateUserRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[150]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[151]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8011,7 +8095,7 @@ func (x *ImpersonateUserRequest) String() string {
 func (*ImpersonateUserRequest) ProtoMessage() {}
 
 func (x *ImpersonateUserRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[150]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[151]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8024,7 +8108,7 @@ func (x *ImpersonateUserRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImpersonateUserRequest.ProtoReflect.Descriptor instead.
 func (*ImpersonateUserRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{150}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{151}
 }
 
 func (x *ImpersonateUserRequest) GetUserId() uint32 {
@@ -8044,7 +8128,7 @@ type ImpersonateUserResponse struct {
 
 func (x *ImpersonateUserResponse) Reset() {
 	*x = ImpersonateUserResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[151]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[152]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8056,7 +8140,7 @@ func (x *ImpersonateUserResponse) String() string {
 func (*ImpersonateUserResponse) ProtoMessage() {}
 
 func (x *ImpersonateUserResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[151]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[152]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8069,7 +8153,7 @@ func (x *ImpersonateUserResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ImpersonateUserResponse.ProtoReflect.Descriptor instead.
 func (*ImpersonateUserResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{151}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{152}
 }
 
 func (x *ImpersonateUserResponse) GetStandardResponse() *StandardResponse {
@@ -8094,7 +8178,7 @@ type StopImpersonationRequest struct {
 
 func (x *StopImpersonationRequest) Reset() {
 	*x = StopImpersonationRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[152]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[153]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8106,7 +8190,7 @@ func (x *StopImpersonationRequest) String() string {
 func (*StopImpersonationRequest) ProtoMessage() {}
 
 func (x *StopImpersonationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[152]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[153]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8119,7 +8203,7 @@ func (x *StopImpersonationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopImpersonationRequest.ProtoReflect.Descriptor instead.
 func (*StopImpersonationRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{152}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{153}
 }
 
 type StopImpersonationResponse struct {
@@ -8132,7 +8216,7 @@ type StopImpersonationResponse struct {
 
 func (x *StopImpersonationResponse) Reset() {
 	*x = StopImpersonationResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[153]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[154]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8144,7 +8228,7 @@ func (x *StopImpersonationResponse) String() string {
 func (*StopImpersonationResponse) ProtoMessage() {}
 
 func (x *StopImpersonationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[153]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[154]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8157,7 +8241,7 @@ func (x *StopImpersonationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use StopImpersonationResponse.ProtoReflect.Descriptor instead.
 func (*StopImpersonationResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{153}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{154}
 }
 
 func (x *StopImpersonationResponse) GetStandardResponse() *StandardResponse {
@@ -8185,7 +8269,7 @@ type UserGroup struct {
 
 func (x *UserGroup) Reset() {
 	*x = UserGroup{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[154]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[155]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8197,7 +8281,7 @@ func (x *UserGroup) String() string {
 func (*UserGroup) ProtoMessage() {}
 
 func (x *UserGroup) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[154]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[155]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8210,7 +8294,7 @@ func (x *UserGroup) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UserGroup.ProtoReflect.Descriptor instead.
 func (*UserGroup) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{154}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{155}
 }
 
 func (x *UserGroup) GetId() uint32 {
@@ -8242,7 +8326,7 @@ type ListUserGroupsRequest struct {
 
 func (x *ListUserGroupsRequest) Reset() {
 	*x = ListUserGroupsRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[155]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[156]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8254,7 +8338,7 @@ func (x *ListUserGroupsRequest) String() string {
 func (*ListUserGroupsRequest) ProtoMessage() {}
 
 func (x *ListUserGroupsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[155]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[156]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8267,7 +8351,7 @@ func (x *ListUserGroupsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserGroupsRequest.ProtoReflect.Descriptor instead.
 func (*ListUserGroupsRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{155}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{156}
 }
 
 type ListUserGroupsResponse struct {
@@ -8279,7 +8363,7 @@ type ListUserGroupsResponse struct {
 
 func (x *ListUserGroupsResponse) Reset() {
 	*x = ListUserGroupsResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[156]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[157]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8291,7 +8375,7 @@ func (x *ListUserGroupsResponse) String() string {
 func (*ListUserGroupsResponse) ProtoMessage() {}
 
 func (x *ListUserGroupsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[156]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[157]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8304,7 +8388,7 @@ func (x *ListUserGroupsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListUserGroupsResponse.ProtoReflect.Descriptor instead.
 func (*ListUserGroupsResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{156}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{157}
 }
 
 func (x *ListUserGroupsResponse) GetGroups() []*UserGroup {
@@ -8323,7 +8407,7 @@ type CreateUserGroupRequest struct {
 
 func (x *CreateUserGroupRequest) Reset() {
 	*x = CreateUserGroupRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[157]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[158]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8335,7 +8419,7 @@ func (x *CreateUserGroupRequest) String() string {
 func (*CreateUserGroupRequest) ProtoMessage() {}
 
 func (x *CreateUserGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[157]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[158]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8348,7 +8432,7 @@ func (x *CreateUserGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserGroupRequest.ProtoReflect.Descriptor instead.
 func (*CreateUserGroupRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{157}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{158}
 }
 
 func (x *CreateUserGroupRequest) GetName() string {
@@ -8368,7 +8452,7 @@ type CreateUserGroupResponse struct {
 
 func (x *CreateUserGroupResponse) Reset() {
 	*x = CreateUserGroupResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[158]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[159]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8380,7 +8464,7 @@ func (x *CreateUserGroupResponse) String() string {
 func (*CreateUserGroupResponse) ProtoMessage() {}
 
 func (x *CreateUserGroupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[158]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[159]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8393,7 +8477,7 @@ func (x *CreateUserGroupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateUserGroupResponse.ProtoReflect.Descriptor instead.
 func (*CreateUserGroupResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{158}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{159}
 }
 
 func (x *CreateUserGroupResponse) GetStandardResponse() *StandardResponse {
@@ -8419,7 +8503,7 @@ type DeleteUserGroupRequest struct {
 
 func (x *DeleteUserGroupRequest) Reset() {
 	*x = DeleteUserGroupRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[159]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[160]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8431,7 +8515,7 @@ func (x *DeleteUserGroupRequest) String() string {
 func (*DeleteUserGroupRequest) ProtoMessage() {}
 
 func (x *DeleteUserGroupRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[159]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[160]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8444,7 +8528,7 @@ func (x *DeleteUserGroupRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserGroupRequest.ProtoReflect.Descriptor instead.
 func (*DeleteUserGroupRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{159}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{160}
 }
 
 func (x *DeleteUserGroupRequest) GetGroupId() uint32 {
@@ -8463,7 +8547,7 @@ type DeleteUserGroupResponse struct {
 
 func (x *DeleteUserGroupResponse) Reset() {
 	*x = DeleteUserGroupResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[160]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[161]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8475,7 +8559,7 @@ func (x *DeleteUserGroupResponse) String() string {
 func (*DeleteUserGroupResponse) ProtoMessage() {}
 
 func (x *DeleteUserGroupResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[160]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[161]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8488,7 +8572,7 @@ func (x *DeleteUserGroupResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteUserGroupResponse.ProtoReflect.Descriptor instead.
 func (*DeleteUserGroupResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{160}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{161}
 }
 
 func (x *DeleteUserGroupResponse) GetStandardResponse() *StandardResponse {
@@ -8507,7 +8591,7 @@ type GetUserGroupMembersRequest struct {
 
 func (x *GetUserGroupMembersRequest) Reset() {
 	*x = GetUserGroupMembersRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[161]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[162]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8519,7 +8603,7 @@ func (x *GetUserGroupMembersRequest) String() string {
 func (*GetUserGroupMembersRequest) ProtoMessage() {}
 
 func (x *GetUserGroupMembersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[161]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[162]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8532,7 +8616,7 @@ func (x *GetUserGroupMembersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserGroupMembersRequest.ProtoReflect.Descriptor instead.
 func (*GetUserGroupMembersRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{161}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{162}
 }
 
 func (x *GetUserGroupMembersRequest) GetGroupId() uint32 {
@@ -8551,7 +8635,7 @@ type GetUserGroupMembersResponse struct {
 
 func (x *GetUserGroupMembersResponse) Reset() {
 	*x = GetUserGroupMembersResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[162]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[163]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8563,7 +8647,7 @@ func (x *GetUserGroupMembersResponse) String() string {
 func (*GetUserGroupMembersResponse) ProtoMessage() {}
 
 func (x *GetUserGroupMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[162]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[163]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8576,7 +8660,7 @@ func (x *GetUserGroupMembersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetUserGroupMembersResponse.ProtoReflect.Descriptor instead.
 func (*GetUserGroupMembersResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{162}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{163}
 }
 
 func (x *GetUserGroupMembersResponse) GetUserIds() []uint32 {
@@ -8596,7 +8680,7 @@ type SetUserGroupMembersRequest struct {
 
 func (x *SetUserGroupMembersRequest) Reset() {
 	*x = SetUserGroupMembersRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[163]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[164]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8608,7 +8692,7 @@ func (x *SetUserGroupMembersRequest) String() string {
 func (*SetUserGroupMembersRequest) ProtoMessage() {}
 
 func (x *SetUserGroupMembersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[163]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[164]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8621,7 +8705,7 @@ func (x *SetUserGroupMembersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserGroupMembersRequest.ProtoReflect.Descriptor instead.
 func (*SetUserGroupMembersRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{163}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{164}
 }
 
 func (x *SetUserGroupMembersRequest) GetGroupId() uint32 {
@@ -8647,7 +8731,7 @@ type SetUserGroupMembersResponse struct {
 
 func (x *SetUserGroupMembersResponse) Reset() {
 	*x = SetUserGroupMembersResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[164]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[165]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -8659,7 +8743,7 @@ func (x *SetUserGroupMembersResponse) String() string {
 func (*SetUserGroupMembersResponse) ProtoMessage() {}
 
 func (x *SetUserGroupMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[164]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[165]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -8672,7 +8756,7 @@ func (x *SetUserGroupMembersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SetUserGroupMembersResponse.ProtoReflect.Descriptor instead.
 func (*SetUserGroupMembersResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{164}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{165}
 }
 
 func (x *SetUserGroupMembersResponse) GetStandardResponse() *StandardResponse {
@@ -8800,20 +8884,28 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\n" +
 	"connectors\x18\x01 \x03(\v2 .japella.controlapi.v1.ConnectorR\n" +
 	"connectors\x12e\n" +
-	"\x17unregistered_connectors\x18\x02 \x03(\v2,.japella.controlapi.v1.UnregisteredConnectorR\x16unregisteredConnectors\"\xd7\x02\n" +
+	"\x17unregistered_connectors\x18\x02 \x03(\v2,.japella.controlapi.v1.UnregisteredConnectorR\x16unregisteredConnectors\"\x9c\x01\n" +
+	"\x0eConnectorIssue\x12\x18\n" +
+	"\amessage\x18\x01 \x01(\tR\amessage\x12\x19\n" +
+	"\bfix_path\x18\x02 \x01(\tR\afixPath\x12\x19\n" +
+	"\bfix_hash\x18\x03 \x01(\tR\afixHash\x12\x1b\n" +
+	"\tfix_label\x18\x04 \x01(\tR\bfixLabel\x12\x1d\n" +
+	"\n" +
+	"fix_action\x18\x05 \x01(\tR\tfixAction\"\xc0\x03\n" +
 	"\tConnector\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
 	"\bprotocol\x18\t \x01(\tR\bprotocol\x12\x12\n" +
 	"\x04icon\x18\x03 \x01(\tR\x04icon\x12\x1b\n" +
-	"\thas_oauth\x18\x04 \x01(\bR\bhasOauth\x12\x16\n" +
-	"\x06issues\x18\x05 \x03(\tR\x06issues\x12#\n" +
+	"\thas_oauth\x18\x04 \x01(\bR\bhasOauth\x12=\n" +
+	"\x06issues\x18\x05 \x03(\v2%.japella.controlapi.v1.ConnectorIssueR\x06issues\x12#\n" +
 	"\ris_registered\x18\x06 \x01(\bR\fisRegistered\x12\x1d\n" +
 	"\n" +
 	"is_started\x18\a \x01(\bR\tisStarted\x12(\n" +
 	"\x10uses_yaml_config\x18\b \x01(\bR\x0eusesYamlConfig\x128\n" +
 	"\x18supports_social_accounts\x18\n" +
 	" \x01(\bR\x16supportsSocialAccounts\x12)\n" +
-	"\x10supports_chatbot\x18\v \x01(\bR\x0fsupportsChatbot\"\x89\x01\n" +
+	"\x10supports_chatbot\x18\v \x01(\bR\x0fsupportsChatbot\x12@\n" +
+	"\x1csupports_client_registration\x18\f \x01(\bR\x1asupportsClientRegistration\"\x89\x01\n" +
 	"\x15UnregisteredConnector\x12\x1a\n" +
 	"\bprotocol\x18\x01 \x01(\tR\bprotocol\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x12\n" +
@@ -9325,7 +9417,7 @@ func file_japella_controlapi_v1_control_proto_rawDescGZIP() []byte {
 	return file_japella_controlapi_v1_control_proto_rawDescData
 }
 
-var file_japella_controlapi_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 166)
+var file_japella_controlapi_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 167)
 var file_japella_controlapi_v1_control_proto_goTypes = []any{
 	(*SubmitPostRequest)(nil),                       // 0: japella.controlapi.v1.SubmitPostRequest
 	(*SubmitPostResponse)(nil),                      // 1: japella.controlapi.v1.SubmitPostResponse
@@ -9353,364 +9445,366 @@ var file_japella_controlapi_v1_control_proto_goTypes = []any{
 	(*StopServiceRequest)(nil),                      // 23: japella.controlapi.v1.StopServiceRequest
 	(*StopServiceResponse)(nil),                     // 24: japella.controlapi.v1.StopServiceResponse
 	(*GetConnectorsResponse)(nil),                   // 25: japella.controlapi.v1.GetConnectorsResponse
-	(*Connector)(nil),                               // 26: japella.controlapi.v1.Connector
-	(*UnregisteredConnector)(nil),                   // 27: japella.controlapi.v1.UnregisteredConnector
-	(*StartOAuthRequest)(nil),                       // 28: japella.controlapi.v1.StartOAuthRequest
-	(*StartOAuthResponse)(nil),                      // 29: japella.controlapi.v1.StartOAuthResponse
-	(*DeleteSocialAccountRequest)(nil),              // 30: japella.controlapi.v1.DeleteSocialAccountRequest
-	(*DeleteSocialAccountResponse)(nil),             // 31: japella.controlapi.v1.DeleteSocialAccountResponse
-	(*RefreshSocialAccountRequest)(nil),             // 32: japella.controlapi.v1.RefreshSocialAccountRequest
-	(*RefreshSocialAccountResponse)(nil),            // 33: japella.controlapi.v1.RefreshSocialAccountResponse
-	(*StandardResponse)(nil),                        // 34: japella.controlapi.v1.StandardResponse
-	(*GetTimelineRequest)(nil),                      // 35: japella.controlapi.v1.GetTimelineRequest
-	(*GetTimelineResponse)(nil),                     // 36: japella.controlapi.v1.GetTimelineResponse
-	(*UpdatePostCampaignRequest)(nil),               // 37: japella.controlapi.v1.UpdatePostCampaignRequest
-	(*UpdatePostCampaignResponse)(nil),              // 38: japella.controlapi.v1.UpdatePostCampaignResponse
-	(*ForgetPostRequest)(nil),                       // 39: japella.controlapi.v1.ForgetPostRequest
-	(*ForgetPostResponse)(nil),                      // 40: japella.controlapi.v1.ForgetPostResponse
-	(*RetryPostRequest)(nil),                        // 41: japella.controlapi.v1.RetryPostRequest
-	(*RetryPostResponse)(nil),                       // 42: japella.controlapi.v1.RetryPostResponse
-	(*GetFeedRequest)(nil),                          // 43: japella.controlapi.v1.GetFeedRequest
-	(*GetFeedResponse)(nil),                         // 44: japella.controlapi.v1.GetFeedResponse
-	(*FeedPost)(nil),                                // 45: japella.controlapi.v1.FeedPost
-	(*SetSocialAccountActiveRequest)(nil),           // 46: japella.controlapi.v1.SetSocialAccountActiveRequest
-	(*SetSocialAccountActiveResponse)(nil),          // 47: japella.controlapi.v1.SetSocialAccountActiveResponse
-	(*CleanupFeedPostsRequest)(nil),                 // 48: japella.controlapi.v1.CleanupFeedPostsRequest
-	(*CleanupFeedPostsResponse)(nil),                // 49: japella.controlapi.v1.CleanupFeedPostsResponse
-	(*LoginWithUsernameAndPasswordRequest)(nil),     // 50: japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
-	(*LoginWithUsernameAndPasswordResponse)(nil),    // 51: japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
-	(*ChangePasswordRequest)(nil),                   // 52: japella.controlapi.v1.ChangePasswordRequest
-	(*ChangePasswordResponse)(nil),                  // 53: japella.controlapi.v1.ChangePasswordResponse
-	(*ResetUserPasswordRequest)(nil),                // 54: japella.controlapi.v1.ResetUserPasswordRequest
-	(*ResetUserPasswordResponse)(nil),               // 55: japella.controlapi.v1.ResetUserPasswordResponse
-	(*LogoutRequest)(nil),                           // 56: japella.controlapi.v1.LogoutRequest
-	(*LogoutResponse)(nil),                          // 57: japella.controlapi.v1.LogoutResponse
-	(*GetUsersRequest)(nil),                         // 58: japella.controlapi.v1.GetUsersRequest
-	(*GetUsersResponse)(nil),                        // 59: japella.controlapi.v1.GetUsersResponse
-	(*GetUserRequest)(nil),                          // 60: japella.controlapi.v1.GetUserRequest
-	(*GetUserResponse)(nil),                         // 61: japella.controlapi.v1.GetUserResponse
-	(*UserAccount)(nil),                             // 62: japella.controlapi.v1.UserAccount
-	(*CreateUserRequest)(nil),                       // 63: japella.controlapi.v1.CreateUserRequest
-	(*CreateUserResponse)(nil),                      // 64: japella.controlapi.v1.CreateUserResponse
-	(*DeleteUserRequest)(nil),                       // 65: japella.controlapi.v1.DeleteUserRequest
-	(*DeleteUserResponse)(nil),                      // 66: japella.controlapi.v1.DeleteUserResponse
-	(*RbacPermission)(nil),                          // 67: japella.controlapi.v1.RbacPermission
-	(*RbacRole)(nil),                                // 68: japella.controlapi.v1.RbacRole
-	(*ListRbacPermissionsRequest)(nil),              // 69: japella.controlapi.v1.ListRbacPermissionsRequest
-	(*ListRbacPermissionsResponse)(nil),             // 70: japella.controlapi.v1.ListRbacPermissionsResponse
-	(*ListRbacRolesRequest)(nil),                    // 71: japella.controlapi.v1.ListRbacRolesRequest
-	(*ListRbacRolesResponse)(nil),                   // 72: japella.controlapi.v1.ListRbacRolesResponse
-	(*CreateRbacRoleRequest)(nil),                   // 73: japella.controlapi.v1.CreateRbacRoleRequest
-	(*CreateRbacRoleResponse)(nil),                  // 74: japella.controlapi.v1.CreateRbacRoleResponse
-	(*UpdateRbacRoleRequest)(nil),                   // 75: japella.controlapi.v1.UpdateRbacRoleRequest
-	(*UpdateRbacRoleResponse)(nil),                  // 76: japella.controlapi.v1.UpdateRbacRoleResponse
-	(*DeleteRbacRoleRequest)(nil),                   // 77: japella.controlapi.v1.DeleteRbacRoleRequest
-	(*DeleteRbacRoleResponse)(nil),                  // 78: japella.controlapi.v1.DeleteRbacRoleResponse
-	(*GetUserRbacRolesRequest)(nil),                 // 79: japella.controlapi.v1.GetUserRbacRolesRequest
-	(*GetUserRbacRolesResponse)(nil),                // 80: japella.controlapi.v1.GetUserRbacRolesResponse
-	(*SetUserRbacRolesRequest)(nil),                 // 81: japella.controlapi.v1.SetUserRbacRolesRequest
-	(*SetUserRbacRolesResponse)(nil),                // 82: japella.controlapi.v1.SetUserRbacRolesResponse
-	(*GetApiKeysRequest)(nil),                       // 83: japella.controlapi.v1.GetApiKeysRequest
-	(*GetApiKeysResponse)(nil),                      // 84: japella.controlapi.v1.GetApiKeysResponse
-	(*ApiKey)(nil),                                  // 85: japella.controlapi.v1.ApiKey
-	(*GetCvarsRequest)(nil),                         // 86: japella.controlapi.v1.GetCvarsRequest
-	(*GetCvarsResponse)(nil),                        // 87: japella.controlapi.v1.GetCvarsResponse
-	(*CvarCategory)(nil),                            // 88: japella.controlapi.v1.CvarCategory
-	(*Cvar)(nil),                                    // 89: japella.controlapi.v1.Cvar
-	(*SaveUserPreferencesRequest)(nil),              // 90: japella.controlapi.v1.SaveUserPreferencesRequest
-	(*SaveUserPreferencesResponse)(nil),             // 91: japella.controlapi.v1.SaveUserPreferencesResponse
-	(*CreateApiKeyRequest)(nil),                     // 92: japella.controlapi.v1.CreateApiKeyRequest
-	(*CreateApiKeyResponse)(nil),                    // 93: japella.controlapi.v1.CreateApiKeyResponse
-	(*RevokeApiKeyRequest)(nil),                     // 94: japella.controlapi.v1.RevokeApiKeyRequest
-	(*RevokeApiKeyResponse)(nil),                    // 95: japella.controlapi.v1.RevokeApiKeyResponse
-	(*SetCvarRequest)(nil),                          // 96: japella.controlapi.v1.SetCvarRequest
-	(*SetCvarResponse)(nil),                         // 97: japella.controlapi.v1.SetCvarResponse
-	(*RegisterConnectorRequest)(nil),                // 98: japella.controlapi.v1.RegisterConnectorRequest
-	(*RegisterConnectorResponse)(nil),               // 99: japella.controlapi.v1.RegisterConnectorResponse
-	(*CreateCampaignRequest)(nil),                   // 100: japella.controlapi.v1.CreateCampaignRequest
-	(*CreateCampaignResponse)(nil),                  // 101: japella.controlapi.v1.CreateCampaignResponse
-	(*GetCampaignsRequest)(nil),                     // 102: japella.controlapi.v1.GetCampaignsRequest
-	(*GetCampaignsResponse)(nil),                    // 103: japella.controlapi.v1.GetCampaignsResponse
-	(*Campaign)(nil),                                // 104: japella.controlapi.v1.Campaign
-	(*AddSocialAccountToCampaignRequest)(nil),       // 105: japella.controlapi.v1.AddSocialAccountToCampaignRequest
-	(*AddSocialAccountToCampaignResponse)(nil),      // 106: japella.controlapi.v1.AddSocialAccountToCampaignResponse
-	(*RemoveSocialAccountFromCampaignRequest)(nil),  // 107: japella.controlapi.v1.RemoveSocialAccountFromCampaignRequest
-	(*RemoveSocialAccountFromCampaignResponse)(nil), // 108: japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse
-	(*GetCampaignSocialAccountsRequest)(nil),        // 109: japella.controlapi.v1.GetCampaignSocialAccountsRequest
-	(*GetCampaignSocialAccountsResponse)(nil),       // 110: japella.controlapi.v1.GetCampaignSocialAccountsResponse
-	(*UpdateCampaignRequest)(nil),                   // 111: japella.controlapi.v1.UpdateCampaignRequest
-	(*UpdateCampaignResponse)(nil),                  // 112: japella.controlapi.v1.UpdateCampaignResponse
-	(*DeleteCampaignRequest)(nil),                   // 113: japella.controlapi.v1.DeleteCampaignRequest
-	(*DeleteCampaignResponse)(nil),                  // 114: japella.controlapi.v1.DeleteCampaignResponse
-	(*GetLogsRequest)(nil),                          // 115: japella.controlapi.v1.GetLogsRequest
-	(*GetLogsResponse)(nil),                         // 116: japella.controlapi.v1.GetLogsResponse
-	(*LogEntry)(nil),                                // 117: japella.controlapi.v1.LogEntry
-	(*GetJobsStatusRequest)(nil),                    // 118: japella.controlapi.v1.GetJobsStatusRequest
-	(*GetJobsStatusResponse)(nil),                   // 119: japella.controlapi.v1.GetJobsStatusResponse
-	(*JobStatus)(nil),                               // 120: japella.controlapi.v1.JobStatus
-	(*ListMediaRequest)(nil),                        // 121: japella.controlapi.v1.ListMediaRequest
-	(*ListMediaResponse)(nil),                       // 122: japella.controlapi.v1.ListMediaResponse
-	(*MediaItem)(nil),                               // 123: japella.controlapi.v1.MediaItem
-	(*GetChatBotsRequest)(nil),                      // 124: japella.controlapi.v1.GetChatBotsRequest
-	(*GetChatBotsResponse)(nil),                     // 125: japella.controlapi.v1.GetChatBotsResponse
-	(*ChatBot)(nil),                                 // 126: japella.controlapi.v1.ChatBot
-	(*GetBotChannelsRequest)(nil),                   // 127: japella.controlapi.v1.GetBotChannelsRequest
-	(*GetBotChannelsResponse)(nil),                  // 128: japella.controlapi.v1.GetBotChannelsResponse
-	(*BotChannel)(nil),                              // 129: japella.controlapi.v1.BotChannel
-	(*IncomingMessageHook)(nil),                     // 130: japella.controlapi.v1.IncomingMessageHook
-	(*GetBotHooksRequest)(nil),                      // 131: japella.controlapi.v1.GetBotHooksRequest
-	(*GetBotHooksResponse)(nil),                     // 132: japella.controlapi.v1.GetBotHooksResponse
-	(*SetBotHooksRequest)(nil),                      // 133: japella.controlapi.v1.SetBotHooksRequest
-	(*SetBotHooksResponse)(nil),                     // 134: japella.controlapi.v1.SetBotHooksResponse
-	(*GetBotConversationsRequest)(nil),              // 135: japella.controlapi.v1.GetBotConversationsRequest
-	(*BotConversation)(nil),                         // 136: japella.controlapi.v1.BotConversation
-	(*GetBotConversationsResponse)(nil),             // 137: japella.controlapi.v1.GetBotConversationsResponse
-	(*GetBotConversationMessagesRequest)(nil),       // 138: japella.controlapi.v1.GetBotConversationMessagesRequest
-	(*BotConversationMessage)(nil),                  // 139: japella.controlapi.v1.BotConversationMessage
-	(*GetBotConversationMessagesResponse)(nil),      // 140: japella.controlapi.v1.GetBotConversationMessagesResponse
-	(*SendBotConversationMessageRequest)(nil),       // 141: japella.controlapi.v1.SendBotConversationMessageRequest
-	(*SendBotConversationMessageResponse)(nil),      // 142: japella.controlapi.v1.SendBotConversationMessageResponse
-	(*StreamBotConversationUpdatesRequest)(nil),     // 143: japella.controlapi.v1.StreamBotConversationUpdatesRequest
-	(*StreamBotConversationUpdatesResponse)(nil),    // 144: japella.controlapi.v1.StreamBotConversationUpdatesResponse
-	(*SocialAccountShareEntry)(nil),                 // 145: japella.controlapi.v1.SocialAccountShareEntry
-	(*GetSocialAccountSharesRequest)(nil),           // 146: japella.controlapi.v1.GetSocialAccountSharesRequest
-	(*GetSocialAccountSharesResponse)(nil),          // 147: japella.controlapi.v1.GetSocialAccountSharesResponse
-	(*SetSocialAccountSharesRequest)(nil),           // 148: japella.controlapi.v1.SetSocialAccountSharesRequest
-	(*SetSocialAccountSharesResponse)(nil),          // 149: japella.controlapi.v1.SetSocialAccountSharesResponse
-	(*ImpersonateUserRequest)(nil),                  // 150: japella.controlapi.v1.ImpersonateUserRequest
-	(*ImpersonateUserResponse)(nil),                 // 151: japella.controlapi.v1.ImpersonateUserResponse
-	(*StopImpersonationRequest)(nil),                // 152: japella.controlapi.v1.StopImpersonationRequest
-	(*StopImpersonationResponse)(nil),               // 153: japella.controlapi.v1.StopImpersonationResponse
-	(*UserGroup)(nil),                               // 154: japella.controlapi.v1.UserGroup
-	(*ListUserGroupsRequest)(nil),                   // 155: japella.controlapi.v1.ListUserGroupsRequest
-	(*ListUserGroupsResponse)(nil),                  // 156: japella.controlapi.v1.ListUserGroupsResponse
-	(*CreateUserGroupRequest)(nil),                  // 157: japella.controlapi.v1.CreateUserGroupRequest
-	(*CreateUserGroupResponse)(nil),                 // 158: japella.controlapi.v1.CreateUserGroupResponse
-	(*DeleteUserGroupRequest)(nil),                  // 159: japella.controlapi.v1.DeleteUserGroupRequest
-	(*DeleteUserGroupResponse)(nil),                 // 160: japella.controlapi.v1.DeleteUserGroupResponse
-	(*GetUserGroupMembersRequest)(nil),              // 161: japella.controlapi.v1.GetUserGroupMembersRequest
-	(*GetUserGroupMembersResponse)(nil),             // 162: japella.controlapi.v1.GetUserGroupMembersResponse
-	(*SetUserGroupMembersRequest)(nil),              // 163: japella.controlapi.v1.SetUserGroupMembersRequest
-	(*SetUserGroupMembersResponse)(nil),             // 164: japella.controlapi.v1.SetUserGroupMembersResponse
-	nil,                                             // 165: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
+	(*ConnectorIssue)(nil),                          // 26: japella.controlapi.v1.ConnectorIssue
+	(*Connector)(nil),                               // 27: japella.controlapi.v1.Connector
+	(*UnregisteredConnector)(nil),                   // 28: japella.controlapi.v1.UnregisteredConnector
+	(*StartOAuthRequest)(nil),                       // 29: japella.controlapi.v1.StartOAuthRequest
+	(*StartOAuthResponse)(nil),                      // 30: japella.controlapi.v1.StartOAuthResponse
+	(*DeleteSocialAccountRequest)(nil),              // 31: japella.controlapi.v1.DeleteSocialAccountRequest
+	(*DeleteSocialAccountResponse)(nil),             // 32: japella.controlapi.v1.DeleteSocialAccountResponse
+	(*RefreshSocialAccountRequest)(nil),             // 33: japella.controlapi.v1.RefreshSocialAccountRequest
+	(*RefreshSocialAccountResponse)(nil),            // 34: japella.controlapi.v1.RefreshSocialAccountResponse
+	(*StandardResponse)(nil),                        // 35: japella.controlapi.v1.StandardResponse
+	(*GetTimelineRequest)(nil),                      // 36: japella.controlapi.v1.GetTimelineRequest
+	(*GetTimelineResponse)(nil),                     // 37: japella.controlapi.v1.GetTimelineResponse
+	(*UpdatePostCampaignRequest)(nil),               // 38: japella.controlapi.v1.UpdatePostCampaignRequest
+	(*UpdatePostCampaignResponse)(nil),              // 39: japella.controlapi.v1.UpdatePostCampaignResponse
+	(*ForgetPostRequest)(nil),                       // 40: japella.controlapi.v1.ForgetPostRequest
+	(*ForgetPostResponse)(nil),                      // 41: japella.controlapi.v1.ForgetPostResponse
+	(*RetryPostRequest)(nil),                        // 42: japella.controlapi.v1.RetryPostRequest
+	(*RetryPostResponse)(nil),                       // 43: japella.controlapi.v1.RetryPostResponse
+	(*GetFeedRequest)(nil),                          // 44: japella.controlapi.v1.GetFeedRequest
+	(*GetFeedResponse)(nil),                         // 45: japella.controlapi.v1.GetFeedResponse
+	(*FeedPost)(nil),                                // 46: japella.controlapi.v1.FeedPost
+	(*SetSocialAccountActiveRequest)(nil),           // 47: japella.controlapi.v1.SetSocialAccountActiveRequest
+	(*SetSocialAccountActiveResponse)(nil),          // 48: japella.controlapi.v1.SetSocialAccountActiveResponse
+	(*CleanupFeedPostsRequest)(nil),                 // 49: japella.controlapi.v1.CleanupFeedPostsRequest
+	(*CleanupFeedPostsResponse)(nil),                // 50: japella.controlapi.v1.CleanupFeedPostsResponse
+	(*LoginWithUsernameAndPasswordRequest)(nil),     // 51: japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
+	(*LoginWithUsernameAndPasswordResponse)(nil),    // 52: japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
+	(*ChangePasswordRequest)(nil),                   // 53: japella.controlapi.v1.ChangePasswordRequest
+	(*ChangePasswordResponse)(nil),                  // 54: japella.controlapi.v1.ChangePasswordResponse
+	(*ResetUserPasswordRequest)(nil),                // 55: japella.controlapi.v1.ResetUserPasswordRequest
+	(*ResetUserPasswordResponse)(nil),               // 56: japella.controlapi.v1.ResetUserPasswordResponse
+	(*LogoutRequest)(nil),                           // 57: japella.controlapi.v1.LogoutRequest
+	(*LogoutResponse)(nil),                          // 58: japella.controlapi.v1.LogoutResponse
+	(*GetUsersRequest)(nil),                         // 59: japella.controlapi.v1.GetUsersRequest
+	(*GetUsersResponse)(nil),                        // 60: japella.controlapi.v1.GetUsersResponse
+	(*GetUserRequest)(nil),                          // 61: japella.controlapi.v1.GetUserRequest
+	(*GetUserResponse)(nil),                         // 62: japella.controlapi.v1.GetUserResponse
+	(*UserAccount)(nil),                             // 63: japella.controlapi.v1.UserAccount
+	(*CreateUserRequest)(nil),                       // 64: japella.controlapi.v1.CreateUserRequest
+	(*CreateUserResponse)(nil),                      // 65: japella.controlapi.v1.CreateUserResponse
+	(*DeleteUserRequest)(nil),                       // 66: japella.controlapi.v1.DeleteUserRequest
+	(*DeleteUserResponse)(nil),                      // 67: japella.controlapi.v1.DeleteUserResponse
+	(*RbacPermission)(nil),                          // 68: japella.controlapi.v1.RbacPermission
+	(*RbacRole)(nil),                                // 69: japella.controlapi.v1.RbacRole
+	(*ListRbacPermissionsRequest)(nil),              // 70: japella.controlapi.v1.ListRbacPermissionsRequest
+	(*ListRbacPermissionsResponse)(nil),             // 71: japella.controlapi.v1.ListRbacPermissionsResponse
+	(*ListRbacRolesRequest)(nil),                    // 72: japella.controlapi.v1.ListRbacRolesRequest
+	(*ListRbacRolesResponse)(nil),                   // 73: japella.controlapi.v1.ListRbacRolesResponse
+	(*CreateRbacRoleRequest)(nil),                   // 74: japella.controlapi.v1.CreateRbacRoleRequest
+	(*CreateRbacRoleResponse)(nil),                  // 75: japella.controlapi.v1.CreateRbacRoleResponse
+	(*UpdateRbacRoleRequest)(nil),                   // 76: japella.controlapi.v1.UpdateRbacRoleRequest
+	(*UpdateRbacRoleResponse)(nil),                  // 77: japella.controlapi.v1.UpdateRbacRoleResponse
+	(*DeleteRbacRoleRequest)(nil),                   // 78: japella.controlapi.v1.DeleteRbacRoleRequest
+	(*DeleteRbacRoleResponse)(nil),                  // 79: japella.controlapi.v1.DeleteRbacRoleResponse
+	(*GetUserRbacRolesRequest)(nil),                 // 80: japella.controlapi.v1.GetUserRbacRolesRequest
+	(*GetUserRbacRolesResponse)(nil),                // 81: japella.controlapi.v1.GetUserRbacRolesResponse
+	(*SetUserRbacRolesRequest)(nil),                 // 82: japella.controlapi.v1.SetUserRbacRolesRequest
+	(*SetUserRbacRolesResponse)(nil),                // 83: japella.controlapi.v1.SetUserRbacRolesResponse
+	(*GetApiKeysRequest)(nil),                       // 84: japella.controlapi.v1.GetApiKeysRequest
+	(*GetApiKeysResponse)(nil),                      // 85: japella.controlapi.v1.GetApiKeysResponse
+	(*ApiKey)(nil),                                  // 86: japella.controlapi.v1.ApiKey
+	(*GetCvarsRequest)(nil),                         // 87: japella.controlapi.v1.GetCvarsRequest
+	(*GetCvarsResponse)(nil),                        // 88: japella.controlapi.v1.GetCvarsResponse
+	(*CvarCategory)(nil),                            // 89: japella.controlapi.v1.CvarCategory
+	(*Cvar)(nil),                                    // 90: japella.controlapi.v1.Cvar
+	(*SaveUserPreferencesRequest)(nil),              // 91: japella.controlapi.v1.SaveUserPreferencesRequest
+	(*SaveUserPreferencesResponse)(nil),             // 92: japella.controlapi.v1.SaveUserPreferencesResponse
+	(*CreateApiKeyRequest)(nil),                     // 93: japella.controlapi.v1.CreateApiKeyRequest
+	(*CreateApiKeyResponse)(nil),                    // 94: japella.controlapi.v1.CreateApiKeyResponse
+	(*RevokeApiKeyRequest)(nil),                     // 95: japella.controlapi.v1.RevokeApiKeyRequest
+	(*RevokeApiKeyResponse)(nil),                    // 96: japella.controlapi.v1.RevokeApiKeyResponse
+	(*SetCvarRequest)(nil),                          // 97: japella.controlapi.v1.SetCvarRequest
+	(*SetCvarResponse)(nil),                         // 98: japella.controlapi.v1.SetCvarResponse
+	(*RegisterConnectorRequest)(nil),                // 99: japella.controlapi.v1.RegisterConnectorRequest
+	(*RegisterConnectorResponse)(nil),               // 100: japella.controlapi.v1.RegisterConnectorResponse
+	(*CreateCampaignRequest)(nil),                   // 101: japella.controlapi.v1.CreateCampaignRequest
+	(*CreateCampaignResponse)(nil),                  // 102: japella.controlapi.v1.CreateCampaignResponse
+	(*GetCampaignsRequest)(nil),                     // 103: japella.controlapi.v1.GetCampaignsRequest
+	(*GetCampaignsResponse)(nil),                    // 104: japella.controlapi.v1.GetCampaignsResponse
+	(*Campaign)(nil),                                // 105: japella.controlapi.v1.Campaign
+	(*AddSocialAccountToCampaignRequest)(nil),       // 106: japella.controlapi.v1.AddSocialAccountToCampaignRequest
+	(*AddSocialAccountToCampaignResponse)(nil),      // 107: japella.controlapi.v1.AddSocialAccountToCampaignResponse
+	(*RemoveSocialAccountFromCampaignRequest)(nil),  // 108: japella.controlapi.v1.RemoveSocialAccountFromCampaignRequest
+	(*RemoveSocialAccountFromCampaignResponse)(nil), // 109: japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse
+	(*GetCampaignSocialAccountsRequest)(nil),        // 110: japella.controlapi.v1.GetCampaignSocialAccountsRequest
+	(*GetCampaignSocialAccountsResponse)(nil),       // 111: japella.controlapi.v1.GetCampaignSocialAccountsResponse
+	(*UpdateCampaignRequest)(nil),                   // 112: japella.controlapi.v1.UpdateCampaignRequest
+	(*UpdateCampaignResponse)(nil),                  // 113: japella.controlapi.v1.UpdateCampaignResponse
+	(*DeleteCampaignRequest)(nil),                   // 114: japella.controlapi.v1.DeleteCampaignRequest
+	(*DeleteCampaignResponse)(nil),                  // 115: japella.controlapi.v1.DeleteCampaignResponse
+	(*GetLogsRequest)(nil),                          // 116: japella.controlapi.v1.GetLogsRequest
+	(*GetLogsResponse)(nil),                         // 117: japella.controlapi.v1.GetLogsResponse
+	(*LogEntry)(nil),                                // 118: japella.controlapi.v1.LogEntry
+	(*GetJobsStatusRequest)(nil),                    // 119: japella.controlapi.v1.GetJobsStatusRequest
+	(*GetJobsStatusResponse)(nil),                   // 120: japella.controlapi.v1.GetJobsStatusResponse
+	(*JobStatus)(nil),                               // 121: japella.controlapi.v1.JobStatus
+	(*ListMediaRequest)(nil),                        // 122: japella.controlapi.v1.ListMediaRequest
+	(*ListMediaResponse)(nil),                       // 123: japella.controlapi.v1.ListMediaResponse
+	(*MediaItem)(nil),                               // 124: japella.controlapi.v1.MediaItem
+	(*GetChatBotsRequest)(nil),                      // 125: japella.controlapi.v1.GetChatBotsRequest
+	(*GetChatBotsResponse)(nil),                     // 126: japella.controlapi.v1.GetChatBotsResponse
+	(*ChatBot)(nil),                                 // 127: japella.controlapi.v1.ChatBot
+	(*GetBotChannelsRequest)(nil),                   // 128: japella.controlapi.v1.GetBotChannelsRequest
+	(*GetBotChannelsResponse)(nil),                  // 129: japella.controlapi.v1.GetBotChannelsResponse
+	(*BotChannel)(nil),                              // 130: japella.controlapi.v1.BotChannel
+	(*IncomingMessageHook)(nil),                     // 131: japella.controlapi.v1.IncomingMessageHook
+	(*GetBotHooksRequest)(nil),                      // 132: japella.controlapi.v1.GetBotHooksRequest
+	(*GetBotHooksResponse)(nil),                     // 133: japella.controlapi.v1.GetBotHooksResponse
+	(*SetBotHooksRequest)(nil),                      // 134: japella.controlapi.v1.SetBotHooksRequest
+	(*SetBotHooksResponse)(nil),                     // 135: japella.controlapi.v1.SetBotHooksResponse
+	(*GetBotConversationsRequest)(nil),              // 136: japella.controlapi.v1.GetBotConversationsRequest
+	(*BotConversation)(nil),                         // 137: japella.controlapi.v1.BotConversation
+	(*GetBotConversationsResponse)(nil),             // 138: japella.controlapi.v1.GetBotConversationsResponse
+	(*GetBotConversationMessagesRequest)(nil),       // 139: japella.controlapi.v1.GetBotConversationMessagesRequest
+	(*BotConversationMessage)(nil),                  // 140: japella.controlapi.v1.BotConversationMessage
+	(*GetBotConversationMessagesResponse)(nil),      // 141: japella.controlapi.v1.GetBotConversationMessagesResponse
+	(*SendBotConversationMessageRequest)(nil),       // 142: japella.controlapi.v1.SendBotConversationMessageRequest
+	(*SendBotConversationMessageResponse)(nil),      // 143: japella.controlapi.v1.SendBotConversationMessageResponse
+	(*StreamBotConversationUpdatesRequest)(nil),     // 144: japella.controlapi.v1.StreamBotConversationUpdatesRequest
+	(*StreamBotConversationUpdatesResponse)(nil),    // 145: japella.controlapi.v1.StreamBotConversationUpdatesResponse
+	(*SocialAccountShareEntry)(nil),                 // 146: japella.controlapi.v1.SocialAccountShareEntry
+	(*GetSocialAccountSharesRequest)(nil),           // 147: japella.controlapi.v1.GetSocialAccountSharesRequest
+	(*GetSocialAccountSharesResponse)(nil),          // 148: japella.controlapi.v1.GetSocialAccountSharesResponse
+	(*SetSocialAccountSharesRequest)(nil),           // 149: japella.controlapi.v1.SetSocialAccountSharesRequest
+	(*SetSocialAccountSharesResponse)(nil),          // 150: japella.controlapi.v1.SetSocialAccountSharesResponse
+	(*ImpersonateUserRequest)(nil),                  // 151: japella.controlapi.v1.ImpersonateUserRequest
+	(*ImpersonateUserResponse)(nil),                 // 152: japella.controlapi.v1.ImpersonateUserResponse
+	(*StopImpersonationRequest)(nil),                // 153: japella.controlapi.v1.StopImpersonationRequest
+	(*StopImpersonationResponse)(nil),               // 154: japella.controlapi.v1.StopImpersonationResponse
+	(*UserGroup)(nil),                               // 155: japella.controlapi.v1.UserGroup
+	(*ListUserGroupsRequest)(nil),                   // 156: japella.controlapi.v1.ListUserGroupsRequest
+	(*ListUserGroupsResponse)(nil),                  // 157: japella.controlapi.v1.ListUserGroupsResponse
+	(*CreateUserGroupRequest)(nil),                  // 158: japella.controlapi.v1.CreateUserGroupRequest
+	(*CreateUserGroupResponse)(nil),                 // 159: japella.controlapi.v1.CreateUserGroupResponse
+	(*DeleteUserGroupRequest)(nil),                  // 160: japella.controlapi.v1.DeleteUserGroupRequest
+	(*DeleteUserGroupResponse)(nil),                 // 161: japella.controlapi.v1.DeleteUserGroupResponse
+	(*GetUserGroupMembersRequest)(nil),              // 162: japella.controlapi.v1.GetUserGroupMembersRequest
+	(*GetUserGroupMembersResponse)(nil),             // 163: japella.controlapi.v1.GetUserGroupMembersResponse
+	(*SetUserGroupMembersRequest)(nil),              // 164: japella.controlapi.v1.SetUserGroupMembersRequest
+	(*SetUserGroupMembersResponse)(nil),             // 165: japella.controlapi.v1.SetUserGroupMembersResponse
+	nil,                                             // 166: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
 }
 var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	2,   // 0: japella.controlapi.v1.SubmitPostResponse.posts:type_name -> japella.controlapi.v1.PostStatus
 	5,   // 1: japella.controlapi.v1.GetStatusResponse.status_messages:type_name -> japella.controlapi.v1.StatusMessage
 	8,   // 2: japella.controlapi.v1.GetCannedPostsResponse.posts:type_name -> japella.controlapi.v1.CannedPost
-	34,  // 3: japella.controlapi.v1.UpdateCannedPostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 3: japella.controlapi.v1.UpdateCannedPostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	8,   // 4: japella.controlapi.v1.GetCannedPostResponse.post:type_name -> japella.controlapi.v1.CannedPost
 	19,  // 5: japella.controlapi.v1.GetSocialAccountsResponse.accounts:type_name -> japella.controlapi.v1.SocialAccount
-	34,  // 6: japella.controlapi.v1.RefreshConnectorsResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 7: japella.controlapi.v1.StopServiceResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	26,  // 8: japella.controlapi.v1.GetConnectorsResponse.connectors:type_name -> japella.controlapi.v1.Connector
-	27,  // 9: japella.controlapi.v1.GetConnectorsResponse.unregistered_connectors:type_name -> japella.controlapi.v1.UnregisteredConnector
-	34,  // 10: japella.controlapi.v1.DeleteSocialAccountResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 11: japella.controlapi.v1.RefreshSocialAccountResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	2,   // 12: japella.controlapi.v1.GetTimelineResponse.posts:type_name -> japella.controlapi.v1.PostStatus
-	34,  // 13: japella.controlapi.v1.UpdatePostCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 14: japella.controlapi.v1.ForgetPostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 15: japella.controlapi.v1.RetryPostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	2,   // 16: japella.controlapi.v1.RetryPostResponse.post_status:type_name -> japella.controlapi.v1.PostStatus
-	45,  // 17: japella.controlapi.v1.GetFeedResponse.posts:type_name -> japella.controlapi.v1.FeedPost
-	34,  // 18: japella.controlapi.v1.SetSocialAccountActiveResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 19: japella.controlapi.v1.CleanupFeedPostsResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 20: japella.controlapi.v1.LoginWithUsernameAndPasswordResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 21: japella.controlapi.v1.ChangePasswordResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 22: japella.controlapi.v1.ResetUserPasswordResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 23: japella.controlapi.v1.LogoutResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	62,  // 24: japella.controlapi.v1.GetUsersResponse.users:type_name -> japella.controlapi.v1.UserAccount
-	62,  // 25: japella.controlapi.v1.GetUserResponse.user:type_name -> japella.controlapi.v1.UserAccount
-	34,  // 26: japella.controlapi.v1.CreateUserResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	62,  // 27: japella.controlapi.v1.CreateUserResponse.user:type_name -> japella.controlapi.v1.UserAccount
-	34,  // 28: japella.controlapi.v1.DeleteUserResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	67,  // 29: japella.controlapi.v1.ListRbacPermissionsResponse.permissions:type_name -> japella.controlapi.v1.RbacPermission
-	68,  // 30: japella.controlapi.v1.ListRbacRolesResponse.roles:type_name -> japella.controlapi.v1.RbacRole
-	34,  // 31: japella.controlapi.v1.CreateRbacRoleResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 32: japella.controlapi.v1.UpdateRbacRoleResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 33: japella.controlapi.v1.DeleteRbacRoleResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 34: japella.controlapi.v1.SetUserRbacRolesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	85,  // 35: japella.controlapi.v1.GetApiKeysResponse.keys:type_name -> japella.controlapi.v1.ApiKey
-	165, // 36: japella.controlapi.v1.GetCvarsResponse.cvar_categories:type_name -> japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
-	89,  // 37: japella.controlapi.v1.CvarCategory.cvars:type_name -> japella.controlapi.v1.Cvar
-	34,  // 38: japella.controlapi.v1.SaveUserPreferencesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 39: japella.controlapi.v1.CreateApiKeyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 40: japella.controlapi.v1.RevokeApiKeyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 41: japella.controlapi.v1.SetCvarResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 42: japella.controlapi.v1.RegisterConnectorResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 43: japella.controlapi.v1.CreateCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	104, // 44: japella.controlapi.v1.GetCampaignsResponse.campaigns:type_name -> japella.controlapi.v1.Campaign
-	34,  // 45: japella.controlapi.v1.AddSocialAccountToCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 46: japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 47: japella.controlapi.v1.UpdateCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 48: japella.controlapi.v1.DeleteCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	117, // 49: japella.controlapi.v1.GetLogsResponse.logs:type_name -> japella.controlapi.v1.LogEntry
-	120, // 50: japella.controlapi.v1.GetJobsStatusResponse.jobs:type_name -> japella.controlapi.v1.JobStatus
-	123, // 51: japella.controlapi.v1.ListMediaResponse.items:type_name -> japella.controlapi.v1.MediaItem
-	126, // 52: japella.controlapi.v1.GetChatBotsResponse.bots:type_name -> japella.controlapi.v1.ChatBot
-	129, // 53: japella.controlapi.v1.GetBotChannelsResponse.channels:type_name -> japella.controlapi.v1.BotChannel
-	130, // 54: japella.controlapi.v1.GetBotHooksResponse.hooks:type_name -> japella.controlapi.v1.IncomingMessageHook
-	130, // 55: japella.controlapi.v1.SetBotHooksRequest.hooks:type_name -> japella.controlapi.v1.IncomingMessageHook
-	34,  // 56: japella.controlapi.v1.SetBotHooksResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	136, // 57: japella.controlapi.v1.GetBotConversationsResponse.conversations:type_name -> japella.controlapi.v1.BotConversation
-	139, // 58: japella.controlapi.v1.GetBotConversationMessagesResponse.messages:type_name -> japella.controlapi.v1.BotConversationMessage
-	34,  // 59: japella.controlapi.v1.SendBotConversationMessageResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	139, // 60: japella.controlapi.v1.StreamBotConversationUpdatesResponse.new_messages:type_name -> japella.controlapi.v1.BotConversationMessage
-	145, // 61: japella.controlapi.v1.GetSocialAccountSharesResponse.shares:type_name -> japella.controlapi.v1.SocialAccountShareEntry
-	145, // 62: japella.controlapi.v1.SetSocialAccountSharesRequest.shares:type_name -> japella.controlapi.v1.SocialAccountShareEntry
-	34,  // 63: japella.controlapi.v1.SetSocialAccountSharesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 64: japella.controlapi.v1.ImpersonateUserResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 65: japella.controlapi.v1.StopImpersonationResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	154, // 66: japella.controlapi.v1.ListUserGroupsResponse.groups:type_name -> japella.controlapi.v1.UserGroup
-	34,  // 67: japella.controlapi.v1.CreateUserGroupResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 68: japella.controlapi.v1.DeleteUserGroupResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	34,  // 69: japella.controlapi.v1.SetUserGroupMembersResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	88,  // 70: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry.value:type_name -> japella.controlapi.v1.CvarCategory
-	3,   // 71: japella.controlapi.v1.JapellaControlApiService.GetStatus:input_type -> japella.controlapi.v1.GetStatusRequest
-	0,   // 72: japella.controlapi.v1.JapellaControlApiService.SubmitPost:input_type -> japella.controlapi.v1.SubmitPostRequest
-	6,   // 73: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:input_type -> japella.controlapi.v1.GetCannedPostsRequest
-	15,  // 74: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:input_type -> japella.controlapi.v1.GetCannedPostRequest
-	9,   // 75: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:input_type -> japella.controlapi.v1.CreateCannedPostRequest
-	11,  // 76: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:input_type -> japella.controlapi.v1.DeleteCannedPostRequest
-	17,  // 77: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:input_type -> japella.controlapi.v1.GetSocialAccountsRequest
-	30,  // 78: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:input_type -> japella.controlapi.v1.DeleteSocialAccountRequest
-	32,  // 79: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:input_type -> japella.controlapi.v1.RefreshSocialAccountRequest
-	20,  // 80: japella.controlapi.v1.JapellaControlApiService.GetConnectors:input_type -> japella.controlapi.v1.GetConnectorsRequest
-	21,  // 81: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:input_type -> japella.controlapi.v1.RefreshConnectorsRequest
-	23,  // 82: japella.controlapi.v1.JapellaControlApiService.StopService:input_type -> japella.controlapi.v1.StopServiceRequest
-	28,  // 83: japella.controlapi.v1.JapellaControlApiService.StartOAuth:input_type -> japella.controlapi.v1.StartOAuthRequest
-	35,  // 84: japella.controlapi.v1.JapellaControlApiService.GetTimeline:input_type -> japella.controlapi.v1.GetTimelineRequest
-	43,  // 85: japella.controlapi.v1.JapellaControlApiService.GetFeed:input_type -> japella.controlapi.v1.GetFeedRequest
-	37,  // 86: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:input_type -> japella.controlapi.v1.UpdatePostCampaignRequest
-	39,  // 87: japella.controlapi.v1.JapellaControlApiService.ForgetPost:input_type -> japella.controlapi.v1.ForgetPostRequest
-	41,  // 88: japella.controlapi.v1.JapellaControlApiService.RetryPost:input_type -> japella.controlapi.v1.RetryPostRequest
-	46,  // 89: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:input_type -> japella.controlapi.v1.SetSocialAccountActiveRequest
-	50,  // 90: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:input_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
-	52,  // 91: japella.controlapi.v1.JapellaControlApiService.ChangePassword:input_type -> japella.controlapi.v1.ChangePasswordRequest
-	54,  // 92: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:input_type -> japella.controlapi.v1.ResetUserPasswordRequest
-	56,  // 93: japella.controlapi.v1.JapellaControlApiService.Logout:input_type -> japella.controlapi.v1.LogoutRequest
-	58,  // 94: japella.controlapi.v1.JapellaControlApiService.GetUsers:input_type -> japella.controlapi.v1.GetUsersRequest
-	60,  // 95: japella.controlapi.v1.JapellaControlApiService.GetUser:input_type -> japella.controlapi.v1.GetUserRequest
-	63,  // 96: japella.controlapi.v1.JapellaControlApiService.CreateUser:input_type -> japella.controlapi.v1.CreateUserRequest
-	65,  // 97: japella.controlapi.v1.JapellaControlApiService.DeleteUser:input_type -> japella.controlapi.v1.DeleteUserRequest
-	69,  // 98: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:input_type -> japella.controlapi.v1.ListRbacPermissionsRequest
-	71,  // 99: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:input_type -> japella.controlapi.v1.ListRbacRolesRequest
-	73,  // 100: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:input_type -> japella.controlapi.v1.CreateRbacRoleRequest
-	75,  // 101: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:input_type -> japella.controlapi.v1.UpdateRbacRoleRequest
-	77,  // 102: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:input_type -> japella.controlapi.v1.DeleteRbacRoleRequest
-	79,  // 103: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:input_type -> japella.controlapi.v1.GetUserRbacRolesRequest
-	81,  // 104: japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles:input_type -> japella.controlapi.v1.SetUserRbacRolesRequest
-	83,  // 105: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:input_type -> japella.controlapi.v1.GetApiKeysRequest
-	86,  // 106: japella.controlapi.v1.JapellaControlApiService.GetCvars:input_type -> japella.controlapi.v1.GetCvarsRequest
-	90,  // 107: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:input_type -> japella.controlapi.v1.SaveUserPreferencesRequest
-	92,  // 108: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:input_type -> japella.controlapi.v1.CreateApiKeyRequest
-	94,  // 109: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:input_type -> japella.controlapi.v1.RevokeApiKeyRequest
-	96,  // 110: japella.controlapi.v1.JapellaControlApiService.SetCvar:input_type -> japella.controlapi.v1.SetCvarRequest
-	98,  // 111: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:input_type -> japella.controlapi.v1.RegisterConnectorRequest
-	100, // 112: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:input_type -> japella.controlapi.v1.CreateCampaignRequest
-	102, // 113: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:input_type -> japella.controlapi.v1.GetCampaignsRequest
-	111, // 114: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:input_type -> japella.controlapi.v1.UpdateCampaignRequest
-	113, // 115: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:input_type -> japella.controlapi.v1.DeleteCampaignRequest
-	13,  // 116: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:input_type -> japella.controlapi.v1.UpdateCannedPostRequest
-	105, // 117: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:input_type -> japella.controlapi.v1.AddSocialAccountToCampaignRequest
-	107, // 118: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:input_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignRequest
-	109, // 119: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:input_type -> japella.controlapi.v1.GetCampaignSocialAccountsRequest
-	48,  // 120: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:input_type -> japella.controlapi.v1.CleanupFeedPostsRequest
-	115, // 121: japella.controlapi.v1.JapellaControlApiService.GetLogs:input_type -> japella.controlapi.v1.GetLogsRequest
-	118, // 122: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:input_type -> japella.controlapi.v1.GetJobsStatusRequest
-	121, // 123: japella.controlapi.v1.JapellaControlApiService.ListMedia:input_type -> japella.controlapi.v1.ListMediaRequest
-	124, // 124: japella.controlapi.v1.JapellaControlApiService.GetChatBots:input_type -> japella.controlapi.v1.GetChatBotsRequest
-	127, // 125: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:input_type -> japella.controlapi.v1.GetBotChannelsRequest
-	131, // 126: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:input_type -> japella.controlapi.v1.GetBotHooksRequest
-	133, // 127: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:input_type -> japella.controlapi.v1.SetBotHooksRequest
-	135, // 128: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:input_type -> japella.controlapi.v1.GetBotConversationsRequest
-	138, // 129: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:input_type -> japella.controlapi.v1.GetBotConversationMessagesRequest
-	141, // 130: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:input_type -> japella.controlapi.v1.SendBotConversationMessageRequest
-	143, // 131: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:input_type -> japella.controlapi.v1.StreamBotConversationUpdatesRequest
-	146, // 132: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:input_type -> japella.controlapi.v1.GetSocialAccountSharesRequest
-	148, // 133: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:input_type -> japella.controlapi.v1.SetSocialAccountSharesRequest
-	150, // 134: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:input_type -> japella.controlapi.v1.ImpersonateUserRequest
-	152, // 135: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:input_type -> japella.controlapi.v1.StopImpersonationRequest
-	155, // 136: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:input_type -> japella.controlapi.v1.ListUserGroupsRequest
-	157, // 137: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:input_type -> japella.controlapi.v1.CreateUserGroupRequest
-	159, // 138: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:input_type -> japella.controlapi.v1.DeleteUserGroupRequest
-	161, // 139: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:input_type -> japella.controlapi.v1.GetUserGroupMembersRequest
-	163, // 140: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:input_type -> japella.controlapi.v1.SetUserGroupMembersRequest
-	4,   // 141: japella.controlapi.v1.JapellaControlApiService.GetStatus:output_type -> japella.controlapi.v1.GetStatusResponse
-	1,   // 142: japella.controlapi.v1.JapellaControlApiService.SubmitPost:output_type -> japella.controlapi.v1.SubmitPostResponse
-	7,   // 143: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:output_type -> japella.controlapi.v1.GetCannedPostsResponse
-	16,  // 144: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:output_type -> japella.controlapi.v1.GetCannedPostResponse
-	10,  // 145: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:output_type -> japella.controlapi.v1.CreateCannedPostResponse
-	12,  // 146: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:output_type -> japella.controlapi.v1.DeleteCannedPostResponse
-	18,  // 147: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:output_type -> japella.controlapi.v1.GetSocialAccountsResponse
-	31,  // 148: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:output_type -> japella.controlapi.v1.DeleteSocialAccountResponse
-	33,  // 149: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:output_type -> japella.controlapi.v1.RefreshSocialAccountResponse
-	25,  // 150: japella.controlapi.v1.JapellaControlApiService.GetConnectors:output_type -> japella.controlapi.v1.GetConnectorsResponse
-	22,  // 151: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:output_type -> japella.controlapi.v1.RefreshConnectorsResponse
-	24,  // 152: japella.controlapi.v1.JapellaControlApiService.StopService:output_type -> japella.controlapi.v1.StopServiceResponse
-	29,  // 153: japella.controlapi.v1.JapellaControlApiService.StartOAuth:output_type -> japella.controlapi.v1.StartOAuthResponse
-	36,  // 154: japella.controlapi.v1.JapellaControlApiService.GetTimeline:output_type -> japella.controlapi.v1.GetTimelineResponse
-	44,  // 155: japella.controlapi.v1.JapellaControlApiService.GetFeed:output_type -> japella.controlapi.v1.GetFeedResponse
-	38,  // 156: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:output_type -> japella.controlapi.v1.UpdatePostCampaignResponse
-	40,  // 157: japella.controlapi.v1.JapellaControlApiService.ForgetPost:output_type -> japella.controlapi.v1.ForgetPostResponse
-	42,  // 158: japella.controlapi.v1.JapellaControlApiService.RetryPost:output_type -> japella.controlapi.v1.RetryPostResponse
-	47,  // 159: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:output_type -> japella.controlapi.v1.SetSocialAccountActiveResponse
-	51,  // 160: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:output_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
-	53,  // 161: japella.controlapi.v1.JapellaControlApiService.ChangePassword:output_type -> japella.controlapi.v1.ChangePasswordResponse
-	55,  // 162: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:output_type -> japella.controlapi.v1.ResetUserPasswordResponse
-	57,  // 163: japella.controlapi.v1.JapellaControlApiService.Logout:output_type -> japella.controlapi.v1.LogoutResponse
-	59,  // 164: japella.controlapi.v1.JapellaControlApiService.GetUsers:output_type -> japella.controlapi.v1.GetUsersResponse
-	61,  // 165: japella.controlapi.v1.JapellaControlApiService.GetUser:output_type -> japella.controlapi.v1.GetUserResponse
-	64,  // 166: japella.controlapi.v1.JapellaControlApiService.CreateUser:output_type -> japella.controlapi.v1.CreateUserResponse
-	66,  // 167: japella.controlapi.v1.JapellaControlApiService.DeleteUser:output_type -> japella.controlapi.v1.DeleteUserResponse
-	70,  // 168: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:output_type -> japella.controlapi.v1.ListRbacPermissionsResponse
-	72,  // 169: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:output_type -> japella.controlapi.v1.ListRbacRolesResponse
-	74,  // 170: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:output_type -> japella.controlapi.v1.CreateRbacRoleResponse
-	76,  // 171: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:output_type -> japella.controlapi.v1.UpdateRbacRoleResponse
-	78,  // 172: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:output_type -> japella.controlapi.v1.DeleteRbacRoleResponse
-	80,  // 173: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:output_type -> japella.controlapi.v1.GetUserRbacRolesResponse
-	82,  // 174: japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles:output_type -> japella.controlapi.v1.SetUserRbacRolesResponse
-	84,  // 175: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:output_type -> japella.controlapi.v1.GetApiKeysResponse
-	87,  // 176: japella.controlapi.v1.JapellaControlApiService.GetCvars:output_type -> japella.controlapi.v1.GetCvarsResponse
-	91,  // 177: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:output_type -> japella.controlapi.v1.SaveUserPreferencesResponse
-	93,  // 178: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:output_type -> japella.controlapi.v1.CreateApiKeyResponse
-	95,  // 179: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:output_type -> japella.controlapi.v1.RevokeApiKeyResponse
-	97,  // 180: japella.controlapi.v1.JapellaControlApiService.SetCvar:output_type -> japella.controlapi.v1.SetCvarResponse
-	99,  // 181: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:output_type -> japella.controlapi.v1.RegisterConnectorResponse
-	101, // 182: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:output_type -> japella.controlapi.v1.CreateCampaignResponse
-	103, // 183: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:output_type -> japella.controlapi.v1.GetCampaignsResponse
-	112, // 184: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:output_type -> japella.controlapi.v1.UpdateCampaignResponse
-	114, // 185: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:output_type -> japella.controlapi.v1.DeleteCampaignResponse
-	14,  // 186: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:output_type -> japella.controlapi.v1.UpdateCannedPostResponse
-	106, // 187: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:output_type -> japella.controlapi.v1.AddSocialAccountToCampaignResponse
-	108, // 188: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:output_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse
-	110, // 189: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:output_type -> japella.controlapi.v1.GetCampaignSocialAccountsResponse
-	49,  // 190: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:output_type -> japella.controlapi.v1.CleanupFeedPostsResponse
-	116, // 191: japella.controlapi.v1.JapellaControlApiService.GetLogs:output_type -> japella.controlapi.v1.GetLogsResponse
-	119, // 192: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:output_type -> japella.controlapi.v1.GetJobsStatusResponse
-	122, // 193: japella.controlapi.v1.JapellaControlApiService.ListMedia:output_type -> japella.controlapi.v1.ListMediaResponse
-	125, // 194: japella.controlapi.v1.JapellaControlApiService.GetChatBots:output_type -> japella.controlapi.v1.GetChatBotsResponse
-	128, // 195: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:output_type -> japella.controlapi.v1.GetBotChannelsResponse
-	132, // 196: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:output_type -> japella.controlapi.v1.GetBotHooksResponse
-	134, // 197: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:output_type -> japella.controlapi.v1.SetBotHooksResponse
-	137, // 198: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:output_type -> japella.controlapi.v1.GetBotConversationsResponse
-	140, // 199: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:output_type -> japella.controlapi.v1.GetBotConversationMessagesResponse
-	142, // 200: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:output_type -> japella.controlapi.v1.SendBotConversationMessageResponse
-	144, // 201: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:output_type -> japella.controlapi.v1.StreamBotConversationUpdatesResponse
-	147, // 202: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:output_type -> japella.controlapi.v1.GetSocialAccountSharesResponse
-	149, // 203: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:output_type -> japella.controlapi.v1.SetSocialAccountSharesResponse
-	151, // 204: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:output_type -> japella.controlapi.v1.ImpersonateUserResponse
-	153, // 205: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:output_type -> japella.controlapi.v1.StopImpersonationResponse
-	156, // 206: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:output_type -> japella.controlapi.v1.ListUserGroupsResponse
-	158, // 207: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:output_type -> japella.controlapi.v1.CreateUserGroupResponse
-	160, // 208: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:output_type -> japella.controlapi.v1.DeleteUserGroupResponse
-	162, // 209: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:output_type -> japella.controlapi.v1.GetUserGroupMembersResponse
-	164, // 210: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:output_type -> japella.controlapi.v1.SetUserGroupMembersResponse
-	141, // [141:211] is the sub-list for method output_type
-	71,  // [71:141] is the sub-list for method input_type
-	71,  // [71:71] is the sub-list for extension type_name
-	71,  // [71:71] is the sub-list for extension extendee
-	0,   // [0:71] is the sub-list for field type_name
+	35,  // 6: japella.controlapi.v1.RefreshConnectorsResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 7: japella.controlapi.v1.StopServiceResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	27,  // 8: japella.controlapi.v1.GetConnectorsResponse.connectors:type_name -> japella.controlapi.v1.Connector
+	28,  // 9: japella.controlapi.v1.GetConnectorsResponse.unregistered_connectors:type_name -> japella.controlapi.v1.UnregisteredConnector
+	26,  // 10: japella.controlapi.v1.Connector.issues:type_name -> japella.controlapi.v1.ConnectorIssue
+	35,  // 11: japella.controlapi.v1.DeleteSocialAccountResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 12: japella.controlapi.v1.RefreshSocialAccountResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	2,   // 13: japella.controlapi.v1.GetTimelineResponse.posts:type_name -> japella.controlapi.v1.PostStatus
+	35,  // 14: japella.controlapi.v1.UpdatePostCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 15: japella.controlapi.v1.ForgetPostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 16: japella.controlapi.v1.RetryPostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	2,   // 17: japella.controlapi.v1.RetryPostResponse.post_status:type_name -> japella.controlapi.v1.PostStatus
+	46,  // 18: japella.controlapi.v1.GetFeedResponse.posts:type_name -> japella.controlapi.v1.FeedPost
+	35,  // 19: japella.controlapi.v1.SetSocialAccountActiveResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 20: japella.controlapi.v1.CleanupFeedPostsResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 21: japella.controlapi.v1.LoginWithUsernameAndPasswordResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 22: japella.controlapi.v1.ChangePasswordResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 23: japella.controlapi.v1.ResetUserPasswordResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 24: japella.controlapi.v1.LogoutResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	63,  // 25: japella.controlapi.v1.GetUsersResponse.users:type_name -> japella.controlapi.v1.UserAccount
+	63,  // 26: japella.controlapi.v1.GetUserResponse.user:type_name -> japella.controlapi.v1.UserAccount
+	35,  // 27: japella.controlapi.v1.CreateUserResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	63,  // 28: japella.controlapi.v1.CreateUserResponse.user:type_name -> japella.controlapi.v1.UserAccount
+	35,  // 29: japella.controlapi.v1.DeleteUserResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	68,  // 30: japella.controlapi.v1.ListRbacPermissionsResponse.permissions:type_name -> japella.controlapi.v1.RbacPermission
+	69,  // 31: japella.controlapi.v1.ListRbacRolesResponse.roles:type_name -> japella.controlapi.v1.RbacRole
+	35,  // 32: japella.controlapi.v1.CreateRbacRoleResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 33: japella.controlapi.v1.UpdateRbacRoleResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 34: japella.controlapi.v1.DeleteRbacRoleResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 35: japella.controlapi.v1.SetUserRbacRolesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	86,  // 36: japella.controlapi.v1.GetApiKeysResponse.keys:type_name -> japella.controlapi.v1.ApiKey
+	166, // 37: japella.controlapi.v1.GetCvarsResponse.cvar_categories:type_name -> japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
+	90,  // 38: japella.controlapi.v1.CvarCategory.cvars:type_name -> japella.controlapi.v1.Cvar
+	35,  // 39: japella.controlapi.v1.SaveUserPreferencesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 40: japella.controlapi.v1.CreateApiKeyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 41: japella.controlapi.v1.RevokeApiKeyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 42: japella.controlapi.v1.SetCvarResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 43: japella.controlapi.v1.RegisterConnectorResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 44: japella.controlapi.v1.CreateCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	105, // 45: japella.controlapi.v1.GetCampaignsResponse.campaigns:type_name -> japella.controlapi.v1.Campaign
+	35,  // 46: japella.controlapi.v1.AddSocialAccountToCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 47: japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 48: japella.controlapi.v1.UpdateCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 49: japella.controlapi.v1.DeleteCampaignResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	118, // 50: japella.controlapi.v1.GetLogsResponse.logs:type_name -> japella.controlapi.v1.LogEntry
+	121, // 51: japella.controlapi.v1.GetJobsStatusResponse.jobs:type_name -> japella.controlapi.v1.JobStatus
+	124, // 52: japella.controlapi.v1.ListMediaResponse.items:type_name -> japella.controlapi.v1.MediaItem
+	127, // 53: japella.controlapi.v1.GetChatBotsResponse.bots:type_name -> japella.controlapi.v1.ChatBot
+	130, // 54: japella.controlapi.v1.GetBotChannelsResponse.channels:type_name -> japella.controlapi.v1.BotChannel
+	131, // 55: japella.controlapi.v1.GetBotHooksResponse.hooks:type_name -> japella.controlapi.v1.IncomingMessageHook
+	131, // 56: japella.controlapi.v1.SetBotHooksRequest.hooks:type_name -> japella.controlapi.v1.IncomingMessageHook
+	35,  // 57: japella.controlapi.v1.SetBotHooksResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	137, // 58: japella.controlapi.v1.GetBotConversationsResponse.conversations:type_name -> japella.controlapi.v1.BotConversation
+	140, // 59: japella.controlapi.v1.GetBotConversationMessagesResponse.messages:type_name -> japella.controlapi.v1.BotConversationMessage
+	35,  // 60: japella.controlapi.v1.SendBotConversationMessageResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	140, // 61: japella.controlapi.v1.StreamBotConversationUpdatesResponse.new_messages:type_name -> japella.controlapi.v1.BotConversationMessage
+	146, // 62: japella.controlapi.v1.GetSocialAccountSharesResponse.shares:type_name -> japella.controlapi.v1.SocialAccountShareEntry
+	146, // 63: japella.controlapi.v1.SetSocialAccountSharesRequest.shares:type_name -> japella.controlapi.v1.SocialAccountShareEntry
+	35,  // 64: japella.controlapi.v1.SetSocialAccountSharesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 65: japella.controlapi.v1.ImpersonateUserResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 66: japella.controlapi.v1.StopImpersonationResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	155, // 67: japella.controlapi.v1.ListUserGroupsResponse.groups:type_name -> japella.controlapi.v1.UserGroup
+	35,  // 68: japella.controlapi.v1.CreateUserGroupResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 69: japella.controlapi.v1.DeleteUserGroupResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 70: japella.controlapi.v1.SetUserGroupMembersResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	89,  // 71: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry.value:type_name -> japella.controlapi.v1.CvarCategory
+	3,   // 72: japella.controlapi.v1.JapellaControlApiService.GetStatus:input_type -> japella.controlapi.v1.GetStatusRequest
+	0,   // 73: japella.controlapi.v1.JapellaControlApiService.SubmitPost:input_type -> japella.controlapi.v1.SubmitPostRequest
+	6,   // 74: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:input_type -> japella.controlapi.v1.GetCannedPostsRequest
+	15,  // 75: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:input_type -> japella.controlapi.v1.GetCannedPostRequest
+	9,   // 76: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:input_type -> japella.controlapi.v1.CreateCannedPostRequest
+	11,  // 77: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:input_type -> japella.controlapi.v1.DeleteCannedPostRequest
+	17,  // 78: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:input_type -> japella.controlapi.v1.GetSocialAccountsRequest
+	31,  // 79: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:input_type -> japella.controlapi.v1.DeleteSocialAccountRequest
+	33,  // 80: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:input_type -> japella.controlapi.v1.RefreshSocialAccountRequest
+	20,  // 81: japella.controlapi.v1.JapellaControlApiService.GetConnectors:input_type -> japella.controlapi.v1.GetConnectorsRequest
+	21,  // 82: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:input_type -> japella.controlapi.v1.RefreshConnectorsRequest
+	23,  // 83: japella.controlapi.v1.JapellaControlApiService.StopService:input_type -> japella.controlapi.v1.StopServiceRequest
+	29,  // 84: japella.controlapi.v1.JapellaControlApiService.StartOAuth:input_type -> japella.controlapi.v1.StartOAuthRequest
+	36,  // 85: japella.controlapi.v1.JapellaControlApiService.GetTimeline:input_type -> japella.controlapi.v1.GetTimelineRequest
+	44,  // 86: japella.controlapi.v1.JapellaControlApiService.GetFeed:input_type -> japella.controlapi.v1.GetFeedRequest
+	38,  // 87: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:input_type -> japella.controlapi.v1.UpdatePostCampaignRequest
+	40,  // 88: japella.controlapi.v1.JapellaControlApiService.ForgetPost:input_type -> japella.controlapi.v1.ForgetPostRequest
+	42,  // 89: japella.controlapi.v1.JapellaControlApiService.RetryPost:input_type -> japella.controlapi.v1.RetryPostRequest
+	47,  // 90: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:input_type -> japella.controlapi.v1.SetSocialAccountActiveRequest
+	51,  // 91: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:input_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
+	53,  // 92: japella.controlapi.v1.JapellaControlApiService.ChangePassword:input_type -> japella.controlapi.v1.ChangePasswordRequest
+	55,  // 93: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:input_type -> japella.controlapi.v1.ResetUserPasswordRequest
+	57,  // 94: japella.controlapi.v1.JapellaControlApiService.Logout:input_type -> japella.controlapi.v1.LogoutRequest
+	59,  // 95: japella.controlapi.v1.JapellaControlApiService.GetUsers:input_type -> japella.controlapi.v1.GetUsersRequest
+	61,  // 96: japella.controlapi.v1.JapellaControlApiService.GetUser:input_type -> japella.controlapi.v1.GetUserRequest
+	64,  // 97: japella.controlapi.v1.JapellaControlApiService.CreateUser:input_type -> japella.controlapi.v1.CreateUserRequest
+	66,  // 98: japella.controlapi.v1.JapellaControlApiService.DeleteUser:input_type -> japella.controlapi.v1.DeleteUserRequest
+	70,  // 99: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:input_type -> japella.controlapi.v1.ListRbacPermissionsRequest
+	72,  // 100: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:input_type -> japella.controlapi.v1.ListRbacRolesRequest
+	74,  // 101: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:input_type -> japella.controlapi.v1.CreateRbacRoleRequest
+	76,  // 102: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:input_type -> japella.controlapi.v1.UpdateRbacRoleRequest
+	78,  // 103: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:input_type -> japella.controlapi.v1.DeleteRbacRoleRequest
+	80,  // 104: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:input_type -> japella.controlapi.v1.GetUserRbacRolesRequest
+	82,  // 105: japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles:input_type -> japella.controlapi.v1.SetUserRbacRolesRequest
+	84,  // 106: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:input_type -> japella.controlapi.v1.GetApiKeysRequest
+	87,  // 107: japella.controlapi.v1.JapellaControlApiService.GetCvars:input_type -> japella.controlapi.v1.GetCvarsRequest
+	91,  // 108: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:input_type -> japella.controlapi.v1.SaveUserPreferencesRequest
+	93,  // 109: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:input_type -> japella.controlapi.v1.CreateApiKeyRequest
+	95,  // 110: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:input_type -> japella.controlapi.v1.RevokeApiKeyRequest
+	97,  // 111: japella.controlapi.v1.JapellaControlApiService.SetCvar:input_type -> japella.controlapi.v1.SetCvarRequest
+	99,  // 112: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:input_type -> japella.controlapi.v1.RegisterConnectorRequest
+	101, // 113: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:input_type -> japella.controlapi.v1.CreateCampaignRequest
+	103, // 114: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:input_type -> japella.controlapi.v1.GetCampaignsRequest
+	112, // 115: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:input_type -> japella.controlapi.v1.UpdateCampaignRequest
+	114, // 116: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:input_type -> japella.controlapi.v1.DeleteCampaignRequest
+	13,  // 117: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:input_type -> japella.controlapi.v1.UpdateCannedPostRequest
+	106, // 118: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:input_type -> japella.controlapi.v1.AddSocialAccountToCampaignRequest
+	108, // 119: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:input_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignRequest
+	110, // 120: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:input_type -> japella.controlapi.v1.GetCampaignSocialAccountsRequest
+	49,  // 121: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:input_type -> japella.controlapi.v1.CleanupFeedPostsRequest
+	116, // 122: japella.controlapi.v1.JapellaControlApiService.GetLogs:input_type -> japella.controlapi.v1.GetLogsRequest
+	119, // 123: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:input_type -> japella.controlapi.v1.GetJobsStatusRequest
+	122, // 124: japella.controlapi.v1.JapellaControlApiService.ListMedia:input_type -> japella.controlapi.v1.ListMediaRequest
+	125, // 125: japella.controlapi.v1.JapellaControlApiService.GetChatBots:input_type -> japella.controlapi.v1.GetChatBotsRequest
+	128, // 126: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:input_type -> japella.controlapi.v1.GetBotChannelsRequest
+	132, // 127: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:input_type -> japella.controlapi.v1.GetBotHooksRequest
+	134, // 128: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:input_type -> japella.controlapi.v1.SetBotHooksRequest
+	136, // 129: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:input_type -> japella.controlapi.v1.GetBotConversationsRequest
+	139, // 130: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:input_type -> japella.controlapi.v1.GetBotConversationMessagesRequest
+	142, // 131: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:input_type -> japella.controlapi.v1.SendBotConversationMessageRequest
+	144, // 132: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:input_type -> japella.controlapi.v1.StreamBotConversationUpdatesRequest
+	147, // 133: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:input_type -> japella.controlapi.v1.GetSocialAccountSharesRequest
+	149, // 134: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:input_type -> japella.controlapi.v1.SetSocialAccountSharesRequest
+	151, // 135: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:input_type -> japella.controlapi.v1.ImpersonateUserRequest
+	153, // 136: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:input_type -> japella.controlapi.v1.StopImpersonationRequest
+	156, // 137: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:input_type -> japella.controlapi.v1.ListUserGroupsRequest
+	158, // 138: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:input_type -> japella.controlapi.v1.CreateUserGroupRequest
+	160, // 139: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:input_type -> japella.controlapi.v1.DeleteUserGroupRequest
+	162, // 140: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:input_type -> japella.controlapi.v1.GetUserGroupMembersRequest
+	164, // 141: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:input_type -> japella.controlapi.v1.SetUserGroupMembersRequest
+	4,   // 142: japella.controlapi.v1.JapellaControlApiService.GetStatus:output_type -> japella.controlapi.v1.GetStatusResponse
+	1,   // 143: japella.controlapi.v1.JapellaControlApiService.SubmitPost:output_type -> japella.controlapi.v1.SubmitPostResponse
+	7,   // 144: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:output_type -> japella.controlapi.v1.GetCannedPostsResponse
+	16,  // 145: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:output_type -> japella.controlapi.v1.GetCannedPostResponse
+	10,  // 146: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:output_type -> japella.controlapi.v1.CreateCannedPostResponse
+	12,  // 147: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:output_type -> japella.controlapi.v1.DeleteCannedPostResponse
+	18,  // 148: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:output_type -> japella.controlapi.v1.GetSocialAccountsResponse
+	32,  // 149: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:output_type -> japella.controlapi.v1.DeleteSocialAccountResponse
+	34,  // 150: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:output_type -> japella.controlapi.v1.RefreshSocialAccountResponse
+	25,  // 151: japella.controlapi.v1.JapellaControlApiService.GetConnectors:output_type -> japella.controlapi.v1.GetConnectorsResponse
+	22,  // 152: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:output_type -> japella.controlapi.v1.RefreshConnectorsResponse
+	24,  // 153: japella.controlapi.v1.JapellaControlApiService.StopService:output_type -> japella.controlapi.v1.StopServiceResponse
+	30,  // 154: japella.controlapi.v1.JapellaControlApiService.StartOAuth:output_type -> japella.controlapi.v1.StartOAuthResponse
+	37,  // 155: japella.controlapi.v1.JapellaControlApiService.GetTimeline:output_type -> japella.controlapi.v1.GetTimelineResponse
+	45,  // 156: japella.controlapi.v1.JapellaControlApiService.GetFeed:output_type -> japella.controlapi.v1.GetFeedResponse
+	39,  // 157: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:output_type -> japella.controlapi.v1.UpdatePostCampaignResponse
+	41,  // 158: japella.controlapi.v1.JapellaControlApiService.ForgetPost:output_type -> japella.controlapi.v1.ForgetPostResponse
+	43,  // 159: japella.controlapi.v1.JapellaControlApiService.RetryPost:output_type -> japella.controlapi.v1.RetryPostResponse
+	48,  // 160: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:output_type -> japella.controlapi.v1.SetSocialAccountActiveResponse
+	52,  // 161: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:output_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
+	54,  // 162: japella.controlapi.v1.JapellaControlApiService.ChangePassword:output_type -> japella.controlapi.v1.ChangePasswordResponse
+	56,  // 163: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:output_type -> japella.controlapi.v1.ResetUserPasswordResponse
+	58,  // 164: japella.controlapi.v1.JapellaControlApiService.Logout:output_type -> japella.controlapi.v1.LogoutResponse
+	60,  // 165: japella.controlapi.v1.JapellaControlApiService.GetUsers:output_type -> japella.controlapi.v1.GetUsersResponse
+	62,  // 166: japella.controlapi.v1.JapellaControlApiService.GetUser:output_type -> japella.controlapi.v1.GetUserResponse
+	65,  // 167: japella.controlapi.v1.JapellaControlApiService.CreateUser:output_type -> japella.controlapi.v1.CreateUserResponse
+	67,  // 168: japella.controlapi.v1.JapellaControlApiService.DeleteUser:output_type -> japella.controlapi.v1.DeleteUserResponse
+	71,  // 169: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:output_type -> japella.controlapi.v1.ListRbacPermissionsResponse
+	73,  // 170: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:output_type -> japella.controlapi.v1.ListRbacRolesResponse
+	75,  // 171: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:output_type -> japella.controlapi.v1.CreateRbacRoleResponse
+	77,  // 172: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:output_type -> japella.controlapi.v1.UpdateRbacRoleResponse
+	79,  // 173: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:output_type -> japella.controlapi.v1.DeleteRbacRoleResponse
+	81,  // 174: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:output_type -> japella.controlapi.v1.GetUserRbacRolesResponse
+	83,  // 175: japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles:output_type -> japella.controlapi.v1.SetUserRbacRolesResponse
+	85,  // 176: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:output_type -> japella.controlapi.v1.GetApiKeysResponse
+	88,  // 177: japella.controlapi.v1.JapellaControlApiService.GetCvars:output_type -> japella.controlapi.v1.GetCvarsResponse
+	92,  // 178: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:output_type -> japella.controlapi.v1.SaveUserPreferencesResponse
+	94,  // 179: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:output_type -> japella.controlapi.v1.CreateApiKeyResponse
+	96,  // 180: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:output_type -> japella.controlapi.v1.RevokeApiKeyResponse
+	98,  // 181: japella.controlapi.v1.JapellaControlApiService.SetCvar:output_type -> japella.controlapi.v1.SetCvarResponse
+	100, // 182: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:output_type -> japella.controlapi.v1.RegisterConnectorResponse
+	102, // 183: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:output_type -> japella.controlapi.v1.CreateCampaignResponse
+	104, // 184: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:output_type -> japella.controlapi.v1.GetCampaignsResponse
+	113, // 185: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:output_type -> japella.controlapi.v1.UpdateCampaignResponse
+	115, // 186: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:output_type -> japella.controlapi.v1.DeleteCampaignResponse
+	14,  // 187: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:output_type -> japella.controlapi.v1.UpdateCannedPostResponse
+	107, // 188: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:output_type -> japella.controlapi.v1.AddSocialAccountToCampaignResponse
+	109, // 189: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:output_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse
+	111, // 190: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:output_type -> japella.controlapi.v1.GetCampaignSocialAccountsResponse
+	50,  // 191: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:output_type -> japella.controlapi.v1.CleanupFeedPostsResponse
+	117, // 192: japella.controlapi.v1.JapellaControlApiService.GetLogs:output_type -> japella.controlapi.v1.GetLogsResponse
+	120, // 193: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:output_type -> japella.controlapi.v1.GetJobsStatusResponse
+	123, // 194: japella.controlapi.v1.JapellaControlApiService.ListMedia:output_type -> japella.controlapi.v1.ListMediaResponse
+	126, // 195: japella.controlapi.v1.JapellaControlApiService.GetChatBots:output_type -> japella.controlapi.v1.GetChatBotsResponse
+	129, // 196: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:output_type -> japella.controlapi.v1.GetBotChannelsResponse
+	133, // 197: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:output_type -> japella.controlapi.v1.GetBotHooksResponse
+	135, // 198: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:output_type -> japella.controlapi.v1.SetBotHooksResponse
+	138, // 199: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:output_type -> japella.controlapi.v1.GetBotConversationsResponse
+	141, // 200: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:output_type -> japella.controlapi.v1.GetBotConversationMessagesResponse
+	143, // 201: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:output_type -> japella.controlapi.v1.SendBotConversationMessageResponse
+	145, // 202: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:output_type -> japella.controlapi.v1.StreamBotConversationUpdatesResponse
+	148, // 203: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:output_type -> japella.controlapi.v1.GetSocialAccountSharesResponse
+	150, // 204: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:output_type -> japella.controlapi.v1.SetSocialAccountSharesResponse
+	152, // 205: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:output_type -> japella.controlapi.v1.ImpersonateUserResponse
+	154, // 206: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:output_type -> japella.controlapi.v1.StopImpersonationResponse
+	157, // 207: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:output_type -> japella.controlapi.v1.ListUserGroupsResponse
+	159, // 208: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:output_type -> japella.controlapi.v1.CreateUserGroupResponse
+	161, // 209: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:output_type -> japella.controlapi.v1.DeleteUserGroupResponse
+	163, // 210: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:output_type -> japella.controlapi.v1.GetUserGroupMembersResponse
+	165, // 211: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:output_type -> japella.controlapi.v1.SetUserGroupMembersResponse
+	142, // [142:212] is the sub-list for method output_type
+	72,  // [72:142] is the sub-list for method input_type
+	72,  // [72:72] is the sub-list for extension type_name
+	72,  // [72:72] is the sub-list for extension extendee
+	0,   // [0:72] is the sub-list for field type_name
 }
 
 func init() { file_japella_controlapi_v1_control_proto_init() }
@@ -9724,7 +9818,7 @@ func file_japella_controlapi_v1_control_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_japella_controlapi_v1_control_proto_rawDesc), len(file_japella_controlapi_v1_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   166,
+			NumMessages:   167,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
