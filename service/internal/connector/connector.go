@@ -31,11 +31,17 @@ type ConnectorWithWall interface {
 	FetchRecentPosts(sa *SocialAccount) ([]*FeedPost, error)
 }
 
+// ConnectorWithFeedPostRefetch can reload a single feed post from the remote platform.
+type ConnectorWithFeedPostRefetch interface {
+	FetchFeedPost(sa *SocialAccount, remoteID string, remoteURL string) (*FeedPost, error)
+}
+
 // ChatBot represents a chatbot instance from a connector
 type ChatBot struct {
+	BotID               string // Immutable instance id (e.g. botA)
 	Connector          string // The connector protocol (e.g., "telegram", "discord")
 	Name               string // Display name of the bot
-	Identity           string // Bot identity/username
+	Identity           string // Bot identity/username on the platform (after connect)
 	Icon               string // Icon identifier
 	IsRunning          bool   // Whether the bot is currently running
 	StatusMessage      string // Diagnostic message explaining why the bot is stopped or its current status
@@ -47,6 +53,13 @@ type ChatBot struct {
 type ConnectorWithChatBot interface {
 	BaseConnector
 	GetChatBot() *ChatBot
+}
+
+// ConnectorWithChatBotControl is implemented by chat bot connectors that can be started and stopped at runtime.
+type ConnectorWithChatBotControl interface {
+	ConnectorWithChatBot
+	StartChatBot() error
+	StopChatBot() error
 }
 
 // BotChannel represents a channel/chat that a bot is in
@@ -92,8 +105,9 @@ type UnregisteredConnector struct {
 type FeedPost struct {
 	Content            string
 	PostedDate         time.Time
-	AuthorID           uint32
+	AuthorID           string
 	AuthorName         string
+	AuthorAvatarURL    string
 	RemoteURL          string
 	RemoteID           string
 	PreviewURL         string
@@ -114,6 +128,13 @@ type SocialAccount struct {
 type ControllerStartupConfiguration struct {
 	DB     *db.DB
 	Config any
+}
+
+// ChatBotStartupConfig is passed when registering a DB-backed chat bot instance.
+type ChatBotStartupConfig struct {
+	Protocol    string
+	BotID       string
+	DisplayName string
 }
 
 type PostResult struct {

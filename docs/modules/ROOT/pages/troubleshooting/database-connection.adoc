@@ -1,6 +1,8 @@
-= Database connection and “translations could not be loaded”
+= Database connection and “Japella is not ready”
 
-If the web interface shows an error that translations could not be loaded, or the API returns HTTP 500 until the service is healthy, Japella is usually waiting on the database or cannot reach it.
+If the web interface shows **Japella is not ready**, the browser reached the Control API but `GetStatus` reported that the database is not connected. If the UI shows **Could not reach the Japella server** instead, see xref:troubleshooting/server-unreachable.adoc[server unreachable troubleshooting] — the API call itself failed before Japella could report database health.
+
+Older builds may have shown “translations could not be loaded” for some of these cases; current versions check server status before loading translations.
 
 == Quick checks
 

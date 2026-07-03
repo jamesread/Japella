@@ -11,7 +11,7 @@
 			<p class="inline-notification error">{{ error }}</p>
 		</div>
 		<ChatBotConversations v-else-if="bots.length > 0" :bots="bots" />
-		<p v-else class="inline-notification note">No chat bots are configured. Add a bot under Settings → Chat Bots.</p>
+		<p v-else class="inline-notification note">No chat bots are configured. <router-link :to="{ name: 'createChatBot' }">Add a chat bot</router-link> to get started.</p>
 	</Section>
 </template>
 

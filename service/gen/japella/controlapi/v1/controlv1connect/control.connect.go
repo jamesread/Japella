@@ -183,6 +183,9 @@ const (
 	// JapellaControlApiServiceCleanupFeedPostsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's CleanupFeedPosts RPC.
 	JapellaControlApiServiceCleanupFeedPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/CleanupFeedPosts"
+	// JapellaControlApiServiceRefetchFeedPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's RefetchFeedPost RPC.
+	JapellaControlApiServiceRefetchFeedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/RefetchFeedPost"
 	// JapellaControlApiServiceGetLogsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetLogs RPC.
 	JapellaControlApiServiceGetLogsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetLogs"
@@ -195,6 +198,21 @@ const (
 	// JapellaControlApiServiceGetChatBotsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetChatBots RPC.
 	JapellaControlApiServiceGetChatBotsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetChatBots"
+	// JapellaControlApiServiceCreateChatBotProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateChatBot RPC.
+	JapellaControlApiServiceCreateChatBotProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateChatBot"
+	// JapellaControlApiServiceUpdateChatBotProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateChatBot RPC.
+	JapellaControlApiServiceUpdateChatBotProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateChatBot"
+	// JapellaControlApiServiceDeleteChatBotProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteChatBot RPC.
+	JapellaControlApiServiceDeleteChatBotProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteChatBot"
+	// JapellaControlApiServiceStartChatBotProcedure is the fully-qualified name of the
+	// JapellaControlApiService's StartChatBot RPC.
+	JapellaControlApiServiceStartChatBotProcedure = "/japella.controlapi.v1.JapellaControlApiService/StartChatBot"
+	// JapellaControlApiServiceStopChatBotProcedure is the fully-qualified name of the
+	// JapellaControlApiService's StopChatBot RPC.
+	JapellaControlApiServiceStopChatBotProcedure = "/japella.controlapi.v1.JapellaControlApiService/StopChatBot"
 	// JapellaControlApiServiceGetBotChannelsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetBotChannels RPC.
 	JapellaControlApiServiceGetBotChannelsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetBotChannels"
@@ -298,10 +316,16 @@ type JapellaControlApiServiceClient interface {
 	RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error)
 	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
 	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
+	RefetchFeedPost(context.Context, *connect.Request[v1.RefetchFeedPostRequest]) (*connect.Response[v1.RefetchFeedPostResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
 	GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error)
+	CreateChatBot(context.Context, *connect.Request[v1.CreateChatBotRequest]) (*connect.Response[v1.CreateChatBotResponse], error)
+	UpdateChatBot(context.Context, *connect.Request[v1.UpdateChatBotRequest]) (*connect.Response[v1.UpdateChatBotResponse], error)
+	DeleteChatBot(context.Context, *connect.Request[v1.DeleteChatBotRequest]) (*connect.Response[v1.DeleteChatBotResponse], error)
+	StartChatBot(context.Context, *connect.Request[v1.StartChatBotRequest]) (*connect.Response[v1.StartChatBotResponse], error)
+	StopChatBot(context.Context, *connect.Request[v1.StopChatBotRequest]) (*connect.Response[v1.StopChatBotResponse], error)
 	GetBotChannels(context.Context, *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error)
 	GetBotHooks(context.Context, *connect.Request[v1.GetBotHooksRequest]) (*connect.Response[v1.GetBotHooksResponse], error)
 	SetBotHooks(context.Context, *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error)
@@ -632,6 +656,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("CleanupFeedPosts")),
 			connect.WithClientOptions(opts...),
 		),
+		refetchFeedPost: connect.NewClient[v1.RefetchFeedPostRequest, v1.RefetchFeedPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRefetchFeedPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RefetchFeedPost")),
+			connect.WithClientOptions(opts...),
+		),
 		getLogs: connect.NewClient[v1.GetLogsRequest, v1.GetLogsResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceGetLogsProcedure,
@@ -654,6 +684,36 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceGetChatBotsProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetChatBots")),
+			connect.WithClientOptions(opts...),
+		),
+		createChatBot: connect.NewClient[v1.CreateChatBotRequest, v1.CreateChatBotResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateChatBotProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateChatBot")),
+			connect.WithClientOptions(opts...),
+		),
+		updateChatBot: connect.NewClient[v1.UpdateChatBotRequest, v1.UpdateChatBotResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateChatBotProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateChatBot")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteChatBot: connect.NewClient[v1.DeleteChatBotRequest, v1.DeleteChatBotResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteChatBotProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteChatBot")),
+			connect.WithClientOptions(opts...),
+		),
+		startChatBot: connect.NewClient[v1.StartChatBotRequest, v1.StartChatBotResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceStartChatBotProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("StartChatBot")),
+			connect.WithClientOptions(opts...),
+		),
+		stopChatBot: connect.NewClient[v1.StopChatBotRequest, v1.StopChatBotResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceStopChatBotProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("StopChatBot")),
 			connect.WithClientOptions(opts...),
 		),
 		getBotChannels: connect.NewClient[v1.GetBotChannelsRequest, v1.GetBotChannelsResponse](
@@ -807,10 +867,16 @@ type japellaControlApiServiceClient struct {
 	removeSocialAccountFromCampaign *connect.Client[v1.RemoveSocialAccountFromCampaignRequest, v1.RemoveSocialAccountFromCampaignResponse]
 	getCampaignSocialAccounts       *connect.Client[v1.GetCampaignSocialAccountsRequest, v1.GetCampaignSocialAccountsResponse]
 	cleanupFeedPosts                *connect.Client[v1.CleanupFeedPostsRequest, v1.CleanupFeedPostsResponse]
+	refetchFeedPost                 *connect.Client[v1.RefetchFeedPostRequest, v1.RefetchFeedPostResponse]
 	getLogs                         *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
 	getJobsStatus                   *connect.Client[v1.GetJobsStatusRequest, v1.GetJobsStatusResponse]
 	listMedia                       *connect.Client[v1.ListMediaRequest, v1.ListMediaResponse]
 	getChatBots                     *connect.Client[v1.GetChatBotsRequest, v1.GetChatBotsResponse]
+	createChatBot                   *connect.Client[v1.CreateChatBotRequest, v1.CreateChatBotResponse]
+	updateChatBot                   *connect.Client[v1.UpdateChatBotRequest, v1.UpdateChatBotResponse]
+	deleteChatBot                   *connect.Client[v1.DeleteChatBotRequest, v1.DeleteChatBotResponse]
+	startChatBot                    *connect.Client[v1.StartChatBotRequest, v1.StartChatBotResponse]
+	stopChatBot                     *connect.Client[v1.StopChatBotRequest, v1.StopChatBotResponse]
 	getBotChannels                  *connect.Client[v1.GetBotChannelsRequest, v1.GetBotChannelsResponse]
 	getBotHooks                     *connect.Client[v1.GetBotHooksRequest, v1.GetBotHooksResponse]
 	setBotHooks                     *connect.Client[v1.SetBotHooksRequest, v1.SetBotHooksResponse]
@@ -1084,6 +1150,11 @@ func (c *japellaControlApiServiceClient) CleanupFeedPosts(ctx context.Context, r
 	return c.cleanupFeedPosts.CallUnary(ctx, req)
 }
 
+// RefetchFeedPost calls japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost.
+func (c *japellaControlApiServiceClient) RefetchFeedPost(ctx context.Context, req *connect.Request[v1.RefetchFeedPostRequest]) (*connect.Response[v1.RefetchFeedPostResponse], error) {
+	return c.refetchFeedPost.CallUnary(ctx, req)
+}
+
 // GetLogs calls japella.controlapi.v1.JapellaControlApiService.GetLogs.
 func (c *japellaControlApiServiceClient) GetLogs(ctx context.Context, req *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error) {
 	return c.getLogs.CallUnary(ctx, req)
@@ -1102,6 +1173,31 @@ func (c *japellaControlApiServiceClient) ListMedia(ctx context.Context, req *con
 // GetChatBots calls japella.controlapi.v1.JapellaControlApiService.GetChatBots.
 func (c *japellaControlApiServiceClient) GetChatBots(ctx context.Context, req *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error) {
 	return c.getChatBots.CallUnary(ctx, req)
+}
+
+// CreateChatBot calls japella.controlapi.v1.JapellaControlApiService.CreateChatBot.
+func (c *japellaControlApiServiceClient) CreateChatBot(ctx context.Context, req *connect.Request[v1.CreateChatBotRequest]) (*connect.Response[v1.CreateChatBotResponse], error) {
+	return c.createChatBot.CallUnary(ctx, req)
+}
+
+// UpdateChatBot calls japella.controlapi.v1.JapellaControlApiService.UpdateChatBot.
+func (c *japellaControlApiServiceClient) UpdateChatBot(ctx context.Context, req *connect.Request[v1.UpdateChatBotRequest]) (*connect.Response[v1.UpdateChatBotResponse], error) {
+	return c.updateChatBot.CallUnary(ctx, req)
+}
+
+// DeleteChatBot calls japella.controlapi.v1.JapellaControlApiService.DeleteChatBot.
+func (c *japellaControlApiServiceClient) DeleteChatBot(ctx context.Context, req *connect.Request[v1.DeleteChatBotRequest]) (*connect.Response[v1.DeleteChatBotResponse], error) {
+	return c.deleteChatBot.CallUnary(ctx, req)
+}
+
+// StartChatBot calls japella.controlapi.v1.JapellaControlApiService.StartChatBot.
+func (c *japellaControlApiServiceClient) StartChatBot(ctx context.Context, req *connect.Request[v1.StartChatBotRequest]) (*connect.Response[v1.StartChatBotResponse], error) {
+	return c.startChatBot.CallUnary(ctx, req)
+}
+
+// StopChatBot calls japella.controlapi.v1.JapellaControlApiService.StopChatBot.
+func (c *japellaControlApiServiceClient) StopChatBot(ctx context.Context, req *connect.Request[v1.StopChatBotRequest]) (*connect.Response[v1.StopChatBotResponse], error) {
+	return c.stopChatBot.CallUnary(ctx, req)
 }
 
 // GetBotChannels calls japella.controlapi.v1.JapellaControlApiService.GetBotChannels.
@@ -1242,10 +1338,16 @@ type JapellaControlApiServiceHandler interface {
 	RemoveSocialAccountFromCampaign(context.Context, *connect.Request[v1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[v1.RemoveSocialAccountFromCampaignResponse], error)
 	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
 	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
+	RefetchFeedPost(context.Context, *connect.Request[v1.RefetchFeedPostRequest]) (*connect.Response[v1.RefetchFeedPostResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
 	GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error)
+	CreateChatBot(context.Context, *connect.Request[v1.CreateChatBotRequest]) (*connect.Response[v1.CreateChatBotResponse], error)
+	UpdateChatBot(context.Context, *connect.Request[v1.UpdateChatBotRequest]) (*connect.Response[v1.UpdateChatBotResponse], error)
+	DeleteChatBot(context.Context, *connect.Request[v1.DeleteChatBotRequest]) (*connect.Response[v1.DeleteChatBotResponse], error)
+	StartChatBot(context.Context, *connect.Request[v1.StartChatBotRequest]) (*connect.Response[v1.StartChatBotResponse], error)
+	StopChatBot(context.Context, *connect.Request[v1.StopChatBotRequest]) (*connect.Response[v1.StopChatBotResponse], error)
 	GetBotChannels(context.Context, *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error)
 	GetBotHooks(context.Context, *connect.Request[v1.GetBotHooksRequest]) (*connect.Response[v1.GetBotHooksResponse], error)
 	SetBotHooks(context.Context, *connect.Request[v1.SetBotHooksRequest]) (*connect.Response[v1.SetBotHooksResponse], error)
@@ -1571,6 +1673,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("CleanupFeedPosts")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceRefetchFeedPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRefetchFeedPostProcedure,
+		svc.RefetchFeedPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RefetchFeedPost")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceGetLogsHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceGetLogsProcedure,
 		svc.GetLogs,
@@ -1593,6 +1701,36 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceGetChatBotsProcedure,
 		svc.GetChatBots,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetChatBots")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateChatBotHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateChatBotProcedure,
+		svc.CreateChatBot,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateChatBot")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateChatBotHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateChatBotProcedure,
+		svc.UpdateChatBot,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateChatBot")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteChatBotHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteChatBotProcedure,
+		svc.DeleteChatBot,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteChatBot")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceStartChatBotHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceStartChatBotProcedure,
+		svc.StartChatBot,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("StartChatBot")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceStopChatBotHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceStopChatBotProcedure,
+		svc.StopChatBot,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("StopChatBot")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceGetBotChannelsHandler := connect.NewUnaryHandler(
@@ -1793,6 +1931,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetCampaignSocialAccountsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceCleanupFeedPostsProcedure:
 			japellaControlApiServiceCleanupFeedPostsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRefetchFeedPostProcedure:
+			japellaControlApiServiceRefetchFeedPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetLogsProcedure:
 			japellaControlApiServiceGetLogsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetJobsStatusProcedure:
@@ -1801,6 +1941,16 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceListMediaHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetChatBotsProcedure:
 			japellaControlApiServiceGetChatBotsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateChatBotProcedure:
+			japellaControlApiServiceCreateChatBotHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateChatBotProcedure:
+			japellaControlApiServiceUpdateChatBotHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteChatBotProcedure:
+			japellaControlApiServiceDeleteChatBotHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceStartChatBotProcedure:
+			japellaControlApiServiceStartChatBotHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceStopChatBotProcedure:
+			japellaControlApiServiceStopChatBotHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetBotChannelsProcedure:
 			japellaControlApiServiceGetBotChannelsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetBotHooksProcedure:
@@ -2042,6 +2192,10 @@ func (UnimplementedJapellaControlApiServiceHandler) CleanupFeedPosts(context.Con
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts is not implemented"))
 }
 
+func (UnimplementedJapellaControlApiServiceHandler) RefetchFeedPost(context.Context, *connect.Request[v1.RefetchFeedPostRequest]) (*connect.Response[v1.RefetchFeedPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost is not implemented"))
+}
+
 func (UnimplementedJapellaControlApiServiceHandler) GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetLogs is not implemented"))
 }
@@ -2056,6 +2210,26 @@ func (UnimplementedJapellaControlApiServiceHandler) ListMedia(context.Context, *
 
 func (UnimplementedJapellaControlApiServiceHandler) GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetChatBots is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateChatBot(context.Context, *connect.Request[v1.CreateChatBotRequest]) (*connect.Response[v1.CreateChatBotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateChatBot is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateChatBot(context.Context, *connect.Request[v1.UpdateChatBotRequest]) (*connect.Response[v1.UpdateChatBotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateChatBot is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteChatBot(context.Context, *connect.Request[v1.DeleteChatBotRequest]) (*connect.Response[v1.DeleteChatBotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteChatBot is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) StartChatBot(context.Context, *connect.Request[v1.StartChatBotRequest]) (*connect.Response[v1.StartChatBotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.StartChatBot is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) StopChatBot(context.Context, *connect.Request[v1.StopChatBotRequest]) (*connect.Response[v1.StopChatBotResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.StopChatBot is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) GetBotChannels(context.Context, *connect.Request[v1.GetBotChannelsRequest]) (*connect.Response[v1.GetBotChannelsResponse], error) {

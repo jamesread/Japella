@@ -269,14 +269,16 @@ message FeedPost {
 	string social_account_identity = 4;
 	string content = 5;
 	string posted_date = 6;
-	uint32 author_id = 7;
+	string author_id = 7;
 	string author_name = 8;
+	string author_avatar_url = 15;
 	string remote_url = 9;
 	string remote_id = 10;
 	string preview_url = 11;
 	string preview_title = 12;
 	string preview_description = 13;
 	string preview_image_url = 14;
+	string social_account_connector = 16;
 }
 
 message SetSocialAccountActiveRequest {
@@ -293,6 +295,15 @@ message CleanupFeedPostsRequest {
 
 message CleanupFeedPostsResponse {
 	StandardResponse standard_response = 1;
+}
+
+message RefetchFeedPostRequest {
+	uint32 id = 1;
+}
+
+message RefetchFeedPostResponse {
+	StandardResponse standard_response = 1;
+	FeedPost post = 2;
 }
 
 message LoginWithUsernameAndPasswordRequest {
@@ -654,17 +665,77 @@ message GetChatBotsResponse {
 message ChatBot {
 	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
 	string name = 2; // Display name of the bot
-	string identity = 3; // Bot identity/username
+	string identity = 3; // Platform username after connect
 	string icon = 4; // Icon identifier
 	bool is_running = 5; // Whether the bot is currently running
 	string status_message = 6; // Diagnostic message explaining why the bot is stopped or its current status
 	string error_message = 7; // Error message if the bot failed to start
 	string protocol_display_name = 8; // Protocol-specific display name (e.g., Telegram bot's FirstName)
+	string bot_id = 9; // Immutable instance id
+}
+
+message CreateChatBotRequest {
+	string protocol = 1;
+	string bot_id = 2;
+	string display_name = 3;
+	string telegram_bot_token = 10;
+	string discord_token = 20;
+	string discord_app_id = 21;
+	string discord_public_key = 22;
+}
+
+message CreateChatBotResponse {
+	StandardResponse standard_response = 1;
+	ChatBot bot = 2;
+}
+
+message UpdateChatBotRequest {
+	string protocol = 1;
+	string bot_id = 2;
+	string display_name = 3;
+	string telegram_bot_token = 10;
+	string discord_token = 20;
+	string discord_app_id = 21;
+	string discord_public_key = 22;
+}
+
+message UpdateChatBotResponse {
+	StandardResponse standard_response = 1;
+	ChatBot bot = 2;
+}
+
+message DeleteChatBotRequest {
+	string protocol = 1;
+	string bot_id = 2;
+}
+
+message DeleteChatBotResponse {
+	StandardResponse standard_response = 1;
+}
+
+message StartChatBotRequest {
+	string protocol = 1;
+	string bot_id = 2;
+}
+
+message StartChatBotResponse {
+	StandardResponse standard_response = 1;
+	ChatBot bot = 2;
+}
+
+message StopChatBotRequest {
+	string protocol = 1;
+	string bot_id = 2;
+}
+
+message StopChatBotResponse {
+	StandardResponse standard_response = 1;
+	ChatBot bot = 2;
 }
 
 message GetBotChannelsRequest {
-	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
-	string identity = 2; // Bot identity/username (optional, for distinguishing multiple bots of same type)
+	string protocol = 1;
+	string bot_id = 2;
 }
 
 message GetBotChannelsResponse {
@@ -684,8 +755,8 @@ message IncomingMessageHook {
 }
 
 message GetBotHooksRequest {
-	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
-	string identity = 2; // Bot identity/username
+	string protocol = 1;
+	string bot_id = 2;
 }
 
 message GetBotHooksResponse {
@@ -693,9 +764,9 @@ message GetBotHooksResponse {
 }
 
 message SetBotHooksRequest {
-	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
-	string identity = 2; // Bot identity/username
-	repeated IncomingMessageHook hooks = 3; // List of hooks to configure
+	string protocol = 1;
+	string bot_id = 2;
+	repeated IncomingMessageHook hooks = 3;
 }
 
 message SetBotHooksResponse {
@@ -703,9 +774,9 @@ message SetBotHooksResponse {
 }
 
 message GetBotConversationsRequest {
-	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
-	string identity = 2; // Bot identity/username
-	uint32 limit = 3; // Optional max items (defaults to 100)
+	string protocol = 1;
+	string bot_id = 2;
+	uint32 limit = 3;
 }
 
 message BotConversation {
@@ -721,10 +792,10 @@ message GetBotConversationsResponse {
 }
 
 message GetBotConversationMessagesRequest {
-	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
-	string identity = 2; // Bot identity/username
+	string protocol = 1;
+	string bot_id = 2;
 	string conversation_key = 3;
-	uint32 limit = 4; // Optional max items (defaults to 200)
+	uint32 limit = 4;
 }
 
 message BotConversationMessage {
@@ -742,8 +813,8 @@ message GetBotConversationMessagesResponse {
 }
 
 message SendBotConversationMessageRequest {
-	string connector = 1; // The connector protocol (e.g., "telegram", "discord")
-	string identity = 2; // Bot identity/username
+	string protocol = 1;
+	string bot_id = 2;
 	string conversation_key = 3;
 	string content = 4;
 }
@@ -756,8 +827,8 @@ message SendBotConversationMessageResponse {
 // last_message_id set to the highest id it already has. The server polls the database
 // and pushes new rows until the client disconnects.
 message StreamBotConversationUpdatesRequest {
-	string connector = 1;
-	string identity = 2;
+	string protocol = 1;
+	string bot_id = 2;
 	string conversation_key = 3;
 	uint32 last_message_id = 4;
 }
@@ -952,12 +1023,19 @@ service JapellaControlApiService {
 
     rpc CleanupFeedPosts(CleanupFeedPostsRequest) returns (CleanupFeedPostsResponse) {}
 
+    rpc RefetchFeedPost(RefetchFeedPostRequest) returns (RefetchFeedPostResponse) {}
+
     rpc GetLogs(GetLogsRequest) returns (GetLogsResponse) {}
 
     rpc GetJobsStatus(GetJobsStatusRequest) returns (GetJobsStatusResponse) {}
 
     rpc ListMedia(ListMediaRequest) returns (ListMediaResponse) {}
     rpc GetChatBots(GetChatBotsRequest) returns (GetChatBotsResponse) {}
+    rpc CreateChatBot(CreateChatBotRequest) returns (CreateChatBotResponse) {}
+    rpc UpdateChatBot(UpdateChatBotRequest) returns (UpdateChatBotResponse) {}
+    rpc DeleteChatBot(DeleteChatBotRequest) returns (DeleteChatBotResponse) {}
+    rpc StartChatBot(StartChatBotRequest) returns (StartChatBotResponse) {}
+    rpc StopChatBot(StopChatBotRequest) returns (StopChatBotResponse) {}
     rpc GetBotChannels(GetBotChannelsRequest) returns (GetBotChannelsResponse) {}
     rpc GetBotHooks(GetBotHooksRequest) returns (GetBotHooksResponse) {}
     rpc SetBotHooks(SetBotHooksRequest) returns (SetBotHooksResponse) {}

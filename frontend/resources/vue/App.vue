@@ -125,6 +125,7 @@
 
 <script setup>
     import { waitForClient } from '../javascript/util.js'
+    import { fetchAppStatus } from '../javascript/status.js'
     import { ref, computed, onMounted, provide, watch } from 'vue';
     import { Icon } from '@iconify/vue';
     import { useI18n } from 'vue-i18n';
@@ -233,37 +234,39 @@
 		}
 	}
 
-    async function getStatus() {
+    function applyStatusToUi(st) {
+        statusMessages.value = st.statusMessages || [];
+
+        checkSecureContext(st)
+
+        if (st.databaseSchemaDirty) {
+            statusMessages.value.push({
+                id: Date.now() + '_dirty_db',
+                type: 'error',
+                message: 'Database schema is in a dirty state. Please run database migrations to fix this issue.',
+                url: 'https://jamesread.github.io/Japella/troubleshooting/database-migrations.html'
+            });
+        }
+
+        isImpersonating.value = Boolean(st.isImpersonating);
+        impersonatorUsername.value = st.impersonatorUsername || '';
+
+        if (st.isLoggedIn) {
+            applyAuthFromStatus(st)
+        } else {
+            isLoggedIn.value = false;
+            window.isLoggedIn = false;
+            window.userRbacPermissions = [];
+            window.userRbacIsSuperuser = false;
+        }
+
+        currentVersion.value = 'Version: ' + st.version;
+    }
+
+    async function loadStatus({ force = false } = {}) {
         try {
-            const st = await window.client.getStatus();
-
-            statusMessages.value = st.statusMessages || [];
-
-            checkSecureContext(st)
-
-            // Check if database schema is dirty and show error
-            if (st.databaseSchemaDirty) {
-                statusMessages.value.push({
-                    id: Date.now() + '_dirty_db',
-                    type: 'error',
-                    message: 'Database schema is in a dirty state. Please run database migrations to fix this issue.',
-                    url: 'https://jamesread.github.io/Japella/troubleshooting/database-migrations.html'
-                });
-            }
-
-            isImpersonating.value = Boolean(st.isImpersonating);
-            impersonatorUsername.value = st.impersonatorUsername || '';
-
-            if (st.isLoggedIn) {
-                applyAuthFromStatus(st)
-            } else {
-                isLoggedIn.value = false;
-                window.isLoggedIn = false; // Set global auth state for router
-                window.userRbacPermissions = [];
-                window.userRbacIsSuperuser = false;
-            }
-
-            currentVersion.value = 'Version: ' + st.version;
+            const st = await fetchAppStatus({ force });
+            applyStatusToUi(st);
         } catch (error) {
             statusMessages.value.push({
                 id: Date.now(),
@@ -286,7 +289,7 @@
      * After password login the client only has username until GetStatus returns RBAC.
      */
     async function onLogin() {
-        await getStatus();
+        await loadStatus({ force: true });
     }
 
     async function stopImpersonation() {
@@ -307,7 +310,7 @@
 
         await waitForClient();
         clientReady.value = true;
-        getStatus();
+        await loadStatus();
     });
 
     watch(clientReady, (ready) => {

@@ -351,11 +351,12 @@ func (db *DB) SelectSocialAccounts(onlyActive bool) []*SocialAccount {
 
 func (db *DB) SelectSocialAccountsExpiringSoon(withinHours int) []*SocialAccount {
 	ret := make([]*SocialAccount, 0)
-	// Select active accounts where token expiry is within the specified hours and not null
+	// Select active OAuth accounts whose access token expires within the window or is already expired.
 	query := `SELECT * FROM social_accounts
 		WHERE active = 1
+		AND oauth2_refresh_token IS NOT NULL
+		AND oauth2_refresh_token != ''
 		AND oauth2_token_expiry IS NOT NULL
-		AND oauth2_token_expiry > NOW()
 		AND oauth2_token_expiry <= DATE_ADD(NOW(), INTERVAL ? HOUR)`
 	err := db.ResilientSelect(&ret, query, withinHours)
 	if err != nil {
@@ -1105,7 +1106,7 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) error {
 		return nil // Not an error, just skip the duplicate
 	}
 
-	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, NOW(), NOW())`, feedEntry)
+	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, author_avatar_url, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :author_avatar_url, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, NOW(), NOW())`, feedEntry)
 
 	if err != nil {
 		// Check if error is due to duplicate key (unique constraint violation)
@@ -1123,12 +1124,34 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) error {
 
 func (db *DB) SelectFeedEntries() ([]*Feed, error) {
 	ret := make([]*Feed, 0)
-	err := db.ResilientSelect(&ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.remote_url, f.remote_id, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
+	err := db.ResilientSelect(&ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select feed entries: %v", err)
 		return nil, err
 	}
 	return ret, nil
+}
+
+func (db *DB) GetFeedEntryByID(id uint32) (*Feed, error) {
+	ret := &Feed{}
+	err := db.ResilientGet(ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id WHERE f.id = ?", id)
+	if err != nil {
+		db.Logger().Errorf("Failed to get feed entry %d: %v", id, err)
+		return nil, err
+	}
+	if ret.ID == 0 {
+		return nil, sql.ErrNoRows
+	}
+	return ret, nil
+}
+
+func (db *DB) UpdateFeedEntry(entry *Feed) error {
+	_, err := db.ResilientNamedExec(`UPDATE feed SET content = :content, posted_date = :posted_date, author_id = :author_id, author_name = :author_name, author_avatar_url = :author_avatar_url, remote_url = :remote_url, remote_id = :remote_id, preview_url = :preview_url, preview_title = :preview_title, preview_description = :preview_description, preview_image_url = :preview_image_url, updated_at = NOW() WHERE id = :id`, entry)
+	if err != nil {
+		db.Logger().Errorf("Failed to update feed entry %d: %v", entry.ID, err)
+		return err
+	}
+	return nil
 }
 
 func (db *DB) CleanupOldFeedPosts(keepCount int) error {
@@ -1205,10 +1228,10 @@ func (db *DB) SelectTableLogs(limit int) ([]*TableLog, error) {
 	return logs, nil
 }
 
-// SelectWebhookHooks returns all webhook hooks for a specific connector and identity
-func (db *DB) SelectWebhookHooks(connector string, identity string) ([]*WebhookHook, error) {
+// SelectWebhookHooks returns all webhook hooks for a specific connector and bot instance.
+func (db *DB) SelectWebhookHooks(connector string, botID string) ([]*WebhookHook, error) {
 	ret := make([]*WebhookHook, 0)
-	err := db.ResilientSelect(&ret, "SELECT * FROM webhook_hooks WHERE connector = ? AND identity = ? ORDER BY id ASC", connector, identity)
+	err := db.ResilientSelect(&ret, "SELECT * FROM webhook_hooks WHERE connector = ? AND bot_id = ? ORDER BY id ASC", connector, botID)
 	if err != nil {
 		db.Logger().Errorf("Failed to select webhook hooks: %v", err)
 		return nil, err
@@ -1216,9 +1239,9 @@ func (db *DB) SelectWebhookHooks(connector string, identity string) ([]*WebhookH
 	return ret, nil
 }
 
-// DeleteWebhookHooks deletes all webhook hooks for a specific connector and identity
-func (db *DB) DeleteWebhookHooks(connector string, identity string) error {
-	_, err := db.ResilientExec("DELETE FROM webhook_hooks WHERE connector = ? AND identity = ?", connector, identity)
+// DeleteWebhookHooks deletes all webhook hooks for a specific connector and bot instance.
+func (db *DB) DeleteWebhookHooks(connector string, botID string) error {
+	_, err := db.ResilientExec("DELETE FROM webhook_hooks WHERE connector = ? AND bot_id = ?", connector, botID)
 	if err != nil {
 		db.Logger().Errorf("Failed to delete webhook hooks: %v", err)
 		return err
@@ -1228,7 +1251,7 @@ func (db *DB) DeleteWebhookHooks(connector string, identity string) error {
 
 // CreateWebhookHook creates a new webhook hook
 func (db *DB) CreateWebhookHook(hook *WebhookHook) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO webhook_hooks (connector, identity, url, enabled, created_at, updated_at) VALUES (:connector, :identity, :url, :enabled, NOW(), NOW())`, hook)
+	_, err := db.ResilientNamedExec(`INSERT INTO webhook_hooks (connector, identity, bot_id, url, enabled, created_at, updated_at) VALUES (:connector, :identity, :bot_id, :url, :enabled, NOW(), NOW())`, hook)
 	if err != nil {
 		db.Logger().Errorf("Failed to create webhook hook: %v", err)
 		return err

@@ -403,11 +403,34 @@ func (x *XConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 func (x *XConnector) FetchRecentPosts(socialAccount *connector.SocialAccount) ([]*connector.FeedPost, error) {
 	x.Logger().Infof("Fetching recent posts for X account %d", socialAccount.Id)
 
+	posts, err := x.fetchRecentPostsWithToken(socialAccount.OAuthToken)
+	if err == nil {
+		return posts, nil
+	}
+
+	if !isXUnauthorized(err) {
+		return posts, err
+	}
+
+	dbAccount, getErr := x.db.GetSocialAccount(socialAccount.Id)
+	if getErr != nil || dbAccount == nil {
+		return posts, err
+	}
+
+	if refreshErr := x.RefreshToken(dbAccount); refreshErr != nil {
+		x.Logger().Errorf("Failed to refresh X token for account %d after 401: %v", socialAccount.Id, refreshErr)
+		return posts, err
+	}
+
+	return x.fetchRecentPostsWithToken(dbAccount.OAuth2Token)
+}
+
+func (x *XConnector) fetchRecentPostsWithToken(accessToken string) ([]*connector.FeedPost, error) {
 	posts := make([]*connector.FeedPost, 0)
 
 	// Get user's timeline (recent tweets)
 	client := utils.NewClient(x.Logger())
-	client.Get("https://api.x.com/2/users/me/tweets?max_results=20").WithBearerToken(socialAccount.OAuthToken)
+	client.Get("https://api.x.com/2/users/me/tweets?max_results=20&expansions=author_id&user.fields=profile_image_url,username&tweet.fields=created_at,author_id").WithBearerToken(accessToken)
 
 	if client.Err != nil {
 		x.Logger().Errorf("Error creating request for X timeline: %v", client.Err)
@@ -421,30 +444,61 @@ func (x *XConnector) FetchRecentPosts(socialAccount *connector.SocialAccount) ([
 			CreatedAt time.Time `json:"created_at"`
 			AuthorID  string    `json:"author_id"`
 		} `json:"data"`
+		Includes struct {
+			Users []struct {
+				ID              string `json:"id"`
+				Username        string `json:"username"`
+				ProfileImageURL string `json:"profile_image_url"`
+			} `json:"users"`
+		} `json:"includes"`
 	}
 
 	client.AsJson(&timelineResponse)
 
 	if client.Err != nil {
 		x.Logger().Errorf("Error parsing X timeline response: %v", client.Err)
+		if isXUnauthorized(client.Err) {
+			x.Logger().Warnf("X timeline request unauthorized — access token may be expired or revoked")
+		}
 		return posts, client.Err
+	}
+
+	usersByID := make(map[string]struct {
+		Username        string
+		ProfileImageURL string
+	})
+	for _, user := range timelineResponse.Includes.Users {
+		usersByID[user.ID] = struct {
+			Username        string
+			ProfileImageURL string
+		}{
+			Username:        user.Username,
+			ProfileImageURL: user.ProfileImageURL,
+		}
 	}
 
 	// Convert timeline tweets to feed posts
 	for _, tweet := range timelineResponse.Data {
-		// Parse author ID as uint32
-		authorID, err := strconv.ParseUint(tweet.AuthorID, 10, 32)
-		if err != nil {
-			x.Logger().Warnf("Failed to parse author ID %s: %v", tweet.AuthorID, err)
+		if tweet.AuthorID == "" {
+			x.Logger().Warnf("Skipping tweet %s with empty author ID", tweet.ID)
 			continue
 		}
 
+		authorName := ""
+		authorAvatarURL := ""
+		if user, ok := usersByID[tweet.AuthorID]; ok {
+			authorName = user.Username
+			authorAvatarURL = user.ProfileImageURL
+		}
+
 		feedPost := &connector.FeedPost{
-			Content:    tweet.Text,
-			PostedDate: tweet.CreatedAt,
-			AuthorID:   uint32(authorID),
-			RemoteURL:  "https://x.com/user/status/" + tweet.ID,
-			RemoteID:   tweet.ID,
+			Content:         tweet.Text,
+			PostedDate:      tweet.CreatedAt,
+			AuthorID:        tweet.AuthorID,
+			AuthorName:      authorName,
+			AuthorAvatarURL: authorAvatarURL,
+			RemoteURL:       "https://x.com/user/status/" + tweet.ID,
+			RemoteID:        tweet.ID,
 		}
 
 		posts = append(posts, feedPost)
@@ -452,6 +506,97 @@ func (x *XConnector) FetchRecentPosts(socialAccount *connector.SocialAccount) ([
 
 	x.Logger().Infof("Fetched %d recent posts from X timeline", len(posts))
 	return posts, nil
+}
+
+func isXUnauthorized(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(err.Error(), "unexpected status code: 401")
+}
+
+func (x *XConnector) FetchFeedPost(socialAccount *connector.SocialAccount, remoteID string, remoteURL string) (*connector.FeedPost, error) {
+	if remoteID == "" {
+		return nil, fmt.Errorf("remote id is required to refetch X post")
+	}
+
+	if _, err := strconv.ParseUint(remoteID, 10, 64); err != nil {
+		return nil, fmt.Errorf("invalid X tweet id %q", remoteID)
+	}
+
+	post, err := x.fetchFeedPostWithToken(socialAccount.OAuthToken, remoteID)
+	if err == nil {
+		return post, nil
+	}
+
+	if !isXUnauthorized(err) {
+		return nil, err
+	}
+
+	dbAccount, getErr := x.db.GetSocialAccount(socialAccount.Id)
+	if getErr != nil || dbAccount == nil {
+		return nil, err
+	}
+
+	if refreshErr := x.RefreshToken(dbAccount); refreshErr != nil {
+		return nil, err
+	}
+
+	return x.fetchFeedPostWithToken(dbAccount.OAuth2Token, remoteID)
+}
+
+func (x *XConnector) fetchFeedPostWithToken(accessToken string, remoteID string) (*connector.FeedPost, error) {
+	client := utils.NewClient(x.Logger())
+	client.Get("https://api.x.com/2/tweets/" + remoteID + "?expansions=author_id&user.fields=profile_image_url,username&tweet.fields=created_at,author_id").WithBearerToken(accessToken)
+	if client.Err != nil {
+		return nil, client.Err
+	}
+
+	var response struct {
+		Data struct {
+			ID        string    `json:"id"`
+			Text      string    `json:"text"`
+			CreatedAt time.Time `json:"created_at"`
+			AuthorID  string    `json:"author_id"`
+		} `json:"data"`
+		Includes struct {
+			Users []struct {
+				ID              string `json:"id"`
+				Username        string `json:"username"`
+				ProfileImageURL string `json:"profile_image_url"`
+			} `json:"users"`
+		} `json:"includes"`
+	}
+
+	client.AsJson(&response)
+	if client.Err != nil {
+		return nil, fmt.Errorf("failed to fetch X tweet %s: %w", remoteID, client.Err)
+	}
+
+	if response.Data.ID == "" {
+		return nil, fmt.Errorf("X tweet %s not found", remoteID)
+	}
+
+	authorName := ""
+	authorAvatarURL := ""
+	for _, user := range response.Includes.Users {
+		if user.ID == response.Data.AuthorID {
+			authorName = user.Username
+			authorAvatarURL = user.ProfileImageURL
+			break
+		}
+	}
+
+	return &connector.FeedPost{
+		Content:         response.Data.Text,
+		PostedDate:      response.Data.CreatedAt,
+		AuthorID:        response.Data.AuthorID,
+		AuthorName:      authorName,
+		AuthorAvatarURL: authorAvatarURL,
+		RemoteURL:       "https://x.com/user/status/" + response.Data.ID,
+		RemoteID:        response.Data.ID,
+	}, nil
 }
 
 func (x *XConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) error {

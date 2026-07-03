@@ -151,8 +151,9 @@ type Feed struct {
 	SocialAccountID        uint32    `db:"social_account_id"`
 	Content                string    `db:"content"`
 	PostedDate             time.Time `db:"posted_date"`
-	AuthorID               uint32    `db:"author_id"`
+	AuthorID               string    `db:"author_id"`
 	AuthorName             string    `db:"author_name"`
+	AuthorAvatarURL        string    `db:"author_avatar_url"`
 	RemoteURL              string    `db:"remote_url"`
 	RemoteID               string    `db:"remote_id"`
 	PreviewURL             string    `db:"preview_url"`
@@ -177,8 +178,17 @@ type WebhookHook struct {
 
 	Connector string `db:"connector"`
 	Identity  string `db:"identity"`
+	BotID     string `db:"bot_id"`
 	URL       string `db:"url"`
 	Enabled   bool   `db:"enabled"`
+}
+
+type ChatBotInstance struct {
+	Model
+
+	Protocol    string `db:"protocol"`
+	BotID       string `db:"bot_id"`
+	DisplayName string `db:"display_name"`
 }
 
 type ChatBotMessage struct {
@@ -186,6 +196,7 @@ type ChatBotMessage struct {
 
 	Connector         string `db:"connector"`
 	Identity          string `db:"identity"`
+	BotID             string `db:"bot_id"`
 	ConversationKey   string `db:"conversation_key"`
 	ConversationTitle string `db:"conversation_title"`
 	Channel           string `db:"channel"`

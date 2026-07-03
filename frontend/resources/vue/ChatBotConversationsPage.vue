@@ -1,7 +1,7 @@
 <template>
 	<Section
 		title="Conversations"
-		:subtitle="bot ? `${bot.name} · ${bot.connector} · ${displayIdentity}` : 'Chat bot messages'"
+		:subtitle="bot ? `${bot.name} · ${bot.connector} · ${bot.botId}` : 'Chat bot messages'"
 		classes="chat-bot-conversations-page"
 	>
 		<template #toolbar>
@@ -21,13 +21,15 @@
 			<p class="inline-notification note">Bot not found.</p>
 		</div>
 		<div v-else>
-			<p class="bot-meta-row">
+			<div class="bot-meta">
 				<Icon :icon="protocolIcon" width="18" height="18" />
 				<span class="bot-meta-connector">{{ bot.connector }}</span>
 				<span class="bot-meta-sep">·</span>
-				<span class="bot-meta-identity">Identity: {{ displayIdentity }}</span>
-			</p>
-			<ChatBotConversations :bot="bot" :route-identity="routeIdentityRaw" />
+				<span class="bot-meta-id">ID: {{ bot.botId }}</span>
+				<span v-if="bot.identity" class="bot-meta-sep">·</span>
+				<span v-if="bot.identity" class="bot-meta-identity">Identity: {{ bot.identity }}</span>
+			</div>
+			<ChatBotConversations :bot="bot" />
 		</div>
 	</Section>
 </template>
@@ -37,29 +39,26 @@
 	import { useRoute } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
-	import { waitForClient } from '../javascript/util';
 	import ChatBotConversations from './ChatBotConversations.vue';
+	import { waitForClient } from '../javascript/util';
 
 	const route = useRoute();
 	const clientReady = ref(false);
 	const loading = ref(true);
 	const error = ref('');
-	const connector = ref('');
-	const routeIdentityRaw = ref('');
+	const protocol = ref('');
+	const botId = ref('');
 	const bot = ref(null);
 
 	const detailsParams = computed(() => ({
-		connector: route.params.connector
-			? decodeURIComponent(String(route.params.connector))
-			: connector.value,
-		identity:
-			route.params.identity !== undefined &&
-			route.params.identity !== null &&
-			String(route.params.identity) !== ''
-				? decodeURIComponent(String(route.params.identity))
-				: routeIdentityRaw.value || '_',
+		protocol: route.params.protocol
+			? decodeURIComponent(String(route.params.protocol))
+			: protocol.value,
+		botId: route.params.botId
+			? decodeURIComponent(String(route.params.botId))
+			: botId.value,
 	}));
-	const displayIdentity = computed(() => String(bot.value?.identity || 'N/A'));
+
 	const protocolIcon = computed(() => {
 		const connectorName = String(bot.value?.connector || '').toLowerCase();
 		if (connectorName === 'telegram') {
@@ -77,11 +76,8 @@
 		try {
 			const res = await window.client.getChatBots({});
 			const list = res.bots || [];
-			const routeIdentityValue = routeIdentityRaw.value === '_' ? '' : (routeIdentityRaw.value || '');
 			bot.value = list.find(b => {
-				const matchesConnector = b.connector === connector.value;
-				const botIdentity = b.identity || '';
-				return matchesConnector && botIdentity === routeIdentityValue;
+				return b.connector === protocol.value && String(b.botId || '') === botId.value;
 			}) || null;
 			if (!bot.value) {
 				error.value = 'Bot not found.';
@@ -94,8 +90,8 @@
 	}
 
 	onMounted(async () => {
-		connector.value = route.params.connector ? decodeURIComponent(route.params.connector) : '';
-		routeIdentityRaw.value = route.params.identity ? decodeURIComponent(route.params.identity) : '';
+		protocol.value = route.params.protocol ? decodeURIComponent(route.params.protocol) : '';
+		botId.value = route.params.botId ? decodeURIComponent(route.params.botId) : '';
 		await waitForClient();
 		clientReady.value = true;
 		await fetchBot();
@@ -103,30 +99,27 @@
 </script>
 
 <style scoped>
-	.bot-meta-row {
-		display: inline-flex;
+	.bot-meta {
+		display: flex;
 		align-items: center;
-		gap: 0.4em;
-		margin: 0 0 1em;
+		gap: 0.35em;
+		margin-bottom: 1em;
 		color: var(--text-muted, #666);
+		flex-wrap: wrap;
 	}
 
 	.bot-meta-connector {
-		font-weight: 600;
+		font-weight: 500;
 		color: var(--text-color, #1a1a1a);
 	}
 
 	.bot-meta-sep {
-		opacity: 0.7;
+		opacity: 0.6;
 	}
 
-	@media (prefers-color-scheme: dark) {
-		.bot-meta-row {
-			color: var(--text-muted, #aaa);
-		}
-
+	@media (max-width: 480px) {
 		.bot-meta-connector {
-			color: var(--text-color, #f0f0f0);
+			width: 100%;
 		}
 	}
 </style>

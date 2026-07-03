@@ -1,16 +1,23 @@
 <template>
 	<Section
 		title="Chat Bots"
-		subtitle="These bots are currently configured and running."
+		subtitle="Configured chat bots and their connection status."
 		classes="chat-bots"
 	>
+		<template #toolbar>
+			<router-link :to="{ name: 'createChatBot' }" class="button good">
+				<Icon icon="mdi:plus" />
+				Add chat bot
+			</router-link>
+		</template>
+
 		<div v-if = "loading" class = "icon-and-text" style = "margin-top: 1em;">
 			<Icon icon = "eos-icons:loading" width = "24" height = "24" />
 			<span style = "margin-left: .5em;">Loading bots...</span>
 		</div>
 
 		<div v-else>
-			<p v-if = "bots.length === 0" class = "inline-notification note">No bots running.</p>
+			<p v-if = "bots.length === 0" class = "inline-notification note">No chat bots configured. Use <router-link :to="{ name: 'createChatBot' }">Add chat bot</router-link> to create one.</p>
 
 			<Navigation v-else ref = "localNavigation">
 				<NavigationGrid />
@@ -39,19 +46,20 @@
 		if (!bot) {
 			return { name: 'chatBots' };
 		}
-		// Use a placeholder for empty identities to avoid Vue Router issues
-		const identityValue = bot.identity && bot.identity.trim() ? String(bot.identity) : '_';
 		return {
 			name: 'chatBotDetails',
 			params: {
-				connector: String(bot.connector || ''),
-				identity: identityValue
+				protocol: String(bot.connector || ''),
+				botId: String(bot.botId || ''),
 			}
 		};
 	}
 
 	function getBotDescription(bot) {
 		const parts = [];
+		if (bot.botId) {
+			parts.push(`ID: ${bot.botId}`);
+		}
 		if (bot.identity) {
 			parts.push(`Identity: ${bot.identity}`);
 		}
@@ -67,14 +75,11 @@
 	}
 
 	function getBotIcon(bot) {
-		// Static lookup for ChatBot icons based on protocol
 		const protocolIcons = {
 			'telegram': TelegramIcon,
 			'discord': DiscordIcon,
-			// Add more protocol icons here as needed
 		};
 
-		// Return protocol-specific icon if available, otherwise use default Robot01Icon
 		return protocolIcons[bot.connector?.toLowerCase()] || Robot01Icon;
 	}
 
@@ -85,22 +90,19 @@
 
 		localNavigation.value.clearNavigationLinks();
 
-		// Add each bot as a navigation item using addCallback
 		for (const bot of bots.value) {
 			const route = getBotRoute(bot);
 			const statusText = bot.isRunning ? 'Running' : 'Stopped';
 			const description = getBotDescription(bot);
 			const fullDescription = `${statusText}${description ? ' • ' + description : ''}`;
 
-			// Use ProtocolDisplayName if available, otherwise fall back to name
 			const displayName = bot.protocolDisplayName || bot.name;
 
-			// Use addCallback with a navigation function, similar to ControlPanel
 			localNavigation.value.addCallback(displayName, () => {
 				router.push(route);
 			}, {
 				icon: getBotIcon(bot),
-				name: `bot-${bot.connector}-${bot.identity || ''}`,
+				name: `bot-${bot.connector}-${bot.botId || ''}`,
 				description: fullDescription,
 				iconColor: bot.isRunning ? null : STOPPED_BOT_ICON_COLOR,
 			});
@@ -115,6 +117,7 @@
 			bots.value = (response.bots || []).map(bot => ({
 				...bot,
 				connector: String(bot.connector || ''),
+				botId: bot.botId ? String(bot.botId) : '',
 				identity: bot.identity ? String(bot.identity) : '',
 				name: String(bot.name || ''),
 				protocolDisplayName: bot.protocolDisplayName ? String(bot.protocolDisplayName) : '',
@@ -123,12 +126,11 @@
 				statusMessage: bot.statusMessage || '',
 				errorMessage: bot.errorMessage || ''
 			})).sort((a, b) => {
-				// Sort deterministically: first by connector, then by identity, then by name
 				if (a.connector !== b.connector) {
 					return a.connector.localeCompare(b.connector);
 				}
-				if (a.identity !== b.identity) {
-					return (a.identity || '').localeCompare(b.identity || '');
+				if (a.botId !== b.botId) {
+					return (a.botId || '').localeCompare(b.botId || '');
 				}
 				return (a.name || '').localeCompare(b.name || '');
 			});
@@ -140,7 +142,6 @@
 		}
 	}
 
-	// Watch for when bots are loaded and Navigation is ready
 	watch([bots, localNavigation], async ([newBots, nav]) => {
 		if (newBots.length > 0 && nav) {
 			await nextTick();
@@ -150,14 +151,11 @@
 
 	onMounted(async () => {
 		await fetchBots();
-		// Wait for Navigation component to be ready after bots are loaded
 		await nextTick();
 
-		// Try to update navigation
 		if (localNavigation.value && bots.value.length > 0) {
 			updateNavigation();
 		} else {
-			// If not ready yet, wait a bit more
 			setTimeout(() => {
 				if (localNavigation.value && bots.value.length > 0) {
 					updateNavigation();

@@ -25,10 +25,10 @@ import (
 
 	"github.com/jamesread/golure/pkg/redact"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
-	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
 	"github.com/jamesread/japella/internal/amqp"
 	buildinfo "github.com/jamesread/japella/internal/buildinfo"
+	"github.com/jamesread/japella/internal/chatbot"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connectorcontroller"
 	"github.com/jamesread/japella/internal/db"
@@ -102,6 +102,9 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 
 	// Start background scheduler for fetching recent posts
 	go func() {
+		recordJobRun("feed_fetching")
+		s.processFeedFetching()
+
 		ticker := time.NewTicker(5 * time.Minute) // Fetch every 5 minutes
 		defer ticker.Stop()
 		for {
@@ -237,14 +240,13 @@ func (s *ControlApi) processFeedFetching() {
 		if wallConnector, ok := connectorService.(connector.ConnectorWithWall); ok {
 			log.Infof("FeedFetcher: fetching recent posts for %s account %d", sa.Connector, sa.ID)
 
-			// Convert db.SocialAccount to connector.SocialAccount
-			connectorSA := &connector.SocialAccount{
-				Id:         sa.ID,
-				Connector:  sa.Connector,
-				Identity:   sa.Identity,
-				Did:        sa.Did,
-				OAuthToken: sa.OAuth2Token,
-				Homeserver: sa.Homeserver,
+			if socialAccountNeedsTokenRefresh(sa, time.Hour) {
+				refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
+				if refreshErr != nil {
+					log.Warnf("FeedFetcher: failed to refresh token for %s account %d before fetch: %v", sa.Connector, sa.ID, refreshErr)
+				} else {
+					sa = refreshed
+				}
 			}
 
 			// Fetch recent posts with panic recovery
@@ -255,9 +257,26 @@ func (s *ControlApi) processFeedFetching() {
 					}
 				}()
 
-				posts, err := wallConnector.FetchRecentPosts(connectorSA)
+				posts, err := wallConnector.FetchRecentPosts(toConnectorSA(sa))
+				if isHTTPUnauthorized(err) && sa.OAuth2RefreshToken != "" {
+					log.Infof("FeedFetcher: retrying %s account %d after unauthorized response", sa.Connector, sa.ID)
+					refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
+					if refreshErr != nil {
+						log.Errorf("FeedFetcher: failed to refresh token for %s account %d after 401: %v", sa.Connector, sa.ID, refreshErr)
+					} else {
+						sa = refreshed
+						posts, err = wallConnector.FetchRecentPosts(toConnectorSA(sa))
+					}
+				}
 				if err != nil {
 					log.Errorf("FeedFetcher: failed to fetch posts for %s account %d: %v", sa.Connector, sa.ID, err)
+					if isHTTPUnauthorized(err) {
+						_ = s.DB.InsertTableLog(
+							fmt.Sprintf("Feed fetch unauthorized for %s account %d — try refreshing or reconnecting the account", sa.Connector, sa.ID),
+							"error",
+							&sa.ID,
+						)
+					}
 					return
 				}
 
@@ -269,6 +288,7 @@ func (s *ControlApi) processFeedFetching() {
 						PostedDate:         post.PostedDate,
 						AuthorID:           post.AuthorID,
 						AuthorName:         post.AuthorName,
+						AuthorAvatarURL:    post.AuthorAvatarURL,
 						RemoteURL:          post.RemoteURL,
 						RemoteID:           post.RemoteID,
 						PreviewURL:         post.PreviewURL,
@@ -724,6 +744,38 @@ func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
 		OAuthToken: socialAccount.OAuth2Token,
 		Homeserver: socialAccount.Homeserver,
 	}
+}
+
+func socialAccountNeedsTokenRefresh(sa *db.SocialAccount, within time.Duration) bool {
+	if sa.OAuth2RefreshToken == "" || sa.OAuth2TokenExpiry.IsZero() {
+		return false
+	}
+
+	return sa.OAuth2TokenExpiry.Before(time.Now().Add(within))
+}
+
+func (s *ControlApi) refreshSocialAccountToken(sa *db.SocialAccount, connectorService connector.BaseConnector) (*db.SocialAccount, error) {
+	if err := connectorService.OnRefresh(sa); err != nil {
+		return sa, err
+	}
+
+	refreshed, err := s.DB.GetSocialAccount(sa.ID)
+	if err != nil {
+		return sa, err
+	}
+	if refreshed == nil {
+		return sa, fmt.Errorf("social account %d not found after token refresh", sa.ID)
+	}
+
+	return refreshed, nil
+}
+
+func isHTTPUnauthorized(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	return strings.Contains(err.Error(), "unexpected status code: 401")
 }
 
 func withCors(h http.Handler) http.Handler {
@@ -1246,42 +1298,122 @@ func (s *ControlApi) GetFeed(ctx context.Context, req *connect.Request[controlv1
 	feed := make([]*controlv1.FeedPost, 0, len(feedEntries))
 
 	for _, entry := range feedEntries {
-		socialAccountIcon := "mdi:question-mark-circle"
-		socialAccountIdentity := entry.SocialAccountIdentity
-		if socialAccountIdentity == "" {
-			socialAccountIdentity = "Unknown"
-		}
-
-		// Get the connector icon
-		if svc := s.cc.Get(entry.SocialAccountConnector); svc != nil {
-			socialAccountIcon = svc.GetIcon()
-		}
-
-		// Log for debugging - check if AuthorName is being populated
-		if entry.AuthorName == "" {
-			log.Debugf("Feed entry %d has empty AuthorName, AuthorID: %d", entry.ID, entry.AuthorID)
-		}
-
-		feed = append(feed, &controlv1.FeedPost{
-			Id:                    entry.ID,
-			SocialAccountId:       entry.SocialAccountID,
-			SocialAccountIcon:     socialAccountIcon,
-			SocialAccountIdentity: socialAccountIdentity,
-			Content:               entry.Content,
-			PostedDate:            entry.PostedDate.Format("2006-01-02 15:04:05"),
-			AuthorId:              entry.AuthorID,
-			AuthorName:            entry.AuthorName, // This will be empty string if column doesn't exist or value is NULL
-			RemoteUrl:             entry.RemoteURL,
-			RemoteId:              entry.RemoteID,
-			PreviewUrl:            entry.PreviewURL,
-			PreviewTitle:          entry.PreviewTitle,
-			PreviewDescription:    entry.PreviewDescription,
-			PreviewImageUrl:       entry.PreviewImageURL,
-		})
+		feed = append(feed, s.feedEntryToProto(entry))
 	}
 
 	res := connect.NewResponse(&controlv1.GetFeedResponse{
 		Posts: feed,
+	})
+
+	return res, nil
+}
+
+func (s *ControlApi) feedEntryToProto(entry *db.Feed) *controlv1.FeedPost {
+	socialAccountIcon := "mdi:question-mark-circle"
+	socialAccountIdentity := entry.SocialAccountIdentity
+	if socialAccountIdentity == "" {
+		socialAccountIdentity = "Unknown"
+	}
+
+	if svc := s.cc.Get(entry.SocialAccountConnector); svc != nil {
+		socialAccountIcon = svc.GetIcon()
+	}
+
+	return &controlv1.FeedPost{
+		Id:                    entry.ID,
+		SocialAccountId:       entry.SocialAccountID,
+		SocialAccountIcon:     socialAccountIcon,
+		SocialAccountIdentity: socialAccountIdentity,
+		SocialAccountConnector: entry.SocialAccountConnector,
+		Content:               entry.Content,
+		PostedDate:            entry.PostedDate.Format("2006-01-02 15:04:05"),
+		AuthorId:              entry.AuthorID,
+		AuthorName:            entry.AuthorName,
+		AuthorAvatarUrl:       entry.AuthorAvatarURL,
+		RemoteUrl:             entry.RemoteURL,
+		RemoteId:              entry.RemoteID,
+		PreviewUrl:            entry.PreviewURL,
+		PreviewTitle:          entry.PreviewTitle,
+		PreviewDescription:    entry.PreviewDescription,
+		PreviewImageUrl:       entry.PreviewImageURL,
+	}
+}
+
+func (s *ControlApi) RefetchFeedPost(ctx context.Context, req *connect.Request[controlv1.RefetchFeedPostRequest]) (*connect.Response[controlv1.RefetchFeedPostResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	if s.cc == nil {
+		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("service initializing"))
+	}
+
+	entry, err := s.DB.GetFeedEntryByID(req.Msg.Id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("feed post not found"))
+		}
+		log.Errorf("RefetchFeedPost: failed to load feed entry %d: %v", req.Msg.Id, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load feed post: %w", err))
+	}
+
+	sa, err := s.DB.GetSocialAccount(entry.SocialAccountID)
+	if err != nil || sa == nil {
+		log.Errorf("RefetchFeedPost: failed to load social account %d: %v", entry.SocialAccountID, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load social account"))
+	}
+
+	connectorService := s.cc.Get(sa.Connector)
+	if connectorService == nil {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("connector %s is not available", sa.Connector))
+	}
+
+	refetchConnector, ok := connectorService.(connector.ConnectorWithFeedPostRefetch)
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("connector %s does not support refetching feed posts", sa.Connector))
+	}
+
+	connectorSA := &connector.SocialAccount{
+		Id:         sa.ID,
+		Connector:  sa.Connector,
+		Identity:   sa.Identity,
+		Did:        sa.Did,
+		OAuthToken: sa.OAuth2Token,
+		Homeserver: sa.Homeserver,
+	}
+
+	fetched, err := refetchConnector.FetchFeedPost(connectorSA, entry.RemoteID, entry.RemoteURL)
+	if err != nil {
+		log.Errorf("RefetchFeedPost: failed to refetch feed entry %d from %s: %v", entry.ID, sa.Connector, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch post from %s: %w", sa.Connector, err))
+	}
+
+	entry.Content = fetched.Content
+	entry.PostedDate = fetched.PostedDate
+	entry.AuthorID = fetched.AuthorID
+	entry.AuthorName = fetched.AuthorName
+	entry.AuthorAvatarURL = fetched.AuthorAvatarURL
+	entry.RemoteURL = fetched.RemoteURL
+	entry.RemoteID = fetched.RemoteID
+	entry.PreviewURL = fetched.PreviewURL
+	entry.PreviewTitle = fetched.PreviewTitle
+	entry.PreviewDescription = fetched.PreviewDescription
+	entry.PreviewImageURL = fetched.PreviewImageURL
+
+	if err := s.DB.UpdateFeedEntry(entry); err != nil {
+		log.Errorf("RefetchFeedPost: failed to update feed entry %d: %v", entry.ID, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update feed post: %w", err))
+	}
+
+	log.Infof("RefetchFeedPost: refreshed feed entry %d from %s", entry.ID, sa.Connector)
+
+	res := connect.NewResponse(&controlv1.RefetchFeedPostResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Feed post refreshed",
+		},
+		Post: s.feedEntryToProto(entry),
 	})
 
 	return res, nil
@@ -2054,6 +2186,9 @@ func (s *ControlApi) GetCvars(ctx context.Context, req *connect.Request[controlv
 	})
 
 	for _, cvar := range cvars {
+		if chatbot.IsBotCvarKey(cvar.KeyName) || cvar.Category == chatbot.CvarCategory {
+			continue
+		}
 		if cvar.Category == "" {
 			cvar.Category = "Uncategorized"
 		}
@@ -2418,6 +2553,61 @@ func (s *ControlApi) GetCampaignSocialAccounts(ctx context.Context, req *connect
 	return res, nil
 }
 
+func (s *ControlApi) GetSocialAccountShares(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountSharesRequest]) (*connect.Response[controlv1.GetSocialAccountSharesResponse], error) {
+	au := s.getAuthenticatedUser(ctx)
+	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
+	if au != nil && !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, req.Msg.SocialAccountId, "manage") {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", req.Msg.SocialAccountId))
+	}
+
+	rows, err := s.DB.GetSocialAccountShares(req.Msg.SocialAccountId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get social account shares: %w", err))
+	}
+
+	shares := make([]*controlv1.SocialAccountShareEntry, 0, len(rows))
+	for _, row := range rows {
+		shares = append(shares, &controlv1.SocialAccountShareEntry{
+			UserGroupId: row.UserGroupID,
+			GroupName:   row.GroupName,
+			CanRead:     row.CanRead,
+			CanPost:     row.CanPost,
+			CanManage:   row.CanManage,
+		})
+	}
+
+	return connect.NewResponse(&controlv1.GetSocialAccountSharesResponse{Shares: shares}), nil
+}
+
+func (s *ControlApi) SetSocialAccountShares(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountSharesRequest]) (*connect.Response[controlv1.SetSocialAccountSharesResponse], error) {
+	au := s.getAuthenticatedUser(ctx)
+	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
+	if au != nil && !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, req.Msg.SocialAccountId, "manage") {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", req.Msg.SocialAccountId))
+	}
+
+	dbShares := make([]db.SocialAccountShare, 0, len(req.Msg.Shares))
+	for _, share := range req.Msg.Shares {
+		dbShares = append(dbShares, db.SocialAccountShare{
+			UserGroupID: share.UserGroupId,
+			CanRead:     share.CanRead,
+			CanPost:     share.CanPost,
+			CanManage:   share.CanManage,
+		})
+	}
+
+	if err := s.DB.SetSocialAccountShares(req.Msg.SocialAccountId, dbShares); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set social account shares: %w", err))
+	}
+
+	return connect.NewResponse(&controlv1.SetSocialAccountSharesResponse{
+		StandardResponse: &controlv1.StandardResponse{
+			Success: true,
+			Message: "Shares updated successfully",
+		},
+	}), nil
+}
+
 func (s *ControlApi) UpdateCannedPost(ctx context.Context, req *connect.Request[controlv1.UpdateCannedPostRequest]) (*connect.Response[controlv1.UpdateCannedPostResponse], error) {
 	log.Infof("Updating canned post with ID: %v", req.Msg.Id)
 
@@ -2443,449 +2633,3 @@ func (s *ControlApi) UpdateCannedPost(ctx context.Context, req *connect.Request[
 	return res, nil
 }
 
-func (s *ControlApi) GetChatBots(ctx context.Context, req *connect.Request[controlv1.GetChatBotsRequest]) (*connect.Response[controlv1.GetChatBotsResponse], error) {
-	log.Infof("Fetching chatbots")
-
-	bots := make([]*controlv1.ChatBot, 0)
-
-	for _, svc := range s.cc.GetServices() {
-		if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
-			chatbot := chatbotConnector.GetChatBot()
-			if chatbot != nil {
-				bots = append(bots, &controlv1.ChatBot{
-					Connector:          chatbot.Connector,
-					Name:               chatbot.Name,
-					Identity:           chatbot.Identity,
-					Icon:               chatbot.Icon,
-					IsRunning:          chatbot.IsRunning,
-					StatusMessage:      chatbot.StatusMessage,
-					ErrorMessage:       chatbot.ErrorMessage,
-					ProtocolDisplayName: chatbot.ProtocolDisplayName,
-				})
-			}
-		}
-	}
-
-	res := connect.NewResponse(&controlv1.GetChatBotsResponse{
-		Bots: bots,
-	})
-
-	return res, nil
-}
-
-func (s *ControlApi) GetBotChannels(ctx context.Context, req *connect.Request[controlv1.GetBotChannelsRequest]) (*connect.Response[controlv1.GetBotChannelsResponse], error) {
-	log.Infof("Fetching channels for bot: %s (identity: %s)", req.Msg.Connector, req.Msg.Identity)
-
-	channels := make([]*controlv1.BotChannel, 0)
-
-	// Find the matching bot connector
-	for _, svc := range s.cc.GetServices() {
-		if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
-			chatbot := chatbotConnector.GetChatBot()
-			if chatbot != nil {
-				// Match by connector and optionally by identity
-				matchesConnector := chatbot.Connector == req.Msg.Connector
-				matchesIdentity := req.Msg.Identity == "" || chatbot.Identity == req.Msg.Identity
-
-				if matchesConnector && matchesIdentity {
-					// Check if this connector supports channel info
-					if channelsConnector, ok := svc.(connector.ConnectorWithChannelsInfo); ok {
-						botChannels := channelsConnector.GetChannels()
-						for _, ch := range botChannels {
-							channels = append(channels, &controlv1.BotChannel{
-								Id:       ch.ID,
-								Title:    ch.Title,
-								Type:     ch.Type,
-								Username: ch.Username,
-							})
-						}
-						break
-					}
-				}
-			}
-		}
-	}
-
-	res := connect.NewResponse(&controlv1.GetBotChannelsResponse{
-		Channels: channels,
-	})
-
-	return res, nil
-}
-
-func (s *ControlApi) GetBotHooks(ctx context.Context, req *connect.Request[controlv1.GetBotHooksRequest]) (*connect.Response[controlv1.GetBotHooksResponse], error) {
-	log.Infof("Fetching hooks for bot: %s (identity: %s)", req.Msg.Connector, req.Msg.Identity)
-
-	hooks := make([]*controlv1.IncomingMessageHook, 0)
-
-	// Load hooks from database
-	dbHooks, err := s.DB.SelectWebhookHooks(req.Msg.Connector, req.Msg.Identity)
-	if err == nil {
-		for _, hook := range dbHooks {
-			hooks = append(hooks, &controlv1.IncomingMessageHook{
-				Url:     hook.URL,
-				Enabled: hook.Enabled,
-			})
-		}
-	} else {
-		log.Warnf("Failed to load hooks from database, trying connector: %v", err)
-		// Fallback: try to get from connector (for backward compatibility)
-		for _, svc := range s.cc.GetServices() {
-			if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
-				chatbot := chatbotConnector.GetChatBot()
-				if chatbot != nil {
-					// Match by connector and optionally by identity
-					matchesConnector := chatbot.Connector == req.Msg.Connector
-					matchesIdentity := req.Msg.Identity == "" || chatbot.Identity == req.Msg.Identity
-
-					if matchesConnector && matchesIdentity {
-						// Check if this connector supports hooks
-						if hooksConnector, ok := svc.(connector.ConnectorWithHooks); ok {
-							botHooks := hooksConnector.GetHooks()
-							for _, hook := range botHooks {
-								hooks = append(hooks, &controlv1.IncomingMessageHook{
-									Url:     hook.URL,
-									Enabled: hook.Enabled,
-								})
-							}
-							break
-						}
-					}
-				}
-			}
-		}
-	}
-
-	res := connect.NewResponse(&controlv1.GetBotHooksResponse{
-		Hooks: hooks,
-	})
-
-	return res, nil
-}
-
-func (s *ControlApi) GetSocialAccountShares(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountSharesRequest]) (*connect.Response[controlv1.GetSocialAccountSharesResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-
-	sa, err := s.DB.GetSocialAccount(req.Msg.SocialAccountId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found"))
-	}
-
-	canViewAll := au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser)
-	isOwner := sa.OwnerUserID.Valid && uint32(sa.OwnerUserID.Int32) == au.User.ID
-	if !isOwner && !canViewAll {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("only the owner can view shares"))
-	}
-
-	shares, err := s.DB.GetSocialAccountShares(req.Msg.SocialAccountId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load shares: %w", err))
-	}
-
-	entries := make([]*controlv1.SocialAccountShareEntry, 0, len(shares))
-	for _, sh := range shares {
-		entries = append(entries, &controlv1.SocialAccountShareEntry{
-			UserGroupId: sh.UserGroupID,
-			GroupName:   sh.GroupName,
-			CanRead:     sh.CanRead,
-			CanPost:     sh.CanPost,
-			CanManage:   sh.CanManage,
-		})
-	}
-
-	return connect.NewResponse(&controlv1.GetSocialAccountSharesResponse{Shares: entries}), nil
-}
-
-func (s *ControlApi) SetSocialAccountShares(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountSharesRequest]) (*connect.Response[controlv1.SetSocialAccountSharesResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-
-	sa, err := s.DB.GetSocialAccount(req.Msg.SocialAccountId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found"))
-	}
-
-	canViewAll := au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser)
-	isOwner := sa.OwnerUserID.Valid && uint32(sa.OwnerUserID.Int32) == au.User.ID
-	if !isOwner && !canViewAll {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("only the owner can modify shares"))
-	}
-
-	shares := make([]db.SocialAccountShare, 0, len(req.Msg.Shares))
-	for _, entry := range req.Msg.Shares {
-		shares = append(shares, db.SocialAccountShare{
-			SocialAccountID: req.Msg.SocialAccountId,
-			UserGroupID:     entry.UserGroupId,
-			CanRead:         entry.CanRead,
-			CanPost:         entry.CanPost,
-			CanManage:       entry.CanManage,
-		})
-	}
-
-	if err := s.DB.SetSocialAccountShares(req.Msg.SocialAccountId, shares); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to save shares: %w", err))
-	}
-
-	return connect.NewResponse(&controlv1.SetSocialAccountSharesResponse{
-		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Shares updated"},
-	}), nil
-}
-
-func (s *ControlApi) SetBotHooks(ctx context.Context, req *connect.Request[controlv1.SetBotHooksRequest]) (*connect.Response[controlv1.SetBotHooksResponse], error) {
-	log.Infof("Setting hooks for bot: %s (identity: %s)", req.Msg.Connector, req.Msg.Identity)
-
-	// Verify the bot exists
-	var botExists bool
-	for _, svc := range s.cc.GetServices() {
-		if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
-			chatbot := chatbotConnector.GetChatBot()
-			if chatbot != nil {
-				// Match by connector and optionally by identity
-				matchesConnector := chatbot.Connector == req.Msg.Connector
-				matchesIdentity := req.Msg.Identity == "" || chatbot.Identity == req.Msg.Identity
-
-				if matchesConnector && matchesIdentity {
-					botExists = true
-					break
-				}
-			}
-		}
-	}
-
-	if !botExists {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("bot not found: %s/%s", req.Msg.Connector, req.Msg.Identity))
-	}
-
-	// Delete existing hooks for this connector/identity
-	err := s.DB.DeleteWebhookHooks(req.Msg.Connector, req.Msg.Identity)
-	if err != nil {
-		log.Errorf("Failed to delete existing hooks: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete existing hooks: %w", err))
-	}
-
-	// Create new hooks in database
-	for _, hook := range req.Msg.Hooks {
-		dbHook := &db.WebhookHook{
-			Connector: req.Msg.Connector,
-			Identity:  req.Msg.Identity,
-			URL:       hook.Url,
-			Enabled:   hook.Enabled,
-		}
-		err := s.DB.CreateWebhookHook(dbHook)
-		if err != nil {
-			log.Errorf("Failed to create webhook hook: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create webhook hook: %w", err))
-		}
-	}
-
-	// Also update the connector's in-memory hooks for immediate effect
-	var targetConnector connector.ConnectorWithHooks
-	for _, svc := range s.cc.GetServices() {
-		if chatbotConnector, ok := svc.(connector.ConnectorWithChatBot); ok {
-			chatbot := chatbotConnector.GetChatBot()
-			if chatbot != nil {
-				// Match by connector and optionally by identity
-				matchesConnector := chatbot.Connector == req.Msg.Connector
-				matchesIdentity := req.Msg.Identity == "" || chatbot.Identity == req.Msg.Identity
-
-				if matchesConnector && matchesIdentity {
-					// Check if this connector supports hooks
-					if hooksConnector, ok := svc.(connector.ConnectorWithHooks); ok {
-						targetConnector = hooksConnector
-						break
-					}
-				}
-			}
-		}
-	}
-
-	if targetConnector != nil {
-		// Convert proto hooks to connector hooks
-		connectorHooks := make([]*connector.IncomingMessageHook, 0, len(req.Msg.Hooks))
-		for _, hook := range req.Msg.Hooks {
-			connectorHooks = append(connectorHooks, &connector.IncomingMessageHook{
-				URL:     hook.Url,
-				Enabled: hook.Enabled,
-			})
-		}
-
-		// Update hooks in connector
-		err := targetConnector.SetHooks(connectorHooks)
-		if err != nil {
-			log.Warnf("Failed to update connector hooks (database update succeeded): %v", err)
-		}
-	}
-
-	res := connect.NewResponse(&controlv1.SetBotHooksResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "Hooks updated successfully",
-		},
-	})
-
-	return res, nil
-}
-
-func (s *ControlApi) GetBotConversations(ctx context.Context, req *connect.Request[controlv1.GetBotConversationsRequest]) (*connect.Response[controlv1.GetBotConversationsResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-	if !au.CanAccessControlPanel() {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("admin access required"))
-	}
-
-	limit := int(req.Msg.Limit)
-	if limit <= 0 {
-		limit = 100
-	}
-
-	rows, err := s.DB.SelectChatBotConversations(req.Msg.Connector, req.Msg.Identity, limit)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch conversations: %w", err))
-	}
-
-	conversations := make([]*controlv1.BotConversation, 0, len(rows))
-	for _, row := range rows {
-		conversations = append(conversations, &controlv1.BotConversation{
-			Key:               row.ConversationKey,
-			Title:             row.ConversationTitle,
-			LastMessage:       row.LastMessage,
-			LastDirection:     row.LastDirection,
-			LastMessageAtUnix: row.LastMessageAtUnix,
-		})
-	}
-
-	return connect.NewResponse(&controlv1.GetBotConversationsResponse{
-		Conversations: conversations,
-	}), nil
-}
-
-func (s *ControlApi) GetBotConversationMessages(ctx context.Context, req *connect.Request[controlv1.GetBotConversationMessagesRequest]) (*connect.Response[controlv1.GetBotConversationMessagesResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-	if !au.CanAccessControlPanel() {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("admin access required"))
-	}
-
-	limit := int(req.Msg.Limit)
-	if limit <= 0 {
-		limit = 200
-	}
-
-	rows, err := s.DB.SelectChatBotConversationMessages(req.Msg.Connector, req.Msg.Identity, req.Msg.ConversationKey, limit)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to fetch messages: %w", err))
-	}
-
-	return connect.NewResponse(&controlv1.GetBotConversationMessagesResponse{
-		Messages: marshalBotConversationMessageRows(rows),
-	}), nil
-}
-
-func marshalBotConversationMessageRows(rows []*db.ChatBotMessage) []*controlv1.BotConversationMessage {
-	messages := make([]*controlv1.BotConversationMessage, 0, len(rows))
-	for _, row := range rows {
-		messages = append(messages, &controlv1.BotConversationMessage{
-			Id:            row.ID,
-			Author:        row.Author,
-			Content:       row.Content,
-			Direction:     row.Direction,
-			Channel:       row.Channel,
-			MessageId:     row.MessageID,
-			TimestampUnix: row.TimestampUnix,
-		})
-	}
-	return messages
-}
-
-func (s *ControlApi) StreamBotConversationUpdates(ctx context.Context, req *connect.Request[controlv1.StreamBotConversationUpdatesRequest], stream *connect.ServerStream[controlv1.StreamBotConversationUpdatesResponse]) error {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-	if !au.CanAccessControlPanel() {
-		return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("admin access required"))
-	}
-	if strings.TrimSpace(req.Msg.Connector) == "" || strings.TrimSpace(req.Msg.ConversationKey) == "" {
-		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("connector and conversation_key are required"))
-	}
-
-	ticker := time.NewTicker(1200 * time.Millisecond)
-	defer ticker.Stop()
-
-	cursor := req.Msg.LastMessageId
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-ticker.C:
-			rows, err := s.DB.SelectChatBotConversationMessagesAfterID(
-				req.Msg.Connector,
-				req.Msg.Identity,
-				req.Msg.ConversationKey,
-				cursor,
-				100,
-			)
-			if err != nil {
-				return connect.NewError(connect.CodeInternal, fmt.Errorf("stream fetch messages: %w", err))
-			}
-			if len(rows) == 0 {
-				continue
-			}
-			if err := stream.Send(&controlv1.StreamBotConversationUpdatesResponse{
-				NewMessages: marshalBotConversationMessageRows(rows),
-			}); err != nil {
-				return err
-			}
-			cursor = rows[len(rows)-1].ID
-		}
-	}
-}
-
-func (s *ControlApi) SendBotConversationMessage(ctx context.Context, req *connect.Request[controlv1.SendBotConversationMessageRequest]) (*connect.Response[controlv1.SendBotConversationMessageResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-	if !au.CanAccessControlPanel() {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("admin access required"))
-	}
-	if strings.TrimSpace(req.Msg.Content) == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("content is required"))
-	}
-
-	channel := ""
-	parts := strings.SplitN(req.Msg.ConversationKey, "|", 2)
-	if len(parts) > 0 {
-		channel = parts[0]
-	}
-	if channel == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid conversation key"))
-	}
-
-	outgoing := &msgs.OutgoingMessage{
-		Content:         req.Msg.Content,
-		Channel:         channel,
-		Protocol:        req.Msg.Connector,
-		Identity:        req.Msg.Identity,
-		ConversationKey: strings.TrimSpace(req.Msg.ConversationKey),
-	}
-	routingKey := amqp.GetOutgoingMessageRoutingKey(req.Msg.Connector, req.Msg.Identity)
-	amqp.PublishPbWithRoutingKey(outgoing, routingKey)
-
-	return connect.NewResponse(&controlv1.SendBotConversationMessageResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "Message sent",
-		},
-	}), nil
-}

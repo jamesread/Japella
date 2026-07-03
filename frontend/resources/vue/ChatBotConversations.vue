@@ -28,9 +28,17 @@
 					:class="{ active: selectedRow?.compositeKey === conversation.compositeKey }"
 					@click="selectConversation(conversation)"
 				>
-					<div class="conversation-title">{{ conversation.title || 'Unknown sender' }}</div>
+					<div class="conversation-item-heading">
+						<Icon
+							:icon="connectorIcon(conversation.protocol)"
+							class="conversation-connector-icon"
+							width="16"
+							height="16"
+						/>
+						<div class="conversation-title">{{ conversation.title || 'Unknown sender' }}</div>
+					</div>
 					<div v-if="isMultiBot" class="conversation-bot">
-						{{ conversation.botName }} · {{ conversation.connector }}
+						{{ conversation.botName }} · {{ conversation.protocol }}
 						<span v-if="conversation.identityDisplay"> · {{ conversation.identityDisplay }}</span>
 					</div>
 					<div class="conversation-preview">{{ conversation.lastMessage || '' }}</div>
@@ -123,32 +131,46 @@
 	/** @type {ReturnType<typeof setInterval> | null} */
 	let conversationsPollTimer = null;
 
-	function routeIdentityValue() {
-		return props.routeIdentity === '_' ? '' : (props.routeIdentity || '');
+	function botApiParams(bot) {
+		return {
+			protocol: bot.connector,
+			botId: bot.botId || '',
+		};
 	}
 
-	function makeCompositeKey(connector, identity, conversationKey) {
+	function connectorIcon(protocol) {
+		const name = String(protocol || '').toLowerCase();
+		if (name === 'telegram') {
+			return 'mdi:telegram';
+		}
+		if (name === 'discord') {
+			return 'mdi:discord';
+		}
+		return 'mdi:robot-outline';
+	}
+
+	function makeCompositeKey(protocol, botId, conversationKey) {
 		return JSON.stringify({
-			c: connector,
-			i: identity || '',
+			p: protocol,
+			b: botId || '',
 			k: conversationKey,
 		});
 	}
 
 	function mapConversationRow(bot, c) {
-		const identityVal = isMultiBot.value ? (bot.identity || '') : routeIdentityValue();
 		const convKey = String(c.key || '');
+		const id = bot.botId || '';
 		return {
-			compositeKey: makeCompositeKey(bot.connector, identityVal, convKey),
-			connector: bot.connector,
-			identity: identityVal,
+			compositeKey: makeCompositeKey(bot.connector, id, convKey),
+			protocol: bot.connector,
+			botId: id,
 			conversationKey: convKey,
 			title: String(c.title || ''),
 			lastMessage: String(c.lastMessage || ''),
 			lastDirection: String(c.lastDirection || ''),
 			lastMessageAtUnix: Number(c.lastMessageAtUnix || 0),
 			botName: String(bot.name || bot.connector || 'Bot'),
-			identityDisplay: identityVal || '',
+			identityDisplay: bot.identity || '',
 		};
 	}
 
@@ -228,8 +250,7 @@
 				const results = await Promise.all(
 					botList.map(async (bot) => {
 						const res = await window.client.getBotConversations({
-							connector: bot.connector,
-							identity: bot.identity || '',
+							...botApiParams(bot),
 							limit: 200,
 						});
 						return (res.conversations || []).map(c => mapConversationRow(bot, c));
@@ -241,8 +262,7 @@
 			} else {
 				const bot = props.bot;
 				const res = await window.client.getBotConversations({
-					connector: bot.connector,
-					identity: routeIdentityValue(),
+					...botApiParams(bot),
 					limit: 200,
 				});
 				conversations.value = (res.conversations || []).map(c => mapConversationRow(bot, c));
@@ -273,8 +293,8 @@
 		try {
 			const stream = window.client.streamBotConversationUpdates(
 				{
-					connector: row.connector,
-					identity: row.identity,
+					protocol: row.protocol,
+					botId: row.botId,
 					conversationKey: row.conversationKey,
 					lastMessageId: lastId,
 				},
@@ -328,8 +348,7 @@
 				const results = await Promise.all(
 					botList.map(async (bot) => {
 						const res = await window.client.getBotConversations({
-							connector: bot.connector,
-							identity: bot.identity || '',
+							...botApiParams(bot),
 							limit: 200,
 						});
 						return (res.conversations || []).map(c => mapConversationRow(bot, c));
@@ -341,8 +360,7 @@
 			} else {
 				const bot = props.bot;
 				const res = await window.client.getBotConversations({
-					connector: bot.connector,
-					identity: routeIdentityValue(),
+					...botApiParams(bot),
 					limit: 200,
 				});
 				conversations.value = (res.conversations || []).map(c => mapConversationRow(bot, c));
@@ -371,8 +389,8 @@
 		messagesError.value = '';
 		try {
 			const res = await window.client.getBotConversationMessages({
-				connector: row.connector,
-				identity: row.identity,
+				protocol: row.protocol,
+				botId: row.botId,
 				conversationKey: row.conversationKey,
 				limit: 500,
 			});
@@ -406,8 +424,8 @@
 		replyMessageType.value = '';
 		try {
 			const res = await window.client.sendBotConversationMessage({
-				connector: row.connector,
-				identity: row.identity,
+				protocol: row.protocol,
+				botId: row.botId,
 				conversationKey: row.conversationKey,
 				content: replyContent.value.trim(),
 			});
@@ -447,10 +465,10 @@
 	watch(
 		() => ({
 			multi: isMultiBot.value,
-			botConnector: props.bot?.connector,
-			routeIdentity: props.routeIdentity,
+			botProtocol: props.bot?.connector,
+			botId: props.bot?.botId,
 			botsSig: isMultiBot.value
-				? (props.bots || []).map(b => `${b.connector}\0${b.identity || ''}`).join('|')
+				? (props.bots || []).map(b => `${b.connector}\0${b.botId || ''}`).join('|')
 				: '',
 		}),
 		() => {
@@ -510,13 +528,29 @@
 		background: var(--conversations-item-active, #e3f2fd);
 	}
 
+	.conversation-item-heading {
+		display: flex;
+		align-items: center;
+		gap: 0.4em;
+		margin-bottom: 0.25em;
+	}
+
+	.conversation-connector-icon {
+		flex-shrink: 0;
+		opacity: 0.9;
+	}
+
 	.conversation-title {
 		font-weight: 600;
-		margin-bottom: 0.25em;
+		margin-bottom: 0;
 		color: var(--text-color, #1a1a1a);
 	}
 
 	.conversation-bot {
+		display: flex;
+		align-items: center;
+		gap: 0.35em;
+		padding-left: 1.35em;
 		font-size: 0.78em;
 		color: var(--text-muted, #666);
 		margin-bottom: 0.25em;

@@ -84,7 +84,7 @@ export function connectorIntroText(protocol) {
 }
 
 const OAUTH_PROTOCOLS = new Set(['mastodon', 'x', 'bluesky', 'facebook', 'instagram']);
-const YAML_PROTOCOLS = new Set(['telegram', 'discord']);
+const YAML_PROTOCOLS = new Set();
 
 export function connectorUsesOauth(protocol) {
   return OAUTH_PROTOCOLS.has(protocol?.toLowerCase());
@@ -92,6 +92,113 @@ export function connectorUsesOauth(protocol) {
 
 export function connectorUsesYamlConfig(protocol) {
   return YAML_PROTOCOLS.has(protocol?.toLowerCase());
+}
+
+const CONNECTOR_DISPLAY_NAMES = {
+  mastodon: 'Mastodon',
+  x: 'X',
+  bluesky: 'Bluesky',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+};
+
+const CONNECTOR_ICON_TO_PROTOCOL = {
+  'mdi:mastodon': 'mastodon',
+  'bi:twitter-x': 'x',
+  'bi:bluesky': 'bluesky',
+  'mdi:facebook': 'facebook',
+  'mdi:instagram': 'instagram',
+};
+
+export function connectorDisplayName(protocol) {
+  if (!protocol) {
+    return 'Social Provider';
+  }
+
+  const key = String(protocol).toLowerCase();
+  return CONNECTOR_DISPLAY_NAMES[key] || key.charAt(0).toUpperCase() + key.slice(1);
+}
+
+export function socialProviderNameFromPost(post) {
+  if (post?.socialAccountConnector) {
+    return connectorDisplayName(post.socialAccountConnector);
+  }
+
+  if (post?.connector) {
+    return connectorDisplayName(post.connector);
+  }
+
+  const protocol = CONNECTOR_ICON_TO_PROTOCOL[post?.socialAccountIcon];
+  return connectorDisplayName(protocol);
+}
+
+function parseDateString(dateString) {
+  if (!dateString) {
+    return null;
+  }
+
+  let date = new Date(dateString.replace(' ', 'T'));
+  if (isNaN(date.getTime())) {
+    date = new Date(dateString);
+  }
+  if (isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date;
+}
+
+function formatTimeOfDay(date) {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'pm' : 'am';
+  const displayHours = hours % 12 || 12;
+
+  if (minutes > 0) {
+    return `${displayHours}:${minutes.toString().padStart(2, '0')}${ampm}`;
+  }
+
+  return `${displayHours}${ampm}`;
+}
+
+export function formatHumanDateTime(dateString) {
+  const date = parseDateString(dateString);
+  if (!date) {
+    return dateString || '';
+  }
+
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((targetDate - today) / (1000 * 60 * 60 * 24));
+  const timeStr = formatTimeOfDay(date);
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  if (diffDays === 0) {
+    return `Today, ${timeStr}`;
+  }
+  if (diffDays === -1) {
+    return `Yesterday, ${timeStr}`;
+  }
+  if (diffDays === 1) {
+    return `Tomorrow, ${timeStr}`;
+  }
+  if (diffDays >= -6 && diffDays <= -2) {
+    return `${dayNames[date.getDay()]}, ${timeStr}`;
+  }
+  if (diffDays >= 2 && diffDays <= 6) {
+    return `${dayNames[date.getDay()]}, ${timeStr}`;
+  }
+
+  const month = monthNames[date.getMonth()];
+  const day = date.getDate();
+
+  if (date.getFullYear() === now.getFullYear()) {
+    return `${month} ${day}, ${timeStr}`;
+  }
+
+  return `${month} ${day}, ${date.getFullYear()}, ${timeStr}`;
 }
 
 export function normalizeConnectorIssues(issues) {

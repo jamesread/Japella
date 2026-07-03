@@ -61,7 +61,7 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 
 	// Load hooks from database now that we have the nickname
 	if a.db != nil {
-		dbHooks, err := a.db.SelectWebhookHooks("discord", a.nickname)
+		dbHooks, err := a.db.SelectWebhookHooks("discord", a.botID)
 		if err == nil && len(dbHooks) > 0 {
 			a.hooks = make([]runtimeconfig.IncomingMessageHook, 0, len(dbHooks))
 			for _, hook := range dbHooks {
@@ -174,9 +174,12 @@ func (a *DiscordConnector) GetIcon() string {
 }
 
 func (a *DiscordConnector) GetChatBot() *connector.ChatBot {
-	name := "Discord"
-	if a.nickname != "" {
+	name := a.displayName
+	if name == "" && a.nickname != "" {
 		name = a.nickname
+	}
+	if name == "" {
+		name = "Discord"
 	}
 
 	statusMsg := ""
@@ -187,10 +190,11 @@ func (a *DiscordConnector) GetChatBot() *connector.ChatBot {
 	} else if a.statusMessage != "" {
 		statusMsg = a.statusMessage
 	} else {
-		statusMsg = "Bot is not running"
+		statusMsg = "Stopped (not connected)"
 	}
 
 	return &connector.ChatBot{
+		BotID:               a.botID,
 		Connector:           a.GetProtocol(),
 		Name:                name,
 		Identity:            a.nickname,
@@ -198,7 +202,7 @@ func (a *DiscordConnector) GetChatBot() *connector.ChatBot {
 		IsRunning:           a.isRunning,
 		StatusMessage:       statusMsg,
 		ErrorMessage:        a.errorMessage,
-		ProtocolDisplayName: "", // Discord doesn't have a protocol-specific display name
+		ProtocolDisplayName: "",
 	}
 }
 
@@ -253,12 +257,13 @@ func (a *DiscordConnector) Replier() {
 
 			if a.db != nil {
 				conversationKey, conversationTitle := a.db.ResolveOutgoingConversationForLog(
-					"discord", a.nickname, reply.Channel,
+					"discord", a.botID, reply.Channel,
 					reply.GetConversationKey(), reply.GetIncommingMessageId(),
 				)
 				_ = a.db.InsertChatBotMessage(&db.ChatBotMessage{
 					Connector:         "discord",
 					Identity:          a.nickname,
+					BotID:             a.botID,
 					ConversationKey:   conversationKey,
 					ConversationTitle: conversationTitle,
 					Channel:           reply.Channel,
@@ -321,6 +326,7 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		_ = discordConnectorInstance.db.InsertChatBotMessage(&db.ChatBotMessage{
 			Connector:         "discord",
 			Identity:          botIdentity,
+			BotID:             discordConnectorInstance.botID,
 			ConversationKey:   db.BuildConversationKey(msg.Channel, author),
 			ConversationTitle: convTitle,
 			Channel:           msg.Channel,

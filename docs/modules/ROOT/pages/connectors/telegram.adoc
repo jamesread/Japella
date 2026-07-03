@@ -1,11 +1,24 @@
 # Telegram
 
-This is a simple example of how to use the telegram bot. Use the Telegram Botfather to create a new bot and get the token.
+Telegram bots are configured from the Web UI. YAML connector configuration for Telegram is no longer supported.
 
-```yaml title="config.telegram.yaml"
-configversion: 2
+== Create a bot
 
-connectors:
-  telegram:
-    bottoken: "asdf12344kjdfsdf323l4kj23lk4jg" #notsecret
-```
+1. In Telegram, use https://t.me/BotFather[@BotFather] to create a bot and copy the bot token.
+2. In Japella, open *Chat Bots* and click *Add chat bot*.
+3. Choose *Telegram*, enter an immutable **bot ID** (lowercase slug, e.g. `support`), a display name, and the token from BotFather.
+4. Open the bot detail page and click *Start bot* when you are ready to connect.
+
+You can run multiple Telegram bots by creating separate instances with different bot IDs.
+
+== Secrets storage
+
+Tokens are stored in the database as password cvars:
+
+* `bot.telegram.{bot_id}.bottoken`
+
+Edit tokens on the bot detail page (Settings section), not on the global Settings page.
+
+== Upgrade note
+
+If you previously configured Telegram in YAML (`config.telegram.yaml`), recreate each bot in the Web UI after upgrading. Bots are not migrated automatically from YAML.

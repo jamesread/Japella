@@ -25,7 +25,7 @@
 			:connectors="connectors"
 			:unregistered-connectors="unregisteredConnectors"
 			selection-mode="preAdd"
-			empty-message="No connectors are available. Ask an administrator to configure connectors in the system settings."
+			empty-message="No social account connectors are available. Ask an administrator to configure OAuth connectors in the system settings."
 		/>
 	</Section>
 </template>
@@ -33,7 +33,7 @@
 <script setup>
 	import { ref, onMounted } from 'vue';
 	import { Icon } from '@iconify/vue';
-	import { waitForClient, normalizeConnectorIssues } from '../javascript/util';
+	import { waitForClient, normalizeConnectorIssues, connectorUsesOauth } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import ConnectorCatalog from './ConnectorCatalog.vue';
 
@@ -63,14 +63,16 @@
 				if (a.hasOauth !== b.hasOauth) return a.hasOauth ? -1 : 1;
 				return a.name.localeCompare(b.name);
 			});
-			connectors.value = list;
+			connectors.value = list.filter((c) => c.supportsSocialAccounts);
 
-			const unregisteredList = (res.unregisteredConnectors || []).map((c) => ({
-				protocol: c.protocol,
-				name: c.name || c.protocol,
-				icon: c.icon,
-				notStartedReason: c.notStartedReason || '',
-			}));
+			const unregisteredList = (res.unregisteredConnectors || [])
+				.map((c) => ({
+					protocol: c.protocol,
+					name: c.name || c.protocol,
+					icon: c.icon,
+					notStartedReason: c.notStartedReason || '',
+				}))
+				.filter((c) => connectorUsesOauth(c.protocol));
 			unregisteredList.sort((a, b) => a.name.localeCompare(b.name));
 			unregisteredConnectors.value = unregisteredList;
 		} catch (e) {

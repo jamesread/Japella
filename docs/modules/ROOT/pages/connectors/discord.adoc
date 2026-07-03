@@ -1,13 +1,26 @@
 # Discord
 
-Go to create a new app here; https://discord.com/developers/applications
+Discord bots are configured from the Web UI. YAML connector configuration for Discord is no longer supported.
 
-```yaml title="config.discord.yaml"
-configversion: 2
+== Create a bot
 
-connectors:
-  discord:
-    appid: "1234567890" #notsecret
-    publickey: "asdfasdf234lk2j34lkjasasdf" #notsecret
-    token: "asdf12343234l2kjlasjalkskj" #notsecret
-```
+1. Create an application at https://discord.com/developers/applications[Discord Developer Portal] and add a bot. Copy the bot token, application ID, and public key.
+2. In Japella, open *Chat Bots* and click *Add chat bot*.
+3. Choose *Discord*, enter an immutable **bot ID** (lowercase slug, e.g. `community`), display name, and the Discord credentials.
+4. Open the bot detail page and click *Start bot* when you are ready to connect.
+
+You can run multiple Discord bots by creating separate instances with different bot IDs.
+
+== Secrets storage
+
+Credentials are stored in the database:
+
+* `bot.discord.{bot_id}.token` (password)
+* `bot.discord.{bot_id}.app_id` (text)
+* `bot.discord.{bot_id}.public_key` (text)
+
+Edit these on the bot detail page (Settings section), not on the global Settings page.
+
+== Upgrade note
+
+If you previously configured Discord in YAML (`config.discord.yaml`), recreate each bot in the Web UI after upgrading. Bots are not migrated automatically from YAML.

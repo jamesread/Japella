@@ -1,0 +1,31 @@
+= Could not reach the Japella server
+
+Before the web interface loads, the browser calls the Control API `GetStatus` endpoint. If that request fails entirely (network error, connection refused, timeout, or no HTTP response), Japella shows **Could not reach the Japella server** instead of the login page.
+
+This is different from xref:troubleshooting/database-connection.adoc[database connection problems], where the server responds but reports that the database is not connected (**Japella is not ready**).
+
+== Why the UI checks status first
+
+The admin UI needs to know the backend is reachable and the database is connected before it loads translations and mounts the Vue application. A failed status check means the browser never got a usable answer from `/api/` — so the problem is at the HTTP or process level, not inside a specific screen.
+
+The error page retries automatically every 15 seconds (or when you click **Retry now**), which is useful while Japella or its reverse proxy is still starting.
+
+== Common causes
+
+. *Japella is not running* — The container or process has stopped, crashed on startup, or has not been started yet.
+. *Wrong URL or port* — You opened a hostname or port that does not point at Japella (for example `http://localhost:8080` when the service listens elsewhere).
+. *Reverse proxy or TLS misconfiguration* — Nginx, Caddy, Traefik, or Cloudflare may not be forwarding `/api/` to Japella, or HTTPS certificates may be invalid so the browser blocks the request.
+. *Firewall or Docker networking* — The host or network policy blocks the port; in Compose, the published port mapping may be missing or the `japella` service may not be healthy yet.
+. *Browser or extension interference* — Rare, but ad blockers or corporate proxies can block API calls; check the browser developer console (Network tab) for failed requests to `/api/`.
+
+== Quick checks
+
+. Confirm Japella is running (`docker compose ps`, `systemctl status`, or your orchestrator).
+. Open the same origin in the browser and inspect **Network** for a failed request to a path under `/api/` (for example `GetStatus`).
+. Read Japella logs: `docker compose logs japella` (or equivalent).
+. If the server responds but the message is **Japella is not ready**, follow xref:troubleshooting/database-connection.adoc[database connection troubleshooting] instead.
+
+== Related
+
+* xref:troubleshooting/database-connection.adoc[Database connection]
+* xref:installation/index.adoc[Installation]

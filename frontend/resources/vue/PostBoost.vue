@@ -3,28 +3,58 @@
 		<div class="boost-header">
 			<div class="boost-info">
 				<Icon icon="mdi:repeat" class="boost-icon" />
-				<router-link
-					v-if="post.socialAccountId"
-					:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
-					class="social-account-link"
-				>
-					<Icon :icon="post.socialAccountIcon || 'mdi:account'" />
-					<span class="account-name">{{ boostActor || post.authorName || post.socialAccountIdentity }}</span>
-				</router-link>
+				<template v-if="post.socialAccountId">
+					<router-link
+						:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
+						class="social-account-link avatar-link"
+						:title="'View social account ' + (post.socialAccountIdentity || '')"
+					>
+						<FeedAuthorAvatar
+							:avatar-url="post.authorAvatarUrl"
+							:fallback-icon="post.socialAccountIcon || 'mdi:account'"
+							:alt-text="displayAuthorName || 'Author'"
+						/>
+					</router-link>
+					<button
+						v-if="authorFilterable && post.authorId"
+						type="button"
+						class="author-filter-button account-name"
+						:title="'Show posts by ' + displayAuthorName"
+						@click="filterByAuthor"
+					>
+						{{ displayAuthorName }}
+					</button>
+					<router-link
+						v-else
+						:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
+						class="social-account-link"
+					>
+						<span class="account-name">{{ displayAuthorName }}</span>
+					</router-link>
+				</template>
 				<div v-else class="social-account-link">
 					<Icon icon="mdi:account" />
-					<span class="account-name">{{ boostActor || 'Unknown' }}</span>
+					<span class="account-name">{{ displayAuthorName || 'Unknown' }}</span>
 				</div>
 				<span class="boost-text">boosted</span>
 			</div>
-			<button
-				v-if="post.id || post.remoteId"
-				@click="openDiagnosticDialog"
-				class="diagnostic-button neutral small"
-				title="Diagnostic Info"
-			>
-				<Icon icon="mdi:information-outline" />
-			</button>
+			<div class="post-header-actions">
+				<SocialAccountChip
+					v-if="post.socialAccountId"
+					:social-account-id="post.socialAccountId"
+					:identity="post.socialAccountIdentity"
+					:icon="post.socialAccountIcon"
+					:transparent="transparentSocialAccountChip"
+				/>
+				<button
+					v-if="post.id || post.remoteId"
+					@click="openDiagnosticDialog"
+					class="diagnostic-button neutral small"
+					title="Diagnostic Info"
+				>
+					<Icon icon="mdi:information-outline" />
+				</button>
+			</div>
 		</div>
 
 		<div class="boosted-content">
@@ -48,38 +78,43 @@
 		</div>
 
 		<div v-if="post.postedDate || post.created" class="post-datetime">
-			{{ formatDateTime(post.postedDate || post.created) }}
+			{{ formatHumanDateTime(post.postedDate || post.created) }}
 		</div>
 	</div>
 
 	<!-- Diagnostic Info Dialog -->
-	<div v-if="showDiagnosticDialog" class="modal-overlay" @click.self="closeDiagnosticDialog">
-		<div class="modal">
-			<h3>Diagnostic Info</h3>
-			<dl class="diagnostic-content">
-				<dt v-if="post.id">ID</dt>
-				<dd v-if="post.id" class="id-value">{{ post.id }}</dd>
-				<dt v-if="post.remoteId">Remote ID</dt>
-				<dd v-if="post.remoteId" class="id-value remote-id">{{ post.remoteId }}</dd>
-			</dl>
-			<div class="dialog-actions">
-				<button class="neutral" @click="closeDiagnosticDialog">Close</button>
-			</div>
-		</div>
-	</div>
+	<PostDiagnosticDialog
+		:open="showDiagnosticDialog"
+		:post="post"
+		@close="closeDiagnosticDialog"
+		@post-refetched="onPostRefetched"
+	/>
 </template>
 
 <script setup>
 	import { ref, computed } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import { formatHumanDateTime } from '../javascript/util';
+	import FeedAuthorAvatar from './FeedAuthorAvatar.vue';
+	import PostDiagnosticDialog from './PostDiagnosticDialog.vue';
+	import SocialAccountChip from './SocialAccountChip.vue';
 
-	// Props
 	const props = defineProps({
 		post: {
 			type: Object,
 			required: true
-		}
+		},
+		authorFilterable: {
+			type: Boolean,
+			default: false,
+		},
+		transparentSocialAccountChip: {
+			type: Boolean,
+			default: false,
+		},
 	});
+
+	const emit = defineEmits(['filter-author', 'post-refetched']);
 
 	// Diagnostic dialog state
 	const showDiagnosticDialog = ref(false);
@@ -90,41 +125,6 @@
 
 	function closeDiagnosticDialog() {
 		showDiagnosticDialog.value = false;
-	}
-
-	function formatDateTime(dateString) {
-		if (!dateString) {
-			return '';
-		}
-
-		try {
-			// Parse the date string (format: "2006-01-02 15:04:05")
-			// Try replacing space with T for ISO format, or parse directly
-			let date = new Date(dateString.replace(' ', 'T'));
-			if (isNaN(date.getTime())) {
-				date = new Date(dateString);
-			}
-			if (isNaN(date.getTime())) {
-				return dateString; // Return original if can't parse
-			}
-
-			// Format as: "Jan 15, 2026 4:54pm"
-			const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-			const month = months[date.getMonth()];
-			const day = date.getDate();
-			const year = date.getFullYear();
-			const hours = date.getHours();
-			const minutes = date.getMinutes();
-			const ampm = hours >= 12 ? 'pm' : 'am';
-			const displayHours = hours % 12 || 12;
-			const timeStr = minutes > 0
-				? `${displayHours}:${minutes.toString().padStart(2, '0')}${ampm}`
-				: `${displayHours}${ampm}`;
-
-			return `${month} ${day}, ${year} ${timeStr}`;
-		} catch (e) {
-			return dateString;
-		}
 	}
 
 	// Parse ActivityStreams JSON from remoteId
@@ -201,6 +201,18 @@
 		return props.post.authorName || props.post.socialAccountIdentity;
 	});
 
+	const displayAuthorName = computed(() => boostActor.value);
+
+	function filterByAuthor() {
+		if (props.post.authorId) {
+			emit('filter-author', props.post.authorId);
+		}
+	}
+
+	function onPostRefetched(updatedPost) {
+		emit('post-refetched', updatedPost);
+	}
+
 	// Extract boosted object URL
 	const boostedObjectUrl = computed(() => {
 		// First try to get from ActivityStreams JSON
@@ -261,6 +273,13 @@
 	margin-bottom: 1rem;
 }
 
+.post-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-shrink: 0;
+}
+
 .boost-info {
 	display: flex;
 	align-items: center;
@@ -289,6 +308,24 @@
 	font-weight: bold;
 }
 
+.author-filter-button {
+	padding: 0;
+	border: none;
+	background: none;
+	font: inherit;
+	font-weight: bold;
+	color: var(--link-color, #007bff);
+	cursor: pointer;
+}
+
+.author-filter-button:hover {
+	text-decoration: underline;
+}
+
+.avatar-link:hover {
+	text-decoration: none;
+}
+
 .boost-text {
 	color: var(--text-secondary, #666);
 	font-weight: normal;
@@ -299,42 +336,6 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-}
-
-.diagnostic-content {
-	margin-bottom: 1rem;
-}
-
-.diagnostic-content dt {
-	font-weight: 500;
-	font-size: 0.875rem;
-	color: var(--text-secondary, #666);
-	margin-top: 0.75rem;
-	margin-bottom: 0.25rem;
-}
-
-.diagnostic-content dt:first-child {
-	margin-top: 0;
-}
-
-.diagnostic-content dd {
-	margin: 0 0 0.75rem 0;
-	font-size: 0.875rem;
-}
-
-.diagnostic-content dd.remote-id {
-	font-size: 0.75rem;
-}
-
-.id-value {
-	font-family: monospace;
-	background-color: var(--bg-secondary, #f5f5f5);
-	padding: 0.125rem 0.375rem;
-	border-radius: 0.25rem;
-	word-break: break-all;
-	max-width: 400px;
-	overflow-wrap: break-word;
-	display: inline-block;
 }
 
 .boosted-content {
@@ -402,62 +403,6 @@
 .original-post-link:hover {
 	color: var(--link-hover-color, #0056b3);
 	text-decoration: underline;
-}
-
-/* Modal styles */
-.modal-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background-color: rgba(0, 0, 0, 0.5);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	z-index: 1000;
-}
-
-.modal {
-	background: white;
-	padding: 2rem;
-	border-radius: 0.5rem;
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-	min-width: 400px;
-	max-width: 500px;
-}
-
-.modal h3 {
-	margin: 0 0 1rem 0;
-	color: #333;
-}
-
-.dialog-actions {
-	display: flex;
-	gap: 0.5rem;
-	justify-content: flex-end;
-	margin-top: 1.5rem;
-}
-
-.dialog-actions button {
-	padding: 0.5rem 1rem;
-	border-radius: 0.25rem;
-	border: none;
-	cursor: pointer;
-	font-size: 0.9rem;
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	transition: all 0.2s ease;
-}
-
-.dialog-actions button.neutral {
-	background-color: #f0f0f0;
-	color: #333;
-}
-
-.dialog-actions button.neutral:hover {
-	background-color: #e0e0e0;
 }
 
 .post-datetime {

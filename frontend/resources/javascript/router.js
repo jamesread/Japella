@@ -31,6 +31,7 @@ import ChatBotDetails from '../vue/ChatBotDetails.vue'
 import ChatBotConversationsPage from '../vue/ChatBotConversationsPage.vue'
 import AllChatBotConversationsPage from '../vue/AllChatBotConversationsPage.vue'
 import ChatBotHooksPage from '../vue/ChatBotHooksPage.vue'
+import CreateChatBot from '../vue/CreateChatBot.vue'
 import CreateUser from '../vue/CreateUser.vue'
 import Connectors from '../vue/Connectors.vue'
 import SystemArchitecture from '../vue/SystemArchitecture.vue'
@@ -39,6 +40,7 @@ import UserGroups from '../vue/UserGroups.vue'
 import AddSocialAccount from '../vue/AddSocialAccount.vue'
 import SocialAccountPreAdd from '../vue/SocialAccountPreAdd.vue'
 import { canAccessControlPanelFromStatus, canViewSystemDiagnosticsFromStatus } from './rbacAccess.js'
+import { fetchAppStatus } from './status.js'
 
 import {
   SettingsIcon,
@@ -89,7 +91,16 @@ const routes = [
     }
   },
   {
-    path: '/chat-bots/:connector/:identity/conversations',
+    path: '/chat-bots/new',
+    name: 'createChatBot',
+    component: CreateChatBot,
+    meta: {
+      title: 'Add Chat Bot',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/chat-bots/:protocol/:botId/conversations',
     name: 'chatBotConversations',
     component: ChatBotConversationsPage,
     meta: {
@@ -98,7 +109,7 @@ const routes = [
     }
   },
   {
-    path: '/chat-bots/:connector/:identity/hooks',
+    path: '/chat-bots/:protocol/:botId/hooks',
     name: 'chatBotHooks',
     component: ChatBotHooksPage,
     meta: {
@@ -107,7 +118,7 @@ const routes = [
     }
   },
   {
-    path: '/chat-bots/:connector/:identity?',
+    path: '/chat-bots/:protocol/:botId',
     name: 'chatBotDetails',
     component: ChatBotDetails,
     meta: {
@@ -441,80 +452,37 @@ router.afterEach((to) => {
 })
 
 // Navigation guard to handle authentication
-function waitForClient() {
-  return new Promise((resolve) => {
-    const check = () => {
-      if (window.client) {
-        resolve(true);
-      } else {
-        setTimeout(check, 100);
-      }
-    };
-    check();
-  });
-}
-
-// Navigation guard to handle authentication
 router.beforeEach(async (to, from, next) => {
-  // Check if route requires authentication
-  if (to.meta.requiresAuth) {
-    // If we already know the auth state, use it
-    if (window.isLoggedIn !== undefined) {
-      if (!window.isLoggedIn) {
-        next('/')
-        return
-      }
-    } else {
-      // If auth state is unknown, wait for client and check with server
-      try {
-        await waitForClient()
-        const status = await window.client.getStatus()
-        window.isLoggedIn = status.isLoggedIn
+  const needsStatus =
+    to.meta.requiresAuth || to.meta.requiresControlPanel || to.meta.requiresSystemDiagnostics;
 
-        if (!status.isLoggedIn) {
-          next('/')
-          return
-        }
-      } catch (error) {
-        console.error('Error checking authentication status:', error)
-        // If we can't check auth status, redirect to login
-        next('/')
-        return
-      }
-    }
-  }
-
-  if (to.meta.requiresControlPanel) {
+  let status = null;
+  if (needsStatus) {
     try {
-      await waitForClient()
-      const status = await window.client.getStatus()
-      if (!canAccessControlPanelFromStatus(status)) {
-        next('/')
-        return
-      }
+      status = await fetchAppStatus();
     } catch (error) {
-      console.error('Error checking control panel access:', error)
-      next('/')
-      return
+      console.error('Error checking server status:', error);
+      next('/');
+      return;
     }
   }
 
-  if (to.meta.requiresSystemDiagnostics) {
-    try {
-      await waitForClient()
-      const status = await window.client.getStatus()
-      if (!canViewSystemDiagnosticsFromStatus(status)) {
-        next('/')
-        return
-      }
-    } catch (error) {
-      console.error('Error checking system diagnostics access:', error)
-      next('/')
-      return
-    }
+  if (to.meta.requiresAuth && !status?.isLoggedIn) {
+    next('/');
+    return;
   }
 
-  next()
+  if (to.meta.requiresControlPanel && !canAccessControlPanelFromStatus(status)) {
+    next('/');
+    return;
+  }
+
+  if (to.meta.requiresSystemDiagnostics && !canViewSystemDiagnosticsFromStatus(status)) {
+    next('/');
+    return;
+  }
+
+  next();
 })
 
 export default router

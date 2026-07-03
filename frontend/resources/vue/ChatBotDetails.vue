@@ -1,10 +1,30 @@
 <template>
 	<Section
 		:title="bot?.name || 'Chat Bot'"
-		:subtitle="bot ? bot.connector : 'Loading bot details'"
+		:subtitle="bot ? `${bot.connector} · ${bot.botId}` : 'Loading bot details'"
 		classes="chat-bot-details"
 	>
 		<template #toolbar>
+			<button
+				v-if="bot && !bot.isRunning"
+				type="button"
+				class="button good"
+				:disabled="actionLoading"
+				@click="startBot"
+			>
+				<Icon icon="mdi:play" />
+				Start bot
+			</button>
+			<button
+				v-if="bot && bot.isRunning"
+				type="button"
+				class="button warning"
+				:disabled="actionLoading"
+				@click="stopBot"
+			>
+				<Icon icon="mdi:stop" />
+				Stop bot
+			</button>
 			<router-link :to="{ name: 'chatBots' }" class="button neutral">
 				<Icon icon="mdi:robot-outline" />
 				All chat bots
@@ -22,15 +42,17 @@
 		</div>
 		<div v-else>
 			<dl>
-				<dt>Name</dt>
+				<dt>Bot ID</dt>
+				<dd><code>{{ bot.botId }}</code></dd>
+				<dt>Display name</dt>
 				<dd>{{ bot.name }}</dd>
 				<dt>Connector</dt>
 				<dd class="connector-with-icon">
 					<Icon :icon="protocolIcon" width="18" height="18" />
 					<span>{{ bot.connector }}</span>
 				</dd>
-				<dt>Identity</dt>
-				<dd>{{ bot.identity || 'N/A' }}</dd>
+				<dt>Platform identity</dt>
+				<dd>{{ bot.identity || 'N/A (start the bot to connect)' }}</dd>
 				<dt>Status</dt>
 				<dd>
 					<div class="tag" :class="bot.isRunning ? 'fg-good' : 'fg-bad'">
@@ -51,13 +73,54 @@
 				</dd>
 			</dl>
 
+			<div class="edit-bot-section">
+				<h3>Settings</h3>
+				<form class="edit-bot-form" @submit.prevent="saveBot">
+					<label for="edit-display-name">Display name</label>
+					<input id="edit-display-name" v-model="editForm.displayName" type="text" :disabled="actionLoading" />
+
+					<template v-if="bot.connector === 'telegram'">
+						<label for="edit-telegram-token">Bot token</label>
+						<input
+							id="edit-telegram-token"
+							v-model="editForm.telegramBotToken"
+							type="password"
+							autocomplete="off"
+							placeholder="Leave blank to keep current token"
+							:disabled="actionLoading"
+						/>
+					</template>
+
+					<template v-else-if="bot.connector === 'discord'">
+						<label for="edit-discord-token">Bot token</label>
+						<input
+							id="edit-discord-token"
+							v-model="editForm.discordToken"
+							type="password"
+							autocomplete="off"
+							placeholder="Leave blank to keep current token"
+							:disabled="actionLoading"
+						/>
+						<label for="edit-discord-app-id">Application ID</label>
+						<input id="edit-discord-app-id" v-model="editForm.discordAppId" type="text" :disabled="actionLoading" />
+						<label for="edit-discord-public-key">Public key</label>
+						<input id="edit-discord-public-key" v-model="editForm.discordPublicKey" type="text" :disabled="actionLoading" />
+					</template>
+
+					<div class="edit-bot-actions">
+						<button type="submit" class="good" :disabled="actionLoading">Save changes</button>
+						<button type="button" class="warning" :disabled="actionLoading" @click="deleteBot">Delete bot</button>
+					</div>
+					<p v-if="editMessage" class="inline-notification" :class="editMessageType">{{ editMessage }}</p>
+				</form>
+			</div>
+
 			<div class="bot-detail-nav-wrap">
 				<Navigation ref="botDetailNav">
 					<NavigationGrid />
 				</Navigation>
 			</div>
 
-			<!-- Channels Section -->
 			<div v-if="bot.connector === 'telegram'" id="chat-bot-channels" class="channels-section" style="margin-top: 2em;">
 				<h3>Channels</h3>
 				<div v-if="channelsLoading" class="icon-and-text" style="margin-top: 1em;">
@@ -113,15 +176,24 @@
 	const clientReady = ref(false)
 	const loading = ref(true)
 	const error = ref('')
-	const connector = ref('')
-	const identity = ref('')
+	const protocol = ref('')
+	const botId = ref('')
 	const bot = ref(null)
 	const channels = ref([])
 	const channelsLoading = ref(false)
 	const channelsError = ref('')
 	const botDetailNav = ref(null)
+	const actionLoading = ref(false)
+	const editForm = ref({
+		displayName: '',
+		telegramBotToken: '',
+		discordToken: '',
+		discordAppId: '',
+		discordPublicKey: '',
+	})
+	const editMessage = ref('')
+	const editMessageType = ref('')
 
-	const identityForRoute = computed(() => identity.value || '_')
 	const protocolIcon = computed(() => {
 		const connectorName = String(bot.value?.connector || '').toLowerCase()
 		if (connectorName === 'telegram') {
@@ -133,13 +205,20 @@
 		return 'mdi:robot-outline'
 	})
 
+	function botApiParams() {
+		return {
+			protocol: bot.value.connector,
+			botId: bot.value.botId,
+		}
+	}
+
 	function goToConversations() {
 		if (!bot.value) {
 			return
 		}
 		router.push({
 			name: 'chatBotConversations',
-			params: { connector: bot.value.connector, identity: identityForRoute.value },
+			params: { protocol: bot.value.connector, botId: bot.value.botId },
 		})
 	}
 
@@ -149,7 +228,7 @@
 		}
 		router.push({
 			name: 'chatBotHooks',
-			params: { connector: bot.value.connector, identity: identityForRoute.value },
+			params: { protocol: bot.value.connector, botId: bot.value.botId },
 		})
 	}
 
@@ -176,6 +255,7 @@
 		bot,
 		(b) => {
 			if (b) {
+				editForm.value.displayName = b.name || ''
 				rebuildBotDetailNavigation()
 			}
 		},
@@ -197,13 +277,8 @@
 		try {
 			const res = await window.client.getChatBots({})
 			const list = res.bots || []
-			// Handle placeholder value for empty identities
-			const routeIdentityValue = identity.value === '_' ? '' : (identity.value || '')
 			bot.value = list.find(b => {
-				const matchesConnector = b.connector === connector.value
-				const botIdentity = b.identity || ''
-				// Match if connector matches and identity matches (both empty or both same value)
-				return matchesConnector && botIdentity === routeIdentityValue
+				return b.connector === protocol.value && String(b.botId || '') === botId.value
 			}) || null
 			if (!bot.value) {
 				error.value = 'Bot not found.'
@@ -215,6 +290,114 @@
 		}
 	}
 
+	async function startBot() {
+		if (!bot.value || actionLoading.value) {
+			return
+		}
+		actionLoading.value = true
+		error.value = ''
+		try {
+			const res = await window.client.startChatBot(botApiParams())
+			if (res.bot) {
+				bot.value = res.bot
+			} else {
+				await fetchBot()
+			}
+			if (bot.value?.connector === 'telegram') {
+				await fetchChannels()
+			}
+		} catch (e) {
+			error.value = `Failed to start bot: ${e.message || e}`
+		} finally {
+			actionLoading.value = false
+		}
+	}
+
+	async function stopBot() {
+		if (!bot.value || actionLoading.value) {
+			return
+		}
+		actionLoading.value = true
+		error.value = ''
+		try {
+			const res = await window.client.stopChatBot(botApiParams())
+			if (res.bot) {
+				bot.value = res.bot
+			} else {
+				await fetchBot()
+			}
+		} catch (e) {
+			error.value = `Failed to stop bot: ${e.message || e}`
+		} finally {
+			actionLoading.value = false
+		}
+	}
+
+	async function saveBot() {
+		if (!bot.value || actionLoading.value) {
+			return
+		}
+		actionLoading.value = true
+		editMessage.value = ''
+		try {
+			const req = {
+				protocol: bot.value.connector,
+				botId: bot.value.botId,
+				displayName: editForm.value.displayName.trim(),
+			}
+			if (bot.value.connector === 'telegram' && editForm.value.telegramBotToken.trim()) {
+				req.telegramBotToken = editForm.value.telegramBotToken.trim()
+			}
+			if (bot.value.connector === 'discord') {
+				if (editForm.value.discordToken.trim()) {
+					req.discordToken = editForm.value.discordToken.trim()
+				}
+				if (editForm.value.discordAppId.trim()) {
+					req.discordAppId = editForm.value.discordAppId.trim()
+				}
+				if (editForm.value.discordPublicKey.trim()) {
+					req.discordPublicKey = editForm.value.discordPublicKey.trim()
+				}
+			}
+			const res = await window.client.updateChatBot(req)
+			if (res.bot) {
+				bot.value = res.bot
+			} else {
+				await fetchBot()
+			}
+			editForm.value.telegramBotToken = ''
+			editForm.value.discordToken = ''
+			editMessage.value = 'Bot updated'
+			editMessageType.value = 'note'
+		} catch (e) {
+			editMessage.value = `Failed to update bot: ${e.message || e}`
+			editMessageType.value = 'error'
+		} finally {
+			actionLoading.value = false
+		}
+	}
+
+	async function deleteBot() {
+		if (!bot.value || actionLoading.value) {
+			return
+		}
+		if (!window.confirm(`Delete chat bot "${bot.value.name}" (${bot.value.botId})? This cannot be undone.`)) {
+			return
+		}
+		actionLoading.value = true
+		try {
+			await window.client.deleteChatBot({
+				protocol: bot.value.connector,
+				botId: bot.value.botId,
+			})
+			await router.push({ name: 'chatBots' })
+		} catch (e) {
+			editMessage.value = `Failed to delete bot: ${e.message || e}`
+			editMessageType.value = 'error'
+			actionLoading.value = false
+		}
+	}
+
 	async function fetchChannels() {
 		if (!bot.value || bot.value.connector !== 'telegram') {
 			return
@@ -223,11 +406,7 @@
 		channelsLoading.value = true
 		channelsError.value = ''
 		try {
-			const routeIdentityValue = identity.value === '_' ? '' : (identity.value || '')
-			const res = await window.client.getBotChannels({
-				connector: bot.value.connector,
-				identity: routeIdentityValue
-			})
+			const res = await window.client.getBotChannels(botApiParams())
 			channels.value = (res.channels || []).map(ch => ({
 				id: String(ch.id || ''),
 				title: String(ch.title || ''),
@@ -243,8 +422,8 @@
 	}
 
 	onMounted(async () => {
-		connector.value = route.params.connector ? decodeURIComponent(route.params.connector) : ''
-		identity.value = route.params.identity ? decodeURIComponent(route.params.identity) : ''
+		protocol.value = route.params.protocol ? decodeURIComponent(route.params.protocol) : ''
+		botId.value = route.params.botId ? decodeURIComponent(route.params.botId) : ''
 		await waitForClient()
 		clientReady.value = true
 		await fetchBot()
@@ -255,11 +434,6 @@
 </script>
 
 <style scoped>
-	.text-disabled {
-		opacity: 0.5;
-		text-decoration: line-through;
-	}
-
 	.bot-detail-nav-wrap {
 		margin-top: 1.5em;
 	}
@@ -268,5 +442,36 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 0.4em;
+	}
+
+	.edit-bot-section {
+		margin-top: 2em;
+		padding-top: 1.5em;
+		border-top: 1px solid var(--conversations-border, #e0e0e0);
+	}
+
+	.edit-bot-form {
+		display: grid;
+		grid-template-columns: minmax(8rem, 12rem) 1fr;
+		gap: 0.75rem 1rem;
+		max-width: 40rem;
+		align-items: start;
+	}
+
+	.edit-bot-form label {
+		padding-top: 0.35rem;
+	}
+
+	.edit-bot-form input {
+		width: 100%;
+		box-sizing: border-box;
+	}
+
+	.edit-bot-actions {
+		grid-column: 1 / -1;
+		display: flex;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+		margin-top: 0.5rem;
 	}
 </style>

@@ -13,4 +13,4 @@ CREATE TABLE feed (
     INDEX idx_feed_author (author_id),
     INDEX idx_feed_remote_id (remote_id),
     FOREIGN KEY (social_account_id) REFERENCES social_accounts(id) ON DELETE CASCADE
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_bin;

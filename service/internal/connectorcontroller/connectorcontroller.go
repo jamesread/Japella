@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/jamesread/japella/internal/chatbot"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connector/bluesky"
 	"github.com/jamesread/japella/internal/connector/discord"
@@ -23,13 +24,11 @@ type ConnectionController struct {
 	db          *db.DB
 }
 
-// oauthConnectorTypes lists connector types that require OAuth and should only be started when IsPubliclyAccessible is true
 var oauthConnectorTypes = map[string]bool{
 	"mastodon": true, "x": true, "bluesky": true, "facebook": true, "instagram": true,
 }
 
-// yamlConnectorTypes lists connector types that require YAML configuration to be started
-var yamlConnectorTypes = map[string]bool{
+var chatBotProtocols = map[string]bool{
 	"telegram": true, "discord": true,
 }
 
@@ -46,6 +45,10 @@ func New(dbc *db.DB) *ConnectionController {
 	for _, wrapper := range runtimeconfig.Get().Connectors {
 		if !wrapper.Enabled {
 			log.Warnf("Connector %s is disabled in configuration", wrapper.ConnectorType)
+			continue
+		}
+		if chatBotProtocols[wrapper.ConnectorType] {
+			log.Infof("Skipping YAML connector %s: chat bots are configured via the Web UI", wrapper.ConnectorType)
 			continue
 		}
 		if oauthConnectorTypes[wrapper.ConnectorType] && !isPubliclyAccessible {
@@ -65,7 +68,88 @@ func New(dbc *db.DB) *ConnectionController {
 		log.Infof("OAuth connectors not started: IsPubliclyAccessible is false")
 	}
 
+	cc.loadChatBotsFromDB()
+
 	return cc
+}
+
+func (cc *ConnectionController) loadChatBotsFromDB() {
+	instances, err := cc.db.SelectChatBotInstances()
+	if err != nil {
+		log.Errorf("Failed to load chat bot instances: %v", err)
+		return
+	}
+	for _, inst := range instances {
+		if err := cc.registerChatBotInstanceLocked(inst.Protocol, inst.BotID, inst.DisplayName); err != nil {
+			log.Errorf("Failed to register chat bot %s/%s: %v", inst.Protocol, inst.BotID, err)
+		}
+	}
+}
+
+func (cc *ConnectionController) RegisterChatBotInstance(protocol, botID, displayName string) error {
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+	return cc.registerChatBotInstanceLocked(protocol, botID, displayName)
+}
+
+func (cc *ConnectionController) registerChatBotInstanceLocked(protocol, botID, displayName string) error {
+	key := chatbot.ControllerKey(protocol, botID)
+	if _, exists := cc.controllers[key]; exists {
+		return fmt.Errorf("chat bot already registered: %s", key)
+	}
+
+	var instance connector.BaseConnector
+	switch protocol {
+	case "telegram":
+		instance = &telegram.TelegramConnector{}
+	case "discord":
+		instance = &discord.DiscordConnector{}
+	default:
+		return fmt.Errorf("unsupported chat bot protocol: %s", protocol)
+	}
+
+	cfg := &connector.ChatBotStartupConfig{
+		Protocol:    protocol,
+		BotID:       botID,
+		DisplayName: displayName,
+	}
+	cc.setupConnectorWithKey(instance, cfg, key)
+	return nil
+}
+
+func (cc *ConnectionController) UnregisterChatBotInstance(protocol, botID string) error {
+	cc.mu.Lock()
+	defer cc.mu.Unlock()
+
+	key := chatbot.ControllerKey(protocol, botID)
+	svc, exists := cc.controllers[key]
+	if !exists {
+		return fmt.Errorf("chat bot not registered: %s", key)
+	}
+
+	if ctrl, ok := svc.(connector.ConnectorWithChatBotControl); ok {
+		_ = ctrl.StopChatBot()
+	}
+
+	delete(cc.controllers, key)
+	log.Infof("Unregistered chat bot: %s", key)
+	return nil
+}
+
+func (cc *ConnectionController) GetChatBotControl(protocol, botID string) (connector.ConnectorWithChatBotControl, error) {
+	cc.mu.RLock()
+	defer cc.mu.RUnlock()
+
+	key := chatbot.ControllerKey(protocol, botID)
+	svc, exists := cc.controllers[key]
+	if !exists {
+		return nil, fmt.Errorf("chat bot not found: %s", key)
+	}
+	ctrl, ok := svc.(connector.ConnectorWithChatBotControl)
+	if !ok {
+		return nil, fmt.Errorf("connector does not support chat bot control: %s", protocol)
+	}
+	return ctrl, nil
 }
 
 func (cc *ConnectionController) Get(key string) connector.BaseConnector {
@@ -105,7 +189,6 @@ func (cc *ConnectionController) GetKeys() []string {
 	return keys
 }
 
-// GetAllAvailableConnectorTypes returns a list of all connector types that the system knows about
 func GetAllAvailableConnectorTypes() []string {
 	return []string{
 		"telegram",
@@ -119,15 +202,12 @@ func GetAllAvailableConnectorTypes() []string {
 	}
 }
 
-// GetUnregisteredConnectors returns connector info for connectors that exist but aren't started
 func (cc *ConnectionController) GetUnregisteredConnectors() []*connector.UnregisteredConnector {
 	cc.mu.RLock()
 	available := GetAllAvailableConnectorTypes()
 	startedTypes := make(map[string]bool)
 
-	// Check if any connector of each type is started (keys may be "telegram", "telegram-1", "telegram-MyBot", etc.)
 	for k := range cc.controllers {
-		// Extract the base protocol from the key (everything before the first dash)
 		for _, connectorType := range available {
 			if k == connectorType || (len(k) > len(connectorType) && k[:len(connectorType)+1] == connectorType+"-") {
 				startedTypes[connectorType] = true
@@ -138,14 +218,9 @@ func (cc *ConnectionController) GetUnregisteredConnectors() []*connector.Unregis
 	cc.mu.RUnlock()
 
 	isPubliclyAccessible := cc.db.GetCvarBool(db.CvarKeys.IsPubliclyAccessible)
-	configTypes := make(map[string]bool)
-	for _, w := range runtimeconfig.Get().Connectors {
-		configTypes[w.ConnectorType] = true
-	}
 
 	unregistered := make([]*connector.UnregisteredConnector, 0)
 
-	// Icon map for connectors that might not fully implement the interface
 	iconMap := map[string]string{
 		"telegram":  "mdi:telegram",
 		"discord":   "mdi:discord",
@@ -158,15 +233,17 @@ func (cc *ConnectionController) GetUnregisteredConnectors() []*connector.Unregis
 	}
 
 	for _, connectorType := range available {
+		if chatBotProtocols[connectorType] {
+			continue
+		}
 		if !startedTypes[connectorType] {
-			// Create a temporary instance to get icon and other info
 			conn := cc.createConnectorInstance(connectorType)
-			icon := iconMap[connectorType] // Default icon
+			icon := iconMap[connectorType]
 			if conn != nil {
 				icon = conn.GetIcon()
 			}
 
-			reason := getNotStartedReason(connectorType, isPubliclyAccessible, configTypes)
+			reason := getNotStartedReason(connectorType, isPubliclyAccessible)
 
 			unregistered = append(unregistered, &connector.UnregisteredConnector{
 				Protocol:         connectorType,
@@ -180,15 +257,9 @@ func (cc *ConnectionController) GetUnregisteredConnectors() []*connector.Unregis
 	return unregistered
 }
 
-func getNotStartedReason(connectorType string, isPubliclyAccessible bool, configTypes map[string]bool) string {
+func getNotStartedReason(connectorType string, isPubliclyAccessible bool) string {
 	if oauthConnectorTypes[connectorType] && !isPubliclyAccessible {
 		return "Requires IsPubliclyAccessible to be enabled"
-	}
-	if yamlConnectorTypes[connectorType] && !configTypes[connectorType] {
-		return "Requires YAML configuration"
-	}
-	if yamlConnectorTypes[connectorType] && configTypes[connectorType] {
-		return "Disabled in YAML configuration"
 	}
 	if connectorType == "whatsapp" {
 		return "Not configured"
@@ -196,7 +267,6 @@ func getNotStartedReason(connectorType string, isPubliclyAccessible bool, config
 	return "Not started"
 }
 
-// createConnectorInstance creates a temporary connector instance to get metadata
 func (cc *ConnectionController) createConnectorInstance(connectorType string) connector.BaseConnector {
 	switch connectorType {
 	case "telegram":
@@ -213,10 +283,6 @@ func (cc *ConnectionController) createConnectorInstance(connectorType string) co
 		return &facebook.FacebookConnector{}
 	case "instagram":
 		return &instagram.InstagramConnector{}
-	case "whatsapp":
-		// WhatsApp connector doesn't fully implement BaseConnector, return nil
-		// Icon will be handled via iconMap in GetUnregisteredConnectors
-		return nil
 	default:
 		return nil
 	}
@@ -225,24 +291,10 @@ func (cc *ConnectionController) createConnectorInstance(connectorType string) co
 func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig.ConnectorConfigWrapper) {
 	log.Infof("Registering controller, type: %v", wrapper.ConnectorType)
 
-	// Generate a unique key for this connector instance
-	// Use protocol + name (if available) + index to ensure uniqueness
 	var instanceKey string
 	var connectorInstance connector.BaseConnector
 
 	switch wrapper.ConnectorType {
-	case "telegram":
-		connectorInstance = &telegram.TelegramConnector{}
-		// Try to get name from config for unique key
-		if tgConfig, ok := wrapper.ConnectorConfig.(*runtimeconfig.TelegramConfig); ok && tgConfig.Name != "" {
-			instanceKey = "telegram-" + tgConfig.Name
-		} else {
-			// Use index-based key if no name
-			instanceKey = cc.generateUniqueKey("telegram")
-		}
-	case "discord":
-		connectorInstance = &discord.DiscordConnector{}
-		instanceKey = cc.generateUniqueKey("discord")
 	case "bluesky":
 		connectorInstance = &bluesky.BlueskyConnector{}
 		instanceKey = cc.generateUniqueKey("bluesky")
@@ -253,7 +305,7 @@ func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig
 		connectorInstance = &instagram.InstagramConnector{}
 		instanceKey = cc.generateUniqueKey("instagram")
 	default:
-		log.Errorf("Unknown controller type: " + wrapper.ConnectorType)
+		log.Warnf("Skipping YAML connector type %s (not supported via YAML)", wrapper.ConnectorType)
 		return
 	}
 
@@ -280,7 +332,7 @@ func (cc *ConnectionController) setupConnectorWithKey(c connector.BaseConnector,
 		DB:     cc.db,
 	}
 
-	go c.SetStartupConfiguration(startupConfiguration)
+	c.SetStartupConfiguration(startupConfiguration)
 
 	configProvider, ok := c.(connector.ConfigProvider)
 
@@ -299,15 +351,12 @@ func (cc *ConnectionController) setupConnectorWithKey(c connector.BaseConnector,
 	cc.controllers[key] = c
 }
 
-// RefreshConnectors applies the current IsPubliclyAccessible setting by starting or stopping OAuth connectors.
-// Call this after changing the IsPubliclyAccessible setting to apply it without restarting the server.
 func (cc *ConnectionController) RefreshConnectors() {
 	cc.mu.Lock()
 	defer cc.mu.Unlock()
 
 	isPubliclyAccessible := cc.db.GetCvarBool(db.CvarKeys.IsPubliclyAccessible)
 
-	// Remove OAuth connectors when IsPubliclyAccessible is false
 	if !isPubliclyAccessible {
 		for key := range cc.controllers {
 			for oauthType := range oauthConnectorTypes {
@@ -321,7 +370,6 @@ func (cc *ConnectionController) RefreshConnectors() {
 		return
 	}
 
-	// Add OAuth connectors when IsPubliclyAccessible is true (if not already present)
 	oauthDefaults := []struct {
 		key string
 		c   connector.BaseConnector
@@ -340,7 +388,6 @@ func (cc *ConnectionController) RefreshConnectors() {
 	}
 }
 
-// generateUniqueKey generates a unique key for a connector instance
 func (cc *ConnectionController) generateUniqueKey(protocol string) string {
 	baseKey := protocol
 	counter := 0

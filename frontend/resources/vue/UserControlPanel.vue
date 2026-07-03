@@ -86,6 +86,7 @@
 	import { ref, onMounted } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
+	import { invalidateAppStatus } from '../javascript/status.js';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
@@ -160,8 +161,7 @@
 			const response = await window.client.logout({});
 
 			if (response.standardResponse.success) {
-				// Clear the global login state
-				window.isLoggedIn = false;
+				invalidateAppStatus();
 
 				// Redirect to the login page
 				router.push('/');
@@ -170,15 +170,13 @@
 				window.location.reload();
 			} else {
 				console.error('Logout failed:', response.standardResponse.message);
-				// Even if logout fails, redirect to login page
-				window.isLoggedIn = false;
+				invalidateAppStatus();
 				router.push('/');
 				window.location.reload();
 			}
 		} catch (error) {
 			console.error('Error during logout:', error);
-			// Even if logout fails, redirect to login page
-			window.isLoggedIn = false;
+			invalidateAppStatus();
 			router.push('/');
 			window.location.reload();
 		} finally {

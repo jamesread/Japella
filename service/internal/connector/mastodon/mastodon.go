@@ -2,23 +2,24 @@ package mastodon
 
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
+	"time"
 
 	"github.com/jamesread/golure/pkg/redact"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
-
-	"context"
-	"encoding/json"
-	"strconv"
-	"time"
 
 	"golang.org/x/oauth2"
 )
@@ -50,16 +51,21 @@ type Status struct {
 	URI string `json:"uri"`
 }
 
+type TimelineAccount struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Avatar   string `json:"avatar"`
+	URI      string `json:"uri"`
+}
+
 type TimelineStatus struct {
-	ID        string    `json:"id"`
-	URI       string    `json:"uri"`
-	Content   string    `json:"content"`
-	CreatedAt time.Time `json:"created_at"`
-	Account   struct {
-		ID       string `json:"id"`
-		Username string `json:"username"`
-	} `json:"account"`
-	Card *PreviewCard `json:"card"`
+	ID        string          `json:"id"`
+	URI       string          `json:"uri"`
+	Content   string          `json:"content"`
+	CreatedAt time.Time       `json:"created_at"`
+	Account   TimelineAccount `json:"account"`
+	Card      *PreviewCard    `json:"card"`
+	Reblog    *TimelineStatus `json:"reblog"`
 }
 
 type PreviewCard struct {
@@ -322,63 +328,162 @@ func (c *MastodonConnector) FetchRecentPosts(socialAccount *connector.SocialAcco
 
 	posts := make([]*connector.FeedPost, 0)
 
-	// Get user's home timeline (recent posts from accounts they follow)
-	// Use the homeserver URL from the social account
 	instanceURL := socialAccount.Homeserver
 	if instanceURL == "" {
 		instanceURL = "https://mastodon.social"
 	}
 
-	client := utils.NewClient(c.Logger()).Get(instanceURL + "/api/v1/timelines/home?limit=20").WithBearerToken(socialAccount.OAuthToken)
+	const pageLimit = 40
+	const maxPages = 5
+	maxID := ""
 
-	if client.Err != nil {
-		log.Errorf("Error creating request for Mastodon timeline: %v", client.Err)
-		return posts, client.Err
-	}
-
-	var timelineStatuses []TimelineStatus
-	client.AsJson(&timelineStatuses)
-
-	if client.Err != nil {
-		log.Errorf("Error parsing Mastodon timeline response: %v", client.Err)
-		return posts, client.Err
-	}
-
-	// Convert timeline statuses to feed posts
-	for _, status := range timelineStatuses {
-		// Parse author ID; allow full Mastodon ID range, then cast down to uint32 for storage
-		authorID, err := strconv.ParseUint(status.Account.ID, 10, 64)
-		if err != nil {
-			log.Warnf("Failed to parse author ID %s: %v", status.Account.ID, err)
-			continue
+	for page := 0; page < maxPages; page++ {
+		timelineURL := fmt.Sprintf("%s/api/v1/timelines/home?limit=%d", instanceURL, pageLimit)
+		if maxID != "" {
+			timelineURL += "&max_id=" + url.QueryEscape(maxID)
 		}
 
-		feedPost := &connector.FeedPost{
-			Content:            status.Content,
-			PostedDate:          status.CreatedAt,
-			AuthorID:            uint32(authorID),
-			AuthorName:          status.Account.Username,
-			RemoteURL:           status.URI,
-			RemoteID:            status.ID, // Keep as string for now since FeedPost expects string
-			PreviewURL:          "",
-			PreviewTitle:        "",
-			PreviewDescription:  "",
-			PreviewImageURL:     "",
+		client := utils.NewClient(c.Logger()).Get(timelineURL).WithBearerToken(socialAccount.OAuthToken)
+		if client.Err != nil {
+			log.Errorf("Error creating request for Mastodon timeline: %v", client.Err)
+			return posts, client.Err
 		}
 
-		// Extract preview card data if present
-		if status.Card != nil {
-			feedPost.PreviewURL = status.Card.URL
-			feedPost.PreviewTitle = status.Card.Title
-			feedPost.PreviewDescription = status.Card.Description
-			feedPost.PreviewImageURL = status.Card.Image
+		var timelineStatuses []TimelineStatus
+		client.AsJson(&timelineStatuses)
+		if client.Err != nil {
+			log.Errorf("Error parsing Mastodon timeline response: %v", client.Err)
+			return posts, client.Err
 		}
 
-		posts = append(posts, feedPost)
+		if len(timelineStatuses) == 0 {
+			break
+		}
+
+		for _, status := range timelineStatuses {
+			feedPost, ok := timelineStatusToFeedPost(status)
+			if !ok {
+				continue
+			}
+			posts = append(posts, feedPost)
+		}
+
+		maxID = timelineStatuses[len(timelineStatuses)-1].ID
+		if len(timelineStatuses) < pageLimit {
+			break
+		}
 	}
 
 	log.Infof("Fetched %d recent posts from Mastodon timeline", len(posts))
 	return posts, nil
+}
+
+func timelineStatusToFeedPost(status TimelineStatus) (*connector.FeedPost, bool) {
+	if status.Account.ID == "" {
+		return nil, false
+	}
+
+	contentStatus := status
+	remoteID := status.ID
+	card := status.Card
+
+	if status.Reblog != nil {
+		contentStatus = *status.Reblog
+		card = status.Reblog.Card
+		remoteID = mastodonAnnounceRemoteID(status)
+	}
+
+	feedPost := &connector.FeedPost{
+		Content:         contentStatus.Content,
+		PostedDate:      status.CreatedAt,
+		AuthorID:        status.Account.ID,
+		AuthorName:      status.Account.Username,
+		AuthorAvatarURL: status.Account.Avatar,
+		RemoteURL:       status.URI,
+		RemoteID:        remoteID,
+	}
+
+	if card != nil {
+		feedPost.PreviewURL = card.URL
+		feedPost.PreviewTitle = card.Title
+		feedPost.PreviewDescription = card.Description
+		feedPost.PreviewImageURL = card.Image
+	}
+
+	return feedPost, true
+}
+
+func mastodonAnnounceRemoteID(status TimelineStatus) string {
+	if status.Reblog == nil {
+		return status.ID
+	}
+
+	actor := status.Account.URI
+	if actor == "" {
+		actor = status.Account.Username
+	}
+
+	payload := map[string]string{
+		"@context": "https://www.w3.org/ns/activitystreams",
+		"type":     "Announce",
+		"actor":    actor,
+		"object":   status.Reblog.URI,
+	}
+
+	encoded, err := json.Marshal(payload)
+	if err != nil {
+		return status.ID
+	}
+
+	return string(encoded)
+}
+
+var mastodonStatusIDPattern = regexp.MustCompile(`/statuses/(\d+)`)
+
+func extractMastodonStatusID(remoteID, remoteURL string) (string, error) {
+	if remoteID != "" {
+		if _, err := strconv.ParseUint(remoteID, 10, 64); err == nil {
+			return remoteID, nil
+		}
+	}
+
+	if remoteURL != "" {
+		if match := mastodonStatusIDPattern.FindStringSubmatch(remoteURL); len(match) == 2 {
+			return match[1], nil
+		}
+	}
+
+	return "", fmt.Errorf("cannot determine mastodon status id from remote_id=%q remote_url=%q", remoteID, remoteURL)
+}
+
+func (c *MastodonConnector) FetchFeedPost(socialAccount *connector.SocialAccount, remoteID string, remoteURL string) (*connector.FeedPost, error) {
+	statusID, err := extractMastodonStatusID(remoteID, remoteURL)
+	if err != nil {
+		return nil, err
+	}
+
+	instanceURL := socialAccount.Homeserver
+	if instanceURL == "" {
+		instanceURL = "https://mastodon.social"
+	}
+
+	client := utils.NewClient(c.Logger()).Get(instanceURL + "/api/v1/statuses/" + statusID).WithBearerToken(socialAccount.OAuthToken)
+	if client.Err != nil {
+		return nil, client.Err
+	}
+
+	var status TimelineStatus
+	client.AsJson(&status)
+	if client.Err != nil {
+		return nil, fmt.Errorf("failed to fetch mastodon status %s: %w", statusID, client.Err)
+	}
+
+	feedPost, ok := timelineStatusToFeedPost(status)
+	if !ok {
+		return nil, fmt.Errorf("mastodon status %s has no author", statusID)
+	}
+
+	return feedPost, nil
 }
 
 func (c *MastodonConnector) GetIcon() string {

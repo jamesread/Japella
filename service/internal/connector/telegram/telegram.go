@@ -3,9 +3,8 @@ package telegram
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/signal"
 	"strconv"
+	"sync"
 	"time"
 
 	tgbotapi "github.com/go-telegram/bot"
@@ -13,6 +12,7 @@ import (
 
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/amqp"
+	"github.com/jamesread/japella/internal/chatbot"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/hooks"
@@ -28,12 +28,16 @@ type TelegramChannel struct {
 }
 
 type TelegramConnector struct {
+	botID               string
 	nickname            string
 	displayName         string
 	protocolDisplayName string // FirstName from GetMe response
 	isRunning           bool
 	statusMessage       string
 	errorMessage        string
+	botToken            string
+	runCancel           context.CancelFunc
+	botMu               sync.Mutex
 	channels            map[int64]*TelegramChannel // Track known channels/chats
 	botInstance         *tgbotapi.Bot              // Store bot instance for API calls
 	hooks               []runtimeconfig.IncomingMessageHook // Webhooks to call when messages are received
@@ -41,7 +45,6 @@ type TelegramConnector struct {
 	utils.LogComponent
 
 	connector.BaseConnector
-	connector.ConnectorWithYamlConfig
 }
 
 func (c *TelegramConnector) GetIdentity() string {
@@ -78,10 +81,11 @@ func (c *TelegramConnector) GetChatBot() *connector.ChatBot {
 	} else if c.statusMessage != "" {
 		statusMsg = c.statusMessage
 	} else {
-		statusMsg = "Bot is not running"
+		statusMsg = "Stopped (not connected)"
 	}
 
 	return &connector.ChatBot{
+		BotID:               c.botID,
 		Connector:          c.GetProtocol(),
 		Name:               name,
 		Identity:           c.nickname,
@@ -93,6 +97,10 @@ func (c *TelegramConnector) GetChatBot() *connector.ChatBot {
 	}
 }
 
+func (c *TelegramConnector) GetBotID() string {
+	return c.botID
+}
+
 func (c *TelegramConnector) failStartup(statusMsg, errMsg string) {
 	c.isRunning = false
 	c.statusMessage = statusMsg
@@ -102,42 +110,81 @@ func (c *TelegramConnector) failStartup(statusMsg, errMsg string) {
 
 func (c *TelegramConnector) SetStartupConfiguration(startup *connector.ControllerStartupConfiguration) {
 	c.db = startup.DB
-	config, _ := startup.Config.(*runtimeconfig.TelegramConfig)
-
-	if config == nil || config.Token == "" {
-		c.Logger().Errorf("Telegram bot token is not set in configuration")
-		c.failStartup("Configuration error: Bot token is not set", "Bot token is missing from configuration")
+	cfg, _ := startup.Config.(*connector.ChatBotStartupConfig)
+	if cfg == nil || cfg.BotID == "" {
+		c.failStartup("Configuration error: Bot instance is not configured", "Chat bot instance configuration is missing")
 		return
 	}
 
-	if config.Name != "" {
-		c.displayName = config.Name
+	c.botID = cfg.BotID
+	c.displayName = cfg.DisplayName
+	c.botToken = c.db.GetCvarString(chatbot.TelegramBotTokenKey(cfg.BotID))
+	if c.botToken == "" {
+		c.failStartup("Configuration error: Bot token is not set", "Telegram bot token is missing; set it when creating or editing the bot")
+		return
 	}
 
-	// Store DB reference for later hook loading (after bot starts and nickname is available)
-	c.hooks = config.IncomingMessageHooks
-	if len(c.hooks) > 0 {
-		c.Logger().Infof("Configured %d incoming message hook(s) from config (will load from DB after bot starts)", len(c.hooks))
-	}
-
-	c.StartWithToken(config.Token)
+	c.isRunning = false
+	c.statusMessage = "Stopped (not connected)"
+	c.errorMessage = ""
 }
 
 func (c *TelegramConnector) Start() {
-	// Bot is started in SetStartupConfiguration via StartWithToken
-	// This method exists to satisfy the BaseConnector interface
+	// Bot connection is started explicitly via StartChatBot
+}
+
+func (c *TelegramConnector) StartChatBot() error {
+	c.botMu.Lock()
+	defer c.botMu.Unlock()
+
+	if c.isRunning {
+		return fmt.Errorf("telegram bot is already running")
+	}
+	if c.botToken == "" {
+		c.botToken = c.db.GetCvarString(chatbot.TelegramBotTokenKey(c.botID))
+	}
+	if c.botToken == "" {
+		return fmt.Errorf("telegram bot token is not configured")
+	}
+
+	c.SetPrefix("Telegram-new")
+	c.Logger().Infof("japella-bot-telegram")
+	c.startBot(c.botToken)
+	if !c.isRunning {
+		if c.errorMessage != "" {
+			return fmt.Errorf("%s", c.errorMessage)
+		}
+		return fmt.Errorf("failed to start telegram bot")
+	}
+	return nil
+}
+
+func (c *TelegramConnector) StopChatBot() error {
+	c.botMu.Lock()
+	defer c.botMu.Unlock()
+
+	if !c.isRunning {
+		c.statusMessage = "Stopped (not connected)"
+		c.errorMessage = ""
+		return nil
+	}
+
+	if c.runCancel != nil {
+		c.runCancel()
+		c.runCancel = nil
+	}
+
+	c.botInstance = nil
+	c.isRunning = false
+	c.statusMessage = "Stopped (not connected)"
+	c.errorMessage = ""
+	c.Logger().Infof("Telegram bot stopped")
+	return nil
 }
 
 func (c *TelegramConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 	// Telegram uses bot tokens, not OAuth, so no refresh is needed
 	return nil
-}
-
-func (c *TelegramConnector) StartWithToken(token string) {
-	c.SetPrefix("Telegram-new")
-	c.Logger().Infof("japella-bot-telegram")
-
-	c.startBot(token)
 }
 
 func (c *TelegramConnector) startBot(botToken string) {
@@ -219,7 +266,7 @@ func (c *TelegramConnector) startBot(botToken string) {
 
 	// Load hooks from database now that we have the nickname
 	if c.db != nil {
-		dbHooks, err := c.db.SelectWebhookHooks("telegram", c.nickname)
+		dbHooks, err := c.db.SelectWebhookHooks("telegram", c.botID)
 		if err == nil && len(dbHooks) > 0 {
 			c.hooks = make([]runtimeconfig.IncomingMessageHook, 0, len(dbHooks))
 			for _, hook := range dbHooks {
@@ -242,8 +289,9 @@ func (c *TelegramConnector) startBot(botToken string) {
 		c.sendDebugStartupMessage(debugCtx, debugChatId, me.Username)
 	}
 
-	// Create a context for Start that will be cancelled on interrupt
-	startCtx, startCancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	// Create a context for Start that will be cancelled on stop
+	startCtx, startCancel := context.WithCancel(context.Background())
+	c.runCancel = startCancel
 
 	c.Logger().Infof("Starting bot polling in goroutine...")
 	go func() {
@@ -251,8 +299,13 @@ func (c *TelegramConnector) startBot(botToken string) {
 		c.Logger().Infof("Bot.Start() called - beginning to poll for updates")
 		c.botInstance.Start(startCtx)
 		c.Logger().Infof("Bot.Start() returned (context cancelled)")
+
+		c.botMu.Lock()
+		defer c.botMu.Unlock()
 		c.isRunning = false
-		c.statusMessage = "Bot polling stopped"
+		c.statusMessage = "Stopped (not connected)"
+		c.botInstance = nil
+		c.runCancel = nil
 	}()
 
 	c.Logger().Infof("Bot startup complete - isRunning: %v", c.isRunning)
@@ -384,6 +437,7 @@ func (c *TelegramConnector) handleMessage(message *tgbotmdl.Message) {
 		_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
 			Connector:         "telegram",
 			Identity:          c.nickname,
+			BotID:             c.botID,
 			ConversationKey:   db.BuildConversationKey(incomingMsg.Channel, ""),
 			ConversationTitle: convTitle,
 			Channel:           incomingMsg.Channel,
@@ -463,12 +517,13 @@ func (c *TelegramConnector) Replier() {
 
 			if c.db != nil {
 				conversationKey, conversationTitle := c.db.ResolveOutgoingConversationForLog(
-					"telegram", c.nickname, reply.Channel,
+					"telegram", c.botID, reply.Channel,
 					reply.GetConversationKey(), reply.GetIncommingMessageId(),
 				)
 				_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
 					Connector:         "telegram",
 					Identity:          c.nickname,
+					BotID:             c.botID,
 					ConversationKey:   conversationKey,
 					ConversationTitle: conversationTitle,
 					Channel:           reply.Channel,

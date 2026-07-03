@@ -1,7 +1,7 @@
 <template>
 	<Section
 		title="Incoming message hooks"
-		:subtitle="bot ? `${bot.name} · ${bot.connector}` : 'Webhook URLs for this bot'"
+		:subtitle="bot ? `${bot.name} · ${bot.connector} · ${bot.botId}` : 'Webhook URLs for this bot'"
 		classes="chat-bot-hooks-page"
 	>
 		<template #toolbar>
@@ -87,8 +87,8 @@
 	const clientReady = ref(false);
 	const loading = ref(true);
 	const error = ref('');
-	const connector = ref('');
-	const routeIdentityRaw = ref('');
+	const protocol = ref('');
+	const botId = ref('');
 	const bot = ref(null);
 
 	const hooks = ref([]);
@@ -100,19 +100,19 @@
 	const newHookUrl = ref('');
 
 	const detailsParams = computed(() => ({
-		connector: route.params.connector
-			? decodeURIComponent(String(route.params.connector))
-			: connector.value,
-		identity:
-			route.params.identity !== undefined &&
-			route.params.identity !== null &&
-			String(route.params.identity) !== ''
-				? decodeURIComponent(String(route.params.identity))
-				: routeIdentityRaw.value || '_',
+		protocol: route.params.protocol
+			? decodeURIComponent(String(route.params.protocol))
+			: protocol.value,
+		botId: route.params.botId
+			? decodeURIComponent(String(route.params.botId))
+			: botId.value,
 	}));
 
-	function routeIdentityValue() {
-		return routeIdentityRaw.value === '_' ? '' : (routeIdentityRaw.value || '');
+	function botApiParams() {
+		return {
+			protocol: bot.value.connector,
+			botId: bot.value.botId,
+		};
 	}
 
 	async function fetchBot() {
@@ -121,11 +121,8 @@
 		try {
 			const res = await window.client.getChatBots({});
 			const list = res.bots || [];
-			const idVal = routeIdentityValue();
 			bot.value = list.find(b => {
-				const matchesConnector = b.connector === connector.value;
-				const botIdentity = b.identity || '';
-				return matchesConnector && botIdentity === idVal;
+				return b.connector === protocol.value && String(b.botId || '') === botId.value;
 			}) || null;
 			if (!bot.value) {
 				error.value = 'Bot not found.';
@@ -145,10 +142,7 @@
 		hooksError.value = '';
 		hooksMessage.value = '';
 		try {
-			const res = await window.client.getBotHooks({
-				connector: bot.value.connector,
-				identity: routeIdentityValue(),
-			});
+			const res = await window.client.getBotHooks(botApiParams());
 			hooks.value = (res.hooks || []).map(hook => ({
 				url: String(hook.url || ''),
 				enabled: Boolean(hook.enabled),
@@ -170,8 +164,7 @@
 		hooksMessageType.value = '';
 		try {
 			const res = await window.client.setBotHooks({
-				connector: bot.value.connector,
-				identity: routeIdentityValue(),
+				...botApiParams(),
 				hooks: hooks.value.map(hook => ({
 					url: hook.url,
 					enabled: hook.enabled,
@@ -210,8 +203,8 @@
 	}
 
 	onMounted(async () => {
-		connector.value = route.params.connector ? decodeURIComponent(route.params.connector) : '';
-		routeIdentityRaw.value = route.params.identity ? decodeURIComponent(route.params.identity) : '';
+		protocol.value = route.params.protocol ? decodeURIComponent(route.params.protocol) : '';
+		botId.value = route.params.botId ? decodeURIComponent(route.params.botId) : '';
 		await waitForClient();
 		clientReady.value = true;
 		await fetchBot();
