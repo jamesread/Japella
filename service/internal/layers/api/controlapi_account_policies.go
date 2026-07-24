@@ -248,6 +248,11 @@ func (s *ControlApi) marshalPendingApproval(p *db.Post, viewerID uint32) *contro
 	}
 	if sa, err := s.DB.GetSocialAccount(p.SocialAccountID); err == nil && sa != nil {
 		item.Post.SocialAccountIdentity = sa.Identity
+		if s.cc != nil {
+			if svc := s.cc.Get(sa.Connector); svc != nil {
+				item.Post.SocialAccountIcon = svc.GetIcon()
+			}
+		}
 	}
 	if p.CampaignID.Valid {
 		item.Post.CampaignId = uint32(p.CampaignID.Int32)
@@ -406,5 +411,122 @@ func (s *ControlApi) RejectPost(ctx context.Context, req *connect.Request[contro
 
 	return connect.NewResponse(&controlv1.RejectPostResponse{
 		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Post rejected"},
+	}), nil
+}
+
+func (s *ControlApi) marshalPostStatus(post *db.Post) *controlv1.PostStatus {
+	if post == nil {
+		return nil
+	}
+	ps := &controlv1.PostStatus{
+		Id:              post.ID,
+		SocialAccountId: post.SocialAccountID,
+		Content:         post.Content,
+		Success:         post.Status,
+		PostUrl:         post.PostURL,
+		State:           post.State,
+		Created:         post.CreatedAt.Format("2006-01-02 15:04:05"),
+	}
+	postedDate := post.CreatedAt
+	if post.ScheduledAt.Valid {
+		postedDate = post.ScheduledAt.Time
+	}
+	ps.PostedDate = postedDate.Format("2006-01-02 15:04:05")
+	if post.CampaignID.Valid {
+		ps.CampaignId = uint32(post.CampaignID.Int32)
+	}
+	if post.CampaignName.Valid {
+		ps.CampaignName = post.CampaignName.String
+	}
+	if sa, err := s.DB.GetSocialAccount(post.SocialAccountID); err == nil && sa != nil {
+		ps.SocialAccountIdentity = sa.Identity
+		if s.cc != nil {
+			if svc := s.cc.Get(sa.Connector); svc != nil {
+				ps.SocialAccountIcon = svc.GetIcon()
+			}
+		}
+	}
+	return ps
+}
+
+func (s *ControlApi) GetPost(ctx context.Context, req *connect.Request[controlv1.GetPostRequest]) (*connect.Response[controlv1.GetPostResponse], error) {
+	au := s.getAuthenticatedUser(ctx)
+	if au == nil || au.User == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+	if req.Msg.PostId == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("post_id is required"))
+	}
+
+	post, err := s.DB.GetPost(req.Msg.PostId)
+	if err != nil || post == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("post not found"))
+	}
+
+	res := &controlv1.GetPostResponse{
+		Post: s.marshalPostStatus(post),
+	}
+
+	if post.State == db.PostStatePendingApproval {
+		pending := s.marshalPendingApproval(post, au.User.ID)
+		res.ApprovalStage = pending.ApprovalStage
+		res.AccountPolicyId = pending.AccountPolicyId
+		res.AccountPolicyName = pending.AccountPolicyName
+		res.SubmissionSource = pending.SubmissionSource
+		res.SubmittedByUserId = pending.SubmittedByUserId
+		res.SubmittedByUsername = pending.SubmittedByUsername
+		res.CanApprove = pending.CanApprove
+		res.CanReject = pending.CanReject
+		res.CanEdit = pending.CanReject
+		res.WaitingOn = pending.WaitingOn
+	}
+
+	return connect.NewResponse(res), nil
+}
+
+func (s *ControlApi) UpdatePendingPost(ctx context.Context, req *connect.Request[controlv1.UpdatePendingPostRequest]) (*connect.Response[controlv1.UpdatePendingPostResponse], error) {
+	au := s.getAuthenticatedUser(ctx)
+	if au == nil || au.User == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+	if req.Msg.PostId == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("post_id is required"))
+	}
+	content := strings.TrimSpace(req.Msg.Content)
+	if content == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("content is required"))
+	}
+
+	post, err := s.DB.GetPost(req.Msg.PostId)
+	if err != nil || post == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("post not found"))
+	}
+	if post.State != db.PostStatePendingApproval {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("post is not pending approval"))
+	}
+
+	isSubmitter := post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == au.User.ID
+	canEdit := isSubmitter
+	if !canEdit && post.AccountPolicyID.Valid {
+		stage, stErr := s.DB.GetApprovalStageByPolicyAndOrder(uint32(post.AccountPolicyID.Int32), post.ApprovalStage)
+		if stErr == nil {
+			ok, _ := s.DB.CanUserApproveStage(au.User.ID, stage)
+			canEdit = ok
+		}
+	}
+	if !canEdit {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("not allowed to edit this pending post"))
+	}
+
+	if err := s.DB.UpdatePostContent(post.ID, content); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update post content"))
+	}
+
+	post.Content = content
+	log.Infof("Pending post %d content updated by %s", post.ID, au.User.Username)
+
+	return connect.NewResponse(&controlv1.UpdatePendingPostResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Post content saved"},
+		Post:             s.marshalPostStatus(post),
 	}), nil
 }

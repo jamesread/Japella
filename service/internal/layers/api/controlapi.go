@@ -2172,7 +2172,10 @@ func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[contro
 	if username == "" {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("username is required"))
 	}
-	if len(req.Msg.Password) < 8 {
+	// Password is optional. When omitted, the user cannot log in interactively until an
+	// admin sets one via ResetUserPassword. If provided, it must be at least 8 characters.
+	password := req.Msg.Password
+	if password != "" && len(password) < 8 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("password must be at least 8 characters long"))
 	}
 
@@ -2180,10 +2183,14 @@ func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[contro
 		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("username already taken: %s", username))
 	}
 
-	passwordHash, err := utils.HashPassword(req.Msg.Password)
-	if err != nil {
-		log.Errorf("Error hashing password for new user %s: %v", username, err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash password"))
+	passwordHash := ""
+	if password != "" {
+		var err error
+		passwordHash, err = utils.HashPassword(password)
+		if err != nil {
+			log.Errorf("Error hashing password for new user %s: %v", username, err)
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash password"))
+		}
 	}
 
 	created, err := s.DB.CreateUserAccount(username, passwordHash)
@@ -2204,10 +2211,15 @@ func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[contro
 		log.Warnf("Could not assign %s role to new user %d: %v", rbac.RoleMember, user.ID, err)
 	}
 
+	message := "User created successfully"
+	if password == "" {
+		message = "User created successfully without a password; interactive login is disabled until a password is set"
+	}
+
 	res := connect.NewResponse(&controlv1.CreateUserResponse{
 		StandardResponse: &controlv1.StandardResponse{
 			Success: true,
-			Message: "User created successfully",
+			Message: message,
 		},
 		User: &controlv1.UserAccount{
 			Id:        user.ID,
@@ -2368,11 +2380,22 @@ func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[cont
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
 	}
 
-	log.Infof("Creating API key for user: %s", authenticatedUser.User.Username)
+	targetUser := authenticatedUser.User
+	if req.Msg.UserId != 0 && req.Msg.UserId != authenticatedUser.User.ID {
+		if !authenticatedUser.HasPermission(rbac.PermissionUsersView) {
+			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: cannot create API keys for other users"))
+		}
+		targetUser = s.DB.GetUserByID(req.Msg.UserId)
+		if targetUser == nil {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
+		}
+	}
+
+	log.Infof("Creating API key for user: %s (requested by %s)", targetUser.Username, authenticatedUser.User.Username)
 
 	newKeyValue := uuid.New().String()
 
-	apiKey, err := s.DB.CreateApiKey(authenticatedUser.User, newKeyValue)
+	apiKey, err := s.DB.CreateApiKey(targetUser, newKeyValue)
 
 	if err != nil {
 		log.Errorf("Error creating API key: %v", err)
@@ -2386,7 +2409,7 @@ func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[cont
 		NewKeyValue: newKeyValue,
 	})
 
-	log.Infof("API key created successfully: %s", apiKey.KeyValue)
+	log.Infof("API key created successfully: id=%d user=%s", apiKey.ID, targetUser.Username)
 
 	return res, nil
 }

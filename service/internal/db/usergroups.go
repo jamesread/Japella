@@ -109,3 +109,30 @@ func (db *DB) GetUserGroupByID(id uint32) *UserGroup {
 	}
 	return &g
 }
+
+// SocialAccountSharedWithGroup is a social account plus the share permissions granted to a user group.
+type SocialAccountSharedWithGroup struct {
+	SocialAccountID uint32 `db:"social_account_id"`
+	Identity        string `db:"identity"`
+	Connector       string `db:"connector"`
+	Active          bool   `db:"active"`
+	CanRead         bool   `db:"can_read"`
+	CanPost         bool   `db:"can_post"`
+	CanManage       bool   `db:"can_manage"`
+}
+
+func (db *DB) SelectSocialAccountsSharedWithGroup(groupID uint32) ([]*SocialAccountSharedWithGroup, error) {
+	ret := make([]*SocialAccountSharedWithGroup, 0)
+	err := db.ResilientSelect(&ret, `
+		SELECT sa.id AS social_account_id, sa.identity, sa.connector, sa.active,
+		       sas.can_read, sas.can_post, sas.can_manage
+		FROM social_account_shares sas
+		JOIN social_accounts sa ON sa.id = sas.social_account_id
+		WHERE sas.user_group_id = ?
+		ORDER BY sa.connector, sa.identity`, groupID)
+	if err != nil {
+		db.Logger().Errorf("SelectSocialAccountsSharedWithGroup(%d): %v", groupID, err)
+		return nil, err
+	}
+	return ret, nil
+}

@@ -365,6 +365,8 @@ message UserAccount {
 
 message CreateUserRequest {
 	string username = 1;
+	// Optional. When empty, the user cannot log in interactively until a password is set
+	// (e.g. via ResetUserPassword). When set, must be at least 8 characters.
 	string password = 2;
 }
 
@@ -505,6 +507,9 @@ message SaveUserPreferencesResponse {
 }
 
 message CreateApiKeyRequest {
+	// Optional. When set, create the key for this user instead of the caller.
+	// Creating for another user requires users.view (or superuser).
+	uint32 user_id = 1;
 }
 
 message CreateApiKeyResponse {
@@ -924,6 +929,25 @@ message SetUserGroupMembersResponse {
 	StandardResponse standard_response = 1;
 }
 
+message UserGroupSharedAccount {
+	uint32 social_account_id = 1;
+	string identity = 2;
+	string connector = 3;
+	string icon = 4;
+	bool active = 5;
+	bool can_read = 6;
+	bool can_post = 7;
+	bool can_manage = 8;
+}
+
+message GetUserGroupSharedAccountsRequest {
+	uint32 group_id = 1;
+}
+
+message GetUserGroupSharedAccountsResponse {
+	repeated UserGroupSharedAccount accounts = 1;
+}
+
 message AccountPolicyApprovalStage {
 	uint32 id = 1;
 	uint32 stage_order = 2;
@@ -1028,6 +1052,37 @@ message RejectPostRequest {
 
 message RejectPostResponse {
 	StandardResponse standard_response = 1;
+}
+
+message GetPostRequest {
+	uint32 post_id = 1;
+}
+
+message GetPostResponse {
+	PostStatus post = 1;
+	// Approval fields are populated when post.state is pending_approval.
+	uint32 approval_stage = 2;
+	uint32 account_policy_id = 3;
+	string account_policy_name = 4;
+	string submission_source = 5;
+	uint32 submitted_by_user_id = 6;
+	string submitted_by_username = 7;
+	bool can_approve = 8;
+	bool can_reject = 9;
+	// can_edit is true when the post is pending approval and the caller is the
+	// submitter or a current-stage assignee (same people who can reject).
+	bool can_edit = 10;
+	string waiting_on = 11;
+}
+
+message UpdatePendingPostRequest {
+	uint32 post_id = 1;
+	string content = 2;
+}
+
+message UpdatePendingPostResponse {
+	StandardResponse standard_response = 1;
+	PostStatus post = 2;
 }
 
 service JapellaControlApiService {
@@ -1161,6 +1216,7 @@ service JapellaControlApiService {
     rpc DeleteUserGroup(DeleteUserGroupRequest) returns (DeleteUserGroupResponse) {}
     rpc GetUserGroupMembers(GetUserGroupMembersRequest) returns (GetUserGroupMembersResponse) {}
     rpc SetUserGroupMembers(SetUserGroupMembersRequest) returns (SetUserGroupMembersResponse) {}
+    rpc GetUserGroupSharedAccounts(GetUserGroupSharedAccountsRequest) returns (GetUserGroupSharedAccountsResponse) {}
 
     rpc ListAccountPolicies(ListAccountPoliciesRequest) returns (ListAccountPoliciesResponse) {}
     rpc GetAccountPolicy(GetAccountPolicyRequest) returns (GetAccountPolicyResponse) {}
@@ -1170,4 +1226,6 @@ service JapellaControlApiService {
     rpc ListPendingApprovals(ListPendingApprovalsRequest) returns (ListPendingApprovalsResponse) {}
     rpc ApprovePost(ApprovePostRequest) returns (ApprovePostResponse) {}
     rpc RejectPost(RejectPostRequest) returns (RejectPostResponse) {}
+    rpc GetPost(GetPostRequest) returns (GetPostResponse) {}
+    rpc UpdatePendingPost(UpdatePendingPostRequest) returns (UpdatePendingPostResponse) {}
 }

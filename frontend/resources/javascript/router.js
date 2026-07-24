@@ -37,6 +37,7 @@ import Connectors from '../vue/Connectors.vue'
 import SystemArchitecture from '../vue/SystemArchitecture.vue'
 import SystemDiagnostics from '../vue/SystemDiagnostics.vue'
 import UserGroups from '../vue/UserGroups.vue'
+import UserGroupDetails from '../vue/UserGroupDetails.vue'
 import AccountPolicies from '../vue/AccountPolicies.vue'
 import AccountPolicyEditor from '../vue/AccountPolicyEditor.vue'
 import Approvals from '../vue/Approvals.vue'
@@ -380,6 +381,15 @@ const routes = [
     component: UserGroups,
     meta: {
       title: 'User Groups',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user-groups/:id',
+    name: 'userGroupDetails',
+    component: UserGroupDetails,
+    meta: {
+      title: 'User Group',
       requiresAuth: true
     }
   },

@@ -1,7 +1,7 @@
 <template>
 	<Section
 		title="Approvals"
-		subtitle="Review posts waiting for approval. Approve only when you are the current-stage assignee (and not the submitter)."
+		subtitle="Review posts waiting for approval. Open a post to edit content before approving; approve only when you are the current-stage assignee (and not the submitter)."
 		classes="approvals"
 		:padding="false"
 	>
@@ -22,7 +22,13 @@
 			<div v-else class="approval-list">
 				<article v-for="item in pending" :key="item.post?.id" class="approval-card">
 					<div class="approval-meta">
-						<span class="meta-pill">{{ item.post?.socialAccountIdentity || `Account #${item.post?.socialAccountId}` }}</span>
+						<SocialAccountChip
+							v-if="item.post?.socialAccountId"
+							:social-account-id="item.post.socialAccountId"
+							:identity="item.post.socialAccountIdentity || `Account #${item.post.socialAccountId}`"
+							:icon="item.post.socialAccountIcon"
+						/>
+						<span v-else class="meta-pill">Unknown account</span>
 						<span class="meta-pill">{{ item.accountPolicyName || `Policy #${item.accountPolicyId}` }}</span>
 						<span class="meta-pill">Stage {{ (item.approvalStage ?? 0) + 1 }}</span>
 						<span class="meta-pill">{{ sourceLabel(item.submissionSource) }}</span>
@@ -42,6 +48,13 @@
 					</p>
 
 					<div class="approval-actions">
+						<router-link
+							class="button neutral"
+							:to="{ name: 'postDetails', params: { id: String(item.post?.id) }, query: { from: 'approvals' } }"
+						>
+							<Icon icon="material-symbols:edit-document" />
+							Open / Edit
+						</router-link>
 						<button
 							type="button"
 							class="good"
@@ -73,7 +86,13 @@
 			<h3 :id="dialogTitleId">{{ dialogMode === 'approve' ? 'Approve post' : 'Reject post' }}</h3>
 
 			<p v-if="dialogItem" class="dialog-preview">
-				<strong>{{ dialogItem.post?.socialAccountIdentity || `Account #${dialogItem.post?.socialAccountId}` }}</strong>
+				<SocialAccountChip
+					v-if="dialogItem.post?.socialAccountId"
+					:social-account-id="dialogItem.post.socialAccountId"
+					:identity="dialogItem.post.socialAccountIdentity || `Account #${dialogItem.post.socialAccountId}`"
+					:icon="dialogItem.post.socialAccountIcon"
+				/>
+				<span v-else>{{ dialogItem.post?.socialAccountIdentity || `Account #${dialogItem.post?.socialAccountId}` }}</span>
 				— stage {{ (dialogItem.approvalStage ?? 0) + 1 }}
 			</p>
 			<pre v-if="dialogItem" class="dialog-content">{{ dialogItem.post?.content }}</pre>
@@ -120,6 +139,7 @@ import { inject, onMounted, ref } from 'vue';
 import { Icon } from '@iconify/vue';
 import Section from 'picocrank/vue/components/Section.vue';
 import Loading from './Loading.vue';
+import SocialAccountChip from './SocialAccountChip.vue';
 
 const refreshApprovalsNavCount = inject('refreshApprovalsNavCount', null);
 
@@ -228,8 +248,18 @@ onMounted(loadPending);
 .approval-meta {
 	display: flex;
 	flex-wrap: wrap;
+	align-items: center;
 	gap: 0.4rem;
 	margin-bottom: 0.75rem;
+}
+
+.dialog-preview {
+	margin: 0 0 0.5rem;
+	font-size: 0.95rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.4rem;
 }
 
 .meta-pill {
@@ -276,6 +306,7 @@ onMounted(loadPending);
 }
 
 .approval-actions button,
+.approval-actions .button,
 .dialog-actions button {
 	display: inline-flex;
 	align-items: center;
@@ -306,11 +337,6 @@ onMounted(loadPending);
 
 .modal h3 {
 	margin: 0 0 0.75rem;
-}
-
-.dialog-preview {
-	margin: 0 0 0.5rem;
-	font-size: 0.95rem;
 }
 
 .dialog-confirm {

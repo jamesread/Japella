@@ -1,7 +1,7 @@
 <template>
 	<Section
 		title="Create user"
-		subtitle="Create a new user account."
+		subtitle="Create a new user account. Password is optional; without one the user cannot log in interactively."
 		classes="create-user"
 	>
 		<template #toolbar>
@@ -30,11 +30,10 @@
 						v-model="createForm.password"
 						type="password"
 						autocomplete="new-password"
-						required
 						minlength="8"
 						:disabled="creating"
 					/>
-					<small class="field-hint">At least 8 characters (same rule as password change)</small>
+					<small class="field-hint">Optional. Leave blank to create without interactive login. If set, at least 8 characters.</small>
 				</div>
 
 				<label for="new-user-password-confirm">Confirm password</label>
@@ -43,7 +42,6 @@
 					v-model="createForm.confirmPassword"
 					type="password"
 					autocomplete="new-password"
-					required
 					:disabled="creating"
 				/>
 
@@ -68,12 +66,10 @@
 
 <script setup>
 	import { ref, computed } from 'vue';
-	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
 
-	const router = useRouter();
 	const creating = ref(false);
 	const createForm = ref({
 		username: '',
@@ -85,11 +81,14 @@
 
 	const isCreateFormValid = computed(() => {
 		const f = createForm.value;
-		return (
-			f.username.trim().length > 0 &&
-			f.password.length >= 8 &&
-			f.password === f.confirmPassword
-		);
+		if (f.username.trim().length === 0) {
+			return false;
+		}
+		const hasPassword = f.password.length > 0 || f.confirmPassword.length > 0;
+		if (!hasPassword) {
+			return true;
+		}
+		return f.password.length >= 8 && f.password === f.confirmPassword;
 	});
 
 	function clearCreateFormFields() {
@@ -108,7 +107,7 @@
 
 	async function createUser() {
 		if (!isCreateFormValid.value) {
-			createMessage.value = 'Enter a username, matching passwords of at least 8 characters.';
+			createMessage.value = 'Enter a username. If setting a password, use matching passwords of at least 8 characters.';
 			createMessageType.value = 'error';
 			return;
 		}

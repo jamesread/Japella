@@ -1,14 +1,14 @@
 <template>
 	<Section
 		title="Post Details"
-		subtitle="Detailed view of the selected post."
+		:subtitle="pageSubtitle"
 		classes="post-details"
 		:padding="true"
 	>
 		<template #toolbar>
 			<button @click="goBack" class="neutral">
 				<Icon icon="material-symbols:arrow-back" />
-				Back to Timeline
+				{{ fromApprovals ? 'Back to Approvals' : 'Back to Timeline' }}
 			</button>
 		</template>
 
@@ -21,7 +21,42 @@
 		</div>
 
 		<div v-else-if="post" class="post-details-content">
-			<PostPreview :post="post" />
+			<div v-if="actionMessage" class="inline-notification" :class="actionMessageType">{{ actionMessage }}</div>
+
+			<div v-if="isPendingApproval && canEdit" class="edit-section">
+				<h3>Edit content</h3>
+				<p class="edit-hint">
+					Save changes without advancing approval. Approve separately when ready for the next stage.
+				</p>
+				<textarea
+					v-model="editContent"
+					rows="10"
+					class="edit-content"
+					:disabled="saving"
+					placeholder="Post content"
+				/>
+				<div class="edit-actions">
+					<button
+						type="button"
+						class="good"
+						:disabled="saving || !canSaveEdit"
+						@click="savePendingContent"
+					>
+						<Icon v-if="saving" icon="eos-icons:loading" />
+						<Icon v-else icon="material-symbols:save" />
+						{{ saving ? 'Saving…' : 'Save' }}
+					</button>
+					<button
+						type="button"
+						class="neutral"
+						:disabled="saving || editContent === (post.content || '')"
+						@click="resetEditContent"
+					>
+						Reset
+					</button>
+				</div>
+			</div>
+			<PostPreview v-else :post="post" />
 
 			<div class="post-metadata">
 				<dl>
@@ -53,21 +88,52 @@
 
 					<dt v-if="post.state">State</dt>
 					<dd v-if="post.state">
-						<span :class="['annotation', statusClass(post)]">{{ post.state }}</span>
+						<span :class="['annotation', statusClass(post)]">{{ statusText(post) }}</span>
 					</dd>
 
+					<template v-if="isPendingApproval">
+						<dt>Approval stage</dt>
+						<dd>{{ (approvalStage ?? 0) + 1 }}</dd>
+						<dt v-if="accountPolicyName">Policy</dt>
+						<dd v-if="accountPolicyName">{{ accountPolicyName }}</dd>
+						<dt v-if="waitingOn">Waiting on</dt>
+						<dd v-if="waitingOn">{{ waitingOn }}</dd>
+						<dt v-if="submittedByUsername">Submitted by</dt>
+						<dd v-if="submittedByUsername">{{ submittedByUsername }}</dd>
+					</template>
 				</dl>
 			</div>
 
 			<div class="post-actions-section">
 				<h3>Actions</h3>
 				<div class="action-buttons">
+					<button
+						v-if="isPendingApproval && canApprove"
+						type="button"
+						class="good"
+						:disabled="acting"
+						@click="approvePost"
+					>
+						<Icon v-if="acting" icon="eos-icons:loading" />
+						<Icon v-else icon="material-symbols:check-circle" />
+						{{ acting ? 'Approving…' : 'Approve' }}
+					</button>
+					<button
+						v-if="isPendingApproval && canReject"
+						type="button"
+						class="bad"
+						:disabled="acting"
+						@click="rejectPost"
+					>
+						<Icon icon="material-symbols:cancel" />
+						Reject
+					</button>
 					<button v-if="post.state === 'error'" @click="retryPost" class="good" :disabled="retrying">
 						<Icon v-if="retrying" icon="eos-icons:loading" />
 						<Icon v-else icon="mdi:refresh" />
 						{{ retrying ? 'Retrying...' : 'Retry Post' }}
 					</button>
-					<button @click="forgetPost" class="bad">
+					<button @click="forgetPost" class="bad" :disabled="acting || saving">
 						<Icon icon="mdi:delete" />
 						Forget Post
 					</button>
@@ -108,7 +174,7 @@
 </template>
 
 <script setup>
-	import { ref, onMounted, computed } from 'vue';
+	import { ref, onMounted, computed, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
@@ -122,8 +188,20 @@
 	const loading = ref(true);
 	const errorMessage = ref('');
 	const retrying = ref(false);
+	const saving = ref(false);
+	const acting = ref(false);
+	const editContent = ref('');
+	const actionMessage = ref('');
+	const actionMessageType = ref('');
 
-	// Campaign dialog state
+	const canApprove = ref(false);
+	const canReject = ref(false);
+	const canEdit = ref(false);
+	const approvalStage = ref(0);
+	const accountPolicyName = ref('');
+	const waitingOn = ref('');
+	const submittedByUsername = ref('');
+
 	const showCampaignDialog = ref(false);
 	const campaigns = ref([]);
 	const selectedCampaignId = ref(0);
@@ -132,27 +210,52 @@
 	const campaignMessage = ref('');
 	const campaignMessageType = ref('');
 
-	function statusClass(post) {
-		if (post.state === 'error') return 'bad';
-		if (post.state === 'pending_approval') return 'note';
-		if (post.state === 'rejected') return 'bad';
-		if (post.state === 'pending' || post.state === 'scheduled') return 'note';
-		if (post.state === 'completed') return 'good';
+	const fromApprovals = computed(() => route.query.from === 'approvals');
+	const isPendingApproval = computed(() => post.value?.state === 'pending_approval');
+	const canSaveEdit = computed(() => {
+		const next = editContent.value.trim();
+		return next.length > 0 && next !== (post.value?.content || '').trim();
+	});
+	const pageSubtitle = computed(() => {
+		if (isPendingApproval.value && canEdit.value) {
+			return 'Edit and save this held post before approving the current stage.';
+		}
+		return 'Detailed view of the selected post.';
+	});
+
+	function statusClass(p) {
+		if (p.state === 'error') return 'bad';
+		if (p.state === 'pending_approval') return 'note';
+		if (p.state === 'rejected') return 'bad';
+		if (p.state === 'pending' || p.state === 'scheduled') return 'note';
+		if (p.state === 'completed') return 'good';
 		return '';
 	}
 
-	function statusText(post) {
-		if (post.state === 'error') return 'Error';
-		if (post.state === 'pending_approval') return 'Pending approval';
-		if (post.state === 'rejected') return 'Rejected';
-		if (post.state === 'pending' || post.state === 'scheduled') return 'Scheduled';
-		if (post.state === 'completed') return 'Completed';
-		return 'Unknown';
+	function statusText(p) {
+		if (p.state === 'error') return 'Error';
+		if (p.state === 'pending_approval') return 'Pending approval';
+		if (p.state === 'rejected') return 'Rejected';
+		if (p.state === 'pending' || p.state === 'scheduled') return 'Scheduled';
+		if (p.state === 'completed') return 'Completed';
+		return p.state || 'Unknown';
+	}
+
+	function applyGetPostResponse(res) {
+		post.value = res.post || null;
+		canApprove.value = Boolean(res.canApprove);
+		canReject.value = Boolean(res.canReject);
+		canEdit.value = Boolean(res.canEdit);
+		approvalStage.value = res.approvalStage ?? 0;
+		accountPolicyName.value = res.accountPolicyName || '';
+		waitingOn.value = res.waitingOn || '';
+		submittedByUsername.value = res.submittedByUsername || '';
+		editContent.value = res.post?.content || '';
 	}
 
 	async function loadPostDetails() {
-		const postId = route.params.id;
-		if (!postId) {
+		const postId = parseInt(String(route.params.id), 10);
+		if (!Number.isFinite(postId) || postId <= 0) {
 			errorMessage.value = 'No post ID provided';
 			loading.value = false;
 			return;
@@ -161,30 +264,106 @@
 		try {
 			loading.value = true;
 			errorMessage.value = '';
+			actionMessage.value = '';
 
-			// Get timeline to find the specific post
-			const response = await window.client.getTimeline();
-			const posts = response.posts || [];
-			const foundPost = posts.find(p => p.id == postId);
-
-			if (foundPost) {
-				post.value = foundPost;
+			const response = await window.client.getPost({ postId });
+			if (response.post) {
+				applyGetPostResponse(response);
 			} else {
 				errorMessage.value = 'Post not found';
+				post.value = null;
 			}
 		} catch (error) {
 			console.error('Error loading post details:', error);
 			errorMessage.value = 'Failed to load post details: ' + error.message;
+			post.value = null;
 		} finally {
 			loading.value = false;
 		}
 	}
 
+	function resetEditContent() {
+		editContent.value = post.value?.content || '';
+	}
+
+	async function savePendingContent() {
+		if (!post.value || !canSaveEdit.value) return;
+		saving.value = true;
+		actionMessage.value = '';
+		actionMessageType.value = '';
+		try {
+			const res = await window.client.updatePendingPost({
+				postId: post.value.id,
+				content: editContent.value.trim(),
+			});
+			if (res.post) {
+				post.value = res.post;
+				editContent.value = res.post.content || '';
+			}
+			actionMessage.value = res.standardResponse?.message || 'Post content saved.';
+			actionMessageType.value = 'good';
+		} catch (error) {
+			console.error('Error saving pending post:', error);
+			actionMessage.value = error.message || 'Failed to save post content.';
+			actionMessageType.value = 'error';
+		} finally {
+			saving.value = false;
+		}
+	}
+
+	async function approvePost() {
+		if (!post.value || !canApprove.value) return;
+		if (!confirm('Approve this post for the current stage?')) return;
+		acting.value = true;
+		actionMessage.value = '';
+		try {
+			const res = await window.client.approvePost({ postId: post.value.id });
+			actionMessage.value = res.standardResponse?.message || 'Approved.';
+			actionMessageType.value = 'good';
+			if (fromApprovals.value) {
+				router.push({ name: 'approvals' });
+				return;
+			}
+			await loadPostDetails();
+		} catch (error) {
+			actionMessage.value = error.message || 'Failed to approve post.';
+			actionMessageType.value = 'error';
+		} finally {
+			acting.value = false;
+		}
+	}
+
+	async function rejectPost() {
+		if (!post.value || !canReject.value) return;
+		const reason = window.prompt('Optional rejection reason:', '') ?? null;
+		if (reason === null) return;
+		acting.value = true;
+		actionMessage.value = '';
+		try {
+			const res = await window.client.rejectPost({ postId: post.value.id, reason: reason.trim() });
+			actionMessage.value = res.standardResponse?.message || 'Rejected.';
+			actionMessageType.value = 'good';
+			if (fromApprovals.value) {
+				router.push({ name: 'approvals' });
+				return;
+			}
+			await loadPostDetails();
+		} catch (error) {
+			actionMessage.value = error.message || 'Failed to reject post.';
+			actionMessageType.value = 'error';
+		} finally {
+			acting.value = false;
+		}
+	}
+
 	function goBack() {
+		if (fromApprovals.value) {
+			router.push({ name: 'approvals' });
+			return;
+		}
 		router.push({ name: 'timeline' });
 	}
 
-	// Campaign dialog functions
 	async function updateCampaign() {
 		if (!post.value) return;
 
@@ -193,7 +372,6 @@
 		campaignMessage.value = '';
 		campaignMessageType.value = '';
 
-		// Load campaigns
 		campaignsLoading.value = true;
 		try {
 			const response = await window.client.getCampaigns();
@@ -230,12 +408,10 @@
 			campaignMessage.value = 'Campaign updated successfully';
 			campaignMessageType.value = 'good';
 
-			// Update the post
 			post.value.campaignId = selectedCampaignId.value;
 			const campaign = campaigns.value.find(c => c.id === selectedCampaignId.value);
 			post.value.campaignName = campaign ? campaign.name : '';
 
-			// Close dialog after a short delay
 			setTimeout(() => {
 				cancelCampaignDialog();
 			}, 1500);
@@ -249,7 +425,6 @@
 		}
 	}
 
-	// Post forget function
 	async function forgetPost() {
 		if (!post.value) return;
 
@@ -261,17 +436,13 @@
 			await window.client.forgetPost({
 				postId: post.value.id
 			});
-
-			console.log('Post forgotten successfully');
-			// Navigate back to timeline
-			router.push({ name: 'timeline' });
+			goBack();
 		} catch (error) {
 			console.error('Error forgetting post:', error);
 			alert('Failed to forget post: ' + error.message);
 		}
 	}
 
-	// Post retry function
 	async function retryPost() {
 		if (!post.value) return;
 
@@ -285,12 +456,7 @@
 			const response = await window.client.retryPost({
 				postId: post.value.id
 			});
-
-			// Update the post with the retry result
 			post.value = response.postStatus;
-
-			console.log('Post retry completed:', response.standardResponse.message);
-
 		} catch (error) {
 			console.error('Error retrying post:', error);
 			alert('Failed to retry post: ' + error.message);
@@ -298,6 +464,10 @@
 			retrying.value = false;
 		}
 	}
+
+	watch(() => route.params.id, () => {
+		loadPostDetails();
+	});
 
 	onMounted(async () => {
 		await waitForClient();
@@ -311,6 +481,45 @@
 .no-post-container {
 	text-align: center;
 	padding: 2rem;
+}
+
+.edit-section {
+	margin-bottom: 1.5rem;
+	max-width: 48rem;
+}
+
+.edit-section h3 {
+	margin: 0 0 0.35rem;
+	font-size: 1.1rem;
+}
+
+.edit-hint {
+	margin: 0 0 0.75rem;
+	font-size: 0.9rem;
+	opacity: 0.85;
+}
+
+.edit-content {
+	width: 100%;
+	box-sizing: border-box;
+	min-height: 12rem;
+	padding: 0.75rem;
+	font: inherit;
+	line-height: 1.45;
+	resize: vertical;
+}
+
+.edit-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+}
+
+.edit-actions button {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
 }
 
 .post-metadata {
@@ -453,7 +662,6 @@
 	background-color: #c82333;
 }
 
-/* Modal styles */
 .modal-overlay {
 	position: fixed;
 	top: 0;

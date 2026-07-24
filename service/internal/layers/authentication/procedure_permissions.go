@@ -54,7 +54,8 @@ func RequiredPermission(procedureName string) string {
 	case controlv1.JapellaControlApiServiceStopImpersonationProcedure:
 		return ""
 
-	case controlv1.JapellaControlApiServiceGetUserGroupMembersProcedure:
+	case controlv1.JapellaControlApiServiceGetUserGroupMembersProcedure,
+		controlv1.JapellaControlApiServiceGetUserGroupSharedAccountsProcedure:
 		return rbac.PermissionUserGroupsView
 
 	case controlv1.JapellaControlApiServiceCreateUserGroupProcedure,

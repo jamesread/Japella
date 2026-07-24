@@ -28,8 +28,18 @@
 	});
 
 	const sectionSubtitle = computed(() => {
-		if (filterUserId.value) return 'View and manage API keys for this user. Use Bearer token in Authorization header.';
+		if (filterUserId.value) return 'View, revoke, and create API keys for this user. Use Bearer token in Authorization header.';
 		return 'View, revoke, and create API keys. Use Bearer token in Authorization header.';
+	});
+
+	const newKeyDialogTitle = computed(() => {
+		if (filterUserId.value && targetUser.value) {
+			return `New key for ${targetUser.value.username}`;
+		}
+		if (filterUserId.value) {
+			return 'New key for user';
+		}
+		return 'Your new key';
 	});
 
 	async function fetchApiKeys() {
@@ -74,7 +84,8 @@
 	}
 
 	function createNewKey() {
-		window.client.createApiKey()
+		const req = filterUserId.value ? { userId: filterUserId.value } : {};
+		window.client.createApiKey(req)
 			.then((res) => {
 				showNewKeyDialog(res.newKeyValue);
 				fetchApiKeys();
@@ -93,8 +104,8 @@
 
 <template>
 	<dialog ref = "newKeyDialog" class = "dialog">
-		<h2>Your new key</h2>
-		<p>Here is your new API key. Please copy it and store it securely, as you will not be able to see it again.</p>
+		<h2>{{ newKeyDialogTitle }}</h2>
+		<p>Here is the new API key. Please copy it and store it securely, as you will not be able to see it again.</p>
 
 		<form action="#" method="dialog">
 			<input type="text" readonly class="key-input" :value="newKeyValue" />
@@ -116,7 +127,7 @@
                 <Icon icon="material-symbols:refresh" />
             </button>
 
-            <button v-if="!filterUserId" @click="createNewKey" class="neutral">
+            <button @click="createNewKey" class="neutral" title="Create API key">
                 <Icon icon="material-symbols:add" />
             </button>
         </template>

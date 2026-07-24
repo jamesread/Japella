@@ -261,6 +261,9 @@ const (
 	// JapellaControlApiServiceSetUserGroupMembersProcedure is the fully-qualified name of the
 	// JapellaControlApiService's SetUserGroupMembers RPC.
 	JapellaControlApiServiceSetUserGroupMembersProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetUserGroupMembers"
+	// JapellaControlApiServiceGetUserGroupSharedAccountsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetUserGroupSharedAccounts RPC.
+	JapellaControlApiServiceGetUserGroupSharedAccountsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUserGroupSharedAccounts"
 	// JapellaControlApiServiceListAccountPoliciesProcedure is the fully-qualified name of the
 	// JapellaControlApiService's ListAccountPolicies RPC.
 	JapellaControlApiServiceListAccountPoliciesProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListAccountPolicies"
@@ -285,6 +288,12 @@ const (
 	// JapellaControlApiServiceRejectPostProcedure is the fully-qualified name of the
 	// JapellaControlApiService's RejectPost RPC.
 	JapellaControlApiServiceRejectPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/RejectPost"
+	// JapellaControlApiServiceGetPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetPost RPC.
+	JapellaControlApiServiceGetPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetPost"
+	// JapellaControlApiServiceUpdatePendingPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdatePendingPost RPC.
+	JapellaControlApiServiceUpdatePendingPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdatePendingPost"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -366,6 +375,7 @@ type JapellaControlApiServiceClient interface {
 	DeleteUserGroup(context.Context, *connect.Request[v1.DeleteUserGroupRequest]) (*connect.Response[v1.DeleteUserGroupResponse], error)
 	GetUserGroupMembers(context.Context, *connect.Request[v1.GetUserGroupMembersRequest]) (*connect.Response[v1.GetUserGroupMembersResponse], error)
 	SetUserGroupMembers(context.Context, *connect.Request[v1.SetUserGroupMembersRequest]) (*connect.Response[v1.SetUserGroupMembersResponse], error)
+	GetUserGroupSharedAccounts(context.Context, *connect.Request[v1.GetUserGroupSharedAccountsRequest]) (*connect.Response[v1.GetUserGroupSharedAccountsResponse], error)
 	ListAccountPolicies(context.Context, *connect.Request[v1.ListAccountPoliciesRequest]) (*connect.Response[v1.ListAccountPoliciesResponse], error)
 	GetAccountPolicy(context.Context, *connect.Request[v1.GetAccountPolicyRequest]) (*connect.Response[v1.GetAccountPolicyResponse], error)
 	CreateAccountPolicy(context.Context, *connect.Request[v1.CreateAccountPolicyRequest]) (*connect.Response[v1.CreateAccountPolicyResponse], error)
@@ -374,6 +384,8 @@ type JapellaControlApiServiceClient interface {
 	ListPendingApprovals(context.Context, *connect.Request[v1.ListPendingApprovalsRequest]) (*connect.Response[v1.ListPendingApprovalsResponse], error)
 	ApprovePost(context.Context, *connect.Request[v1.ApprovePostRequest]) (*connect.Response[v1.ApprovePostResponse], error)
 	RejectPost(context.Context, *connect.Request[v1.RejectPostRequest]) (*connect.Response[v1.RejectPostResponse], error)
+	GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error)
+	UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -844,6 +856,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserGroupMembers")),
 			connect.WithClientOptions(opts...),
 		),
+		getUserGroupSharedAccounts: connect.NewClient[v1.GetUserGroupSharedAccountsRequest, v1.GetUserGroupSharedAccountsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetUserGroupSharedAccountsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserGroupSharedAccounts")),
+			connect.WithClientOptions(opts...),
+		),
 		listAccountPolicies: connect.NewClient[v1.ListAccountPoliciesRequest, v1.ListAccountPoliciesResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceListAccountPoliciesProcedure,
@@ -890,6 +908,18 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceRejectPostProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("RejectPost")),
+			connect.WithClientOptions(opts...),
+		),
+		getPost: connect.NewClient[v1.GetPostRequest, v1.GetPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPost")),
+			connect.WithClientOptions(opts...),
+		),
+		updatePendingPost: connect.NewClient[v1.UpdatePendingPostRequest, v1.UpdatePendingPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdatePendingPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePendingPost")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -973,6 +1003,7 @@ type japellaControlApiServiceClient struct {
 	deleteUserGroup                 *connect.Client[v1.DeleteUserGroupRequest, v1.DeleteUserGroupResponse]
 	getUserGroupMembers             *connect.Client[v1.GetUserGroupMembersRequest, v1.GetUserGroupMembersResponse]
 	setUserGroupMembers             *connect.Client[v1.SetUserGroupMembersRequest, v1.SetUserGroupMembersResponse]
+	getUserGroupSharedAccounts      *connect.Client[v1.GetUserGroupSharedAccountsRequest, v1.GetUserGroupSharedAccountsResponse]
 	listAccountPolicies             *connect.Client[v1.ListAccountPoliciesRequest, v1.ListAccountPoliciesResponse]
 	getAccountPolicy                *connect.Client[v1.GetAccountPolicyRequest, v1.GetAccountPolicyResponse]
 	createAccountPolicy             *connect.Client[v1.CreateAccountPolicyRequest, v1.CreateAccountPolicyResponse]
@@ -981,6 +1012,8 @@ type japellaControlApiServiceClient struct {
 	listPendingApprovals            *connect.Client[v1.ListPendingApprovalsRequest, v1.ListPendingApprovalsResponse]
 	approvePost                     *connect.Client[v1.ApprovePostRequest, v1.ApprovePostResponse]
 	rejectPost                      *connect.Client[v1.RejectPostRequest, v1.RejectPostResponse]
+	getPost                         *connect.Client[v1.GetPostRequest, v1.GetPostResponse]
+	updatePendingPost               *connect.Client[v1.UpdatePendingPostRequest, v1.UpdatePendingPostResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -1373,6 +1406,12 @@ func (c *japellaControlApiServiceClient) SetUserGroupMembers(ctx context.Context
 	return c.setUserGroupMembers.CallUnary(ctx, req)
 }
 
+// GetUserGroupSharedAccounts calls
+// japella.controlapi.v1.JapellaControlApiService.GetUserGroupSharedAccounts.
+func (c *japellaControlApiServiceClient) GetUserGroupSharedAccounts(ctx context.Context, req *connect.Request[v1.GetUserGroupSharedAccountsRequest]) (*connect.Response[v1.GetUserGroupSharedAccountsResponse], error) {
+	return c.getUserGroupSharedAccounts.CallUnary(ctx, req)
+}
+
 // ListAccountPolicies calls japella.controlapi.v1.JapellaControlApiService.ListAccountPolicies.
 func (c *japellaControlApiServiceClient) ListAccountPolicies(ctx context.Context, req *connect.Request[v1.ListAccountPoliciesRequest]) (*connect.Response[v1.ListAccountPoliciesResponse], error) {
 	return c.listAccountPolicies.CallUnary(ctx, req)
@@ -1411,6 +1450,16 @@ func (c *japellaControlApiServiceClient) ApprovePost(ctx context.Context, req *c
 // RejectPost calls japella.controlapi.v1.JapellaControlApiService.RejectPost.
 func (c *japellaControlApiServiceClient) RejectPost(ctx context.Context, req *connect.Request[v1.RejectPostRequest]) (*connect.Response[v1.RejectPostResponse], error) {
 	return c.rejectPost.CallUnary(ctx, req)
+}
+
+// GetPost calls japella.controlapi.v1.JapellaControlApiService.GetPost.
+func (c *japellaControlApiServiceClient) GetPost(ctx context.Context, req *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error) {
+	return c.getPost.CallUnary(ctx, req)
+}
+
+// UpdatePendingPost calls japella.controlapi.v1.JapellaControlApiService.UpdatePendingPost.
+func (c *japellaControlApiServiceClient) UpdatePendingPost(ctx context.Context, req *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error) {
+	return c.updatePendingPost.CallUnary(ctx, req)
 }
 
 // JapellaControlApiServiceHandler is an implementation of the
@@ -1492,6 +1541,7 @@ type JapellaControlApiServiceHandler interface {
 	DeleteUserGroup(context.Context, *connect.Request[v1.DeleteUserGroupRequest]) (*connect.Response[v1.DeleteUserGroupResponse], error)
 	GetUserGroupMembers(context.Context, *connect.Request[v1.GetUserGroupMembersRequest]) (*connect.Response[v1.GetUserGroupMembersResponse], error)
 	SetUserGroupMembers(context.Context, *connect.Request[v1.SetUserGroupMembersRequest]) (*connect.Response[v1.SetUserGroupMembersResponse], error)
+	GetUserGroupSharedAccounts(context.Context, *connect.Request[v1.GetUserGroupSharedAccountsRequest]) (*connect.Response[v1.GetUserGroupSharedAccountsResponse], error)
 	ListAccountPolicies(context.Context, *connect.Request[v1.ListAccountPoliciesRequest]) (*connect.Response[v1.ListAccountPoliciesResponse], error)
 	GetAccountPolicy(context.Context, *connect.Request[v1.GetAccountPolicyRequest]) (*connect.Response[v1.GetAccountPolicyResponse], error)
 	CreateAccountPolicy(context.Context, *connect.Request[v1.CreateAccountPolicyRequest]) (*connect.Response[v1.CreateAccountPolicyResponse], error)
@@ -1500,6 +1550,8 @@ type JapellaControlApiServiceHandler interface {
 	ListPendingApprovals(context.Context, *connect.Request[v1.ListPendingApprovalsRequest]) (*connect.Response[v1.ListPendingApprovalsResponse], error)
 	ApprovePost(context.Context, *connect.Request[v1.ApprovePostRequest]) (*connect.Response[v1.ApprovePostResponse], error)
 	RejectPost(context.Context, *connect.Request[v1.RejectPostRequest]) (*connect.Response[v1.RejectPostResponse], error)
+	GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error)
+	UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -1965,6 +2017,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserGroupMembers")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetUserGroupSharedAccountsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetUserGroupSharedAccountsProcedure,
+		svc.GetUserGroupSharedAccounts,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserGroupSharedAccounts")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceListAccountPoliciesHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceListAccountPoliciesProcedure,
 		svc.ListAccountPolicies,
@@ -2011,6 +2069,18 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceRejectPostProcedure,
 		svc.RejectPost,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("RejectPost")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetPostProcedure,
+		svc.GetPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPost")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdatePendingPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdatePendingPostProcedure,
+		svc.UpdatePendingPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePendingPost")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2167,6 +2237,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetUserGroupMembersHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceSetUserGroupMembersProcedure:
 			japellaControlApiServiceSetUserGroupMembersHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetUserGroupSharedAccountsProcedure:
+			japellaControlApiServiceGetUserGroupSharedAccountsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceListAccountPoliciesProcedure:
 			japellaControlApiServiceListAccountPoliciesHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetAccountPolicyProcedure:
@@ -2183,6 +2255,10 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceApprovePostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceRejectPostProcedure:
 			japellaControlApiServiceRejectPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetPostProcedure:
+			japellaControlApiServiceGetPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdatePendingPostProcedure:
+			japellaControlApiServiceUpdatePendingPostHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2496,6 +2572,10 @@ func (UnimplementedJapellaControlApiServiceHandler) SetUserGroupMembers(context.
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers is not implemented"))
 }
 
+func (UnimplementedJapellaControlApiServiceHandler) GetUserGroupSharedAccounts(context.Context, *connect.Request[v1.GetUserGroupSharedAccountsRequest]) (*connect.Response[v1.GetUserGroupSharedAccountsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUserGroupSharedAccounts is not implemented"))
+}
+
 func (UnimplementedJapellaControlApiServiceHandler) ListAccountPolicies(context.Context, *connect.Request[v1.ListAccountPoliciesRequest]) (*connect.Response[v1.ListAccountPoliciesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListAccountPolicies is not implemented"))
 }
@@ -2526,4 +2606,12 @@ func (UnimplementedJapellaControlApiServiceHandler) ApprovePost(context.Context,
 
 func (UnimplementedJapellaControlApiServiceHandler) RejectPost(context.Context, *connect.Request[v1.RejectPostRequest]) (*connect.Response[v1.RejectPostResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RejectPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdatePendingPost is not implemented"))
 }

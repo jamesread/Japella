@@ -91,3 +91,39 @@ func (s *ControlApi) SetUserGroupMembers(ctx context.Context, req *connect.Reque
 		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Group members updated"},
 	}), nil
 }
+
+func (s *ControlApi) GetUserGroupSharedAccounts(ctx context.Context, req *connect.Request[controlv1.GetUserGroupSharedAccountsRequest]) (*connect.Response[controlv1.GetUserGroupSharedAccountsResponse], error) {
+	if req.Msg.GroupId == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("group_id is required"))
+	}
+	if s.DB.GetUserGroupByID(req.Msg.GroupId) == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("group not found"))
+	}
+
+	rows, err := s.DB.SelectSocialAccountsSharedWithGroup(req.Msg.GroupId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load shared accounts"))
+	}
+
+	out := make([]*controlv1.UserGroupSharedAccount, 0, len(rows))
+	for _, row := range rows {
+		icon := "mdi:question-mark-circle"
+		if s.cc != nil {
+			if connectorService := s.cc.Get(row.Connector); connectorService != nil {
+				icon = connectorService.GetIcon()
+			}
+		}
+		out = append(out, &controlv1.UserGroupSharedAccount{
+			SocialAccountId: row.SocialAccountID,
+			Identity:        row.Identity,
+			Connector:       row.Connector,
+			Icon:            icon,
+			Active:          row.Active,
+			CanRead:         row.CanRead,
+			CanPost:         row.CanPost,
+			CanManage:       row.CanManage,
+		})
+	}
+
+	return connect.NewResponse(&controlv1.GetUserGroupSharedAccountsResponse{Accounts: out}), nil
+}

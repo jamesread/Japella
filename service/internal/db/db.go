@@ -571,6 +571,15 @@ func (db *DB) UpdatePostCampaign(postID uint32, campaignID uint32) error {
 	return nil
 }
 
+func (db *DB) UpdatePostContent(postID uint32, content string) error {
+	_, err := db.ResilientExec("UPDATE posts SET content = ?, updated_at = NOW(3) WHERE id = ?", content, postID)
+	if err != nil {
+		db.Logger().Errorf("Failed to update post content for %d: %v", postID, err)
+		return err
+	}
+	return nil
+}
+
 func (db *DB) DeletePost(postID uint32) error {
 	_, err := db.ResilientExec("DELETE FROM posts WHERE id = ?", postID)
 	if err != nil {
