@@ -14,6 +14,7 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 
 	"github.com/jamesread/japella/internal/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 type DeviceStore struct {
@@ -28,7 +29,7 @@ type WhatsAppConnector struct {
 
 func (c WhatsAppConnector) Start() {
 	c.deviceStore = &DeviceStore{}
-	c.clientLog = &WaLogAdaptor{Logger: c.Logger()}
+	c.clientLog = &WaLogAdaptor{Logger: log.StandardLogger()}
 
 	c.connect()
 }

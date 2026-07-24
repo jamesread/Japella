@@ -334,6 +334,15 @@ func (db *DB) UpdateSocialAccountIdentity(id uint32, identity string) error {
 	return nil
 }
 
+func (db *DB) UpdateSocialAccountDid(id uint32, did string) error {
+	_, err := db.ResilientExec("UPDATE social_accounts SET did = ?, updated_at = NOW() WHERE id = ?", did, id)
+	if err != nil {
+		db.Logger().Errorf("Failed to update social account did: %v", err)
+		return err
+	}
+	return nil
+}
+
 func (db *DB) SelectSocialAccounts(onlyActive bool) []*SocialAccount {
 	ret := make([]*SocialAccount, 0)
 	var err error
@@ -476,10 +485,24 @@ func (db *DB) DeleteSocialAccount(id uint32) error {
 }
 
 func (db *DB) CreatePost(post *Post) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO posts (social_account_id, status, state, content, post_url, remote_id, scheduled_at, created_at, updated_at, campaign_id) VALUES (:social_account_id, :status, :state, :content, :post_url, :remote_id, :scheduled_at, NOW(), NOW(), :campaign_id)`, post)
+	if post.SubmissionSource == "" {
+		post.SubmissionSource = SubmissionSourceUI
+	}
+	res, err := db.ResilientNamedExec(`INSERT INTO posts (
+		social_account_id, status, state, content, post_url, remote_id, scheduled_at,
+		created_at, updated_at, campaign_id, submission_source, submitted_by_user_id,
+		account_policy_id, approval_stage
+	) VALUES (
+		:social_account_id, :status, :state, :content, :post_url, :remote_id, :scheduled_at,
+		NOW(), NOW(), :campaign_id, :submission_source, :submitted_by_user_id,
+		:account_policy_id, :approval_stage
+	)`, post)
 	if err != nil {
 		db.Logger().Errorf("Failed to create post: %v", err)
 		return err
+	}
+	if id, lidErr := res.LastInsertId(); lidErr == nil {
+		post.ID = uint32(id)
 	}
 	return nil
 }
@@ -559,7 +582,13 @@ func (db *DB) DeletePost(postID uint32) error {
 
 func (db *DB) GetPost(postID uint32) (*Post, error) {
 	var post Post
-	err := db.ResilientGet(&post, "SELECT p.id, p.social_account_id, p.status, p.state, p.content, p.post_url, p.remote_id, p.scheduled_at, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name FROM posts p LEFT JOIN campaigns c ON p.campaign_id = c.id WHERE p.id = ?", postID)
+	err := db.ResilientGet(&post, `
+		SELECT p.id, p.social_account_id, p.status, p.state, p.content, p.post_url, p.remote_id,
+		       p.scheduled_at, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name,
+		       p.submission_source, p.submitted_by_user_id, p.account_policy_id, p.approval_stage
+		FROM posts p
+		LEFT JOIN campaigns c ON p.campaign_id = c.id
+		WHERE p.id = ?`, postID)
 	if err != nil {
 		db.Logger().Errorf("Failed to get post: %v", err)
 		return nil, err
@@ -863,14 +892,33 @@ func (db *DB) SelectUsers() ([]*UserAccount, error) {
 }
 
 func (db *DB) SelectAPIKeys() ([]*ApiKey, error) {
-	ret := make([]*ApiKey, 0)
-	err := db.ResilientSelect(&ret, "SELECT * FROM api_keys")
+	type apiKeyRow struct {
+		ApiKey
+		Username string `db:"username"`
+	}
+	rows := make([]*apiKeyRow, 0)
+	err := db.ResilientSelect(&rows, `
+		SELECT k.id, k.created_at, k.updated_at, k.key_value, k.user_account_id,
+		       COALESCE(u.username, '') AS username
+		FROM api_keys k
+		LEFT JOIN user_accounts u ON u.id = k.user_account_id
+		ORDER BY k.id DESC`)
 	if err != nil {
 		db.Logger().Errorf("Failed to select API keys: %v", err)
 		return nil, err
 	}
 
-	db.Logger().Infof("Selected %+v API keys", ret)
+	ret := make([]*ApiKey, 0, len(rows))
+	for _, row := range rows {
+		key := row.ApiKey
+		key.UserAccount = &UserAccount{
+			Model:    Model{ID: row.UserAccountID},
+			Username: row.Username,
+		}
+		ret = append(ret, &key)
+	}
+
+	db.Logger().Infof("Selected %d API keys", len(ret))
 	return ret, nil
 }
 

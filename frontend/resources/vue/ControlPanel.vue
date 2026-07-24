@@ -228,6 +228,7 @@
 		ApproximatelyEqualCircleIcon,
 		ActivityIcon,
 		WebSecurityIcon,
+		SecurityValidationIcon,
 		Flowchart01Icon,
 		AlertCircleIcon,
 	} from '@hugeicons/core-free-icons';
@@ -370,6 +371,9 @@
 			const canUserGroups =
 				st?.rbacIsSuperuser ||
 				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('usergroups.view'));
+			const canAccountPolicies =
+				st?.rbacIsSuperuser ||
+				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('account-policies.manage'));
 			const canRbac =
 				st?.rbacIsSuperuser ||
 				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('rbac.view'));
@@ -397,6 +401,14 @@
 					icon: UserGroupIcon,
 					name: 'user-groups',
 					description: 'Manage user groups and membership',
+				});
+			}
+
+			if (canAccountPolicies) {
+				localNavigation.value.addCallback('Account Policies', () => goToRoute('/account-policies'), {
+					icon: SecurityValidationIcon,
+					name: 'account-policies',
+					description: 'Approval workflows for social accounts',
 				});
 			}
 

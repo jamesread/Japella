@@ -223,7 +223,7 @@ func (s *ControlApi) processFeedFetching() {
 	if s.cc == nil {
 		return
 	}
-	log.Infof("FeedFetcher: starting feed fetch cycle")
+	feedFetcherLog(nil).Info("starting feed fetch cycle")
 
 	// Get all social accounts
 	socialAccounts := s.DB.SelectSocialAccounts(true) // Only active accounts
@@ -232,18 +232,18 @@ func (s *ControlApi) processFeedFetching() {
 		connectorService := s.cc.Get(sa.Connector)
 
 		if connectorService == nil {
-			log.Warnf("FeedFetcher: no connector found for %s", sa.Connector)
+			feedFetcherLog(sa).Warn("no connector service found")
 			continue
 		}
 
 		// Check if connector supports wall operations
 		if wallConnector, ok := connectorService.(connector.ConnectorWithWall); ok {
-			log.Infof("FeedFetcher: fetching recent posts for %s account %d", sa.Connector, sa.ID)
+			feedFetcherLog(sa).Info("fetching recent posts")
 
 			if socialAccountNeedsTokenRefresh(sa, time.Hour) {
 				refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
 				if refreshErr != nil {
-					log.Warnf("FeedFetcher: failed to refresh token for %s account %d before fetch: %v", sa.Connector, sa.ID, refreshErr)
+					feedFetcherLog(sa).Warnf("failed to refresh token before fetch: %v", refreshErr)
 				} else {
 					sa = refreshed
 				}
@@ -253,23 +253,23 @@ func (s *ControlApi) processFeedFetching() {
 			func() {
 				defer func() {
 					if r := recover(); r != nil {
-						log.Errorf("FeedFetcher: panic while fetching posts for %s account %d: %v", sa.Connector, sa.ID, r)
+						feedFetcherLog(sa).Errorf("panic while fetching posts: %v", r)
 					}
 				}()
 
 				posts, err := wallConnector.FetchRecentPosts(toConnectorSA(sa))
 				if isHTTPUnauthorized(err) && sa.OAuth2RefreshToken != "" {
-					log.Infof("FeedFetcher: retrying %s account %d after unauthorized response", sa.Connector, sa.ID)
+					feedFetcherLog(sa).Info("retrying after unauthorized response")
 					refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
 					if refreshErr != nil {
-						log.Errorf("FeedFetcher: failed to refresh token for %s account %d after 401: %v", sa.Connector, sa.ID, refreshErr)
+						feedFetcherLog(sa).Errorf("failed to refresh token after 401: %v", refreshErr)
 					} else {
 						sa = refreshed
 						posts, err = wallConnector.FetchRecentPosts(toConnectorSA(sa))
 					}
 				}
 				if err != nil {
-					log.Errorf("FeedFetcher: failed to fetch posts for %s account %d: %v", sa.Connector, sa.ID, err)
+					feedFetcherLog(sa).Errorf("failed to fetch posts: %v", err)
 					if isHTTPUnauthorized(err) {
 						_ = s.DB.InsertTableLog(
 							fmt.Sprintf("Feed fetch unauthorized for %s account %d — try refreshing or reconnecting the account", sa.Connector, sa.ID),
@@ -299,18 +299,18 @@ func (s *ControlApi) processFeedFetching() {
 
 					err := s.DB.InsertFeedEntry(feedEntry)
 					if err != nil {
-						log.Errorf("FeedFetcher: failed to insert feed entry: %v", err)
+						feedFetcherLog(sa).WithField("remote_id", post.RemoteID).Errorf("failed to insert feed entry: %v", err)
 					} else {
-						log.Infof("FeedFetcher: inserted feed entry for %s post %s", sa.Connector, post.RemoteID)
+						feedFetcherLog(sa).WithField("remote_id", post.RemoteID).Info("inserted feed entry")
 					}
 				}
 			}()
 		} else {
-			log.Debugf("FeedFetcher: connector %s does not support wall operations", sa.Connector)
+			feedFetcherLog(sa).Debug("connector does not support wall operations")
 		}
 	}
 
-	log.Infof("FeedFetcher: completed feed fetch cycle")
+	feedFetcherLog(nil).Info("completed feed fetch cycle")
 }
 
 func (s *ControlApi) processTokenRefresh() {
@@ -601,8 +601,9 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 	res := &controlv1.SubmitPostResponse{}
 	au := s.getAuthenticatedUser(ctx)
 	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
+	source := SubmissionSourceFromContext(ctx)
 
-	log.Infof("Received post request for social accounts: %+v", req.Msg.SocialAccounts)
+	log.Infof("Received post request for social accounts: %+v (source=%s)", req.Msg.SocialAccounts, source)
 
 	var scheduledTime *time.Time
 	if req.Msg.ScheduledAt != "" {
@@ -613,6 +614,11 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		} else {
 			log.Warnf("Invalid scheduled_at format: %s", req.Msg.ScheduledAt)
 		}
+	}
+
+	var submittedBy sql.NullInt32
+	if au != nil && au.User != nil {
+		submittedBy = sql.NullInt32{Int32: int32(au.User.ID), Valid: true}
 	}
 
 	for _, accountId := range req.Msg.SocialAccounts {
@@ -629,41 +635,135 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		}
 
 		socialAccount, _ := s.DB.GetSocialAccount(accountId)
+		if socialAccount == nil {
+			postStatus.State = db.PostStateError
+			res.Posts = append(res.Posts, postStatus)
+			continue
+		}
+
+		campaignID := sql.NullInt32{}
+		if req.Msg.CampaignId != 0 {
+			campaignID = sql.NullInt32{Int32: int32(req.Msg.CampaignId), Valid: true}
+		}
+
+		scheduledAt := sql.NullTime{}
+		if scheduledTime != nil {
+			scheduledAt = sql.NullTime{Time: *scheduledTime, Valid: true}
+		}
+
+		if s.shouldHoldForApproval(socialAccount.ID, source) {
+			policy, _ := s.DB.GetAccountPolicyForSocialAccount(socialAccount.ID)
+			post := &db.Post{
+				SocialAccountID:   socialAccount.ID,
+				Content:           req.Msg.Content,
+				Status:            false,
+				State:             db.PostStatePendingApproval,
+				ScheduledAt:       scheduledAt,
+				CampaignID:        campaignID,
+				SubmissionSource:  source,
+				SubmittedByUserID: submittedBy,
+				AccountPolicyID:   sql.NullInt32{Int32: int32(policy.ID), Valid: true},
+				ApprovalStage:     0,
+			}
+			if err := s.DB.CreatePost(post); err != nil {
+				log.Errorf("Failed to create pending approval post: %v", err)
+				postStatus.State = db.PostStateError
+			} else {
+				postStatus.Id = post.ID
+				postStatus.Success = true
+				postStatus.State = db.PostStatePendingApproval
+				postStatus.SocialAccountIdentity = socialAccount.Identity
+			}
+			res.Posts = append(res.Posts, postStatus)
+			continue
+		}
 
 		// If scheduled in the future, enqueue without posting now
 		if scheduledTime != nil && scheduledTime.After(time.Now().Add(5*time.Second)) {
-			_ = s.DB.CreatePost(&db.Post{
-				SocialAccountID: socialAccount.ID,
-				Content:         req.Msg.Content,
-				Status:          false,
-				State:           "scheduled",
-				ScheduledAt:     sql.NullTime{Time: *scheduledTime, Valid: true},
-				CampaignID:      sql.NullInt32{Int32: int32(req.Msg.CampaignId)},
-			})
+			post := &db.Post{
+				SocialAccountID:   socialAccount.ID,
+				Content:           req.Msg.Content,
+				Status:            false,
+				State:             db.PostStateScheduled,
+				ScheduledAt:       scheduledAt,
+				CampaignID:        campaignID,
+				SubmissionSource:  source,
+				SubmittedByUserID: submittedBy,
+			}
+			_ = s.DB.CreatePost(post)
+			postStatus.Id = post.ID
 			postStatus.Success = true
+			postStatus.State = db.PostStateScheduled
 		} else {
 			s.tryPostStatus(req.Msg.Content, req.Msg.MediaUrls, socialAccount, postStatus)
 
-			// Determine the appropriate state based on success
-			state := "completed"
+			state := db.PostStateCompleted
 			if !postStatus.Success {
-				state = "error"
+				state = db.PostStateError
 			}
 
-			_ = s.DB.CreatePost(&db.Post{
-				SocialAccountID: socialAccount.ID,
-				Content:         req.Msg.Content,
-				Status:          postStatus.Success,
-				State:           state,
-				PostURL:         postStatus.PostUrl,
-				CampaignID:      sql.NullInt32{Int32: int32(req.Msg.CampaignId)},
-			})
+			post := &db.Post{
+				SocialAccountID:   socialAccount.ID,
+				Content:           req.Msg.Content,
+				Status:            postStatus.Success,
+				State:             state,
+				PostURL:           postStatus.PostUrl,
+				CampaignID:        campaignID,
+				SubmissionSource:  source,
+				SubmittedByUserID: submittedBy,
+			}
+			_ = s.DB.CreatePost(post)
+			postStatus.Id = post.ID
+			postStatus.State = state
 		}
 
 		res.Posts = append(res.Posts, postStatus)
 	}
 
 	return connect.NewResponse(res), nil
+}
+
+func (s *ControlApi) shouldHoldForApproval(socialAccountID uint32, source string) bool {
+	policy, err := s.DB.GetAccountPolicyForSocialAccount(socialAccountID)
+	if err != nil || policy == nil {
+		return false
+	}
+	if source == db.SubmissionSourceMCP && !policy.ApplyToMCP {
+		return false
+	}
+	if source == db.SubmissionSourceUI && !policy.ApplyToUI {
+		return false
+	}
+	n, err := s.DB.CountApprovalStages(policy.ID)
+	if err != nil || n < 1 {
+		return false
+	}
+	return true
+}
+
+// releaseApprovedPost posts or schedules a post after all approval stages pass.
+func (s *ControlApi) releaseApprovedPost(post *db.Post, socialAccount *db.SocialAccount) *controlv1.PostStatus {
+	postStatus := &controlv1.PostStatus{
+		Id:              post.ID,
+		SocialAccountId: post.SocialAccountID,
+		Content:         post.Content,
+	}
+
+	if post.ScheduledAt.Valid && post.ScheduledAt.Time.After(time.Now().Add(5*time.Second)) {
+		_ = s.DB.MarkPostScheduled(post.ID)
+		postStatus.Success = true
+		postStatus.State = db.PostStateScheduled
+		return postStatus
+	}
+
+	s.tryPostStatus(post.Content, nil, socialAccount, postStatus)
+	_ = s.DB.MarkPostCompleted(post.ID, postStatus.PostUrl, postStatus.Success)
+	if postStatus.Success {
+		postStatus.State = db.PostStateCompleted
+	} else {
+		postStatus.State = db.PostStateError
+	}
+	return postStatus
 }
 
 func (s *ControlApi) tryPostStatus(content string, mediaURLs []string, socialAccount *db.SocialAccount, postStatus *controlv1.PostStatus) {
@@ -744,6 +844,15 @@ func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
 		OAuthToken: socialAccount.OAuth2Token,
 		Homeserver: socialAccount.Homeserver,
 	}
+}
+
+func feedFetcherLog(sa *db.SocialAccount) *log.Entry {
+	fields := log.Fields{"component": "FeedFetcher"}
+	if sa != nil {
+		fields["connector"] = sa.Connector
+		fields["social_account_id"] = sa.ID
+	}
+	return log.WithFields(fields)
 }
 
 func socialAccountNeedsTokenRefresh(sa *db.SocialAccount, within time.Duration) bool {
@@ -2159,12 +2268,16 @@ func (s *ControlApi) GetApiKeys(ctx context.Context, req *connect.Request[contro
 	})
 
 	for _, key := range apiKeys {
+		username := ""
+		if key.UserAccount != nil {
+			username = key.UserAccount.Username
+		}
 		res.Msg.Keys = append(res.Msg.Keys, &controlv1.ApiKey{
 			Id:        key.ID,
 			KeyValue:  redact.RedactString(key.KeyValue),
 			CreatedAt: key.CreatedAt.Format("2006-01-02 15:04:05"),
 			UserId:    key.UserAccountID,
-			Username:  key.UserAccount.Username,
+			Username:  username,
 		})
 	}
 
@@ -2251,6 +2364,9 @@ func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Reque
 
 func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[controlv1.CreateApiKeyRequest]) (*connect.Response[controlv1.CreateApiKeyResponse], error) {
 	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil || authenticatedUser.User == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
 
 	log.Infof("Creating API key for user: %s", authenticatedUser.User.Username)
 

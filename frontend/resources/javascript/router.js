@@ -37,6 +37,9 @@ import Connectors from '../vue/Connectors.vue'
 import SystemArchitecture from '../vue/SystemArchitecture.vue'
 import SystemDiagnostics from '../vue/SystemDiagnostics.vue'
 import UserGroups from '../vue/UserGroups.vue'
+import AccountPolicies from '../vue/AccountPolicies.vue'
+import AccountPolicyEditor from '../vue/AccountPolicyEditor.vue'
+import Approvals from '../vue/Approvals.vue'
 import AddSocialAccount from '../vue/AddSocialAccount.vue'
 import SocialAccountPreAdd from '../vue/SocialAccountPreAdd.vue'
 import { canAccessControlPanelFromStatus, canViewSystemDiagnosticsFromStatus } from './rbacAccess.js'
@@ -133,6 +136,16 @@ const routes = [
     meta: {
       icon: EditIcon,
       title: 'Post',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/approvals',
+    name: 'approvals',
+    component: Approvals,
+    meta: {
+      icon: SecurityValidationIcon,
+      title: 'Approvals',
       requiresAuth: true
     }
   },
@@ -368,6 +381,36 @@ const routes = [
     meta: {
       title: 'User Groups',
       requiresAuth: true
+    }
+  },
+  {
+    path: '/account-policies',
+    name: 'accountPolicies',
+    component: AccountPolicies,
+    meta: {
+      title: 'Account Policies',
+      requiresAuth: true,
+      requiresControlPanel: true
+    }
+  },
+  {
+    path: '/account-policies/new',
+    name: 'createAccountPolicy',
+    component: AccountPolicyEditor,
+    meta: {
+      title: 'Create Account Policy',
+      requiresAuth: true,
+      requiresControlPanel: true
+    }
+  },
+  {
+    path: '/account-policies/:id',
+    name: 'editAccountPolicy',
+    component: AccountPolicyEditor,
+    meta: {
+      title: 'Edit Account Policy',
+      requiresAuth: true,
+      requiresControlPanel: true
     }
   },
   {

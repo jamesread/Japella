@@ -64,11 +64,13 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Skip API requests - always go to network
+  // Skip API / agent discovery requests - always go to network
   if (url.pathname.startsWith('/api/') ||
       url.pathname.startsWith('/oauth2callback') ||
       url.pathname.startsWith('/lang') ||
-      url.pathname.startsWith('/upload')) {
+      url.pathname.startsWith('/upload') ||
+      url.pathname.startsWith('/mcp') ||
+      url.pathname === '/llms.txt') {
     return;
   }
 

@@ -6,6 +6,7 @@ const CONTROL_PANEL_PERMISSIONS = [
 	'users.view',
 	'rbac.view',
 	'usergroups.view',
+	'account-policies.manage',
 	'system.connectors',
 	'system.settings',
 	'system.logs',

@@ -1,4 +1,5 @@
 reports
+japella.log
 *.key
 *.crt
 *.csr

@@ -16,7 +16,7 @@
 		"iconify-icon": "^3.0.2",
 		"mermaid": "^11.16.0",
 		"npm-check-updates": "^22.2.9",
-		"picocrank": "^1.18.2",
+		"picocrank": "^1.21.0",
 		"vite-plugin-mkcert": "^2.1.0",
 		"vue": "^3.5.39",
 		"vue-i18n": "^11.4.6",

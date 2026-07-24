@@ -16,6 +16,7 @@ const (
 	PermissionRbacManage           = "rbac.manage"
 	PermissionUserGroupsView       = "usergroups.view"
 	PermissionUserGroupsManage     = "usergroups.manage"
+	PermissionAccountPoliciesManage = "account-policies.manage"
 )
 
 const RoleSuperuser = "superuser"

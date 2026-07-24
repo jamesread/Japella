@@ -368,20 +368,33 @@ function displayNotifications(): void {
 }
 
 function registerServiceWorker(): void {
-	if ('serviceWorker' in navigator) {
-		window.addEventListener('load', () => {
-			navigator.serviceWorker.register('/sw.js')
-				.then((registration) => {
-					console.log('[Service Worker] Registration successful:', registration.scope);
-
-					// Check for updates periodically
-					setInterval(() => {
-						registration.update();
-					}, 60000); // Check every minute
-				})
-				.catch((error) => {
-					console.error('[Service Worker] Registration failed:', error);
-				});
-		});
+	if (!('serviceWorker' in navigator)) {
+		return;
 	}
+
+	// Dev (vite / jwrapp): never register — a cached production index.html will
+	// request /assets/*.js, which the Vite middlewares 404 for script fetches.
+	if (import.meta.env.DEV) {
+		navigator.serviceWorker.getRegistrations().then((registrations) => {
+			for (const registration of registrations) {
+				registration.unregister();
+			}
+		}).catch(() => { /* ignore */ });
+		return;
+	}
+
+	window.addEventListener('load', () => {
+		navigator.serviceWorker.register('/sw.js')
+			.then((registration) => {
+				console.log('[Service Worker] Registration successful:', registration.scope);
+
+				// Check for updates periodically
+				setInterval(() => {
+					registration.update();
+				}, 60000); // Check every minute
+			})
+			.catch((error) => {
+				console.error('[Service Worker] Registration failed:', error);
+			});
+	});
 }

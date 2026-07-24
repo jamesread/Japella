@@ -28,6 +28,7 @@ func (a *AuthenticatedUser) CanAccessControlPanel() bool {
 	return a.HasPermission(rbac.PermissionUsersView) ||
 		a.HasPermission(rbac.PermissionRbacView) ||
 		a.HasPermission(rbac.PermissionUserGroupsView) ||
+		a.HasPermission(rbac.PermissionAccountPoliciesManage) ||
 		a.HasPermission(rbac.PermissionSystemConnectors) ||
 		a.HasPermission(rbac.PermissionSystemSettings) ||
 		a.HasPermission(rbac.PermissionSystemLogs) ||

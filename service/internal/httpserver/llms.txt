@@ -1,0 +1,25 @@
+# Japella
+
+> Self-hosted social media posting and management. Integrate via the Connect RPC API or MCP server.
+
+Japella exposes machine-readable integration endpoints on the same base URL as the web application.
+
+MCP clients must authenticate with a Bearer token (API key) in the `Authorization` header:
+
+`Authorization: Bearer <api-key>`
+
+Create API keys in the Japella UI (user settings → API Keys). The MCP server validates keys via httpauthshim against the same API keys as the Connect API.
+
+## API
+
+- [Connect RPC API](/api): Japella Connect/gRPC-over-HTTP API (prefix `/api`)
+
+## MCP
+
+- [MCP server](/mcp): Model Context Protocol (Streamable HTTP) endpoint for AI assistants and agents (social account listing, posting, and approval workflows)
+
+## Documentation
+
+- [GitHub repository](https://github.com/jamesread/Japella): Source code, issues, and releases
+- [README](https://github.com/jamesread/Japella#readme): Project overview and setup
+- [AGENTS.md](https://github.com/jamesread/Japella/blob/main/AGENTS.md): AI agent integration guide and MCP tool reference

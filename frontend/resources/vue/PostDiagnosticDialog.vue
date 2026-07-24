@@ -94,6 +94,8 @@
 
 	const postStatusText = computed(() => {
 		if (props.post.state === 'error') return 'Error';
+		if (props.post.state === 'pending_approval') return 'Pending approval';
+		if (props.post.state === 'rejected') return 'Rejected';
 		if (props.post.state === 'pending' || props.post.state === 'scheduled') return 'Scheduled';
 		if (props.post.state === 'completed') return 'Completed';
 		return 'Unknown';

@@ -13,6 +13,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/utils"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/endpoints"
 
@@ -116,6 +117,16 @@ type UpdateTokenResult struct {
 	ExpiresIn    int64  `json:"expires_in"`
 }
 
+const xUserTweetsQuery = "max_results=20&expansions=author_id&user.fields=profile_image_url,username&tweet.fields=created_at,author_id"
+
+func logXAPIError(logger *log.Entry, client *utils.ChainingHttpClient, msg string) {
+	if len(client.ResBody) > 0 {
+		logger.Errorf("%s: %v | response: %s", msg, client.Err, string(client.ResBody))
+		return
+	}
+	logger.Errorf("%s: %v", msg, client.Err)
+}
+
 func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 	// This function refreshes the OAuth2 token for a given social account
 	// and then calls the whoami function to update the account's identity.
@@ -123,7 +134,7 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 	// It should really be using the OAuth2 library's token refresh capabilities,
 	// but we're not using the OAuth2 client directly here, so we handle it manually.
 
-	x.Logger().Infof("Refreshing token for XConnector with socialAccount: %+v", socialAccount)
+	x.Logger().Infof("Refreshing token for X account %d (%s)", socialAccount.ID, socialAccount.Identity)
 
 	refreshTokenArgs := make(map[string]string)
 	refreshTokenArgs["refresh_token"] = socialAccount.OAuth2RefreshToken
@@ -145,7 +156,7 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 	client.AsJson(res)
 
 	if client.Err != nil {
-		x.Logger().Errorf("Error refreshing token: %v", client.Err)
+		logXAPIError(x.Logger(), client, "Error refreshing token")
 		return client.Err
 	}
 
@@ -173,7 +184,7 @@ func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
 	client.AsJson(whoamiResult)
 
 	if client.Err != nil {
-		x.Logger().Errorf("Error parsing whoami response: %v", client.Err)
+		logXAPIError(x.Logger(), client, "Error parsing whoami response")
 		return
 	}
 
@@ -184,6 +195,49 @@ func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
 
 	x.Logger().Infof("Updated X account identity to: %s", whoamiResult.Data.Username)
 	x.db.UpdateSocialAccountIdentity(socialAccount.ID, whoamiResult.Data.Username)
+	if whoamiResult.Data.ID != "" {
+		x.db.UpdateSocialAccountDid(socialAccount.ID, whoamiResult.Data.ID)
+	}
+}
+
+func (x *XConnector) lookupUserID(accessToken string) (string, error) {
+	client := utils.NewClient(x.Logger())
+	client.Get("https://api.x.com/2/users/me").WithBearerToken(accessToken)
+
+	if client.Err != nil {
+		return "", client.Err
+	}
+
+	whoamiResult := &WhoamiResult{}
+	client.AsJson(whoamiResult)
+
+	if client.Err != nil {
+		logXAPIError(x.Logger(), client, "Error looking up X user id")
+		return "", client.Err
+	}
+
+	if whoamiResult.Data.ID == "" {
+		return "", fmt.Errorf("X API returned empty user id")
+	}
+
+	return whoamiResult.Data.ID, nil
+}
+
+func (x *XConnector) resolveUserID(accessToken string, cachedUserID string, accountID uint32) (string, error) {
+	if cachedUserID != "" {
+		return cachedUserID, nil
+	}
+
+	userID, err := x.lookupUserID(accessToken)
+	if err != nil {
+		return "", err
+	}
+
+	if accountID != 0 {
+		x.db.UpdateSocialAccountDid(accountID, userID)
+	}
+
+	return userID, nil
 }
 
 // mediaUploadResponse is the JSON response from POST https://api.x.com/2/media/upload.
@@ -395,7 +449,7 @@ func (x *XConnector) GetOAuth2Config() *oauth2.Config {
 }
 
 func (x *XConnector) OnRefresh(socialAccount *db.SocialAccount) error {
-	x.Logger().Infof("OnRefresh called for XConnector with socialAccount: %+v", socialAccount)
+	x.Logger().Infof("OnRefresh called for X account %d (%s)", socialAccount.ID, socialAccount.Identity)
 
 	return x.RefreshToken(socialAccount)
 }
@@ -403,7 +457,7 @@ func (x *XConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 func (x *XConnector) FetchRecentPosts(socialAccount *connector.SocialAccount) ([]*connector.FeedPost, error) {
 	x.Logger().Infof("Fetching recent posts for X account %d", socialAccount.Id)
 
-	posts, err := x.fetchRecentPostsWithToken(socialAccount.OAuthToken)
+	posts, err := x.fetchRecentPostsWithToken(socialAccount.OAuthToken, socialAccount.Did, socialAccount.Id)
 	if err == nil {
 		return posts, nil
 	}
@@ -422,15 +476,20 @@ func (x *XConnector) FetchRecentPosts(socialAccount *connector.SocialAccount) ([
 		return posts, err
 	}
 
-	return x.fetchRecentPostsWithToken(dbAccount.OAuth2Token)
+	return x.fetchRecentPostsWithToken(dbAccount.OAuth2Token, dbAccount.Did, socialAccount.Id)
 }
 
-func (x *XConnector) fetchRecentPostsWithToken(accessToken string) ([]*connector.FeedPost, error) {
+func (x *XConnector) fetchRecentPostsWithToken(accessToken string, cachedUserID string, accountID uint32) ([]*connector.FeedPost, error) {
 	posts := make([]*connector.FeedPost, 0)
 
-	// Get user's timeline (recent tweets)
+	userID, err := x.resolveUserID(accessToken, cachedUserID, accountID)
+	if err != nil {
+		return posts, fmt.Errorf("resolve X user id: %w", err)
+	}
+
 	client := utils.NewClient(x.Logger())
-	client.Get("https://api.x.com/2/users/me/tweets?max_results=20&expansions=author_id&user.fields=profile_image_url,username&tweet.fields=created_at,author_id").WithBearerToken(accessToken)
+	timelineURL := fmt.Sprintf("https://api.x.com/2/users/%s/tweets?%s", userID, xUserTweetsQuery)
+	client.Get(timelineURL).WithBearerToken(accessToken)
 
 	if client.Err != nil {
 		x.Logger().Errorf("Error creating request for X timeline: %v", client.Err)
@@ -456,7 +515,7 @@ func (x *XConnector) fetchRecentPostsWithToken(accessToken string) ([]*connector
 	client.AsJson(&timelineResponse)
 
 	if client.Err != nil {
-		x.Logger().Errorf("Error parsing X timeline response: %v", client.Err)
+		logXAPIError(x.Logger(), client, "Error parsing X timeline response")
 		if isXUnauthorized(client.Err) {
 			x.Logger().Warnf("X timeline request unauthorized — access token may be expired or revoked")
 		}
@@ -614,22 +673,27 @@ func (x *XConnector) OnOAuth2Callback(code string, verifier string, headers map[
 
 	x.Logger().Debugf("Received token on exchange: %+v", token)
 
-	// Get identity (username) before registering to match existing accounts
+	// Get identity (username) and user id before registering to match existing accounts
 	identity := ""
+	platformUserID := ""
 	whoamiClient := utils.NewClient(x.Logger())
 	whoamiClient.Get("https://api.x.com/2/users/me").WithBearerToken(token.AccessToken)
 	if whoamiClient.Err == nil {
 		whoamiResult := &WhoamiResult{}
 		whoamiClient.AsJson(whoamiResult)
-		if whoamiClient.Err == nil && whoamiResult.Data.Username != "" {
-			identity = whoamiResult.Data.Username
-			x.Logger().Infof("Retrieved X account identity: %s", identity)
+		if whoamiClient.Err == nil {
+			if whoamiResult.Data.Username != "" {
+				identity = whoamiResult.Data.Username
+				x.Logger().Infof("Retrieved X account identity: %s", identity)
+			}
+			platformUserID = whoamiResult.Data.ID
 		}
 	}
 
 	err = x.db.RegisterAccount(&db.SocialAccount{
 		Connector:          "x",
 		Identity:           identity,
+		Did:                platformUserID,
 		OAuth2Token:        token.AccessToken,
 		OAuth2TokenExpiry:  token.Expiry,
 		OAuth2RefreshToken: token.RefreshToken,

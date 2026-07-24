@@ -253,15 +253,17 @@
 
 	function statusClass(post) {
 		const text = statusText(post);
-		if (text === 'Error') return 'bad';
+		if (text === 'Error' || text === 'Rejected') return 'bad';
 		if (text === 'Completed') return 'good';
 		if (text === 'Unknown') return 'warn';
-		if (text === 'Scheduled') return 'note';
+		if (text === 'Scheduled' || text === 'Pending approval') return 'note';
 		return '';
 	}
 
 	function statusText(post) {
 		if (post.state === 'error') return 'Error';
+		if (post.state === 'pending_approval') return 'Pending approval';
+		if (post.state === 'rejected') return 'Rejected';
 		if (post.state === 'pending' || post.state === 'scheduled') return 'Scheduled';
 		if (post.state === 'completed') return 'Completed';
 		return 'Unknown';

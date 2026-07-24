@@ -1,12 +1,14 @@
 package main
 
 import (
+	"os"
+
 	"github.com/jamesread/japella/internal/bots/exec"
 	"github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/httpserver"
 	"github.com/jamesread/japella/internal/nanoservice"
+	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
-	"os"
 )
 
 var (
@@ -15,14 +17,7 @@ var (
 )
 
 func main() {
-	/**
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp:    false,
-		DisableTimestamp: true,
-	})
-	*/
-
-	log.SetOutput(os.Stdout)
+	utils.SetupLogging()
 
 	if os.Getenv("JAPELLA_DEBUG") == "true" {
 		log.SetLevel(log.DebugLevel)

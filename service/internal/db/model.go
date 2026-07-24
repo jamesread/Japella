@@ -58,16 +58,51 @@ type CannedPost struct {
 type Post struct {
 	Model
 
-	SocialAccountID uint32 `db:"social_account_id"`
-	SocialAccount   *SocialAccount
-	Status          bool           `db:"status"`
-	State           string         `db:"state"`
-	Content         string         `db:"content"`
-	PostURL         string         `db:"post_url"`
-	RemoteID        string         `db:"remote_id"`
-	ScheduledAt     sql.NullTime   `db:"scheduled_at"`
-	CampaignID      sql.NullInt32  `db:"campaign_id"`
-	CampaignName    sql.NullString `db:"campaign_name"`
+	SocialAccountID    uint32 `db:"social_account_id"`
+	SocialAccount      *SocialAccount
+	Status             bool           `db:"status"`
+	State              string         `db:"state"`
+	Content            string         `db:"content"`
+	PostURL            string         `db:"post_url"`
+	RemoteID           string         `db:"remote_id"`
+	ScheduledAt        sql.NullTime   `db:"scheduled_at"`
+	CampaignID         sql.NullInt32  `db:"campaign_id"`
+	CampaignName       sql.NullString `db:"campaign_name"`
+	SubmissionSource   string         `db:"submission_source"`
+	SubmittedByUserID  sql.NullInt32  `db:"submitted_by_user_id"`
+	AccountPolicyID    sql.NullInt32  `db:"account_policy_id"`
+	ApprovalStage      uint32         `db:"approval_stage"`
+}
+
+// AccountPolicy is a named approval configuration attachable to social accounts.
+type AccountPolicy struct {
+	Model
+
+	Name        string `db:"name"`
+	Description string `db:"description"`
+	ApplyToMCP  bool   `db:"apply_to_mcp"`
+	ApplyToUI   bool   `db:"apply_to_ui"`
+}
+
+// AccountPolicyApprovalStage is one ordered approval step (user XOR usergroup).
+type AccountPolicyApprovalStage struct {
+	Model
+
+	AccountPolicyID uint32         `db:"account_policy_id"`
+	StageOrder      uint32         `db:"stage_order"`
+	UserID          sql.NullInt32  `db:"user_id"`
+	UserGroupID     sql.NullInt32  `db:"user_group_id"`
+	Username        sql.NullString `db:"username"`
+	UserGroupName   sql.NullString `db:"user_group_name"`
+}
+
+// PostApproval records that a stage was approved for a post.
+type PostApproval struct {
+	Model
+
+	PostID           uint32 `db:"post_id"`
+	StageID          uint32 `db:"stage_id"`
+	ApprovedByUserID uint32 `db:"approved_by_user_id"`
 }
 
 type UserAccount struct {

@@ -9478,6 +9478,1098 @@ func (x *SetUserGroupMembersResponse) GetStandardResponse() *StandardResponse {
 	return nil
 }
 
+type AccountPolicyApprovalStage struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	StageOrder    uint32                 `protobuf:"varint,2,opt,name=stage_order,json=stageOrder,proto3" json:"stage_order,omitempty"`
+	UserId        uint32                 `protobuf:"varint,3,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"` // set XOR with user_group_id
+	UserGroupId   uint32                 `protobuf:"varint,4,opt,name=user_group_id,json=userGroupId,proto3" json:"user_group_id,omitempty"`
+	Username      string                 `protobuf:"bytes,5,opt,name=username,proto3" json:"username,omitempty"`                                  // populated on read
+	UserGroupName string                 `protobuf:"bytes,6,opt,name=user_group_name,json=userGroupName,proto3" json:"user_group_name,omitempty"` // populated on read
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AccountPolicyApprovalStage) Reset() {
+	*x = AccountPolicyApprovalStage{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[178]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountPolicyApprovalStage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountPolicyApprovalStage) ProtoMessage() {}
+
+func (x *AccountPolicyApprovalStage) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[178]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountPolicyApprovalStage.ProtoReflect.Descriptor instead.
+func (*AccountPolicyApprovalStage) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{178}
+}
+
+func (x *AccountPolicyApprovalStage) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *AccountPolicyApprovalStage) GetStageOrder() uint32 {
+	if x != nil {
+		return x.StageOrder
+	}
+	return 0
+}
+
+func (x *AccountPolicyApprovalStage) GetUserId() uint32 {
+	if x != nil {
+		return x.UserId
+	}
+	return 0
+}
+
+func (x *AccountPolicyApprovalStage) GetUserGroupId() uint32 {
+	if x != nil {
+		return x.UserGroupId
+	}
+	return 0
+}
+
+func (x *AccountPolicyApprovalStage) GetUsername() string {
+	if x != nil {
+		return x.Username
+	}
+	return ""
+}
+
+func (x *AccountPolicyApprovalStage) GetUserGroupName() string {
+	if x != nil {
+		return x.UserGroupName
+	}
+	return ""
+}
+
+type AccountPolicy struct {
+	state            protoimpl.MessageState        `protogen:"open.v1"`
+	Id               uint32                        `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name             string                        `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description      string                        `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	ApplyToMcp       bool                          `protobuf:"varint,4,opt,name=apply_to_mcp,json=applyToMcp,proto3" json:"apply_to_mcp,omitempty"`
+	ApplyToUi        bool                          `protobuf:"varint,5,opt,name=apply_to_ui,json=applyToUi,proto3" json:"apply_to_ui,omitempty"`
+	Stages           []*AccountPolicyApprovalStage `protobuf:"bytes,6,rep,name=stages,proto3" json:"stages,omitempty"`
+	SocialAccountIds []uint32                      `protobuf:"varint,7,rep,packed,name=social_account_ids,json=socialAccountIds,proto3" json:"social_account_ids,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *AccountPolicy) Reset() {
+	*x = AccountPolicy{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[179]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AccountPolicy) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AccountPolicy) ProtoMessage() {}
+
+func (x *AccountPolicy) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[179]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AccountPolicy.ProtoReflect.Descriptor instead.
+func (*AccountPolicy) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{179}
+}
+
+func (x *AccountPolicy) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *AccountPolicy) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *AccountPolicy) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *AccountPolicy) GetApplyToMcp() bool {
+	if x != nil {
+		return x.ApplyToMcp
+	}
+	return false
+}
+
+func (x *AccountPolicy) GetApplyToUi() bool {
+	if x != nil {
+		return x.ApplyToUi
+	}
+	return false
+}
+
+func (x *AccountPolicy) GetStages() []*AccountPolicyApprovalStage {
+	if x != nil {
+		return x.Stages
+	}
+	return nil
+}
+
+func (x *AccountPolicy) GetSocialAccountIds() []uint32 {
+	if x != nil {
+		return x.SocialAccountIds
+	}
+	return nil
+}
+
+type ListAccountPoliciesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccountPoliciesRequest) Reset() {
+	*x = ListAccountPoliciesRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[180]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccountPoliciesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccountPoliciesRequest) ProtoMessage() {}
+
+func (x *ListAccountPoliciesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[180]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccountPoliciesRequest.ProtoReflect.Descriptor instead.
+func (*ListAccountPoliciesRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{180}
+}
+
+type ListAccountPoliciesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Policies      []*AccountPolicy       `protobuf:"bytes,1,rep,name=policies,proto3" json:"policies,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAccountPoliciesResponse) Reset() {
+	*x = ListAccountPoliciesResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[181]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAccountPoliciesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAccountPoliciesResponse) ProtoMessage() {}
+
+func (x *ListAccountPoliciesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[181]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAccountPoliciesResponse.ProtoReflect.Descriptor instead.
+func (*ListAccountPoliciesResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{181}
+}
+
+func (x *ListAccountPoliciesResponse) GetPolicies() []*AccountPolicy {
+	if x != nil {
+		return x.Policies
+	}
+	return nil
+}
+
+type GetAccountPolicyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAccountPolicyRequest) Reset() {
+	*x = GetAccountPolicyRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[182]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAccountPolicyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAccountPolicyRequest) ProtoMessage() {}
+
+func (x *GetAccountPolicyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[182]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAccountPolicyRequest.ProtoReflect.Descriptor instead.
+func (*GetAccountPolicyRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{182}
+}
+
+func (x *GetAccountPolicyRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type GetAccountPolicyResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Policy        *AccountPolicy         `protobuf:"bytes,1,opt,name=policy,proto3" json:"policy,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAccountPolicyResponse) Reset() {
+	*x = GetAccountPolicyResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[183]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAccountPolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAccountPolicyResponse) ProtoMessage() {}
+
+func (x *GetAccountPolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[183]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAccountPolicyResponse.ProtoReflect.Descriptor instead.
+func (*GetAccountPolicyResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{183}
+}
+
+func (x *GetAccountPolicyResponse) GetPolicy() *AccountPolicy {
+	if x != nil {
+		return x.Policy
+	}
+	return nil
+}
+
+type CreateAccountPolicyRequest struct {
+	state            protoimpl.MessageState        `protogen:"open.v1"`
+	Name             string                        `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description      string                        `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	ApplyToMcp       bool                          `protobuf:"varint,3,opt,name=apply_to_mcp,json=applyToMcp,proto3" json:"apply_to_mcp,omitempty"`
+	ApplyToUi        bool                          `protobuf:"varint,4,opt,name=apply_to_ui,json=applyToUi,proto3" json:"apply_to_ui,omitempty"`
+	Stages           []*AccountPolicyApprovalStage `protobuf:"bytes,5,rep,name=stages,proto3" json:"stages,omitempty"`
+	SocialAccountIds []uint32                      `protobuf:"varint,6,rep,packed,name=social_account_ids,json=socialAccountIds,proto3" json:"social_account_ids,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CreateAccountPolicyRequest) Reset() {
+	*x = CreateAccountPolicyRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[184]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAccountPolicyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAccountPolicyRequest) ProtoMessage() {}
+
+func (x *CreateAccountPolicyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[184]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAccountPolicyRequest.ProtoReflect.Descriptor instead.
+func (*CreateAccountPolicyRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{184}
+}
+
+func (x *CreateAccountPolicyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateAccountPolicyRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *CreateAccountPolicyRequest) GetApplyToMcp() bool {
+	if x != nil {
+		return x.ApplyToMcp
+	}
+	return false
+}
+
+func (x *CreateAccountPolicyRequest) GetApplyToUi() bool {
+	if x != nil {
+		return x.ApplyToUi
+	}
+	return false
+}
+
+func (x *CreateAccountPolicyRequest) GetStages() []*AccountPolicyApprovalStage {
+	if x != nil {
+		return x.Stages
+	}
+	return nil
+}
+
+func (x *CreateAccountPolicyRequest) GetSocialAccountIds() []uint32 {
+	if x != nil {
+		return x.SocialAccountIds
+	}
+	return nil
+}
+
+type CreateAccountPolicyResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StandardResponse *StandardResponse      `protobuf:"bytes,1,opt,name=standard_response,json=standardResponse,proto3" json:"standard_response,omitempty"`
+	PolicyId         uint32                 `protobuf:"varint,2,opt,name=policy_id,json=policyId,proto3" json:"policy_id,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CreateAccountPolicyResponse) Reset() {
+	*x = CreateAccountPolicyResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[185]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateAccountPolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateAccountPolicyResponse) ProtoMessage() {}
+
+func (x *CreateAccountPolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[185]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateAccountPolicyResponse.ProtoReflect.Descriptor instead.
+func (*CreateAccountPolicyResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{185}
+}
+
+func (x *CreateAccountPolicyResponse) GetStandardResponse() *StandardResponse {
+	if x != nil {
+		return x.StandardResponse
+	}
+	return nil
+}
+
+func (x *CreateAccountPolicyResponse) GetPolicyId() uint32 {
+	if x != nil {
+		return x.PolicyId
+	}
+	return 0
+}
+
+type UpdateAccountPolicyRequest struct {
+	state            protoimpl.MessageState        `protogen:"open.v1"`
+	Id               uint32                        `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name             string                        `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description      string                        `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	ApplyToMcp       bool                          `protobuf:"varint,4,opt,name=apply_to_mcp,json=applyToMcp,proto3" json:"apply_to_mcp,omitempty"`
+	ApplyToUi        bool                          `protobuf:"varint,5,opt,name=apply_to_ui,json=applyToUi,proto3" json:"apply_to_ui,omitempty"`
+	Stages           []*AccountPolicyApprovalStage `protobuf:"bytes,6,rep,name=stages,proto3" json:"stages,omitempty"`
+	SocialAccountIds []uint32                      `protobuf:"varint,7,rep,packed,name=social_account_ids,json=socialAccountIds,proto3" json:"social_account_ids,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *UpdateAccountPolicyRequest) Reset() {
+	*x = UpdateAccountPolicyRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[186]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAccountPolicyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAccountPolicyRequest) ProtoMessage() {}
+
+func (x *UpdateAccountPolicyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[186]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAccountPolicyRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAccountPolicyRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{186}
+}
+
+func (x *UpdateAccountPolicyRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UpdateAccountPolicyRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateAccountPolicyRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *UpdateAccountPolicyRequest) GetApplyToMcp() bool {
+	if x != nil {
+		return x.ApplyToMcp
+	}
+	return false
+}
+
+func (x *UpdateAccountPolicyRequest) GetApplyToUi() bool {
+	if x != nil {
+		return x.ApplyToUi
+	}
+	return false
+}
+
+func (x *UpdateAccountPolicyRequest) GetStages() []*AccountPolicyApprovalStage {
+	if x != nil {
+		return x.Stages
+	}
+	return nil
+}
+
+func (x *UpdateAccountPolicyRequest) GetSocialAccountIds() []uint32 {
+	if x != nil {
+		return x.SocialAccountIds
+	}
+	return nil
+}
+
+type UpdateAccountPolicyResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StandardResponse *StandardResponse      `protobuf:"bytes,1,opt,name=standard_response,json=standardResponse,proto3" json:"standard_response,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *UpdateAccountPolicyResponse) Reset() {
+	*x = UpdateAccountPolicyResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[187]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAccountPolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAccountPolicyResponse) ProtoMessage() {}
+
+func (x *UpdateAccountPolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[187]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAccountPolicyResponse.ProtoReflect.Descriptor instead.
+func (*UpdateAccountPolicyResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{187}
+}
+
+func (x *UpdateAccountPolicyResponse) GetStandardResponse() *StandardResponse {
+	if x != nil {
+		return x.StandardResponse
+	}
+	return nil
+}
+
+type DeleteAccountPolicyRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteAccountPolicyRequest) Reset() {
+	*x = DeleteAccountPolicyRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[188]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAccountPolicyRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAccountPolicyRequest) ProtoMessage() {}
+
+func (x *DeleteAccountPolicyRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[188]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAccountPolicyRequest.ProtoReflect.Descriptor instead.
+func (*DeleteAccountPolicyRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{188}
+}
+
+func (x *DeleteAccountPolicyRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type DeleteAccountPolicyResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StandardResponse *StandardResponse      `protobuf:"bytes,1,opt,name=standard_response,json=standardResponse,proto3" json:"standard_response,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *DeleteAccountPolicyResponse) Reset() {
+	*x = DeleteAccountPolicyResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[189]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteAccountPolicyResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteAccountPolicyResponse) ProtoMessage() {}
+
+func (x *DeleteAccountPolicyResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[189]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteAccountPolicyResponse.ProtoReflect.Descriptor instead.
+func (*DeleteAccountPolicyResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{189}
+}
+
+func (x *DeleteAccountPolicyResponse) GetStandardResponse() *StandardResponse {
+	if x != nil {
+		return x.StandardResponse
+	}
+	return nil
+}
+
+type ListPendingApprovalsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPendingApprovalsRequest) Reset() {
+	*x = ListPendingApprovalsRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[190]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPendingApprovalsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPendingApprovalsRequest) ProtoMessage() {}
+
+func (x *ListPendingApprovalsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[190]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPendingApprovalsRequest.ProtoReflect.Descriptor instead.
+func (*ListPendingApprovalsRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{190}
+}
+
+type PendingApproval struct {
+	state               protoimpl.MessageState `protogen:"open.v1"`
+	Post                *PostStatus            `protobuf:"bytes,1,opt,name=post,proto3" json:"post,omitempty"`
+	ApprovalStage       uint32                 `protobuf:"varint,2,opt,name=approval_stage,json=approvalStage,proto3" json:"approval_stage,omitempty"`
+	AccountPolicyId     uint32                 `protobuf:"varint,3,opt,name=account_policy_id,json=accountPolicyId,proto3" json:"account_policy_id,omitempty"`
+	AccountPolicyName   string                 `protobuf:"bytes,4,opt,name=account_policy_name,json=accountPolicyName,proto3" json:"account_policy_name,omitempty"`
+	SubmissionSource    string                 `protobuf:"bytes,5,opt,name=submission_source,json=submissionSource,proto3" json:"submission_source,omitempty"`
+	SubmittedByUserId   uint32                 `protobuf:"varint,6,opt,name=submitted_by_user_id,json=submittedByUserId,proto3" json:"submitted_by_user_id,omitempty"`
+	SubmittedByUsername string                 `protobuf:"bytes,7,opt,name=submitted_by_username,json=submittedByUsername,proto3" json:"submitted_by_username,omitempty"`
+	CanApprove          bool                   `protobuf:"varint,8,opt,name=can_approve,json=canApprove,proto3" json:"can_approve,omitempty"`
+	CanReject           bool                   `protobuf:"varint,9,opt,name=can_reject,json=canReject,proto3" json:"can_reject,omitempty"`
+	WaitingOn           string                 `protobuf:"bytes,10,opt,name=waiting_on,json=waitingOn,proto3" json:"waiting_on,omitempty"` // human-readable description of who must approve the current stage
+	unknownFields       protoimpl.UnknownFields
+	sizeCache           protoimpl.SizeCache
+}
+
+func (x *PendingApproval) Reset() {
+	*x = PendingApproval{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[191]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PendingApproval) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PendingApproval) ProtoMessage() {}
+
+func (x *PendingApproval) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[191]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PendingApproval.ProtoReflect.Descriptor instead.
+func (*PendingApproval) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{191}
+}
+
+func (x *PendingApproval) GetPost() *PostStatus {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
+func (x *PendingApproval) GetApprovalStage() uint32 {
+	if x != nil {
+		return x.ApprovalStage
+	}
+	return 0
+}
+
+func (x *PendingApproval) GetAccountPolicyId() uint32 {
+	if x != nil {
+		return x.AccountPolicyId
+	}
+	return 0
+}
+
+func (x *PendingApproval) GetAccountPolicyName() string {
+	if x != nil {
+		return x.AccountPolicyName
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetSubmissionSource() string {
+	if x != nil {
+		return x.SubmissionSource
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetSubmittedByUserId() uint32 {
+	if x != nil {
+		return x.SubmittedByUserId
+	}
+	return 0
+}
+
+func (x *PendingApproval) GetSubmittedByUsername() string {
+	if x != nil {
+		return x.SubmittedByUsername
+	}
+	return ""
+}
+
+func (x *PendingApproval) GetCanApprove() bool {
+	if x != nil {
+		return x.CanApprove
+	}
+	return false
+}
+
+func (x *PendingApproval) GetCanReject() bool {
+	if x != nil {
+		return x.CanReject
+	}
+	return false
+}
+
+func (x *PendingApproval) GetWaitingOn() string {
+	if x != nil {
+		return x.WaitingOn
+	}
+	return ""
+}
+
+type ListPendingApprovalsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Pending       []*PendingApproval     `protobuf:"bytes,1,rep,name=pending,proto3" json:"pending,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListPendingApprovalsResponse) Reset() {
+	*x = ListPendingApprovalsResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[192]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListPendingApprovalsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListPendingApprovalsResponse) ProtoMessage() {}
+
+func (x *ListPendingApprovalsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[192]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListPendingApprovalsResponse.ProtoReflect.Descriptor instead.
+func (*ListPendingApprovalsResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{192}
+}
+
+func (x *ListPendingApprovalsResponse) GetPending() []*PendingApproval {
+	if x != nil {
+		return x.Pending
+	}
+	return nil
+}
+
+type ApprovePostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint32                 `protobuf:"varint,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ApprovePostRequest) Reset() {
+	*x = ApprovePostRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[193]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApprovePostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApprovePostRequest) ProtoMessage() {}
+
+func (x *ApprovePostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[193]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApprovePostRequest.ProtoReflect.Descriptor instead.
+func (*ApprovePostRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{193}
+}
+
+func (x *ApprovePostRequest) GetPostId() uint32 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+type ApprovePostResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StandardResponse *StandardResponse      `protobuf:"bytes,1,opt,name=standard_response,json=standardResponse,proto3" json:"standard_response,omitempty"`
+	Post             *PostStatus            `protobuf:"bytes,2,opt,name=post,proto3" json:"post,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *ApprovePostResponse) Reset() {
+	*x = ApprovePostResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[194]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ApprovePostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ApprovePostResponse) ProtoMessage() {}
+
+func (x *ApprovePostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[194]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ApprovePostResponse.ProtoReflect.Descriptor instead.
+func (*ApprovePostResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{194}
+}
+
+func (x *ApprovePostResponse) GetStandardResponse() *StandardResponse {
+	if x != nil {
+		return x.StandardResponse
+	}
+	return nil
+}
+
+func (x *ApprovePostResponse) GetPost() *PostStatus {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
+type RejectPostRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint32                 `protobuf:"varint,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RejectPostRequest) Reset() {
+	*x = RejectPostRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[195]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RejectPostRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RejectPostRequest) ProtoMessage() {}
+
+func (x *RejectPostRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[195]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RejectPostRequest.ProtoReflect.Descriptor instead.
+func (*RejectPostRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{195}
+}
+
+func (x *RejectPostRequest) GetPostId() uint32 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+func (x *RejectPostRequest) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+type RejectPostResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StandardResponse *StandardResponse      `protobuf:"bytes,1,opt,name=standard_response,json=standardResponse,proto3" json:"standard_response,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *RejectPostResponse) Reset() {
+	*x = RejectPostResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[196]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RejectPostResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RejectPostResponse) ProtoMessage() {}
+
+func (x *RejectPostResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[196]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RejectPostResponse.ProtoReflect.Descriptor instead.
+func (*RejectPostResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{196}
+}
+
+func (x *RejectPostResponse) GetStandardResponse() *StandardResponse {
+	if x != nil {
+		return x.StandardResponse
+	}
+	return nil
+}
+
 var File_japella_controlapi_v1_control_proto protoreflect.FileDescriptor
 
 const file_japella_controlapi_v1_control_proto_rawDesc = "" +
@@ -10087,7 +11179,85 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\bgroup_id\x18\x01 \x01(\rR\agroupId\x12\x19\n" +
 	"\buser_ids\x18\x02 \x03(\rR\auserIds\"s\n" +
 	"\x1bSetUserGroupMembersResponse\x12T\n" +
-	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse2\xfcD\n" +
+	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\"\xce\x01\n" +
+	"\x1aAccountPolicyApprovalStage\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x1f\n" +
+	"\vstage_order\x18\x02 \x01(\rR\n" +
+	"stageOrder\x12\x17\n" +
+	"\auser_id\x18\x03 \x01(\rR\x06userId\x12\"\n" +
+	"\ruser_group_id\x18\x04 \x01(\rR\vuserGroupId\x12\x1a\n" +
+	"\busername\x18\x05 \x01(\tR\busername\x12&\n" +
+	"\x0fuser_group_name\x18\x06 \x01(\tR\ruserGroupName\"\x90\x02\n" +
+	"\rAccountPolicy\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12 \n" +
+	"\fapply_to_mcp\x18\x04 \x01(\bR\n" +
+	"applyToMcp\x12\x1e\n" +
+	"\vapply_to_ui\x18\x05 \x01(\bR\tapplyToUi\x12I\n" +
+	"\x06stages\x18\x06 \x03(\v21.japella.controlapi.v1.AccountPolicyApprovalStageR\x06stages\x12,\n" +
+	"\x12social_account_ids\x18\a \x03(\rR\x10socialAccountIds\"\x1c\n" +
+	"\x1aListAccountPoliciesRequest\"_\n" +
+	"\x1bListAccountPoliciesResponse\x12@\n" +
+	"\bpolicies\x18\x01 \x03(\v2$.japella.controlapi.v1.AccountPolicyR\bpolicies\")\n" +
+	"\x17GetAccountPolicyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"X\n" +
+	"\x18GetAccountPolicyResponse\x12<\n" +
+	"\x06policy\x18\x01 \x01(\v2$.japella.controlapi.v1.AccountPolicyR\x06policy\"\x8d\x02\n" +
+	"\x1aCreateAccountPolicyRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12 \n" +
+	"\fapply_to_mcp\x18\x03 \x01(\bR\n" +
+	"applyToMcp\x12\x1e\n" +
+	"\vapply_to_ui\x18\x04 \x01(\bR\tapplyToUi\x12I\n" +
+	"\x06stages\x18\x05 \x03(\v21.japella.controlapi.v1.AccountPolicyApprovalStageR\x06stages\x12,\n" +
+	"\x12social_account_ids\x18\x06 \x03(\rR\x10socialAccountIds\"\x90\x01\n" +
+	"\x1bCreateAccountPolicyResponse\x12T\n" +
+	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\x12\x1b\n" +
+	"\tpolicy_id\x18\x02 \x01(\rR\bpolicyId\"\x9d\x02\n" +
+	"\x1aUpdateAccountPolicyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12 \n" +
+	"\fapply_to_mcp\x18\x04 \x01(\bR\n" +
+	"applyToMcp\x12\x1e\n" +
+	"\vapply_to_ui\x18\x05 \x01(\bR\tapplyToUi\x12I\n" +
+	"\x06stages\x18\x06 \x03(\v21.japella.controlapi.v1.AccountPolicyApprovalStageR\x06stages\x12,\n" +
+	"\x12social_account_ids\x18\a \x03(\rR\x10socialAccountIds\"s\n" +
+	"\x1bUpdateAccountPolicyResponse\x12T\n" +
+	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\",\n" +
+	"\x1aDeleteAccountPolicyRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"s\n" +
+	"\x1bDeleteAccountPolicyResponse\x12T\n" +
+	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\"\x1d\n" +
+	"\x1bListPendingApprovalsRequest\"\xbc\x03\n" +
+	"\x0fPendingApproval\x125\n" +
+	"\x04post\x18\x01 \x01(\v2!.japella.controlapi.v1.PostStatusR\x04post\x12%\n" +
+	"\x0eapproval_stage\x18\x02 \x01(\rR\rapprovalStage\x12*\n" +
+	"\x11account_policy_id\x18\x03 \x01(\rR\x0faccountPolicyId\x12.\n" +
+	"\x13account_policy_name\x18\x04 \x01(\tR\x11accountPolicyName\x12+\n" +
+	"\x11submission_source\x18\x05 \x01(\tR\x10submissionSource\x12/\n" +
+	"\x14submitted_by_user_id\x18\x06 \x01(\rR\x11submittedByUserId\x122\n" +
+	"\x15submitted_by_username\x18\a \x01(\tR\x13submittedByUsername\x12\x1f\n" +
+	"\vcan_approve\x18\b \x01(\bR\n" +
+	"canApprove\x12\x1d\n" +
+	"\n" +
+	"can_reject\x18\t \x01(\bR\tcanReject\x12\x1d\n" +
+	"\n" +
+	"waiting_on\x18\n" +
+	" \x01(\tR\twaitingOn\"`\n" +
+	"\x1cListPendingApprovalsResponse\x12@\n" +
+	"\apending\x18\x01 \x03(\v2&.japella.controlapi.v1.PendingApprovalR\apending\"-\n" +
+	"\x12ApprovePostRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\rR\x06postId\"\xa2\x01\n" +
+	"\x13ApprovePostResponse\x12T\n" +
+	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\x125\n" +
+	"\x04post\x18\x02 \x01(\v2!.japella.controlapi.v1.PostStatusR\x04post\"D\n" +
+	"\x11RejectPostRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\rR\x06postId\x12\x16\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"j\n" +
+	"\x12RejectPostResponse\x12T\n" +
+	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse2\xc4L\n" +
 	"\x18JapellaControlApiService\x12`\n" +
 	"\tGetStatus\x12'.japella.controlapi.v1.GetStatusRequest\x1a(.japella.controlapi.v1.GetStatusResponse\"\x00\x12c\n" +
 	"\n" +
@@ -10170,7 +11340,16 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x0fCreateUserGroup\x12-.japella.controlapi.v1.CreateUserGroupRequest\x1a..japella.controlapi.v1.CreateUserGroupResponse\"\x00\x12r\n" +
 	"\x0fDeleteUserGroup\x12-.japella.controlapi.v1.DeleteUserGroupRequest\x1a..japella.controlapi.v1.DeleteUserGroupResponse\"\x00\x12~\n" +
 	"\x13GetUserGroupMembers\x121.japella.controlapi.v1.GetUserGroupMembersRequest\x1a2.japella.controlapi.v1.GetUserGroupMembersResponse\"\x00\x12~\n" +
-	"\x13SetUserGroupMembers\x121.japella.controlapi.v1.SetUserGroupMembersRequest\x1a2.japella.controlapi.v1.SetUserGroupMembersResponse\"\x00BBZ@github.com/jamesread/japella/gen/japella/controlapi/v1;controlv1b\x06proto3"
+	"\x13SetUserGroupMembers\x121.japella.controlapi.v1.SetUserGroupMembersRequest\x1a2.japella.controlapi.v1.SetUserGroupMembersResponse\"\x00\x12~\n" +
+	"\x13ListAccountPolicies\x121.japella.controlapi.v1.ListAccountPoliciesRequest\x1a2.japella.controlapi.v1.ListAccountPoliciesResponse\"\x00\x12u\n" +
+	"\x10GetAccountPolicy\x12..japella.controlapi.v1.GetAccountPolicyRequest\x1a/.japella.controlapi.v1.GetAccountPolicyResponse\"\x00\x12~\n" +
+	"\x13CreateAccountPolicy\x121.japella.controlapi.v1.CreateAccountPolicyRequest\x1a2.japella.controlapi.v1.CreateAccountPolicyResponse\"\x00\x12~\n" +
+	"\x13UpdateAccountPolicy\x121.japella.controlapi.v1.UpdateAccountPolicyRequest\x1a2.japella.controlapi.v1.UpdateAccountPolicyResponse\"\x00\x12~\n" +
+	"\x13DeleteAccountPolicy\x121.japella.controlapi.v1.DeleteAccountPolicyRequest\x1a2.japella.controlapi.v1.DeleteAccountPolicyResponse\"\x00\x12\x81\x01\n" +
+	"\x14ListPendingApprovals\x122.japella.controlapi.v1.ListPendingApprovalsRequest\x1a3.japella.controlapi.v1.ListPendingApprovalsResponse\"\x00\x12f\n" +
+	"\vApprovePost\x12).japella.controlapi.v1.ApprovePostRequest\x1a*.japella.controlapi.v1.ApprovePostResponse\"\x00\x12c\n" +
+	"\n" +
+	"RejectPost\x12(.japella.controlapi.v1.RejectPostRequest\x1a).japella.controlapi.v1.RejectPostResponse\"\x00BBZ@github.com/jamesread/japella/gen/japella/controlapi/v1;controlv1b\x06proto3"
 
 var (
 	file_japella_controlapi_v1_control_proto_rawDescOnce sync.Once
@@ -10184,7 +11363,7 @@ func file_japella_controlapi_v1_control_proto_rawDescGZIP() []byte {
 	return file_japella_controlapi_v1_control_proto_rawDescData
 }
 
-var file_japella_controlapi_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 179)
+var file_japella_controlapi_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 198)
 var file_japella_controlapi_v1_control_proto_goTypes = []any{
 	(*SubmitPostRequest)(nil),                       // 0: japella.controlapi.v1.SubmitPostRequest
 	(*SubmitPostResponse)(nil),                      // 1: japella.controlapi.v1.SubmitPostResponse
@@ -10364,7 +11543,26 @@ var file_japella_controlapi_v1_control_proto_goTypes = []any{
 	(*GetUserGroupMembersResponse)(nil),             // 175: japella.controlapi.v1.GetUserGroupMembersResponse
 	(*SetUserGroupMembersRequest)(nil),              // 176: japella.controlapi.v1.SetUserGroupMembersRequest
 	(*SetUserGroupMembersResponse)(nil),             // 177: japella.controlapi.v1.SetUserGroupMembersResponse
-	nil,                                             // 178: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
+	(*AccountPolicyApprovalStage)(nil),              // 178: japella.controlapi.v1.AccountPolicyApprovalStage
+	(*AccountPolicy)(nil),                           // 179: japella.controlapi.v1.AccountPolicy
+	(*ListAccountPoliciesRequest)(nil),              // 180: japella.controlapi.v1.ListAccountPoliciesRequest
+	(*ListAccountPoliciesResponse)(nil),             // 181: japella.controlapi.v1.ListAccountPoliciesResponse
+	(*GetAccountPolicyRequest)(nil),                 // 182: japella.controlapi.v1.GetAccountPolicyRequest
+	(*GetAccountPolicyResponse)(nil),                // 183: japella.controlapi.v1.GetAccountPolicyResponse
+	(*CreateAccountPolicyRequest)(nil),              // 184: japella.controlapi.v1.CreateAccountPolicyRequest
+	(*CreateAccountPolicyResponse)(nil),             // 185: japella.controlapi.v1.CreateAccountPolicyResponse
+	(*UpdateAccountPolicyRequest)(nil),              // 186: japella.controlapi.v1.UpdateAccountPolicyRequest
+	(*UpdateAccountPolicyResponse)(nil),             // 187: japella.controlapi.v1.UpdateAccountPolicyResponse
+	(*DeleteAccountPolicyRequest)(nil),              // 188: japella.controlapi.v1.DeleteAccountPolicyRequest
+	(*DeleteAccountPolicyResponse)(nil),             // 189: japella.controlapi.v1.DeleteAccountPolicyResponse
+	(*ListPendingApprovalsRequest)(nil),             // 190: japella.controlapi.v1.ListPendingApprovalsRequest
+	(*PendingApproval)(nil),                         // 191: japella.controlapi.v1.PendingApproval
+	(*ListPendingApprovalsResponse)(nil),            // 192: japella.controlapi.v1.ListPendingApprovalsResponse
+	(*ApprovePostRequest)(nil),                      // 193: japella.controlapi.v1.ApprovePostRequest
+	(*ApprovePostResponse)(nil),                     // 194: japella.controlapi.v1.ApprovePostResponse
+	(*RejectPostRequest)(nil),                       // 195: japella.controlapi.v1.RejectPostRequest
+	(*RejectPostResponse)(nil),                      // 196: japella.controlapi.v1.RejectPostResponse
+	nil,                                             // 197: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
 }
 var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	2,   // 0: japella.controlapi.v1.SubmitPostResponse.posts:type_name -> japella.controlapi.v1.PostStatus
@@ -10406,7 +11604,7 @@ var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	35,  // 36: japella.controlapi.v1.DeleteRbacRoleResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	35,  // 37: japella.controlapi.v1.SetUserRbacRolesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	88,  // 38: japella.controlapi.v1.GetApiKeysResponse.keys:type_name -> japella.controlapi.v1.ApiKey
-	178, // 39: japella.controlapi.v1.GetCvarsResponse.cvar_categories:type_name -> japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
+	197, // 39: japella.controlapi.v1.GetCvarsResponse.cvar_categories:type_name -> japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
 	92,  // 40: japella.controlapi.v1.CvarCategory.cvars:type_name -> japella.controlapi.v1.Cvar
 	35,  // 41: japella.controlapi.v1.SaveUserPreferencesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	35,  // 42: japella.controlapi.v1.CreateApiKeyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
@@ -10449,164 +11647,193 @@ var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	35,  // 79: japella.controlapi.v1.CreateUserGroupResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	35,  // 80: japella.controlapi.v1.DeleteUserGroupResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	35,  // 81: japella.controlapi.v1.SetUserGroupMembersResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
-	91,  // 82: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry.value:type_name -> japella.controlapi.v1.CvarCategory
-	3,   // 83: japella.controlapi.v1.JapellaControlApiService.GetStatus:input_type -> japella.controlapi.v1.GetStatusRequest
-	0,   // 84: japella.controlapi.v1.JapellaControlApiService.SubmitPost:input_type -> japella.controlapi.v1.SubmitPostRequest
-	6,   // 85: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:input_type -> japella.controlapi.v1.GetCannedPostsRequest
-	15,  // 86: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:input_type -> japella.controlapi.v1.GetCannedPostRequest
-	9,   // 87: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:input_type -> japella.controlapi.v1.CreateCannedPostRequest
-	11,  // 88: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:input_type -> japella.controlapi.v1.DeleteCannedPostRequest
-	17,  // 89: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:input_type -> japella.controlapi.v1.GetSocialAccountsRequest
-	31,  // 90: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:input_type -> japella.controlapi.v1.DeleteSocialAccountRequest
-	33,  // 91: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:input_type -> japella.controlapi.v1.RefreshSocialAccountRequest
-	20,  // 92: japella.controlapi.v1.JapellaControlApiService.GetConnectors:input_type -> japella.controlapi.v1.GetConnectorsRequest
-	21,  // 93: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:input_type -> japella.controlapi.v1.RefreshConnectorsRequest
-	23,  // 94: japella.controlapi.v1.JapellaControlApiService.StopService:input_type -> japella.controlapi.v1.StopServiceRequest
-	29,  // 95: japella.controlapi.v1.JapellaControlApiService.StartOAuth:input_type -> japella.controlapi.v1.StartOAuthRequest
-	36,  // 96: japella.controlapi.v1.JapellaControlApiService.GetTimeline:input_type -> japella.controlapi.v1.GetTimelineRequest
-	44,  // 97: japella.controlapi.v1.JapellaControlApiService.GetFeed:input_type -> japella.controlapi.v1.GetFeedRequest
-	38,  // 98: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:input_type -> japella.controlapi.v1.UpdatePostCampaignRequest
-	40,  // 99: japella.controlapi.v1.JapellaControlApiService.ForgetPost:input_type -> japella.controlapi.v1.ForgetPostRequest
-	42,  // 100: japella.controlapi.v1.JapellaControlApiService.RetryPost:input_type -> japella.controlapi.v1.RetryPostRequest
-	47,  // 101: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:input_type -> japella.controlapi.v1.SetSocialAccountActiveRequest
-	53,  // 102: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:input_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
-	55,  // 103: japella.controlapi.v1.JapellaControlApiService.ChangePassword:input_type -> japella.controlapi.v1.ChangePasswordRequest
-	57,  // 104: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:input_type -> japella.controlapi.v1.ResetUserPasswordRequest
-	59,  // 105: japella.controlapi.v1.JapellaControlApiService.Logout:input_type -> japella.controlapi.v1.LogoutRequest
-	61,  // 106: japella.controlapi.v1.JapellaControlApiService.GetUsers:input_type -> japella.controlapi.v1.GetUsersRequest
-	63,  // 107: japella.controlapi.v1.JapellaControlApiService.GetUser:input_type -> japella.controlapi.v1.GetUserRequest
-	66,  // 108: japella.controlapi.v1.JapellaControlApiService.CreateUser:input_type -> japella.controlapi.v1.CreateUserRequest
-	68,  // 109: japella.controlapi.v1.JapellaControlApiService.DeleteUser:input_type -> japella.controlapi.v1.DeleteUserRequest
-	72,  // 110: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:input_type -> japella.controlapi.v1.ListRbacPermissionsRequest
-	74,  // 111: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:input_type -> japella.controlapi.v1.ListRbacRolesRequest
-	76,  // 112: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:input_type -> japella.controlapi.v1.CreateRbacRoleRequest
-	78,  // 113: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:input_type -> japella.controlapi.v1.UpdateRbacRoleRequest
-	80,  // 114: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:input_type -> japella.controlapi.v1.DeleteRbacRoleRequest
-	82,  // 115: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:input_type -> japella.controlapi.v1.GetUserRbacRolesRequest
-	84,  // 116: japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles:input_type -> japella.controlapi.v1.SetUserRbacRolesRequest
-	86,  // 117: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:input_type -> japella.controlapi.v1.GetApiKeysRequest
-	89,  // 118: japella.controlapi.v1.JapellaControlApiService.GetCvars:input_type -> japella.controlapi.v1.GetCvarsRequest
-	93,  // 119: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:input_type -> japella.controlapi.v1.SaveUserPreferencesRequest
-	95,  // 120: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:input_type -> japella.controlapi.v1.CreateApiKeyRequest
-	97,  // 121: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:input_type -> japella.controlapi.v1.RevokeApiKeyRequest
-	99,  // 122: japella.controlapi.v1.JapellaControlApiService.SetCvar:input_type -> japella.controlapi.v1.SetCvarRequest
-	101, // 123: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:input_type -> japella.controlapi.v1.RegisterConnectorRequest
-	103, // 124: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:input_type -> japella.controlapi.v1.CreateCampaignRequest
-	105, // 125: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:input_type -> japella.controlapi.v1.GetCampaignsRequest
-	114, // 126: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:input_type -> japella.controlapi.v1.UpdateCampaignRequest
-	116, // 127: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:input_type -> japella.controlapi.v1.DeleteCampaignRequest
-	13,  // 128: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:input_type -> japella.controlapi.v1.UpdateCannedPostRequest
-	108, // 129: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:input_type -> japella.controlapi.v1.AddSocialAccountToCampaignRequest
-	110, // 130: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:input_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignRequest
-	112, // 131: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:input_type -> japella.controlapi.v1.GetCampaignSocialAccountsRequest
-	49,  // 132: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:input_type -> japella.controlapi.v1.CleanupFeedPostsRequest
-	51,  // 133: japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost:input_type -> japella.controlapi.v1.RefetchFeedPostRequest
-	118, // 134: japella.controlapi.v1.JapellaControlApiService.GetLogs:input_type -> japella.controlapi.v1.GetLogsRequest
-	121, // 135: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:input_type -> japella.controlapi.v1.GetJobsStatusRequest
-	124, // 136: japella.controlapi.v1.JapellaControlApiService.ListMedia:input_type -> japella.controlapi.v1.ListMediaRequest
-	127, // 137: japella.controlapi.v1.JapellaControlApiService.GetChatBots:input_type -> japella.controlapi.v1.GetChatBotsRequest
-	130, // 138: japella.controlapi.v1.JapellaControlApiService.CreateChatBot:input_type -> japella.controlapi.v1.CreateChatBotRequest
-	132, // 139: japella.controlapi.v1.JapellaControlApiService.UpdateChatBot:input_type -> japella.controlapi.v1.UpdateChatBotRequest
-	134, // 140: japella.controlapi.v1.JapellaControlApiService.DeleteChatBot:input_type -> japella.controlapi.v1.DeleteChatBotRequest
-	136, // 141: japella.controlapi.v1.JapellaControlApiService.StartChatBot:input_type -> japella.controlapi.v1.StartChatBotRequest
-	138, // 142: japella.controlapi.v1.JapellaControlApiService.StopChatBot:input_type -> japella.controlapi.v1.StopChatBotRequest
-	140, // 143: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:input_type -> japella.controlapi.v1.GetBotChannelsRequest
-	144, // 144: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:input_type -> japella.controlapi.v1.GetBotHooksRequest
-	146, // 145: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:input_type -> japella.controlapi.v1.SetBotHooksRequest
-	148, // 146: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:input_type -> japella.controlapi.v1.GetBotConversationsRequest
-	151, // 147: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:input_type -> japella.controlapi.v1.GetBotConversationMessagesRequest
-	154, // 148: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:input_type -> japella.controlapi.v1.SendBotConversationMessageRequest
-	156, // 149: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:input_type -> japella.controlapi.v1.StreamBotConversationUpdatesRequest
-	159, // 150: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:input_type -> japella.controlapi.v1.GetSocialAccountSharesRequest
-	161, // 151: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:input_type -> japella.controlapi.v1.SetSocialAccountSharesRequest
-	163, // 152: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:input_type -> japella.controlapi.v1.ImpersonateUserRequest
-	165, // 153: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:input_type -> japella.controlapi.v1.StopImpersonationRequest
-	168, // 154: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:input_type -> japella.controlapi.v1.ListUserGroupsRequest
-	170, // 155: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:input_type -> japella.controlapi.v1.CreateUserGroupRequest
-	172, // 156: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:input_type -> japella.controlapi.v1.DeleteUserGroupRequest
-	174, // 157: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:input_type -> japella.controlapi.v1.GetUserGroupMembersRequest
-	176, // 158: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:input_type -> japella.controlapi.v1.SetUserGroupMembersRequest
-	4,   // 159: japella.controlapi.v1.JapellaControlApiService.GetStatus:output_type -> japella.controlapi.v1.GetStatusResponse
-	1,   // 160: japella.controlapi.v1.JapellaControlApiService.SubmitPost:output_type -> japella.controlapi.v1.SubmitPostResponse
-	7,   // 161: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:output_type -> japella.controlapi.v1.GetCannedPostsResponse
-	16,  // 162: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:output_type -> japella.controlapi.v1.GetCannedPostResponse
-	10,  // 163: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:output_type -> japella.controlapi.v1.CreateCannedPostResponse
-	12,  // 164: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:output_type -> japella.controlapi.v1.DeleteCannedPostResponse
-	18,  // 165: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:output_type -> japella.controlapi.v1.GetSocialAccountsResponse
-	32,  // 166: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:output_type -> japella.controlapi.v1.DeleteSocialAccountResponse
-	34,  // 167: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:output_type -> japella.controlapi.v1.RefreshSocialAccountResponse
-	25,  // 168: japella.controlapi.v1.JapellaControlApiService.GetConnectors:output_type -> japella.controlapi.v1.GetConnectorsResponse
-	22,  // 169: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:output_type -> japella.controlapi.v1.RefreshConnectorsResponse
-	24,  // 170: japella.controlapi.v1.JapellaControlApiService.StopService:output_type -> japella.controlapi.v1.StopServiceResponse
-	30,  // 171: japella.controlapi.v1.JapellaControlApiService.StartOAuth:output_type -> japella.controlapi.v1.StartOAuthResponse
-	37,  // 172: japella.controlapi.v1.JapellaControlApiService.GetTimeline:output_type -> japella.controlapi.v1.GetTimelineResponse
-	45,  // 173: japella.controlapi.v1.JapellaControlApiService.GetFeed:output_type -> japella.controlapi.v1.GetFeedResponse
-	39,  // 174: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:output_type -> japella.controlapi.v1.UpdatePostCampaignResponse
-	41,  // 175: japella.controlapi.v1.JapellaControlApiService.ForgetPost:output_type -> japella.controlapi.v1.ForgetPostResponse
-	43,  // 176: japella.controlapi.v1.JapellaControlApiService.RetryPost:output_type -> japella.controlapi.v1.RetryPostResponse
-	48,  // 177: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:output_type -> japella.controlapi.v1.SetSocialAccountActiveResponse
-	54,  // 178: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:output_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
-	56,  // 179: japella.controlapi.v1.JapellaControlApiService.ChangePassword:output_type -> japella.controlapi.v1.ChangePasswordResponse
-	58,  // 180: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:output_type -> japella.controlapi.v1.ResetUserPasswordResponse
-	60,  // 181: japella.controlapi.v1.JapellaControlApiService.Logout:output_type -> japella.controlapi.v1.LogoutResponse
-	62,  // 182: japella.controlapi.v1.JapellaControlApiService.GetUsers:output_type -> japella.controlapi.v1.GetUsersResponse
-	64,  // 183: japella.controlapi.v1.JapellaControlApiService.GetUser:output_type -> japella.controlapi.v1.GetUserResponse
-	67,  // 184: japella.controlapi.v1.JapellaControlApiService.CreateUser:output_type -> japella.controlapi.v1.CreateUserResponse
-	69,  // 185: japella.controlapi.v1.JapellaControlApiService.DeleteUser:output_type -> japella.controlapi.v1.DeleteUserResponse
-	73,  // 186: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:output_type -> japella.controlapi.v1.ListRbacPermissionsResponse
-	75,  // 187: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:output_type -> japella.controlapi.v1.ListRbacRolesResponse
-	77,  // 188: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:output_type -> japella.controlapi.v1.CreateRbacRoleResponse
-	79,  // 189: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:output_type -> japella.controlapi.v1.UpdateRbacRoleResponse
-	81,  // 190: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:output_type -> japella.controlapi.v1.DeleteRbacRoleResponse
-	83,  // 191: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:output_type -> japella.controlapi.v1.GetUserRbacRolesResponse
-	85,  // 192: japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles:output_type -> japella.controlapi.v1.SetUserRbacRolesResponse
-	87,  // 193: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:output_type -> japella.controlapi.v1.GetApiKeysResponse
-	90,  // 194: japella.controlapi.v1.JapellaControlApiService.GetCvars:output_type -> japella.controlapi.v1.GetCvarsResponse
-	94,  // 195: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:output_type -> japella.controlapi.v1.SaveUserPreferencesResponse
-	96,  // 196: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:output_type -> japella.controlapi.v1.CreateApiKeyResponse
-	98,  // 197: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:output_type -> japella.controlapi.v1.RevokeApiKeyResponse
-	100, // 198: japella.controlapi.v1.JapellaControlApiService.SetCvar:output_type -> japella.controlapi.v1.SetCvarResponse
-	102, // 199: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:output_type -> japella.controlapi.v1.RegisterConnectorResponse
-	104, // 200: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:output_type -> japella.controlapi.v1.CreateCampaignResponse
-	106, // 201: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:output_type -> japella.controlapi.v1.GetCampaignsResponse
-	115, // 202: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:output_type -> japella.controlapi.v1.UpdateCampaignResponse
-	117, // 203: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:output_type -> japella.controlapi.v1.DeleteCampaignResponse
-	14,  // 204: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:output_type -> japella.controlapi.v1.UpdateCannedPostResponse
-	109, // 205: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:output_type -> japella.controlapi.v1.AddSocialAccountToCampaignResponse
-	111, // 206: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:output_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse
-	113, // 207: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:output_type -> japella.controlapi.v1.GetCampaignSocialAccountsResponse
-	50,  // 208: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:output_type -> japella.controlapi.v1.CleanupFeedPostsResponse
-	52,  // 209: japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost:output_type -> japella.controlapi.v1.RefetchFeedPostResponse
-	119, // 210: japella.controlapi.v1.JapellaControlApiService.GetLogs:output_type -> japella.controlapi.v1.GetLogsResponse
-	122, // 211: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:output_type -> japella.controlapi.v1.GetJobsStatusResponse
-	125, // 212: japella.controlapi.v1.JapellaControlApiService.ListMedia:output_type -> japella.controlapi.v1.ListMediaResponse
-	128, // 213: japella.controlapi.v1.JapellaControlApiService.GetChatBots:output_type -> japella.controlapi.v1.GetChatBotsResponse
-	131, // 214: japella.controlapi.v1.JapellaControlApiService.CreateChatBot:output_type -> japella.controlapi.v1.CreateChatBotResponse
-	133, // 215: japella.controlapi.v1.JapellaControlApiService.UpdateChatBot:output_type -> japella.controlapi.v1.UpdateChatBotResponse
-	135, // 216: japella.controlapi.v1.JapellaControlApiService.DeleteChatBot:output_type -> japella.controlapi.v1.DeleteChatBotResponse
-	137, // 217: japella.controlapi.v1.JapellaControlApiService.StartChatBot:output_type -> japella.controlapi.v1.StartChatBotResponse
-	139, // 218: japella.controlapi.v1.JapellaControlApiService.StopChatBot:output_type -> japella.controlapi.v1.StopChatBotResponse
-	141, // 219: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:output_type -> japella.controlapi.v1.GetBotChannelsResponse
-	145, // 220: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:output_type -> japella.controlapi.v1.GetBotHooksResponse
-	147, // 221: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:output_type -> japella.controlapi.v1.SetBotHooksResponse
-	150, // 222: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:output_type -> japella.controlapi.v1.GetBotConversationsResponse
-	153, // 223: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:output_type -> japella.controlapi.v1.GetBotConversationMessagesResponse
-	155, // 224: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:output_type -> japella.controlapi.v1.SendBotConversationMessageResponse
-	157, // 225: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:output_type -> japella.controlapi.v1.StreamBotConversationUpdatesResponse
-	160, // 226: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:output_type -> japella.controlapi.v1.GetSocialAccountSharesResponse
-	162, // 227: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:output_type -> japella.controlapi.v1.SetSocialAccountSharesResponse
-	164, // 228: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:output_type -> japella.controlapi.v1.ImpersonateUserResponse
-	166, // 229: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:output_type -> japella.controlapi.v1.StopImpersonationResponse
-	169, // 230: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:output_type -> japella.controlapi.v1.ListUserGroupsResponse
-	171, // 231: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:output_type -> japella.controlapi.v1.CreateUserGroupResponse
-	173, // 232: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:output_type -> japella.controlapi.v1.DeleteUserGroupResponse
-	175, // 233: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:output_type -> japella.controlapi.v1.GetUserGroupMembersResponse
-	177, // 234: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:output_type -> japella.controlapi.v1.SetUserGroupMembersResponse
-	159, // [159:235] is the sub-list for method output_type
-	83,  // [83:159] is the sub-list for method input_type
-	83,  // [83:83] is the sub-list for extension type_name
-	83,  // [83:83] is the sub-list for extension extendee
-	0,   // [0:83] is the sub-list for field type_name
+	178, // 82: japella.controlapi.v1.AccountPolicy.stages:type_name -> japella.controlapi.v1.AccountPolicyApprovalStage
+	179, // 83: japella.controlapi.v1.ListAccountPoliciesResponse.policies:type_name -> japella.controlapi.v1.AccountPolicy
+	179, // 84: japella.controlapi.v1.GetAccountPolicyResponse.policy:type_name -> japella.controlapi.v1.AccountPolicy
+	178, // 85: japella.controlapi.v1.CreateAccountPolicyRequest.stages:type_name -> japella.controlapi.v1.AccountPolicyApprovalStage
+	35,  // 86: japella.controlapi.v1.CreateAccountPolicyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	178, // 87: japella.controlapi.v1.UpdateAccountPolicyRequest.stages:type_name -> japella.controlapi.v1.AccountPolicyApprovalStage
+	35,  // 88: japella.controlapi.v1.UpdateAccountPolicyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	35,  // 89: japella.controlapi.v1.DeleteAccountPolicyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	2,   // 90: japella.controlapi.v1.PendingApproval.post:type_name -> japella.controlapi.v1.PostStatus
+	191, // 91: japella.controlapi.v1.ListPendingApprovalsResponse.pending:type_name -> japella.controlapi.v1.PendingApproval
+	35,  // 92: japella.controlapi.v1.ApprovePostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	2,   // 93: japella.controlapi.v1.ApprovePostResponse.post:type_name -> japella.controlapi.v1.PostStatus
+	35,  // 94: japella.controlapi.v1.RejectPostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	91,  // 95: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry.value:type_name -> japella.controlapi.v1.CvarCategory
+	3,   // 96: japella.controlapi.v1.JapellaControlApiService.GetStatus:input_type -> japella.controlapi.v1.GetStatusRequest
+	0,   // 97: japella.controlapi.v1.JapellaControlApiService.SubmitPost:input_type -> japella.controlapi.v1.SubmitPostRequest
+	6,   // 98: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:input_type -> japella.controlapi.v1.GetCannedPostsRequest
+	15,  // 99: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:input_type -> japella.controlapi.v1.GetCannedPostRequest
+	9,   // 100: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:input_type -> japella.controlapi.v1.CreateCannedPostRequest
+	11,  // 101: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:input_type -> japella.controlapi.v1.DeleteCannedPostRequest
+	17,  // 102: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:input_type -> japella.controlapi.v1.GetSocialAccountsRequest
+	31,  // 103: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:input_type -> japella.controlapi.v1.DeleteSocialAccountRequest
+	33,  // 104: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:input_type -> japella.controlapi.v1.RefreshSocialAccountRequest
+	20,  // 105: japella.controlapi.v1.JapellaControlApiService.GetConnectors:input_type -> japella.controlapi.v1.GetConnectorsRequest
+	21,  // 106: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:input_type -> japella.controlapi.v1.RefreshConnectorsRequest
+	23,  // 107: japella.controlapi.v1.JapellaControlApiService.StopService:input_type -> japella.controlapi.v1.StopServiceRequest
+	29,  // 108: japella.controlapi.v1.JapellaControlApiService.StartOAuth:input_type -> japella.controlapi.v1.StartOAuthRequest
+	36,  // 109: japella.controlapi.v1.JapellaControlApiService.GetTimeline:input_type -> japella.controlapi.v1.GetTimelineRequest
+	44,  // 110: japella.controlapi.v1.JapellaControlApiService.GetFeed:input_type -> japella.controlapi.v1.GetFeedRequest
+	38,  // 111: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:input_type -> japella.controlapi.v1.UpdatePostCampaignRequest
+	40,  // 112: japella.controlapi.v1.JapellaControlApiService.ForgetPost:input_type -> japella.controlapi.v1.ForgetPostRequest
+	42,  // 113: japella.controlapi.v1.JapellaControlApiService.RetryPost:input_type -> japella.controlapi.v1.RetryPostRequest
+	47,  // 114: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:input_type -> japella.controlapi.v1.SetSocialAccountActiveRequest
+	53,  // 115: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:input_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
+	55,  // 116: japella.controlapi.v1.JapellaControlApiService.ChangePassword:input_type -> japella.controlapi.v1.ChangePasswordRequest
+	57,  // 117: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:input_type -> japella.controlapi.v1.ResetUserPasswordRequest
+	59,  // 118: japella.controlapi.v1.JapellaControlApiService.Logout:input_type -> japella.controlapi.v1.LogoutRequest
+	61,  // 119: japella.controlapi.v1.JapellaControlApiService.GetUsers:input_type -> japella.controlapi.v1.GetUsersRequest
+	63,  // 120: japella.controlapi.v1.JapellaControlApiService.GetUser:input_type -> japella.controlapi.v1.GetUserRequest
+	66,  // 121: japella.controlapi.v1.JapellaControlApiService.CreateUser:input_type -> japella.controlapi.v1.CreateUserRequest
+	68,  // 122: japella.controlapi.v1.JapellaControlApiService.DeleteUser:input_type -> japella.controlapi.v1.DeleteUserRequest
+	72,  // 123: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:input_type -> japella.controlapi.v1.ListRbacPermissionsRequest
+	74,  // 124: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:input_type -> japella.controlapi.v1.ListRbacRolesRequest
+	76,  // 125: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:input_type -> japella.controlapi.v1.CreateRbacRoleRequest
+	78,  // 126: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:input_type -> japella.controlapi.v1.UpdateRbacRoleRequest
+	80,  // 127: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:input_type -> japella.controlapi.v1.DeleteRbacRoleRequest
+	82,  // 128: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:input_type -> japella.controlapi.v1.GetUserRbacRolesRequest
+	84,  // 129: japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles:input_type -> japella.controlapi.v1.SetUserRbacRolesRequest
+	86,  // 130: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:input_type -> japella.controlapi.v1.GetApiKeysRequest
+	89,  // 131: japella.controlapi.v1.JapellaControlApiService.GetCvars:input_type -> japella.controlapi.v1.GetCvarsRequest
+	93,  // 132: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:input_type -> japella.controlapi.v1.SaveUserPreferencesRequest
+	95,  // 133: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:input_type -> japella.controlapi.v1.CreateApiKeyRequest
+	97,  // 134: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:input_type -> japella.controlapi.v1.RevokeApiKeyRequest
+	99,  // 135: japella.controlapi.v1.JapellaControlApiService.SetCvar:input_type -> japella.controlapi.v1.SetCvarRequest
+	101, // 136: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:input_type -> japella.controlapi.v1.RegisterConnectorRequest
+	103, // 137: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:input_type -> japella.controlapi.v1.CreateCampaignRequest
+	105, // 138: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:input_type -> japella.controlapi.v1.GetCampaignsRequest
+	114, // 139: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:input_type -> japella.controlapi.v1.UpdateCampaignRequest
+	116, // 140: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:input_type -> japella.controlapi.v1.DeleteCampaignRequest
+	13,  // 141: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:input_type -> japella.controlapi.v1.UpdateCannedPostRequest
+	108, // 142: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:input_type -> japella.controlapi.v1.AddSocialAccountToCampaignRequest
+	110, // 143: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:input_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignRequest
+	112, // 144: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:input_type -> japella.controlapi.v1.GetCampaignSocialAccountsRequest
+	49,  // 145: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:input_type -> japella.controlapi.v1.CleanupFeedPostsRequest
+	51,  // 146: japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost:input_type -> japella.controlapi.v1.RefetchFeedPostRequest
+	118, // 147: japella.controlapi.v1.JapellaControlApiService.GetLogs:input_type -> japella.controlapi.v1.GetLogsRequest
+	121, // 148: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:input_type -> japella.controlapi.v1.GetJobsStatusRequest
+	124, // 149: japella.controlapi.v1.JapellaControlApiService.ListMedia:input_type -> japella.controlapi.v1.ListMediaRequest
+	127, // 150: japella.controlapi.v1.JapellaControlApiService.GetChatBots:input_type -> japella.controlapi.v1.GetChatBotsRequest
+	130, // 151: japella.controlapi.v1.JapellaControlApiService.CreateChatBot:input_type -> japella.controlapi.v1.CreateChatBotRequest
+	132, // 152: japella.controlapi.v1.JapellaControlApiService.UpdateChatBot:input_type -> japella.controlapi.v1.UpdateChatBotRequest
+	134, // 153: japella.controlapi.v1.JapellaControlApiService.DeleteChatBot:input_type -> japella.controlapi.v1.DeleteChatBotRequest
+	136, // 154: japella.controlapi.v1.JapellaControlApiService.StartChatBot:input_type -> japella.controlapi.v1.StartChatBotRequest
+	138, // 155: japella.controlapi.v1.JapellaControlApiService.StopChatBot:input_type -> japella.controlapi.v1.StopChatBotRequest
+	140, // 156: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:input_type -> japella.controlapi.v1.GetBotChannelsRequest
+	144, // 157: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:input_type -> japella.controlapi.v1.GetBotHooksRequest
+	146, // 158: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:input_type -> japella.controlapi.v1.SetBotHooksRequest
+	148, // 159: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:input_type -> japella.controlapi.v1.GetBotConversationsRequest
+	151, // 160: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:input_type -> japella.controlapi.v1.GetBotConversationMessagesRequest
+	154, // 161: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:input_type -> japella.controlapi.v1.SendBotConversationMessageRequest
+	156, // 162: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:input_type -> japella.controlapi.v1.StreamBotConversationUpdatesRequest
+	159, // 163: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:input_type -> japella.controlapi.v1.GetSocialAccountSharesRequest
+	161, // 164: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:input_type -> japella.controlapi.v1.SetSocialAccountSharesRequest
+	163, // 165: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:input_type -> japella.controlapi.v1.ImpersonateUserRequest
+	165, // 166: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:input_type -> japella.controlapi.v1.StopImpersonationRequest
+	168, // 167: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:input_type -> japella.controlapi.v1.ListUserGroupsRequest
+	170, // 168: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:input_type -> japella.controlapi.v1.CreateUserGroupRequest
+	172, // 169: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:input_type -> japella.controlapi.v1.DeleteUserGroupRequest
+	174, // 170: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:input_type -> japella.controlapi.v1.GetUserGroupMembersRequest
+	176, // 171: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:input_type -> japella.controlapi.v1.SetUserGroupMembersRequest
+	180, // 172: japella.controlapi.v1.JapellaControlApiService.ListAccountPolicies:input_type -> japella.controlapi.v1.ListAccountPoliciesRequest
+	182, // 173: japella.controlapi.v1.JapellaControlApiService.GetAccountPolicy:input_type -> japella.controlapi.v1.GetAccountPolicyRequest
+	184, // 174: japella.controlapi.v1.JapellaControlApiService.CreateAccountPolicy:input_type -> japella.controlapi.v1.CreateAccountPolicyRequest
+	186, // 175: japella.controlapi.v1.JapellaControlApiService.UpdateAccountPolicy:input_type -> japella.controlapi.v1.UpdateAccountPolicyRequest
+	188, // 176: japella.controlapi.v1.JapellaControlApiService.DeleteAccountPolicy:input_type -> japella.controlapi.v1.DeleteAccountPolicyRequest
+	190, // 177: japella.controlapi.v1.JapellaControlApiService.ListPendingApprovals:input_type -> japella.controlapi.v1.ListPendingApprovalsRequest
+	193, // 178: japella.controlapi.v1.JapellaControlApiService.ApprovePost:input_type -> japella.controlapi.v1.ApprovePostRequest
+	195, // 179: japella.controlapi.v1.JapellaControlApiService.RejectPost:input_type -> japella.controlapi.v1.RejectPostRequest
+	4,   // 180: japella.controlapi.v1.JapellaControlApiService.GetStatus:output_type -> japella.controlapi.v1.GetStatusResponse
+	1,   // 181: japella.controlapi.v1.JapellaControlApiService.SubmitPost:output_type -> japella.controlapi.v1.SubmitPostResponse
+	7,   // 182: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:output_type -> japella.controlapi.v1.GetCannedPostsResponse
+	16,  // 183: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:output_type -> japella.controlapi.v1.GetCannedPostResponse
+	10,  // 184: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:output_type -> japella.controlapi.v1.CreateCannedPostResponse
+	12,  // 185: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:output_type -> japella.controlapi.v1.DeleteCannedPostResponse
+	18,  // 186: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:output_type -> japella.controlapi.v1.GetSocialAccountsResponse
+	32,  // 187: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:output_type -> japella.controlapi.v1.DeleteSocialAccountResponse
+	34,  // 188: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:output_type -> japella.controlapi.v1.RefreshSocialAccountResponse
+	25,  // 189: japella.controlapi.v1.JapellaControlApiService.GetConnectors:output_type -> japella.controlapi.v1.GetConnectorsResponse
+	22,  // 190: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:output_type -> japella.controlapi.v1.RefreshConnectorsResponse
+	24,  // 191: japella.controlapi.v1.JapellaControlApiService.StopService:output_type -> japella.controlapi.v1.StopServiceResponse
+	30,  // 192: japella.controlapi.v1.JapellaControlApiService.StartOAuth:output_type -> japella.controlapi.v1.StartOAuthResponse
+	37,  // 193: japella.controlapi.v1.JapellaControlApiService.GetTimeline:output_type -> japella.controlapi.v1.GetTimelineResponse
+	45,  // 194: japella.controlapi.v1.JapellaControlApiService.GetFeed:output_type -> japella.controlapi.v1.GetFeedResponse
+	39,  // 195: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:output_type -> japella.controlapi.v1.UpdatePostCampaignResponse
+	41,  // 196: japella.controlapi.v1.JapellaControlApiService.ForgetPost:output_type -> japella.controlapi.v1.ForgetPostResponse
+	43,  // 197: japella.controlapi.v1.JapellaControlApiService.RetryPost:output_type -> japella.controlapi.v1.RetryPostResponse
+	48,  // 198: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:output_type -> japella.controlapi.v1.SetSocialAccountActiveResponse
+	54,  // 199: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:output_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
+	56,  // 200: japella.controlapi.v1.JapellaControlApiService.ChangePassword:output_type -> japella.controlapi.v1.ChangePasswordResponse
+	58,  // 201: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:output_type -> japella.controlapi.v1.ResetUserPasswordResponse
+	60,  // 202: japella.controlapi.v1.JapellaControlApiService.Logout:output_type -> japella.controlapi.v1.LogoutResponse
+	62,  // 203: japella.controlapi.v1.JapellaControlApiService.GetUsers:output_type -> japella.controlapi.v1.GetUsersResponse
+	64,  // 204: japella.controlapi.v1.JapellaControlApiService.GetUser:output_type -> japella.controlapi.v1.GetUserResponse
+	67,  // 205: japella.controlapi.v1.JapellaControlApiService.CreateUser:output_type -> japella.controlapi.v1.CreateUserResponse
+	69,  // 206: japella.controlapi.v1.JapellaControlApiService.DeleteUser:output_type -> japella.controlapi.v1.DeleteUserResponse
+	73,  // 207: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:output_type -> japella.controlapi.v1.ListRbacPermissionsResponse
+	75,  // 208: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:output_type -> japella.controlapi.v1.ListRbacRolesResponse
+	77,  // 209: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:output_type -> japella.controlapi.v1.CreateRbacRoleResponse
+	79,  // 210: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:output_type -> japella.controlapi.v1.UpdateRbacRoleResponse
+	81,  // 211: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:output_type -> japella.controlapi.v1.DeleteRbacRoleResponse
+	83,  // 212: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:output_type -> japella.controlapi.v1.GetUserRbacRolesResponse
+	85,  // 213: japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles:output_type -> japella.controlapi.v1.SetUserRbacRolesResponse
+	87,  // 214: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:output_type -> japella.controlapi.v1.GetApiKeysResponse
+	90,  // 215: japella.controlapi.v1.JapellaControlApiService.GetCvars:output_type -> japella.controlapi.v1.GetCvarsResponse
+	94,  // 216: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:output_type -> japella.controlapi.v1.SaveUserPreferencesResponse
+	96,  // 217: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:output_type -> japella.controlapi.v1.CreateApiKeyResponse
+	98,  // 218: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:output_type -> japella.controlapi.v1.RevokeApiKeyResponse
+	100, // 219: japella.controlapi.v1.JapellaControlApiService.SetCvar:output_type -> japella.controlapi.v1.SetCvarResponse
+	102, // 220: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:output_type -> japella.controlapi.v1.RegisterConnectorResponse
+	104, // 221: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:output_type -> japella.controlapi.v1.CreateCampaignResponse
+	106, // 222: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:output_type -> japella.controlapi.v1.GetCampaignsResponse
+	115, // 223: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:output_type -> japella.controlapi.v1.UpdateCampaignResponse
+	117, // 224: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:output_type -> japella.controlapi.v1.DeleteCampaignResponse
+	14,  // 225: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:output_type -> japella.controlapi.v1.UpdateCannedPostResponse
+	109, // 226: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:output_type -> japella.controlapi.v1.AddSocialAccountToCampaignResponse
+	111, // 227: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:output_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse
+	113, // 228: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:output_type -> japella.controlapi.v1.GetCampaignSocialAccountsResponse
+	50,  // 229: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:output_type -> japella.controlapi.v1.CleanupFeedPostsResponse
+	52,  // 230: japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost:output_type -> japella.controlapi.v1.RefetchFeedPostResponse
+	119, // 231: japella.controlapi.v1.JapellaControlApiService.GetLogs:output_type -> japella.controlapi.v1.GetLogsResponse
+	122, // 232: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:output_type -> japella.controlapi.v1.GetJobsStatusResponse
+	125, // 233: japella.controlapi.v1.JapellaControlApiService.ListMedia:output_type -> japella.controlapi.v1.ListMediaResponse
+	128, // 234: japella.controlapi.v1.JapellaControlApiService.GetChatBots:output_type -> japella.controlapi.v1.GetChatBotsResponse
+	131, // 235: japella.controlapi.v1.JapellaControlApiService.CreateChatBot:output_type -> japella.controlapi.v1.CreateChatBotResponse
+	133, // 236: japella.controlapi.v1.JapellaControlApiService.UpdateChatBot:output_type -> japella.controlapi.v1.UpdateChatBotResponse
+	135, // 237: japella.controlapi.v1.JapellaControlApiService.DeleteChatBot:output_type -> japella.controlapi.v1.DeleteChatBotResponse
+	137, // 238: japella.controlapi.v1.JapellaControlApiService.StartChatBot:output_type -> japella.controlapi.v1.StartChatBotResponse
+	139, // 239: japella.controlapi.v1.JapellaControlApiService.StopChatBot:output_type -> japella.controlapi.v1.StopChatBotResponse
+	141, // 240: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:output_type -> japella.controlapi.v1.GetBotChannelsResponse
+	145, // 241: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:output_type -> japella.controlapi.v1.GetBotHooksResponse
+	147, // 242: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:output_type -> japella.controlapi.v1.SetBotHooksResponse
+	150, // 243: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:output_type -> japella.controlapi.v1.GetBotConversationsResponse
+	153, // 244: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:output_type -> japella.controlapi.v1.GetBotConversationMessagesResponse
+	155, // 245: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:output_type -> japella.controlapi.v1.SendBotConversationMessageResponse
+	157, // 246: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:output_type -> japella.controlapi.v1.StreamBotConversationUpdatesResponse
+	160, // 247: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:output_type -> japella.controlapi.v1.GetSocialAccountSharesResponse
+	162, // 248: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:output_type -> japella.controlapi.v1.SetSocialAccountSharesResponse
+	164, // 249: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:output_type -> japella.controlapi.v1.ImpersonateUserResponse
+	166, // 250: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:output_type -> japella.controlapi.v1.StopImpersonationResponse
+	169, // 251: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:output_type -> japella.controlapi.v1.ListUserGroupsResponse
+	171, // 252: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:output_type -> japella.controlapi.v1.CreateUserGroupResponse
+	173, // 253: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:output_type -> japella.controlapi.v1.DeleteUserGroupResponse
+	175, // 254: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:output_type -> japella.controlapi.v1.GetUserGroupMembersResponse
+	177, // 255: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:output_type -> japella.controlapi.v1.SetUserGroupMembersResponse
+	181, // 256: japella.controlapi.v1.JapellaControlApiService.ListAccountPolicies:output_type -> japella.controlapi.v1.ListAccountPoliciesResponse
+	183, // 257: japella.controlapi.v1.JapellaControlApiService.GetAccountPolicy:output_type -> japella.controlapi.v1.GetAccountPolicyResponse
+	185, // 258: japella.controlapi.v1.JapellaControlApiService.CreateAccountPolicy:output_type -> japella.controlapi.v1.CreateAccountPolicyResponse
+	187, // 259: japella.controlapi.v1.JapellaControlApiService.UpdateAccountPolicy:output_type -> japella.controlapi.v1.UpdateAccountPolicyResponse
+	189, // 260: japella.controlapi.v1.JapellaControlApiService.DeleteAccountPolicy:output_type -> japella.controlapi.v1.DeleteAccountPolicyResponse
+	192, // 261: japella.controlapi.v1.JapellaControlApiService.ListPendingApprovals:output_type -> japella.controlapi.v1.ListPendingApprovalsResponse
+	194, // 262: japella.controlapi.v1.JapellaControlApiService.ApprovePost:output_type -> japella.controlapi.v1.ApprovePostResponse
+	196, // 263: japella.controlapi.v1.JapellaControlApiService.RejectPost:output_type -> japella.controlapi.v1.RejectPostResponse
+	180, // [180:264] is the sub-list for method output_type
+	96,  // [96:180] is the sub-list for method input_type
+	96,  // [96:96] is the sub-list for extension type_name
+	96,  // [96:96] is the sub-list for extension extendee
+	0,   // [0:96] is the sub-list for field type_name
 }
 
 func init() { file_japella_controlapi_v1_control_proto_init() }
@@ -10620,7 +11847,7 @@ func file_japella_controlapi_v1_control_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_japella_controlapi_v1_control_proto_rawDesc), len(file_japella_controlapi_v1_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   179,
+			NumMessages:   198,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -1,7 +1,10 @@
 package httpserver
 
 import (
+	_ "embed"
 	"net/http"
+	"os"
+	"strings"
 
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
@@ -12,14 +15,16 @@ import (
 	"github.com/jamesread/japella/internal/layers/api"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/layers/healthcheck"
+	"github.com/jamesread/japella/internal/mcp"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	log "github.com/sirupsen/logrus"
-
-	"os"
 )
+
+//go:embed llms.txt
+var llmsTxt []byte
 
 // Prometheus metrics
 var (
@@ -90,6 +95,7 @@ func CreateServer(endpoint string) (*http.Server, error) {
 
 	authenticationLayer := authentication.DefaultAuthLayer(srv.DB)
 	authenticatedApiHandler := authenticationLayer.WrapHandler(apihandler)
+	authenticatedMCPHandler := authenticationLayer.WrapMCPHandler(mcp.NewHandler(srv))
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", authenticatedApiHandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
@@ -100,6 +106,9 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	mux.HandleFunc("/readyz", handleReadyz)
 	mux.HandleFunc("/healthz", handleHealthz)
 	mux.Handle("/metrics", promhttp.Handler())
+	mux.HandleFunc("/llms.txt", handleLLMsTxt)
+	mux.Handle("/mcp", authenticatedMCPHandler)
+	mux.Handle("/mcp/", authenticatedMCPHandler)
 	mux.Handle("/", http.StripPrefix("/", frontend.GetNewHandler()))
 
 	handler := healthcheck.ReadinessMiddleware(srv, mux)
@@ -110,6 +119,14 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	}
 
 	return server, nil
+}
+
+func handleLLMsTxt(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	if _, err := w.Write(llmsTxt); err != nil {
+		log.Errorf("Error writing llms.txt: %v", err)
+	}
 }
 
 func findCerts() (string, string) {
@@ -137,16 +154,18 @@ func findCerts() (string, string) {
 	return crtPath, keyPath
 }
 
-// GetListenAddress returns the effective listen address that will be used
+// GetListenAddress returns the effective listen address that will be used.
+// Priority: $PORT, then config listenAddress, then TLS :443 or default :8080.
 func GetListenAddress() string {
-	cfg := runtimeconfig.Get()
-	listenAddress := cfg.ListenAddress
-
-	if listenAddress != "" {
-		return listenAddress
+	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {
+		return "0.0.0.0:" + port
 	}
 
-	// Determine default based on TLS certificate availability
+	cfg := runtimeconfig.Get()
+	if cfg.ListenAddress != "" {
+		return cfg.ListenAddress
+	}
+
 	crt, key := findCerts()
 	if crt != "" && key != "" {
 		return "0.0.0.0:443"
@@ -166,12 +185,7 @@ func Start() {
 }
 
 func startHttpsServer(crt string, key string) {
-	cfg := runtimeconfig.Get()
-	listenAddress := cfg.ListenAddress
-
-	if listenAddress == "" {
-		listenAddress = "0.0.0.0:443"
-	}
+	listenAddress := GetListenAddress()
 
 	server, err := CreateServer(listenAddress)
 
@@ -186,12 +200,7 @@ func startHttpsServer(crt string, key string) {
 }
 
 func startHttpServer() {
-	cfg := runtimeconfig.Get()
-	listenAddress := cfg.ListenAddress
-
-	if listenAddress == "" {
-		listenAddress = "0.0.0.0:8080"
-	}
+	listenAddress := GetListenAddress()
 
 	server, err := CreateServer(listenAddress)
 

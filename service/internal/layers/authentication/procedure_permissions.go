@@ -61,6 +61,13 @@ func RequiredPermission(procedureName string) string {
 		controlv1.JapellaControlApiServiceDeleteUserGroupProcedure,
 		controlv1.JapellaControlApiServiceSetUserGroupMembersProcedure:
 		return rbac.PermissionUserGroupsManage
+
+	case controlv1.JapellaControlApiServiceListAccountPoliciesProcedure,
+		controlv1.JapellaControlApiServiceGetAccountPolicyProcedure,
+		controlv1.JapellaControlApiServiceCreateAccountPolicyProcedure,
+		controlv1.JapellaControlApiServiceUpdateAccountPolicyProcedure,
+		controlv1.JapellaControlApiServiceDeleteAccountPolicyProcedure:
+		return rbac.PermissionAccountPoliciesManage
 	}
 	return rbac.PermissionAppAccess
 }

@@ -127,6 +127,7 @@
     import { waitForClient } from '../javascript/util.js'
     import { fetchAppStatus } from '../javascript/status.js'
     import { ref, computed, onMounted, provide, watch } from 'vue';
+    import { useRoute } from 'vue-router';
     import { Icon } from '@iconify/vue';
     import { useI18n } from 'vue-i18n';
 	import LoginForm from './LoginForm.vue';
@@ -140,6 +141,7 @@
 	import { canAccessControlPanelFromStatus } from '../javascript/rbacAccess.js';
 
     const { t } = useI18n();
+    const route = useRoute();
 
     const clientReady = ref(false);
     const isLoggedIn = ref(false);
@@ -166,8 +168,20 @@
 		}
 	}
 
-	function setupNavigation() {
+	async function fetchApprovalsCount() {
+		try {
+			const res = await window.client.listPendingApprovals({});
+			return (res.pending || []).length;
+		} catch (e) {
+			console.warn('Failed to load approvals count for navigation', e);
+			return 0;
+		}
+	}
+
+	async function setupNavigation() {
 		if (!navigation.value) return;
+
+		const approvalsCount = await fetchApprovalsCount();
 
 		// Clear existing navigation
 		navigation.value.clearNavigationLinks();
@@ -178,6 +192,8 @@
 
 		// Add router links
 		navigation.value.addRouterLink('postBox');
+
+		navigation.value.addRouterLink('approvals', null, { count: approvalsCount });
 
 		navigation.value.addRouterLink('media');
 
@@ -223,6 +239,14 @@
 			sidebar.value.stick();
 		}
 	}
+
+	async function refreshApprovalsNavCount(knownCount) {
+		if (!navigation.value || !isLoggedIn.value) return;
+		const approvalsCount = knownCount != null ? knownCount : await fetchApprovalsCount();
+		navigation.value.addRouterLink('approvals', null, { count: approvalsCount });
+	}
+
+	provide('refreshApprovalsNavCount', refreshApprovalsNavCount);
 
 	function checkSecureContext(st) {
 		if (st.usesSecureCookies && !window.isSecureContext) {
@@ -326,6 +350,13 @@
             document.body.setAttribute('logged-in', 'true');
         } else {
             document.body.removeAttribute('logged-in');
+        }
+    });
+
+    // Refresh the Approvals badge when leaving the approvals page (e.g. after acting).
+    watch(() => route.name, (name, prev) => {
+        if (prev === 'approvals' || name === 'approvals') {
+            refreshApprovalsNavCount();
         }
     });
 </script>

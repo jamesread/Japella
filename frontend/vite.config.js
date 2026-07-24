@@ -7,6 +7,9 @@ export default defineConfig({
   server: {
     allowedHosts: ['baneling.teratan.net'],
     proxy: {
+      // Backend API + static files that only exist on the Go server (or in dist/).
+      // /assets must be proxied: Vite itself 404s hashed production bundles when
+      // requested as scripts (e.g. after a service-worker or cached dist index.html).
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
@@ -16,7 +19,37 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
-      }
+      },
+      '/assets': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/upload': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/media': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/oauth2callback': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/mcp': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/llms.txt': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   plugins: [

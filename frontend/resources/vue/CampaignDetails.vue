@@ -201,6 +201,8 @@
 
 	function getPostStatusClass(post) {
 		if (post.state === 'error') return 'bad';
+		if (post.state === 'pending_approval') return 'note';
+		if (post.state === 'rejected') return 'bad';
 		if (post.state === 'pending' || post.state === 'scheduled') return 'note';
 		if (post.state === 'completed') return 'good';
 		return '';
@@ -208,6 +210,8 @@
 
 	function getPostStatusText(post) {
 		if (post.state === 'error') return 'Error';
+		if (post.state === 'pending_approval') return 'Pending approval';
+		if (post.state === 'rejected') return 'Rejected';
 		if (post.state === 'pending' || post.state === 'scheduled') return 'Scheduled';
 		if (post.state === 'completed') return 'Completed';
 		return 'Unknown';

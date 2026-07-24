@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"os"
 
@@ -106,6 +107,70 @@ func (al *AuthLayer) WrapHandler(in http.Handler) http.Handler {
 	authMiddleware := authn.NewMiddleware(al.Handle)
 	return authMiddleware.Wrap(in)
 }
+
+// WrapMCPHandler requires a Bearer API key authenticated via httpauthshim and attaches
+// the Japella AuthenticatedUser to the request context for MCP tool handlers.
+func (al *AuthLayer) WrapMCPHandler(in http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		au, status, err := al.authenticateMCP(r)
+		if err != nil {
+			writeMCPAuthError(w, status, err.Error())
+			return
+		}
+		ctx := authn.SetInfo(r.Context(), au)
+		in.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func writeMCPAuthError(w http.ResponseWriter, status int, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+func (al *AuthLayer) authenticateMCP(r *http.Request) (*AuthenticatedUser, int, error) {
+	if al.devNoAuth {
+		return &AuthenticatedUser{
+			User: &db.UserAccount{Username: "anonymous"},
+			RBAC: &db.EffectiveRBAC{IsSuperuser: true, Permissions: map[string]bool{}},
+		}, http.StatusOK, nil
+	}
+
+	if extractBearerToken(r) == "" {
+		return nil, http.StatusUnauthorized, errMCPAuthRequired
+	}
+
+	shimUser, err := al.shim.AuthFromHttpReqWithError(r)
+	if err != nil {
+		log.Debugf("httpauthshim (mcp): %v", err)
+		return nil, http.StatusUnauthorized, errMCPInvalidAPIKey
+	}
+	if shimUser.IsGuest() || shimUser.Provider != providerJapellaAPIKey {
+		return nil, http.StatusUnauthorized, errMCPInvalidAPIKey
+	}
+
+	dbUser := al.DB.GetUserByUsername(shimUser.Username)
+	if dbUser == nil {
+		return nil, http.StatusUnauthorized, errMCPInvalidAPIKey
+	}
+
+	au := &AuthenticatedUser{User: dbUser}
+	info, rbacErr := al.finishWithRBAC(au, "")
+	if rbacErr != nil {
+		return nil, http.StatusForbidden, errMCPForbidden
+	}
+	return info.(*AuthenticatedUser), http.StatusOK, nil
+}
+
+var (
+	errMCPAuthRequired  = &mcpAuthError{msg: "Authorization required: Bearer API key"}
+	errMCPInvalidAPIKey = &mcpAuthError{msg: "Invalid API key"}
+	errMCPForbidden     = &mcpAuthError{msg: "Forbidden"}
+)
+
+type mcpAuthError struct{ msg string }
+
+func (e *mcpAuthError) Error() string { return e.msg }
 
 // DefaultAuthLayer wires Connect-RPC auth to github.com/jamesread/httpauthshim for cookie sessions,
 // with Bearer API keys checked against the database before the shim runs.
