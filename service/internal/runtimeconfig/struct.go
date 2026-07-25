@@ -1,14 +1,17 @@
 package runtimeconfig
 
+import "github.com/jamesread/httpauthshim/authpublic"
+
 type CommonConfig struct {
 	ConfigVersion int `yaml:"configVersion"`
 
-	Amqp              AmqpConfig
-	Connectors        []*ConnectorConfigWrapper
-	Database          DatabaseConfig
-	Nanoservices      []NanoserviceConfig
-	TLS               TLSConfig
-	ListenAddress     string `yaml:"listenAddress"`
+	Amqp                AmqpConfig
+	Auth                *authpublic.Config `yaml:"auth"`
+	Connectors          []*ConnectorConfigWrapper
+	Database            DatabaseConfig
+	Nanoservices        []NanoserviceConfig
+	TLS                 TLSConfig
+	ListenAddress       string `yaml:"listenAddress"`
 	TelegramDebugChatId string `yaml:"telegramDebugChatId"` // Global debug chat ID for Telegram bots to send startup messages
 }
 

@@ -8,8 +8,13 @@ import (
 
 	japauth "github.com/jamesread/httpauthshim"
 	"github.com/jamesread/httpauthshim/authpublic"
+	"github.com/jamesread/httpauthshim/providers/hasjwt"
+	"github.com/jamesread/httpauthshim/providers/hasmtls"
+	"github.com/jamesread/httpauthshim/providers/hastrustedheaders"
 	"github.com/jamesread/httpauthshim/sessions"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/runtimeconfig"
+	log "github.com/sirupsen/logrus"
 )
 
 const (
@@ -33,17 +38,55 @@ func (nopSessionPersistence) RequiresFileLock() bool {
 	return false
 }
 
-func newJapellaAuthShim(dbc *db.DB) (*japauth.AuthShimContext, error) {
-	cfg := &authpublic.Config{
-		BaseDir: filepath.Join(os.TempDir(), "japella-httpauthshim-unused"),
+func authShimConfigFromRuntime() *authpublic.Config {
+	cfg := &authpublic.Config{}
+	if rc := runtimeconfig.Get(); rc != nil && rc.Auth != nil {
+		*cfg = *rc.Auth
 	}
+	if cfg.BaseDir == "" {
+		cfg.BaseDir = filepath.Join(os.TempDir(), "japella-httpauthshim-unused")
+	}
+	if jwtConfigured(cfg) && cfg.Jwt.Header == "" && cfg.Jwt.CookieName == "" {
+		cfg.Jwt.Header = "Authorization"
+	}
+	return cfg
+}
+
+func jwtConfigured(cfg *authpublic.Config) bool {
+	return cfg.Jwt.CertsURL != "" || cfg.Jwt.PubKeyPath != "" || cfg.Jwt.HmacSecret != ""
+}
+
+func registerConfiguredProviders(ctx *japauth.AuthShimContext, cfg *authpublic.Config) {
+	if jwtConfigured(cfg) {
+		if cfg.Jwt.Header != "" {
+			ctx.AddProvider(hasjwt.CheckUserFromJwtHeader)
+			log.Info("httpauthshim: JWT header authentication enabled")
+		}
+		if cfg.Jwt.CookieName != "" {
+			ctx.AddProvider(hasjwt.CheckUserFromJwtCookie)
+			log.Info("httpauthshim: JWT cookie authentication enabled")
+		}
+	}
+	if cfg.HttpHeader.Username != "" {
+		ctx.AddProvider(hastrustedheaders.CheckUserFromHeaders)
+		log.Infof("httpauthshim: trusted header authentication enabled (%s)", cfg.HttpHeader.Username)
+	}
+	if cfg.Mtls.Enabled {
+		ctx.AddProvider(hasmtls.CheckUserFromMtls)
+		log.Info("httpauthshim: mTLS authentication enabled")
+	}
+}
+
+func newJapellaAuthShim(dbc *db.DB) (*japauth.AuthShimContext, error) {
+	cfg := authShimConfigFromRuntime()
 	storage := sessions.NewSessionStorage(nopSessionPersistence{})
 	ctx, err := japauth.NewAuthShimContext(cfg, storage)
 	if err != nil {
 		return nil, err
 	}
-	// Bearer API keys first, then cookie sessions.
+	// Bearer API keys first, then configured httpauthshim providers, then cookie sessions.
 	ctx.AddProvider(japellaAPIKeyBearerProvider(dbc))
+	registerConfiguredProviders(ctx, cfg)
 	ctx.AddProvider(japellaSessionCookieProvider(dbc))
 	return ctx, nil
 }

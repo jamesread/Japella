@@ -68,13 +68,13 @@ func (al *AuthLayer) Handle(ctx context.Context, req *http.Request) (any, error)
 	if token, ok := authn.BearerToken(req); ok {
 		log.Infof("Checking API key: %s", redact.RedactString(token))
 		user := al.DB.GetUserByApiKey(token)
-		if user == nil {
-			log.Warnf("API key not found or invalid: %s", redact.RedactString(token))
-			return nil, authn.Errorf("Invalid API key")
+		if user != nil {
+			log.Infof("API key authenticated for user: %s", user.Username)
+			au := &AuthenticatedUser{User: user}
+			return al.finishWithRBAC(au, procedureName)
 		}
-		log.Infof("API key authenticated for user: %s", user.Username)
-		au := &AuthenticatedUser{User: user}
-		return al.finishWithRBAC(au, procedureName)
+		// Not a Japella API key — fall through to httpauthshim (e.g. JWT Bearer).
+		log.Debugf("Bearer token is not a Japella API key; trying httpauthshim providers")
 	}
 
 	shimUser, err := al.shim.AuthFromHttpReqWithError(req)

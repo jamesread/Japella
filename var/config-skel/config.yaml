@@ -5,3 +5,25 @@ database:
   user: japella
   pass: password # sample password
   name: japella
+
+# Optional HTTP authentication via httpauthshim (https://github.com/jamesread/httpauthshim).
+# Omit or leave empty to use only Japella DB sessions and API keys.
+# Identities from these providers must match an existing Japella username.
+#
+# Cloudflare Access JWT example:
+# auth:
+#   jwt:
+#     certsUrl: "https://myteam.cloudflareaccess.com/cdn-cgi/access/certs"
+#     issuer: "https://myteam.cloudflareaccess.com"
+#     aud: "PASTE_APPLICATION_AUD_TAG_HERE"
+#     claimUsername: "email"
+#     header: "Cf-Access-Jwt-Assertion"
+#     cookieName: "CF_Authorization"
+#
+# auth:
+#   httpHeader:
+#     username: "Remote-User"
+#   mtls:
+#     enabled: true
+#     usernameFromCN: true
+auth: {}
