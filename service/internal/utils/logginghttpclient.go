@@ -13,6 +13,8 @@ import (
 	logp "github.com/sirupsen/logrus"
 
 	"net/url"
+
+	"github.com/jamesread/japella/internal/debuglog"
 )
 
 type ChainingHttpClient struct {
@@ -35,25 +37,29 @@ func (l *ChainingHttpClient) UnderlyingClient() *http.Client {
 }
 
 func (l *ChainingHttpClient) logRequestHeaders(req *http.Request) {
+	if !debuglog.HTTPEnabled() {
+		return
+	}
 	for key, values := range req.Header {
 		for _, value := range values {
-			l.logger.Debugf("Request Header: %s: %s", key, value)
+			debuglog.HTTPf("Request Header: %s: %s", key, value)
 		}
 	}
 }
 
 func (l *ChainingHttpClient) logResponseHeaders(resp *http.Response) {
+	if !debuglog.HTTPEnabled() {
+		return
+	}
 	for key, values := range resp.Header {
 		for _, value := range values {
-			l.logger.Debugf("Response Header: %s: %s", key, value)
+			debuglog.HTTPf("Response Header: %s: %s", key, value)
 		}
 	}
 }
 
 func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error) {
-	logp.Infof("Logger: %v", l.logger)
-
-	l.logger.Infof("Request: %s %s", req.Method, req.URL.String())
+	debuglog.HTTPf("Request: %s %s", req.Method, req.URL.String())
 
 	l.logRequestHeaders(req)
 
@@ -70,12 +76,12 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 			strings.HasPrefix(contentType, "image/") ||
 			strings.HasPrefix(contentType, "application/octet-stream") ||
 			strings.HasPrefix(contentType, "multipart/")
-		if skipBody {
-			l.logger.Debugf("Request body: %d bytes (Content-Type: %s), omitted from log", n, contentType)
-		} else {
-			l.logger.Debugf("Request Body: %v", req.Body)
-			bodyString := string(bodyBytes)
-			fmt.Printf("Request Body Content:\n%s\n", bodyString)
+		if debuglog.HTTPEnabled() {
+			if skipBody {
+				debuglog.HTTPf("Request body: %d bytes (Content-Type: %s), omitted from log", n, contentType)
+			} else {
+				debuglog.HTTPf("Request Body Content:\n%s", string(bodyBytes))
+			}
 		}
 	}
 
@@ -86,11 +92,11 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 		return nil, err
 	}
 
-	l.logger.WithFields(logp.Fields{
+	debuglog.HTTP(logp.Fields{
 		"status": resp.Status,
 		"url":    req.URL.String(),
 		"method": req.Method,
-	}).Infof("HTTP Response")
+	}, "HTTP Response")
 
 	l.logResponseHeaders(resp)
 
@@ -130,20 +136,19 @@ func ReadBody(r *http.Response) (string, error) {
 }
 
 func (l *ChainingHttpClient) logBodyContent(isJson bool, bodyString string) {
-	if logp.IsLevelEnabled(logp.DebugLevel) {
-		if isJson {
-			var prettyJSON bytes.Buffer
-
-			if err := json.Indent(&prettyJSON, []byte(bodyString), "", "  "); err != nil {
-				l.logger.Errorf("Error pretty printing JSON response: %v", err)
-				l.logger.Debugf("Response Body Content: %s", bodyString)
-			}
-
-			fmt.Printf("Response Body JSON:\n%s\n", prettyJSON.String())
-		} else {
-			l.logger.Debugf("Response Body Content: %s", bodyString)
-		}
+	if !debuglog.HTTPEnabled() {
+		return
 	}
+	if isJson {
+		var prettyJSON bytes.Buffer
+		if err := json.Indent(&prettyJSON, []byte(bodyString), "", "  "); err != nil {
+			debuglog.HTTPf("Response Body Content: %s", bodyString)
+			return
+		}
+		debuglog.HTTPf("Response Body JSON:\n%s", prettyJSON.String())
+		return
+	}
+	debuglog.HTTPf("Response Body Content: %s", bodyString)
 }
 
 // ReadBodyNoChange returns the current response body as string without modifying l.Res

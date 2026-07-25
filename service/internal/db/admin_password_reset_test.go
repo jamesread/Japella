@@ -60,7 +60,7 @@ func TestAdminPasswordResetIntegration(t *testing.T) {
 	defer cleanupTestDB(t, db)
 
 	// Create an admin user with a different password
-	adminUser, err := db.CreateUserAccount("admin", "someOtherPassword")
+	adminUser, err := db.CreateUserAccount("admin", "someOtherPassword", UserCreatedByAdmin)
 	assert.NoError(t, err)
 	assert.NotNil(t, adminUser)
 

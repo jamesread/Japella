@@ -32,6 +32,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connectorcontroller"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/debuglog"
 	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/media"
@@ -223,7 +224,7 @@ func (s *ControlApi) processFeedFetching() {
 	if s.cc == nil {
 		return
 	}
-	feedFetcherLog(nil).Info("starting feed fetch cycle")
+	debuglog.Feedf("starting feed fetch cycle")
 
 	// Get all social accounts
 	socialAccounts := s.DB.SelectSocialAccounts(true) // Only active accounts
@@ -238,7 +239,7 @@ func (s *ControlApi) processFeedFetching() {
 
 		// Check if connector supports wall operations
 		if wallConnector, ok := connectorService.(connector.ConnectorWithWall); ok {
-			feedFetcherLog(sa).Info("fetching recent posts")
+			debuglog.Feedf("fetching recent posts for account %d (%s/%s)", sa.ID, sa.Connector, sa.Identity)
 
 			if socialAccountNeedsTokenRefresh(sa, time.Hour) {
 				refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
@@ -280,6 +281,8 @@ func (s *ControlApi) processFeedFetching() {
 					return
 				}
 
+				debuglog.Feedf("fetched %d posts for account %d", len(posts), sa.ID)
+
 				// Insert posts into feed table
 				for _, post := range posts {
 					feedEntry := &db.Feed{
@@ -297,20 +300,22 @@ func (s *ControlApi) processFeedFetching() {
 						PreviewImageURL:    post.PreviewImageURL,
 					}
 
-					err := s.DB.InsertFeedEntry(feedEntry)
+					inserted, err := s.DB.InsertFeedEntry(feedEntry)
 					if err != nil {
 						feedFetcherLog(sa).WithField("remote_id", post.RemoteID).Errorf("failed to insert feed entry: %v", err)
+					} else if inserted {
+						debuglog.Feedf("inserted feed entry remote_id=%s account=%d", post.RemoteID, sa.ID)
 					} else {
-						feedFetcherLog(sa).WithField("remote_id", post.RemoteID).Info("inserted feed entry")
+						debuglog.Feedf("skipped duplicate feed entry remote_id=%s account=%d", post.RemoteID, sa.ID)
 					}
 				}
 			}()
 		} else {
-			feedFetcherLog(sa).Debug("connector does not support wall operations")
+			debuglog.Feedf("connector %s does not support wall operations", sa.Connector)
 		}
 	}
 
-	feedFetcherLog(nil).Info("completed feed fetch cycle")
+	debuglog.Feedf("completed feed fetch cycle")
 }
 
 func (s *ControlApi) processTokenRefresh() {
@@ -2139,6 +2144,7 @@ func (s *ControlApi) GetUsers(ctx context.Context, req *connect.Request[controlv
 			Id:        user.ID,
 			Username:  user.Username,
 			CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+			CreatedBy: user.CreatedBy,
 		})
 	}
 
@@ -2163,6 +2169,7 @@ func (s *ControlApi) GetUser(ctx context.Context, req *connect.Request[controlv1
 			Id:        user.ID,
 			Username:  user.Username,
 			CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+			CreatedBy: user.CreatedBy,
 		},
 	}), nil
 }
@@ -2193,7 +2200,7 @@ func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[contro
 		}
 	}
 
-	created, err := s.DB.CreateUserAccount(username, passwordHash)
+	created, err := s.DB.CreateUserAccount(username, passwordHash, db.UserCreatedByAdmin)
 	if err != nil {
 		log.Errorf("Error creating user account %s: %v", username, err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create user"))
@@ -2225,6 +2232,7 @@ func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[contro
 			Id:        user.ID,
 			Username:  user.Username,
 			CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
+			CreatedBy: user.CreatedBy,
 		},
 	})
 
@@ -2459,6 +2467,11 @@ func (s *ControlApi) SetCvar(ctx context.Context, req *connect.Request[controlv1
 	if err != nil {
 		log.Errorf("Error setting cvar: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set cvar: %w", err))
+	}
+
+	if debuglog.IsDebugCvar(cvar.KeyName) && (cvar.Type == "bool" || cvar.Type == "int") {
+		debuglog.Set(cvar.KeyName, req.Msg.ValueInt == 1)
+		log.Infof("Updated debug log flag %s=%v", cvar.KeyName, req.Msg.ValueInt == 1)
 	}
 
 	res := connect.NewResponse(&controlv1.SetCvarResponse{

@@ -9,6 +9,7 @@ type CommonConfig struct {
 	Auth                *authpublic.Config `yaml:"auth"`
 	Connectors          []*ConnectorConfigWrapper
 	Database            DatabaseConfig
+	LogLevel            string `yaml:"logLevel"`
 	Nanoservices        []NanoserviceConfig
 	TLS                 TLSConfig
 	ListenAddress       string `yaml:"listenAddress"`

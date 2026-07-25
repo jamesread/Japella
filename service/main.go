@@ -1,12 +1,11 @@
 package main
 
 import (
-	"os"
-
 	"github.com/jamesread/japella/internal/bots/exec"
 	"github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/httpserver"
 	"github.com/jamesread/japella/internal/nanoservice"
+	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
 )
@@ -18,12 +17,7 @@ var (
 
 func main() {
 	utils.SetupLogging()
-
-	if os.Getenv("JAPELLA_DEBUG") == "true" {
-		log.SetLevel(log.DebugLevel)
-	} else {
-		log.SetLevel(log.InfoLevel)
-	}
+	runtimeconfig.Get() // loads config.yaml and applies logLevel
 
 	log.Infof("japella startup")
 	log.WithFields(log.Fields{

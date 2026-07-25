@@ -1,5 +1,10 @@
 configVersion: 2
 
+# Log level: panic, fatal, error, warn, info, debug, trace (default: info).
+# Override with JAPELLA_LOG_LEVEL, or force debug with JAPELLA_DEBUG=true.
+# For temporary subsystem debug (auth/feed/http), use Settings → Debug in the UI instead.
+logLevel: info
+
 database:
   host: mysql
   user: japella
@@ -8,7 +13,8 @@ database:
 
 # Optional HTTP authentication via httpauthshim (https://github.com/jamesread/httpauthshim).
 # Omit or leave empty to use only Japella DB sessions and API keys.
-# Identities from these providers must match an existing Japella username.
+# JWT identities are auto-created in the DB on first login (created_by: sso-autocreated).
+# Other providers (headers, mTLS) must match an existing Japella username.
 #
 # Cloudflare Access JWT example:
 # auth:

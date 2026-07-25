@@ -105,11 +105,18 @@ type PostApproval struct {
 	ApprovedByUserID uint32 `db:"approved_by_user_id"`
 }
 
+// How a user_accounts row was provisioned (see CreateUserAccount).
+const (
+	UserCreatedByAdmin = "admin-created"
+	UserCreatedBySSO   = "sso-autocreated"
+)
+
 type UserAccount struct {
 	Model
 
 	Username     string `db:"username"`
 	PasswordHash string `db:"password_hash"`
+	CreatedBy    string `db:"created_by"`
 }
 
 type UserGroup struct {

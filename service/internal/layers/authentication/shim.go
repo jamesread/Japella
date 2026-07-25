@@ -20,6 +20,7 @@ import (
 const (
 	providerJapellaAPIKey  = "japella-api-key"
 	providerJapellaSession = "japella-session"
+	providerJWT            = "jwt"
 )
 
 // nopSessionPersistence satisfies httpauthshim session storage without persisting to disk.

@@ -1,0 +1,125 @@
+= Authentication (`auth`)
+
+Japella uses link:https://github.com/jamesread/httpauthshim[httpauthshim] for HTTP authentication. Place httpauthshim settings under the top-level `auth` key in `config.yaml`.
+
+Primary login remains Japella's own users in the database (web UI username/password → `japella-sid` session cookie, and API keys created in **User settings → API Keys**). The `auth` block adds optional extra providers such as trusted reverse-proxy headers, JWT, or mTLS.
+
+Authenticated identities from those providers are matched to Japella usernames. For JWT authentication, if no matching user exists, Japella creates one automatically with `created_by` set to `sso-autocreated` and the default member role. Manually created users (UI/API) get `created_by` = `admin-created`.
+
+== Minimal / default
+
+Omit `auth`, or leave it empty. Japella still authenticates via database sessions and API keys:
+
+.config.yaml
+[source,yaml]
+----
+configVersion: 2
+
+database:
+  host: mysql
+  user: japella
+  pass: password
+  name: japella
+
+auth: {}
+----
+
+== Trusted HTTP headers (reverse proxy SSO)
+
+When Authelia, Authentik, or another identity-aware proxy injects a username header, map it under `auth.httpHeader`:
+
+.config.yaml
+[source,yaml]
+----
+auth:
+  httpHeader:
+    username: "Remote-User"
+    userGroup: "Remote-Groups"
+    userGroupSep: ","
+----
+
+Only enable this when Japella is not reachable except through a trusted proxy that strips client-supplied copies of those headers.
+
+== JWT
+
+Configure JWT verification under `auth.jwt`. Use a cookie name and/or an HTTP header. Bearer tokens in `Authorization` are tried as Japella API keys first; if the token is not an API key, httpauthshim JWT header validation runs next.
+
+.config.yaml
+[source,yaml]
+----
+auth:
+  jwt:
+    # One of: certsUrl (JWKS), pubKeyPath (RSA PEM), or hmacSecret
+    certsUrl: "https://idp.example.com/.well-known/jwks.json"
+    claimUsername: "sub"
+    claimUserGroup: "groups"
+    header: "Authorization"
+    # cookieName: "japella-jwt"
+----
+
+== Cloudflare Access JWT
+
+When Japella sits behind link:https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/[Cloudflare Access], Cloudflare attaches a signed JWT on every request to the origin. Prefer validating the `Cf-Access-Jwt-Assertion` header (Cloudflare always sends it to the origin). Browser sessions also set a `CF_Authorization` cookie; you can enable that as a fallback.
+
+=== Collect values from Cloudflare Zero Trust
+
+. *Application Audience (AUD) Tag*
+.. Open link:https://one.dash.cloudflare.com/[Zero Trust]
+.. Go to *Access* → *Applications*
+.. Open your Japella application → *Overview*
+.. Copy the *Application Audience (AUD) Tag*
+. *Team domain*
+.. Zero Trust → *Settings* → *Custom Pages* (or team name settings)
+.. Note the team domain, for example `https://myteam.cloudflareaccess.com`
+. *JWKS URL* — append `/cdn-cgi/access/certs` to the team domain:
++
+`https://myteam.cloudflareaccess.com/cdn-cgi/access/certs`
+
+=== Example `config.yaml`
+
+.config.yaml
+[source,yaml]
+----
+auth:
+  jwt:
+    certsUrl: "https://myteam.cloudflareaccess.com/cdn-cgi/access/certs"
+    issuer: "https://myteam.cloudflareaccess.com"
+    aud: "PASTE_APPLICATION_AUD_TAG_HERE"
+    claimUsername: "email"
+    header: "Cf-Access-Jwt-Assertion"
+    # Optional browser fallback (not always present on non-browser clients):
+    cookieName: "CF_Authorization"
+    # While testing, you may enable claim dumping in logs (insecure):
+    # insecureAllowDumpJwtClaims: true
+----
+
+=== Username matching
+
+Cloudflare Access puts the signed-in user's email in the `email` claim. Japella looks up a database user whose *username* equals that claim value. Create Japella users with usernames that match those emails (for example `alice@example.com`), or Access login will authenticate the JWT but Japella will still reject the request as an unknown user.
+
+=== Security notes
+
+* Only enable this when traffic to Japella comes from Cloudflare (Tunnel or locked-down origin). Clients must not be able to forge `Cf-Access-Jwt-Assertion`.
+* Always set `aud` and `issuer` so tokens for other Access applications are rejected.
+* Prefer the header over the cookie alone; Cloudflare documents the header as the reliable origin signal.
+
+== mTLS
+
+.config.yaml
+[source,yaml]
+----
+auth:
+  mtls:
+    enabled: true
+    usernameFromCN: true
+    groupFromOU: true
+----
+
+== Full httpauthshim options
+
+The `auth` value is an httpauthshim `authpublic.Config`. Additional keys (`oauth2Providers`, `localUsers`, `bearerToken`, `oidcProviders`, `accessControlLists`, and others) follow the library schema. See:
+
+* link:https://github.com/jamesread/httpauthshim[httpauthshim README]
+* link:https://pkg.go.dev/github.com/jamesread/httpauthshim/authpublic#Config[authpublic.Config on pkg.go.dev]
+
+NOTE: Japella keeps its own sessions in the database. httpauthshim file-based session storage under `auth.baseDir` is unused for Japella UI logins.

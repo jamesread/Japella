@@ -42,6 +42,8 @@
 				<dd>{{ user.username }}</dd>
 				<dt>Created</dt>
 				<dd>{{ user.createdAt }}</dd>
+				<dt>Created by</dt>
+				<dd>{{ user.createdBy || '—' }}</dd>
 			</dl>
 
 			<div v-if="showUserAdminNav" class="user-admin-nav">

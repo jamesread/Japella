@@ -6,15 +6,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-
-	log "github.com/sirupsen/logrus"
+	"sync"
 
 	"github.com/goccy/go-yaml"
 	"github.com/goccy/go-yaml/ast"
-
-	"sync"
-
 	"github.com/jamesread/golure/pkg/dirs"
+	log "github.com/sirupsen/logrus"
 )
 
 var cfg *CommonConfig
@@ -158,6 +155,33 @@ func loadEnvVars(cfg *CommonConfig) {
 	loadEnvVarStr(&cfg.TLS.KeyPath, "JAPELLA_TLS_KEY_PATH")
 	loadEnvVarStr(&cfg.ListenAddress, "JAPELLA_LISTEN_ADDRESS")
 	loadEnvVarStr(&cfg.TelegramDebugChatId, "JAPELLA_TELEGRAM_DEBUG_CHAT_ID")
+	loadEnvVarStr(&cfg.LogLevel, "JAPELLA_LOG_LEVEL")
+}
+
+// applyLogLevel sets the global logrus level from config (and legacy JAPELLA_DEBUG).
+// Precedence: JAPELLA_DEBUG=true → debug; else LogLevel (config / JAPELLA_LOG_LEVEL); else info.
+func applyLogLevel(cfg *CommonConfig) {
+	if os.Getenv("JAPELLA_DEBUG") == "true" {
+		log.SetLevel(log.DebugLevel)
+		log.Debug("log level set to debug via JAPELLA_DEBUG")
+		return
+	}
+
+	levelName := strings.TrimSpace(cfg.LogLevel)
+	if levelName == "" {
+		log.SetLevel(log.InfoLevel)
+		return
+	}
+
+	level, err := log.ParseLevel(levelName)
+	if err != nil {
+		log.Warnf("invalid logLevel %q, using info: %v", levelName, err)
+		log.SetLevel(log.InfoLevel)
+		return
+	}
+
+	log.SetLevel(level)
+	log.Infof("log level set to %s", level.String())
 }
 
 func loadEnvVarInt(variable *int, envVar string) {
@@ -207,6 +231,7 @@ func loadConfig() *CommonConfig {
 	}
 
 	loadEnvVars(cfg)
+	applyLogLevel(cfg)
 
 	log.Infof("Config loading complete")
 

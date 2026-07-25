@@ -7,7 +7,10 @@ import (
 	"os"
 
 	"github.com/jamesread/golure/pkg/redact"
+	"github.com/jamesread/httpauthshim/authpublic"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/debuglog"
+	"github.com/jamesread/japella/internal/rbac"
 
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
 	japauth "github.com/jamesread/httpauthshim"
@@ -66,41 +69,79 @@ func (al *AuthLayer) Handle(ctx context.Context, req *http.Request) (any, error)
 	}
 
 	if token, ok := authn.BearerToken(req); ok {
-		log.Infof("Checking API key: %s", redact.RedactString(token))
+		debuglog.Authf("Checking API key: %s", redact.RedactString(token))
 		user := al.DB.GetUserByApiKey(token)
 		if user != nil {
-			log.Infof("API key authenticated for user: %s", user.Username)
+			debuglog.Authf("API key authenticated for user: %s", user.Username)
 			au := &AuthenticatedUser{User: user}
 			return al.finishWithRBAC(au, procedureName)
 		}
 		// Not a Japella API key — fall through to httpauthshim (e.g. JWT Bearer).
-		log.Debugf("Bearer token is not a Japella API key; trying httpauthshim providers")
+		debuglog.Authf("Bearer token is not a Japella API key; trying httpauthshim providers")
 	}
 
 	shimUser, err := al.shim.AuthFromHttpReqWithError(req)
 	if err != nil {
-		log.Debugf("httpauthshim: %v", err)
+		debuglog.Authf("httpauthshim: %v", err)
 		return nil, authn.Errorf("Authentication Required")
 	}
 
 	if shimUser.IsGuest() {
 		if allowList[procedureName] {
 			if req.Method != http.MethodPost {
-				log.Debugf("Allowing unauthenticated access to %s", procedureName)
+				debuglog.Authf("Allowing unauthenticated access to %s", procedureName)
 			}
 			return nil, nil
 		}
 		return nil, authn.Errorf("Authentication Required")
 	}
 
-	dbUser := al.DB.GetUserByUsername(shimUser.Username)
-	if dbUser == nil {
+	dbUser, err := al.resolveDBUser(shimUser)
+	if err != nil || dbUser == nil {
 		log.Warnf("Session user %q not found in database", shimUser.Username)
 		return nil, authn.Errorf("Authentication Required")
 	}
 
+	debuglog.Authf("Authenticated via %s as %q", shimUser.Provider, shimUser.Username)
 	au := &AuthenticatedUser{User: dbUser}
 	return al.finishWithRBAC(au, procedureName)
+}
+
+// resolveDBUser maps an httpauthshim identity to a Japella user_accounts row.
+// JWT users are auto-provisioned when missing (created_by = sso-autocreated).
+func (al *AuthLayer) resolveDBUser(shimUser *authpublic.AuthenticatedUser) (*db.UserAccount, error) {
+	if shimUser == nil || shimUser.Username == "" {
+		return nil, nil
+	}
+
+	dbUser := al.DB.GetUserByUsername(shimUser.Username)
+	if dbUser != nil {
+		return dbUser, nil
+	}
+
+	if shimUser.Provider != providerJWT {
+		return nil, nil
+	}
+
+	created, err := al.DB.CreateUserAccount(shimUser.Username, "", db.UserCreatedBySSO)
+	if err != nil {
+		// Concurrent first login: another request may have created the row.
+		if existing := al.DB.GetUserByUsername(shimUser.Username); existing != nil {
+			return existing, nil
+		}
+		return nil, err
+	}
+
+	log.Infof("Auto-created user %q from JWT SSO (id %d)", created.Username, created.ID)
+
+	if err := al.DB.AssignRBACRoleByName(created.ID, rbac.RoleMember); err != nil {
+		log.Warnf("Could not assign %s role to SSO user %d: %v", rbac.RoleMember, created.ID, err)
+	}
+
+	if reloaded := al.DB.GetUserByID(created.ID); reloaded != nil {
+		return reloaded, nil
+	}
+	return created, nil
 }
 
 func (al *AuthLayer) WrapHandler(in http.Handler) http.Handler {
@@ -142,7 +183,7 @@ func (al *AuthLayer) authenticateMCP(r *http.Request) (*AuthenticatedUser, int, 
 
 	shimUser, err := al.shim.AuthFromHttpReqWithError(r)
 	if err != nil {
-		log.Debugf("httpauthshim (mcp): %v", err)
+		debuglog.Authf("httpauthshim (mcp): %v", err)
 		return nil, http.StatusUnauthorized, errMCPInvalidAPIKey
 	}
 	if shimUser.IsGuest() || shimUser.Provider != providerJapellaAPIKey {

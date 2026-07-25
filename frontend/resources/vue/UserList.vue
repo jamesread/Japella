@@ -64,6 +64,7 @@
 
 	const tableHeaders = [
 		{ key: 'username', label: 'Username', sortable: true },
+		{ key: 'createdBy', label: 'Created by', sortable: true },
 		{ key: 'createdAt', label: 'Created', sortable: true },
 		{ key: 'actions', label: 'Actions', sortable: false, width: '6rem' },
 	];

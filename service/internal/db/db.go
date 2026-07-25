@@ -207,6 +207,7 @@ func (db *DB) reconnectDatabase() error {
 		db.findMigrationsDirectoryWrapped,
 		db.Migrate,
 		db.InsertCvarsIfNotExists,
+		db.LoadDebugLogFlags,
 		db.initAdminUser,
 		db.runRBACBootstrap,
 	}
@@ -269,7 +270,7 @@ func (db *DB) initAdminUser(chain *ConnectionChain) {
 			return
 		}
 
-		_, err = db.CreateUserAccount("admin", passwordHash)
+		_, err = db.CreateUserAccount("admin", passwordHash, UserCreatedByAdmin)
 		if err != nil {
 			db.Logger().Errorf("Failed to create default admin user: %v", err)
 			chain.err = err
@@ -662,8 +663,10 @@ func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 	err := db.ResilientGet(&user, `SELECT ua.* FROM user_accounts ua JOIN api_keys ak ON ua.id = ak.user_account_id WHERE ak.key_value = ? LIMIT 1`, apiKey)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			db.Logger().Errorf("Failed to get user by API key: %v", err)
+			// Expected when the Bearer token is a JWT or other non-API-key credential.
+			return nil
 		}
+		db.Logger().Errorf("Failed to get user by API key: %v", err)
 		return nil
 	}
 	return &user
@@ -683,8 +686,14 @@ func (db *DB) GetUserByUsername(username string) *UserAccount {
 	return &user
 }
 
-func (db *DB) CreateUserAccount(username, passwordHash string) (*UserAccount, error) {
-	res, err := db.ResilientExec("INSERT INTO user_accounts (username, password_hash, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", username, passwordHash)
+func (db *DB) CreateUserAccount(username, passwordHash, createdBy string) (*UserAccount, error) {
+	if createdBy == "" {
+		createdBy = UserCreatedByAdmin
+	}
+	res, err := db.ResilientExec(
+		"INSERT INTO user_accounts (username, password_hash, created_by, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+		username, passwordHash, createdBy,
+	)
 	if err != nil {
 		db.Logger().Errorf("Failed to create user account: %v", err)
 		return nil, err
@@ -697,6 +706,7 @@ func (db *DB) CreateUserAccount(username, passwordHash string) (*UserAccount, er
 		Model:        Model{ID: uint32(id)},
 		Username:     username,
 		PasswordHash: passwordHash,
+		CreatedBy:    createdBy,
 	}, nil
 }
 
@@ -1150,33 +1160,31 @@ func (db *DB) FeedEntryExists(socialAccountID uint32, remoteID string) (bool, er
 	return count > 0, nil
 }
 
-func (db *DB) InsertFeedEntry(feedEntry *Feed) error {
-	// Check if entry already exists
+// InsertFeedEntry inserts a feed row. Returns inserted=true when a new row was written.
+// Duplicate remote IDs are not an error (inserted=false).
+func (db *DB) InsertFeedEntry(feedEntry *Feed) (inserted bool, err error) {
 	exists, err := db.FeedEntryExists(feedEntry.SocialAccountID, feedEntry.RemoteID)
 	if err != nil {
 		db.Logger().Errorf("Failed to check if feed entry exists: %v", err)
-		return err
+		return false, err
 	}
 
 	if exists {
-		db.Logger().Debugf("Feed entry already exists for social_account_id=%d, remote_id=%s, skipping insert", feedEntry.SocialAccountID, feedEntry.RemoteID)
-		return nil // Not an error, just skip the duplicate
+		return false, nil
 	}
 
 	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, author_avatar_url, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :author_avatar_url, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, NOW(), NOW())`, feedEntry)
 
 	if err != nil {
-		// Check if error is due to duplicate key (unique constraint violation)
 		// MySQL error code 1062 is ER_DUP_ENTRY
 		if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "1062") {
-			db.Logger().Debugf("Feed entry already exists (duplicate key) for social_account_id=%d, remote_id=%s, skipping insert", feedEntry.SocialAccountID, feedEntry.RemoteID)
-			return nil // Not an error, just skip the duplicate
+			return false, nil
 		}
 		db.Logger().Errorf("Failed to insert feed entry: %v", err)
-		return err
+		return false, err
 	}
 
-	return nil
+	return true, nil
 }
 
 func (db *DB) SelectFeedEntries() ([]*Feed, error) {

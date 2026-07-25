@@ -42,7 +42,7 @@
 						type="checkbox"
 						:id="cvar.keyName"
 						:checked="cvar.valueInt === 1"
-						@blur="setCvar(cvar)"
+						@change="setCvar(cvar)"
 					/>
 				</template>
 				<span class="fg1"><div v-html="cvar.description"></div></span>
@@ -136,6 +136,11 @@
 
 		window.client.setCvar(req)
 			.then(() => {
+				if (cvar.type === 'bool') {
+					cvar.valueInt = req.valueInt;
+				} else if (cvar.type === 'text' || cvar.type === 'password') {
+					cvar.valueString = req.valueString;
+				}
 				console.log(`Cvar ${cvar.keyName} set.`);
 			})
 			.catch((error) => {

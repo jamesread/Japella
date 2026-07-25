@@ -361,6 +361,8 @@ message UserAccount {
 	uint32 id = 1;
 	string username = 2;
 	string created_at = 3;
+	// How the account was provisioned, e.g. "admin-created" or "sso-autocreated".
+	string created_by = 4;
 }
 
 message CreateUserRequest {

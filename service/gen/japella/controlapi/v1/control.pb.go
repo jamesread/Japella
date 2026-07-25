@@ -3592,10 +3592,12 @@ func (x *GetUserResponse) GetUser() *UserAccount {
 }
 
 type UserAccount struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	Username      string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
-	CreatedAt     string                 `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	Id        uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Username  string                 `protobuf:"bytes,2,opt,name=username,proto3" json:"username,omitempty"`
+	CreatedAt string                 `protobuf:"bytes,3,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	// How the account was provisioned, e.g. "admin-created" or "sso-autocreated".
+	CreatedBy     string `protobuf:"bytes,4,opt,name=created_by,json=createdBy,proto3" json:"created_by,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -3647,6 +3649,13 @@ func (x *UserAccount) GetUsername() string {
 func (x *UserAccount) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *UserAccount) GetCreatedBy() string {
+	if x != nil {
+		return x.CreatedBy
 	}
 	return ""
 }
@@ -11292,12 +11301,14 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x0eGetUserRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\rR\x06userId\"I\n" +
 	"\x0fGetUserResponse\x126\n" +
-	"\x04user\x18\x01 \x01(\v2\".japella.controlapi.v1.UserAccountR\x04user\"X\n" +
+	"\x04user\x18\x01 \x01(\v2\".japella.controlapi.v1.UserAccountR\x04user\"w\n" +
 	"\vUserAccount\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x03 \x01(\tR\tcreatedAt\"K\n" +
+	"created_at\x18\x03 \x01(\tR\tcreatedAt\x12\x1d\n" +
+	"\n" +
+	"created_by\x18\x04 \x01(\tR\tcreatedBy\"K\n" +
 	"\x11CreateUserRequest\x12\x1a\n" +
 	"\busername\x18\x01 \x01(\tR\busername\x12\x1a\n" +
 	"\bpassword\x18\x02 \x01(\tR\bpassword\"\xa2\x01\n" +
