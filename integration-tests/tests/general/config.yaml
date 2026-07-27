@@ -1,0 +1,10 @@
+configVersion: 2
+
+listenAddress: 0.0.0.0:18080
+
+database:
+  host: 127.0.0.1
+  port: 3307
+  user: japella
+  pass: password
+  name: japella

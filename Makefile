@@ -12,6 +12,8 @@ service-unittests:
 frontend:
 	$(MAKE) -wC frontend
 
+it: integration-tests
+
 integration-tests:
 	$(MAKE) -wC integration-tests
 

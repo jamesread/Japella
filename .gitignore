@@ -2,6 +2,8 @@ target
 **/*.swp
 **/*.swo
 config.yaml
+!integration-tests/tests/**/config.yaml
+!var/config-skel/config.yaml
 /japella-*
 /tmp
 /service/tmp
