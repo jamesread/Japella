@@ -25,35 +25,59 @@
 		:title="category.name"
 		classes="settings-category"
 	>
-		<form class="settings-form">
-			<template v-for="cvar in category.cvars" :key="cvar.keyName">
-				<label :for="cvar.keyName">{{ cvar.title }}:</label>
-				<template v-if="cvar.type === 'text' || cvar.type === 'password'">
+		<FormLayout @submit.prevent>
+			<FormField
+				v-for="cvar in category.cvars"
+				:key="cvar.keyName"
+				:label="cvar.title"
+				:for="cvar.type === 'bool' ? '' : cvar.keyName"
+				:fake="cvar.type === 'bool'"
+			>
+				<div
+					class="settings-field"
+					:id="cvar.type === 'bool' ? cvar.keyName : undefined"
+					:tabindex="cvar.type === 'bool' ? -1 : undefined"
+				>
 					<input
+						v-if="cvar.type === 'text' || cvar.type === 'password'"
 						:type="cvar.type"
 						:id="cvar.keyName"
 						:placeholder="cvar.keyName"
 						:value="cvar.valueString"
 						@blur="setCvar(cvar)"
 					/>
-				</template>
-				<template v-else-if="cvar.type === 'bool'">
-					<input
-						type="checkbox"
-						:id="cvar.keyName"
-						:checked="cvar.valueInt === 1"
-						@change="setCvar(cvar)"
+					<RadioGroup
+						v-else-if="cvar.type === 'bool'"
+						:name="cvar.keyName"
+						variant="boolean"
+						:aria-label="cvar.title"
+						:model-value="cvar.valueInt === 1"
+						:options="boolOptions"
+						@update:model-value="setBoolCvar(cvar, $event)"
 					/>
-				</template>
-				<span class="fg1"><div v-html="cvar.description"></div></span>
-				<span>
-					<a v-if="cvar.externalUrl" :href="cvar.externalUrl">Get</a>
-				</span>
-				<span>
-					<a v-if="cvar.docsUrl" :href="cvar.docsUrl">Docs</a>
-				</span>
-			</template>
-		</form>
+					<input
+						v-else-if="cvar.type === 'int'"
+						type="number"
+						:id="cvar.keyName"
+						:placeholder="cvar.keyName"
+						:value="cvar.valueInt"
+						@blur="setCvar(cvar)"
+					/>
+					<p
+						v-if="cvar.description"
+						class="subtle settings-description"
+						v-html="cvar.description"
+					></p>
+					<p
+						v-if="cvar.externalUrl || cvar.docsUrl"
+						class="settings-links"
+					>
+						<a v-if="cvar.externalUrl" :href="cvar.externalUrl">Get</a>
+						<a v-if="cvar.docsUrl" :href="cvar.docsUrl">Docs</a>
+					</p>
+				</div>
+			</FormField>
+		</FormLayout>
 	</Section>
 </template>
 
@@ -62,9 +86,17 @@
 	import { useRoute } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
+	import FormField from 'picocrank/vue/components/FormField.vue';
+	import RadioGroup from 'picocrank/vue/components/RadioGroup.vue';
 	import InlineNotification from './InlineNotification.vue';
 
 	const route = useRoute();
+
+	const boolOptions = [
+		{ label: 'On', value: true },
+		{ label: 'Off', value: false },
+	];
 
 	const categories = ref({});
 	const loaded = ref(false);
@@ -118,6 +150,22 @@
 		setTimeout(() => field.classList.remove('settings-field-highlight'), 2500);
 	}
 
+	function setBoolCvar(cvar, enabled) {
+		const req = {
+			keyName: cvar.keyName,
+			valueInt: enabled ? 1 : 0,
+		};
+
+		window.client.setCvar(req)
+			.then(() => {
+				cvar.valueInt = req.valueInt;
+				console.log(`Cvar ${cvar.keyName} set.`);
+			})
+			.catch((error) => {
+				console.error(`Error setting cvar ${cvar.keyName}:`, error);
+			});
+	}
+
 	function setCvar(cvar) {
 		const req = {
 			keyName: cvar.keyName,
@@ -125,8 +173,6 @@
 
 		if (cvar.type === 'text' || cvar.type === 'password') {
 			req.valueString = document.getElementById(cvar.keyName).value;
-		} else if (cvar.type === 'bool') {
-			req.valueInt = document.getElementById(cvar.keyName).checked ? 1 : 0;
 		} else if (cvar.type === 'int') {
 			req.valueInt = parseFloat(document.getElementById(cvar.keyName).value);
 		} else {
@@ -136,7 +182,7 @@
 
 		window.client.setCvar(req)
 			.then(() => {
-				if (cvar.type === 'bool') {
+				if (cvar.type === 'int') {
 					cvar.valueInt = req.valueInt;
 				} else if (cvar.type === 'text' || cvar.type === 'password') {
 					cvar.valueString = req.valueString;
@@ -164,14 +210,21 @@
 </script>
 
 <style scoped>
-	.settings-form {
-		display: grid;
-		grid-template-columns: 240px 300px 3fr min-content min-content;
-		align-items: center;
+	.settings-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4em;
+		min-width: 0;
 	}
 
-	.settings-form label {
-		justify-self: end;
+	.settings-description {
+		margin: 0;
+	}
+
+	.settings-links {
+		margin: 0;
+		display: flex;
+		gap: 0.75em;
 	}
 
 	:deep(.settings-field-highlight) {

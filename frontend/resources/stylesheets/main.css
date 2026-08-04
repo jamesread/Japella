@@ -165,23 +165,6 @@ section p:last-child {
 	grid-column: 1 / span 2;
 }
 
-#nav-section-links h2 {
-	color: #bbb;
-	margin-left: .5em;
-	margin-bottom: 0.5em;
-}
-
-#nav-section-links a:hover {
-	color: white;
-	background-color: #1d345c;
-}
-
-#nav-section-links a.active {
-	text-decoration: underline;
-	color: white;
-	background-color: #1d345c;
-}
-
 #notification-list {
 	position: fixed;
 	right: 0;
@@ -189,10 +172,6 @@ section p:last-child {
 	z-index: 1000;
 	width: 300px;
 	padding: 1em;
-}
-
-.user-info {
-	padding: .5em;
 }
 
 input:disabled {
@@ -205,7 +184,8 @@ input:disabled {
 	flex-grow: 1;
 }
 
-dialog {
+/* Japella app dialogs only — exclude picocrank QuickSearch (.quick-search-dialog). */
+dialog:not(.quick-search-dialog) {
 	background-color: #242424;
 	color: white;
 	border-radius: 0.5em;
@@ -215,7 +195,7 @@ dialog {
 	margin: auto;
 }
 
-dialog::backdrop {
+dialog:not(.quick-search-dialog)::backdrop {
 	background-color: rgba(0, 0, 0, 0.5);
 }
 
