@@ -43,13 +43,12 @@
 					</td>
 					<td>{{ log.message }}</td>
 					<td>
-						<router-link
+						<SocialAccountChip
 							v-if="log.relatedSocialAccountId"
-							:to="{ name: 'socialAccountDetails', params: { id: log.relatedSocialAccountId } }"
-							class="social-account-link"
-						>
-							{{ log.relatedSocialAccountIdentity || `Account #${log.relatedSocialAccountId}` }}
-						</router-link>
+							:social-account-id="log.relatedSocialAccountId"
+							:identity="log.relatedSocialAccountIdentity || `Account #${log.relatedSocialAccountId}`"
+							:icon="log.relatedSocialAccountIcon"
+						/>
 						<span v-else class="text-muted">—</span>
 					</td>
 				</tr>
@@ -63,6 +62,7 @@
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import SocialAccountChip from './SocialAccountChip.vue';
 
 	const clientReady = ref(false);
 	const loading = ref(true);
@@ -169,15 +169,6 @@
 	.log-debug .log-level {
 		background-color: #f5f5f5;
 		color: #666;
-	}
-
-	.social-account-link {
-		color: #369;
-		text-decoration: none;
-	}
-
-	.social-account-link:hover {
-		text-decoration: underline;
 	}
 
 	.text-muted {

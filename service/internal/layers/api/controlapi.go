@@ -1727,8 +1727,13 @@ func (s *ControlApi) GetLogs(ctx context.Context, req *connect.Request[controlv1
 
 		if entry.RelatedSocialAccountID.Valid {
 			logEntry.RelatedSocialAccountId = uint32(entry.RelatedSocialAccountID.Int32)
-			if entry.RelatedSocialAccount != nil {
-				logEntry.RelatedSocialAccountIdentity = entry.RelatedSocialAccount.Identity
+			if entry.RelatedSocialAccountIdentity.Valid {
+				logEntry.RelatedSocialAccountIdentity = entry.RelatedSocialAccountIdentity.String
+			}
+			if entry.RelatedSocialAccountConnector.Valid {
+				if svc := s.cc.Get(entry.RelatedSocialAccountConnector.String); svc != nil {
+					logEntry.RelatedSocialAccountIcon = svc.GetIcon()
+				}
 			}
 		}
 

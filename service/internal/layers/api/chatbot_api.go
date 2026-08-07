@@ -537,8 +537,18 @@ func (s *ControlApi) SendBotConversationMessage(ctx context.Context, req *connec
 		return nil, connect.NewError(connect.CodeNotFound, err)
 	}
 	platformIdentity := ""
-	if bot := ctrl.GetChatBot(); bot != nil {
+	bot := ctrl.GetChatBot()
+	if bot != nil {
 		platformIdentity = bot.Identity
+		if !bot.IsRunning {
+			msg := "Bot is offline; cannot send replies"
+			if strings.TrimSpace(bot.StatusMessage) != "" {
+				msg = fmt.Sprintf("Bot is offline: %s", bot.StatusMessage)
+			}
+			return connect.NewResponse(&controlv1.SendBotConversationMessageResponse{
+				StandardResponse: &controlv1.StandardResponse{Success: false, Message: msg},
+			}), nil
+		}
 	}
 
 	outgoing := &msgs.OutgoingMessage{

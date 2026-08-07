@@ -186,9 +186,7 @@
 		// Clear existing navigation
 		navigation.value.clearNavigationLinks();
 
-		navigation.value.addHtml('<h2 style = "padding-left: .5em; margin-top: 1em; margin-bottom: .5em;">Write</h2>', {
-			name: 'title-post',
-		});
+		navigation.value.addSection('Write', { name: 'nav-write' });
 
 		// Add router links
 		navigation.value.addRouterLink('postBox');
@@ -205,19 +203,13 @@
 
 		navigation.value.addRouterLink('timeline');
 
-		navigation.value.addHtml('<h2 style = "padding-left: .5em; margin-top: 1em; margin-bottom: .5em;">Read</h2>', {
-			name: 'title-read',
-		})
+		navigation.value.addSection('Read', { name: 'nav-read' });
 
 		navigation.value.addRouterLink('feed');
 
 		navigation.value.addRouterLink('chatBotConversationsAll');
 
-		navigation.value.addSeparator('connections-separator');
-
-		navigation.value.addHtml('<h2 style = "padding-left: .5em; margin-top: 1em; margin-bottom: .5em;">Settings</h2>', {
-			name: 'title-shared',
-		});
+		navigation.value.addSection('Settings', { name: 'nav-settings' });
 
 		navigation.value.addRouterLink('socialAccounts');
 

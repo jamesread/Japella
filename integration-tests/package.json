@@ -7,10 +7,10 @@
   "license": "AGPL-3.0-only",
   "devDependencies": {
     "chai": "^6.2.2",
-    "mocha": "^11.7.6",
-    "selenium-webdriver": "^4.45.0"
+    "mocha": "^11.8.0",
+    "selenium-webdriver": "^4.46.0"
   },
   "dependencies": {
-    "wait-on": "^9.0.10"
+    "wait-on": "^9.1.0"
   }
 }

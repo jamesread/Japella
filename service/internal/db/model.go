@@ -209,10 +209,11 @@ type Feed struct {
 type TableLog struct {
 	Model
 
-	Message              string         `db:"message"`
-	Level                string         `db:"level"`
-	RelatedSocialAccountID sql.NullInt32 `db:"related_social_account_id"`
-	RelatedSocialAccount   *SocialAccount
+	Message                       string         `db:"message"`
+	Level                         string         `db:"level"`
+	RelatedSocialAccountID        sql.NullInt32  `db:"related_social_account_id"`
+	RelatedSocialAccountIdentity  sql.NullString `db:"related_social_account_identity"`
+	RelatedSocialAccountConnector sql.NullString `db:"related_social_account_connector"`
 }
 
 type WebhookHook struct {

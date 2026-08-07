@@ -36,6 +36,7 @@
 							height="16"
 						/>
 						<div class="conversation-title">{{ conversation.title || 'Unknown sender' }}</div>
+						<span v-if="!conversation.botIsRunning" class="conversation-offline-badge">Offline</span>
 					</div>
 					<div v-if="isMultiBot" class="conversation-bot">
 						{{ conversation.botName }} · {{ conversation.protocol }}
@@ -69,14 +70,18 @@
 						</div>
 					</div>
 
+					<div v-if="selectedRow && !canReply" class="inline-notification warning" style="margin: 0.75em;">
+						{{ offlineReplyMessage }}
+					</div>
+
 					<div class="reply-box">
 						<textarea
 							v-model="replyContent"
-							placeholder="Write a reply as this bot..."
-							:disabled="sendingReply || !selectedRow"
+							:placeholder="replyPlaceholder"
+							:disabled="!canReply || sendingReply"
 						/>
 						<div class="reply-actions">
-							<button class="good" :disabled="sendingReply || !replyContent.trim() || !selectedRow" @click="sendReply">
+							<button class="good" :disabled="!canReply || sendingReply || !replyContent.trim()" @click="sendReply">
 								{{ sendingReply ? 'Sending...' : 'Send reply' }}
 							</button>
 						</div>
@@ -112,6 +117,33 @@
 	});
 
 	const isMultiBot = computed(() => Array.isArray(props.bots) && props.bots.length > 0);
+
+	const canReply = computed(() => {
+		const row = selectedRow.value;
+		return Boolean(row && row.botIsRunning);
+	});
+
+	const offlineReplyMessage = computed(() => {
+		const row = selectedRow.value;
+		if (!row || row.botIsRunning) {
+			return '';
+		}
+		const detail = String(row.botStatusMessage || '').trim();
+		if (detail) {
+			return `This bot is offline. ${detail} You can still read messages, but replies are disabled.`;
+		}
+		return 'This bot is offline. You can still read messages, but replies are disabled.';
+	});
+
+	const replyPlaceholder = computed(() => {
+		if (!selectedRow.value) {
+			return 'Select a conversation to reply…';
+		}
+		if (!canReply.value) {
+			return 'Bot is offline — replies are disabled';
+		}
+		return 'Write a reply as this bot...';
+	});
 
 	const conversations = ref([]);
 	const conversationsLoading = ref(false);
@@ -171,6 +203,8 @@
 			lastMessageAtUnix: Number(c.lastMessageAtUnix || 0),
 			botName: String(bot.name || bot.connector || 'Bot'),
 			identityDisplay: bot.identity || '',
+			botIsRunning: Boolean(bot.isRunning),
+			botStatusMessage: String(bot.statusMessage || ''),
 		};
 	}
 
@@ -416,7 +450,7 @@
 
 	async function sendReply() {
 		const row = selectedRow.value;
-		if (!row || !row.conversationKey || !replyContent.value.trim()) {
+		if (!row || !row.conversationKey || !replyContent.value.trim() || !row.botIsRunning) {
 			return;
 		}
 		sendingReply.value = true;
@@ -467,8 +501,9 @@
 			multi: isMultiBot.value,
 			botProtocol: props.bot?.connector,
 			botId: props.bot?.botId,
+			botRunning: props.bot?.isRunning,
 			botsSig: isMultiBot.value
-				? (props.bots || []).map(b => `${b.connector}\0${b.botId || ''}`).join('|')
+				? (props.bots || []).map(b => `${b.connector}\0${b.botId || ''}\0${b.isRunning ? 1 : 0}`).join('|')
 				: '',
 		}),
 		() => {
@@ -544,6 +579,20 @@
 		font-weight: 600;
 		margin-bottom: 0;
 		color: var(--text-color, #1a1a1a);
+		flex: 1;
+		min-width: 0;
+	}
+
+	.conversation-offline-badge {
+		flex-shrink: 0;
+		font-size: 0.7em;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.03em;
+		padding: 0.15em 0.45em;
+		border-radius: 0.25em;
+		background: var(--offline-badge-bg, #fde8e8);
+		color: var(--offline-badge-fg, #a33);
 	}
 
 	.conversation-bot {
@@ -689,6 +738,11 @@
 
 		.message-content {
 			color: var(--text-color, #f0f0f0);
+		}
+
+		.conversation-offline-badge {
+			--offline-badge-bg: #3a1f1f;
+			--offline-badge-fg: #f5a5a5;
 		}
 
 		.reply-box {

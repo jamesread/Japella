@@ -1272,22 +1272,17 @@ func (db *DB) InsertTableLog(message string, level string, relatedSocialAccountI
 func (db *DB) SelectTableLogs(limit int) ([]*TableLog, error) {
 	logs := make([]*TableLog, 0)
 
-	query := `SELECT id, message, level, related_social_account_id, created_at, updated_at FROM table_logs ORDER BY created_at DESC LIMIT ?`
+	query := `SELECT l.id, l.message, l.level, l.related_social_account_id, l.created_at, l.updated_at,
+		sa.identity AS related_social_account_identity,
+		sa.connector AS related_social_account_connector
+		FROM table_logs l
+		LEFT JOIN social_accounts sa ON l.related_social_account_id = sa.id
+		ORDER BY l.created_at DESC LIMIT ?`
 
 	err := db.ResilientSelect(&logs, query, limit)
 	if err != nil {
 		db.Logger().Errorf("Failed to select table logs: %v", err)
 		return nil, err
-	}
-
-	// Load related social accounts if present
-	for _, log := range logs {
-		if log.RelatedSocialAccountID.Valid {
-			socialAccount, err := db.GetSocialAccount(uint32(log.RelatedSocialAccountID.Int32))
-			if err == nil && socialAccount != nil {
-				log.RelatedSocialAccount = socialAccount
-			}
-		}
 	}
 
 	return logs, nil

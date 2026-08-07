@@ -634,6 +634,7 @@ message LogEntry {
 	uint32 related_social_account_id = 4; // 0 if not set
 	string related_social_account_identity = 5; // Empty if not set
 	string created_at = 6; // RFC3339 timestamp
+	string related_social_account_icon = 7; // Empty if not set
 }
 
 message GetJobsStatusRequest {

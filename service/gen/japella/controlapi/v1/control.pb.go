@@ -6384,6 +6384,7 @@ type LogEntry struct {
 	RelatedSocialAccountId       uint32                 `protobuf:"varint,4,opt,name=related_social_account_id,json=relatedSocialAccountId,proto3" json:"related_social_account_id,omitempty"`                  // 0 if not set
 	RelatedSocialAccountIdentity string                 `protobuf:"bytes,5,opt,name=related_social_account_identity,json=relatedSocialAccountIdentity,proto3" json:"related_social_account_identity,omitempty"` // Empty if not set
 	CreatedAt                    string                 `protobuf:"bytes,6,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`                                                              // RFC3339 timestamp
+	RelatedSocialAccountIcon     string                 `protobuf:"bytes,7,opt,name=related_social_account_icon,json=relatedSocialAccountIcon,proto3" json:"related_social_account_icon,omitempty"`             // Empty if not set
 	unknownFields                protoimpl.UnknownFields
 	sizeCache                    protoimpl.SizeCache
 }
@@ -6456,6 +6457,13 @@ func (x *LogEntry) GetRelatedSocialAccountIdentity() string {
 func (x *LogEntry) GetCreatedAt() string {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *LogEntry) GetRelatedSocialAccountIcon() string {
+	if x != nil {
+		return x.RelatedSocialAccountIcon
 	}
 	return ""
 }
@@ -11471,7 +11479,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x0eGetLogsRequest\x12\x14\n" +
 	"\x05limit\x18\x01 \x01(\rR\x05limit\"F\n" +
 	"\x0fGetLogsResponse\x123\n" +
-	"\x04logs\x18\x01 \x03(\v2\x1f.japella.controlapi.v1.LogEntryR\x04logs\"\xeb\x01\n" +
+	"\x04logs\x18\x01 \x03(\v2\x1f.japella.controlapi.v1.LogEntryR\x04logs\"\xaa\x02\n" +
 	"\bLogEntry\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x18\n" +
 	"\amessage\x18\x02 \x01(\tR\amessage\x12\x14\n" +
@@ -11479,7 +11487,8 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x19related_social_account_id\x18\x04 \x01(\rR\x16relatedSocialAccountId\x12E\n" +
 	"\x1frelated_social_account_identity\x18\x05 \x01(\tR\x1crelatedSocialAccountIdentity\x12\x1d\n" +
 	"\n" +
-	"created_at\x18\x06 \x01(\tR\tcreatedAt\"\x16\n" +
+	"created_at\x18\x06 \x01(\tR\tcreatedAt\x12=\n" +
+	"\x1brelated_social_account_icon\x18\a \x01(\tR\x18relatedSocialAccountIcon\"\x16\n" +
 	"\x14GetJobsStatusRequest\"M\n" +
 	"\x15GetJobsStatusResponse\x124\n" +
 	"\x04jobs\x18\x01 \x03(\v2 .japella.controlapi.v1.JobStatusR\x04jobs\"y\n" +
