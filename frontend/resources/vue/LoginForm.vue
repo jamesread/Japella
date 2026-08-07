@@ -108,6 +108,8 @@
 
 	const { t } = useI18n()
 
+	const loginRef = ref(null)
+
 	// Only show local login tab (hide OAuth tab)
 	const customTabs = ref([
 		{ id: 'local', label: 'Username & Password' }
@@ -121,9 +123,15 @@
 
 	const localLoginError = ref('')
 
+	function showLoginError(message) {
+		localLoginError.value = message
+		// Picocrank owns the visible local form when showDefaultTabs is false
+		// with a custom tab id of "local"; surface errors via its API.
+		loginRef.value?.setLocalLoginError(message)
+	}
+
 	async function handleLocalLogin(credentials) {
-		// Clear any previous errors
-		localLoginError.value = ''
+		showLoginError('')
 
 		// Use credentials from event if provided, otherwise use local state
 		const username = credentials?.username || localLogin.username
@@ -135,19 +143,21 @@
 				"password": password
 			})
 
-			if (res.standardResponse.success) {
+			if (res.standardResponse?.success) {
 				console.log('Login successful:', res)
 				// Reset form
 				localLogin.username = ''
 				localLogin.password = ''
+				loginRef.value?.resetLocalForm()
 				emit('login-success', res)
 			} else {
-				const errorMsg = t('section.login.error') + ': ' + res.standardResponse.errorMessage
-				localLoginError.value = errorMsg
+				showLoginError(
+					res.standardResponse?.message || t('section.login.error')
+				)
 			}
 		} catch (error) {
-			const errorMsg = t('section.login.error')
-			localLoginError.value = errorMsg
+			// Keep a generic message (e.g. unknown user returns Connect NotFound).
+			showLoginError(t('section.login.error'))
 		}
 	}
 </script>

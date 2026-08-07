@@ -2,6 +2,7 @@
 	<Header
 		:username="isLoggedIn ? username : ''"
 		@toggleSidebar="toggleSidebar"
+		@userClick="goToUserControlPanel"
 		title="Japella"
 		:logoUrl="logoUrl"
 		:sidebarEnabled="isLoggedIn"
@@ -10,20 +11,16 @@
 			<div v-if="isImpersonating" class="impersonation-banner">
 				<Icon icon="mdi:account-switch" width="18" height="18" />
 				<span>Impersonating <strong>{{ username }}</strong> (as {{ impersonatorUsername }})</span>
-				<button class="impersonation-exit" @click="stopImpersonation" :disabled="impersonationLoading">
+				<button type="button" class="impersonation-exit" @click="stopImpersonation" :disabled="impersonationLoading">
 					<Icon icon="mdi:logout" width="16" height="16" />
 					Exit
 				</button>
 			</div>
-			<QuickSearch v-if="isLoggedIn" />
-		</template>
-		<template #user-info>
-			<div class="user-info icon-and-text logo-with-title" v-if="isLoggedIn">
-				<router-link to="/user-control-panel" class="username-link">
-					<span id="user-name">{{ username }}</span>
-				</router-link>
-				<Icon icon="mdi:user" width="24" height="24" />
-			</div>
+			<QuickSearch
+				v-if="isLoggedIn"
+				placeholder="Search pages..."
+				:search-fields="['title', 'description', 'category']"
+			/>
 		</template>
 	</Header>
 
@@ -76,22 +73,6 @@
         margin-right: 10px;
     }
 
-    .username-link {
-        color: white;
-        text-decoration: none;
-        cursor: pointer;
-        transition: color 0.2s ease;
-    }
-
-    .username-link:hover {
-        color: #4CAF50;
-        text-decoration: underline;
-    }
-
-    .username-link:visited {
-        color: white;
-    }
-
     .impersonation-banner {
         display: flex;
         align-items: center;
@@ -102,32 +83,38 @@
         border-radius: 4px;
         font-size: 0.85em;
         white-space: nowrap;
+        align-self: center;
+        margin-right: 0.25rem;
     }
 
+    /* Beat Header header-actions :deep(button) chrome styles */
     .impersonation-exit {
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        background: rgba(255,255,255,0.2);
-        color: white;
-        border: 1px solid rgba(255,255,255,0.4);
-        border-radius: 3px;
-        padding: 0.15rem 0.5rem;
+        background: rgba(255,255,255,0.2) !important;
+        color: white !important;
+        border: 1px solid rgba(255,255,255,0.4) !important;
+        border-radius: 3px !important;
+        padding: 0.15rem 0.5rem !important;
         cursor: pointer;
         font-size: 0.85em;
         margin-left: 0.5rem;
+        height: auto !important;
+        align-self: center !important;
     }
 
     .impersonation-exit:hover {
-        background: rgba(255,255,255,0.35);
+        background: rgba(255,255,255,0.35) !important;
+        color: white !important;
     }
 </style>
 
 <script setup>
     import { waitForClient } from '../javascript/util.js'
     import { fetchAppStatus } from '../javascript/status.js'
-    import { ref, computed, onMounted, provide, watch } from 'vue';
-    import { useRoute } from 'vue-router';
+    import { ref, onMounted, provide, watch } from 'vue';
+    import { useRoute, useRouter } from 'vue-router';
     import { Icon } from '@iconify/vue';
     import { useI18n } from 'vue-i18n';
 	import LoginForm from './LoginForm.vue';
@@ -142,6 +129,7 @@
 
     const { t } = useI18n();
     const route = useRoute();
+    const router = useRouter();
 
     const clientReady = ref(false);
     const isLoggedIn = ref(false);
@@ -166,6 +154,10 @@
 		if (sidebar.value) {
 			sidebar.value.toggle();
 		}
+	}
+
+	function goToUserControlPanel() {
+		router.push({ name: 'userControlPanel' });
 	}
 
 	async function fetchApprovalsCount() {
