@@ -74,7 +74,7 @@ export async function loginAsAdmin () {
 }
 
 export async function getVisibleUsername () {
-  const el = await webdriver.findElement(By.css('#user-name'))
+  const el = await webdriver.findElement(By.css('header .user-info span'))
   return el.getText()
 }
 
