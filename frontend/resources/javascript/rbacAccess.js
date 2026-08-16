@@ -13,6 +13,13 @@ const CONTROL_PANEL_PERMISSIONS = [
 	'system.impersonate',
 ]
 
+export const IAM_PERMISSIONS = [
+	'users.view',
+	'usergroups.view',
+	'account-policies.manage',
+	'rbac.view',
+]
+
 const SYSTEM_DIAGNOSTICS_PERMISSIONS = [
 	'system.connectors',
 	'system.settings',
@@ -28,6 +35,17 @@ export function canAccessControlPanelFromStatus(st) {
 	}
 	const perms = st.rbacPermissions || []
 	return CONTROL_PANEL_PERMISSIONS.some((p) => perms.includes(p))
+}
+
+export function canAccessIamFromStatus(st) {
+	if (!st?.isLoggedIn) {
+		return false
+	}
+	if (st.rbacIsSuperuser) {
+		return true
+	}
+	const perms = st.rbacPermissions || []
+	return IAM_PERMISSIONS.some((p) => perms.includes(p))
 }
 
 export function canViewSystemDiagnosticsFromStatus(st) {

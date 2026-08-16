@@ -37,16 +37,34 @@
 					<button
 						v-if="hasActiveFilters"
 						type="button"
-						@click="clearFilters"
-						class="neutral small"
+						class="inline-icon neutral small"
 						title="Clear Filters"
+						@click="clearFilters"
 					>
-						<Icon icon="mdi:filter-remove" width="16" height="16" />
-						Clear
+						<HugeiconsIcon
+							:icon="FilterRemoveIcon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<span>Clear</span>
 					</button>
 				</div>
-				<button type="button" @click="refreshFeed()" :disabled="!clientReady || feedRefreshing" class="neutral" title="Refresh">
-					<Icon icon="material-symbols:refresh" />
+				<button
+					type="button"
+					class="inline-icon neutral"
+					aria-label="Refresh"
+					:disabled="!clientReady || feedRefreshing"
+					@click="refreshFeed()"
+				>
+					<HugeiconsIcon
+						:icon="RefreshIcon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
 				</button>
 			</div>
 		</template>
@@ -103,12 +121,15 @@
 <script setup>
 	import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 	import { waitForClient } from '../javascript/util';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { FilterRemoveIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Loading from './Loading.vue';
 	import PostPreview from './PostPreview.vue';
 	import PostBoost from './PostBoost.vue';
 	import FilterSelect from './FilterSelect.vue';
+
+	const iconStrokeWidth = 2.5;
 
 	const PAGE_SIZE = 10;
 	const AUTO_REFRESH_MS = 30_000;

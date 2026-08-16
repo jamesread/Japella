@@ -38,13 +38,27 @@
 				<div class="edit-actions">
 					<button
 						type="button"
-						class="good"
+						class="inline-icon good"
 						:disabled="saving || !canSaveEdit"
 						@click="savePendingContent"
 					>
-						<Icon v-if="saving" icon="eos-icons:loading" />
-						<Icon v-else icon="material-symbols:save" />
-						{{ saving ? 'Saving…' : 'Save' }}
+						<HugeiconsIcon
+							v-if="saving"
+							:icon="Loading01Icon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<HugeiconsIcon
+							v-else
+							:icon="SaveIcon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<span>{{ saving ? 'Saving…' : 'Save' }}</span>
 					</button>
 					<button
 						type="button"
@@ -106,36 +120,67 @@
 
 			<div class="post-actions-section">
 				<h3>Actions</h3>
-				<div class="action-buttons">
+				<div role="toolbar" class="action-buttons">
 					<button
 						v-if="isPendingApproval && canApprove"
 						type="button"
-						class="good"
+						class="inline-icon good"
 						:disabled="acting"
 						@click="approvePost"
 					>
-						<Icon v-if="acting" icon="eos-icons:loading" />
-						<Icon v-else icon="material-symbols:check-circle" />
-						{{ acting ? 'Approving…' : 'Approve' }}
+						<HugeiconsIcon
+							v-if="acting"
+							:icon="Loading01Icon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<HugeiconsIcon
+							v-else
+							:icon="CheckmarkCircle01Icon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<span>{{ acting ? 'Approving…' : 'Approve' }}</span>
 					</button>
 					<button
 						v-if="isPendingApproval && canReject"
 						type="button"
-						class="bad"
+						class="inline-icon bad"
 						:disabled="acting"
 						@click="rejectPost"
 					>
-						<Icon icon="material-symbols:cancel" />
-						Reject
+						<HugeiconsIcon
+							:icon="CancelCircleIcon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<span>Reject</span>
 					</button>
 					<button v-if="post.state === 'error'" @click="retryPost" class="good" :disabled="retrying">
 						<Icon v-if="retrying" icon="eos-icons:loading" />
 						<Icon v-else icon="mdi:refresh" />
 						{{ retrying ? 'Retrying...' : 'Retry Post' }}
 					</button>
-					<button @click="forgetPost" class="bad" :disabled="acting || saving">
-						<Icon icon="mdi:delete" />
-						Forget Post
+					<button
+						type="button"
+						class="inline-icon bad"
+						:disabled="acting || saving"
+						@click="forgetPost"
+					>
+						<HugeiconsIcon
+							:icon="Delete02Icon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<span>Forget</span>
 					</button>
 				</div>
 			</div>
@@ -178,8 +223,18 @@
 	import { useRoute, useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import {
+		CancelCircleIcon,
+		CheckmarkCircle01Icon,
+		Delete02Icon,
+		Loading01Icon,
+		SaveIcon,
+	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import PostPreview from './PostPreview.vue';
+
+	const iconStrokeWidth = 2.5;
 
 	const route = useRoute();
 	const router = useRouter();
@@ -516,12 +571,6 @@
 	margin-top: 0.75rem;
 }
 
-.edit-actions button {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
-}
-
 .post-metadata {
 	margin-bottom: 2rem;
 }
@@ -609,57 +658,6 @@
 	display: flex;
 	gap: 1rem;
 	flex-wrap: wrap;
-}
-
-.action-buttons button {
-	padding: 0.75rem 1rem;
-	border-radius: 0.5rem;
-	border: none;
-	cursor: pointer;
-	font-size: 0.9rem;
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	transition: all 0.2s ease;
-	font-weight: 500;
-}
-
-.action-buttons button:hover:not(:disabled) {
-	transform: translateY(-1px);
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.action-buttons button:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-	transform: none;
-}
-
-.action-buttons button.neutral {
-	background-color: #6c757d;
-	color: white;
-}
-
-.action-buttons button.neutral:hover:not(:disabled) {
-	background-color: #5a6268;
-}
-
-.action-buttons button.good {
-	background-color: #28a745;
-	color: white;
-}
-
-.action-buttons button.good:hover:not(:disabled) {
-	background-color: #218838;
-}
-
-.action-buttons button.bad {
-	background-color: #dc3545;
-	color: white;
-}
-
-.action-buttons button.bad:hover:not(:disabled) {
-	background-color: #c82333;
 }
 
 .modal-overlay {

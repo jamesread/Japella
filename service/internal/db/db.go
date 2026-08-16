@@ -669,7 +669,15 @@ func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 		db.Logger().Errorf("Failed to get user by API key: %v", err)
 		return nil
 	}
+	db.touchApiKeyLastUsed(apiKey)
 	return &user
+}
+
+func (db *DB) touchApiKeyLastUsed(apiKey string) {
+	_, err := db.ResilientExec(`UPDATE api_keys SET last_used_at = NOW(), updated_at = NOW() WHERE key_value = ?`, apiKey)
+	if err != nil {
+		db.Logger().Errorf("Failed to update API key last used time: %v", err)
+	}
 }
 
 func (db *DB) GetUserByUsername(username string) *UserAccount {
@@ -776,8 +784,8 @@ func (db *DB) DeleteUserAccount(userID uint32) error {
 	return nil
 }
 
-func (db *DB) CreateApiKey(user *UserAccount, keyValue string) (*ApiKey, error) {
-	res, err := db.ResilientExec("INSERT INTO api_keys (key_value, user_account_id, created_at, updated_at) VALUES (?, ?, NOW(), NOW())", keyValue, user.ID)
+func (db *DB) CreateApiKey(user *UserAccount, name, keyValue string) (*ApiKey, error) {
+	res, err := db.ResilientExec("INSERT INTO api_keys (name, key_value, user_account_id, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())", name, keyValue, user.ID)
 	if err != nil {
 		db.Logger().Errorf("Failed to create API key: %v", err)
 		return nil, err
@@ -788,6 +796,7 @@ func (db *DB) CreateApiKey(user *UserAccount, keyValue string) (*ApiKey, error) 
 	}
 	return &ApiKey{
 		Model:         Model{ID: uint32(id)},
+		Name:          name,
 		KeyValue:      keyValue,
 		UserAccountID: user.ID,
 		UserAccount:   user,
@@ -917,7 +926,7 @@ func (db *DB) SelectAPIKeys() ([]*ApiKey, error) {
 	}
 	rows := make([]*apiKeyRow, 0)
 	err := db.ResilientSelect(&rows, `
-		SELECT k.id, k.created_at, k.updated_at, k.key_value, k.user_account_id,
+		SELECT k.id, k.created_at, k.updated_at, k.name, k.last_used_at, k.key_value, k.user_account_id,
 		       COALESCE(u.username, '') AS username
 		FROM api_keys k
 		LEFT JOIN user_accounts u ON u.id = k.user_account_id
@@ -1024,12 +1033,25 @@ func (db *DB) SetCvarInt(key string, value int32) error {
 }
 
 func (db *DB) SaveUserPreferences(preferences *UserPreferences) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO user_preferences (user_account_id, language, created_at, updated_at) VALUES (:user_account_id, :language, NOW(), NOW()) ON DUPLICATE KEY UPDATE language = VALUES(language), updated_at = NOW()`, preferences)
+	_, err := db.ResilientNamedExec(`INSERT INTO user_preferences (user_account_id, language, sidebar_enabled, created_at, updated_at) VALUES (:user_account_id, :language, :sidebar_enabled, NOW(), NOW()) ON DUPLICATE KEY UPDATE language = VALUES(language), sidebar_enabled = VALUES(sidebar_enabled), updated_at = NOW()`, preferences)
 	if err != nil {
 		db.Logger().Errorf("Failed to save user preferences: %v", err)
 		return err
 	}
 	return nil
+}
+
+func (db *DB) GetUserPreferences(userAccountID uint32) (*UserPreferences, error) {
+	var prefs UserPreferences
+	err := db.ResilientGet(&prefs, `SELECT id, created_at, updated_at, user_account_id, language, sidebar_enabled FROM user_preferences WHERE user_account_id = ?`, userAccountID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return &UserPreferences{UserAccountID: userAccountID, Language: "", SidebarEnabled: true}, nil
+		}
+		db.Logger().Errorf("Failed to get user preferences: %v", err)
+		return nil, err
+	}
+	return &prefs, nil
 }
 
 func (db *DB) RevokeApiKey(id uint32) error {
@@ -1269,23 +1291,59 @@ func (db *DB) InsertTableLog(message string, level string, relatedSocialAccountI
 	return nil
 }
 
-func (db *DB) SelectTableLogs(limit int) ([]*TableLog, error) {
+func (db *DB) SelectTableLogs(limit int, relatedSocialAccountID uint32) ([]*TableLog, error) {
 	logs := make([]*TableLog, 0)
 
 	query := `SELECT l.id, l.message, l.level, l.related_social_account_id, l.created_at, l.updated_at,
 		sa.identity AS related_social_account_identity,
 		sa.connector AS related_social_account_connector
 		FROM table_logs l
-		LEFT JOIN social_accounts sa ON l.related_social_account_id = sa.id
-		ORDER BY l.created_at DESC LIMIT ?`
+		LEFT JOIN social_accounts sa ON l.related_social_account_id = sa.id`
 
-	err := db.ResilientSelect(&logs, query, limit)
+	args := make([]interface{}, 0, 2)
+	if relatedSocialAccountID > 0 {
+		query += ` WHERE l.related_social_account_id = ?`
+		args = append(args, relatedSocialAccountID)
+	}
+
+	query += ` ORDER BY l.created_at DESC LIMIT ?`
+	args = append(args, limit)
+
+	err := db.ResilientSelect(&logs, query, args...)
 	if err != nil {
 		db.Logger().Errorf("Failed to select table logs: %v", err)
 		return nil, err
 	}
 
 	return logs, nil
+}
+
+func (db *DB) ListWebhookHooksForExistingBots() ([]*WebhookHook, error) {
+	ret := make([]*WebhookHook, 0)
+	err := db.ResilientSelect(&ret, `
+		SELECT wh.id, wh.connector, wh.identity, wh.bot_id, wh.url, wh.enabled, wh.created_at, wh.updated_at
+		FROM webhook_hooks wh
+		INNER JOIN chat_bot_instances cbi
+			ON cbi.protocol = wh.connector AND cbi.bot_id = wh.bot_id
+		ORDER BY wh.connector ASC, wh.bot_id ASC, wh.id ASC`)
+	if err != nil {
+		db.Logger().Errorf("ListWebhookHooksForExistingBots: %v", err)
+		return nil, err
+	}
+	return ret, nil
+}
+
+func (db *DB) DeleteOrphanedWebhookHooks() error {
+	_, err := db.ResilientExec(`
+		DELETE wh FROM webhook_hooks wh
+		LEFT JOIN chat_bot_instances cbi
+			ON cbi.protocol = wh.connector AND cbi.bot_id = wh.bot_id
+		WHERE cbi.id IS NULL`)
+	if err != nil {
+		db.Logger().Errorf("DeleteOrphanedWebhookHooks: %v", err)
+		return err
+	}
+	return nil
 }
 
 // SelectWebhookHooks returns all webhook hooks for a specific connector and bot instance.

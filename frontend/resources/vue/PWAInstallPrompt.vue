@@ -10,8 +10,19 @@
 				<button @click="handleInstall" class="pwa-install-button">
 					{{ $t('pwa.install.button', 'Install') }}
 				</button>
-				<button @click="dismissPrompt" class="pwa-dismiss-button" aria-label="Dismiss">
-					<Icon icon="mdi:close" width="20" height="20" />
+				<button
+					type="button"
+					class="inline-icon neutral"
+					aria-label="Dismiss"
+					@click="dismissPrompt"
+				>
+					<HugeiconsIcon
+						:icon="Cancel01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
 				</button>
 			</div>
 		</div>
@@ -21,7 +32,11 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { Icon } from '@iconify/vue';
+import { HugeiconsIcon } from '@hugeicons/vue';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { useI18n } from 'vue-i18n';
+
+const iconStrokeWidth = 2.5;
 
 const { t } = useI18n();
 
@@ -180,24 +195,6 @@ function dismissPrompt() {
 
 .pwa-install-button:active {
 	background-color: #3d8b40;
-}
-
-.pwa-dismiss-button {
-	background: transparent;
-	border: none;
-	color: #e0e0e0;
-	cursor: pointer;
-	padding: 4px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: 4px;
-	transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-.pwa-dismiss-button:hover {
-	background-color: rgba(255, 255, 255, 0.1);
-	color: white;
 }
 
 @media (max-width: 600px) {

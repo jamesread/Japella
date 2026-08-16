@@ -51,9 +51,18 @@
 			<p>Last Post: {{ campaign?.lastPostDate || 'Never' }}</p>
 
 			<div class="toolbar">
-				<router-link class="button good" :to="{ name: 'postBox', query: { campaignId: campaignId } }">
-					<Icon icon="jam:write-f" />
-					Create Post
+				<router-link
+					class="button inline-icon good"
+					:to="{ name: 'postBox', query: { campaignId: campaignId } }"
+				>
+					<HugeiconsIcon
+						:icon="EditIcon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>Create Post</span>
 				</router-link>
 			</div>
 
@@ -95,6 +104,8 @@
 
 <script setup>
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { EditIcon } from '@hugeicons/core-free-icons';
 	import { ref, onMounted, computed, nextTick } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import Section from 'picocrank/vue/components/Section.vue';
@@ -102,6 +113,7 @@
 
 	const route = useRoute();
 	const router = useRouter();
+	const iconStrokeWidth = 2.5;
 	const clientReady = ref(false)
 	const campaignId = ref(0)
 	const campaign = ref(null)
@@ -203,6 +215,7 @@
 		if (post.state === 'error') return 'bad';
 		if (post.state === 'pending_approval') return 'note';
 		if (post.state === 'rejected') return 'bad';
+		if (post.state === 'draft') return 'note';
 		if (post.state === 'pending' || post.state === 'scheduled') return 'note';
 		if (post.state === 'completed') return 'good';
 		return '';
@@ -212,6 +225,7 @@
 		if (post.state === 'error') return 'Error';
 		if (post.state === 'pending_approval') return 'Pending approval';
 		if (post.state === 'rejected') return 'Rejected';
+		if (post.state === 'draft') return 'Draft';
 		if (post.state === 'pending' || post.state === 'scheduled') return 'Scheduled';
 		if (post.state === 'completed') return 'Completed';
 		return 'Unknown';

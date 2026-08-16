@@ -11,6 +11,7 @@ const SubmissionSourceUI = "ui"
 const PostStatePendingApproval = "pending_approval"
 const PostStateRejected = "rejected"
 const PostStateScheduled = "scheduled"
+const PostStateDraft = "draft"
 const PostStateCompleted = "completed"
 const PostStateError = "error"
 

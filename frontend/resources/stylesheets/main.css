@@ -2,10 +2,6 @@
 	flex-grow: 1;
 }
 
-.pagination-info {
-	padding: 1em;
-}
-
 section.small {
 	max-width: 720px;
 	margin: auto;
@@ -182,21 +178,6 @@ input:disabled {
 	display: flex;
 	flex-direction: column;
 	flex-grow: 1;
-}
-
-/* Japella app dialogs only — exclude picocrank QuickSearch (.quick-search-dialog). */
-dialog:not(.quick-search-dialog) {
-	background-color: #242424;
-	color: white;
-	border-radius: 0.5em;
-	border-color: white;
-	padding: 1em;
-	max-width: 600px;
-	margin: auto;
-}
-
-dialog:not(.quick-search-dialog)::backdrop {
-	background-color: rgba(0, 0, 0, 0.5);
 }
 
 input:invalid {

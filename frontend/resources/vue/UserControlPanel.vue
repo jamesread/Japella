@@ -5,8 +5,20 @@
 		classes="user-control-panel"
 	>
 		<template #toolbar>
-			<button @click="refreshUserData" :disabled="!clientReady" class="neutral">
-				<Icon icon="material-symbols:refresh" />
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Refresh"
+				:disabled="!clientReady"
+				@click="refreshUserData"
+			>
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 			</button>
 		</template>
 
@@ -25,8 +37,7 @@
 				<Icon icon="mdi:account-circle" width="64" height="64" />
 				<div>
 					<h3 style="margin: 0 0 0.5em 0;">{{ userData.username }}</h3>
-					<p style="margin: 0 0 0.25em 0;">{{ userData.email || 'No email provided' }}</p>
-					<p style="margin: 0; font-size: 0.9em;">{{ userData.role || 'User' }}</p>
+					<p style="margin: 0;">{{ userData.email || 'No email provided' }}</p>
 				</div>
 			</div>
 
@@ -37,9 +48,6 @@
 
 				<dt>Email</dt>
 				<dd>{{ userData.email || 'Not provided' }}</dd>
-
-				<dt>Role</dt>
-				<dd>{{ userData.role || 'User' }}</dd>
 
 				<dt>Account Created</dt>
 				<dd>{{ formatDate(userData.createdAt) }}</dd>
@@ -73,9 +81,28 @@
 					<p style="margin: 0; font-size: 0.9em;">End your current session and return to the login page.</p>
 				</div>
 			</div>
-			<button @click="logout" :disabled="loggingOut" class="bad">
-				<Icon v-if="loggingOut" icon="eos-icons:loading" width="16" height="16" />
-				<Icon v-else icon="mdi:logout" width="16" height="16" />
+			<button
+				type="button"
+				class="inline-icon bad"
+				:disabled="loggingOut"
+				@click="logout"
+			>
+				<HugeiconsIcon
+					v-if="loggingOut"
+					:icon="Loading01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<HugeiconsIcon
+					v-else
+					:icon="Logout01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 				<span>{{ loggingOut ? 'Signing Out...' : 'Sign Out' }}</span>
 			</button>
 		</div>
@@ -88,10 +115,22 @@
 	import { waitForClient } from '../javascript/util';
 	import { invalidateAppStatus } from '../javascript/status.js';
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import {
+		KeyIcon,
+		Loading01Icon,
+		Logout01Icon,
+		RefreshIcon,
+		SecurityValidationIcon,
+		ActivityIcon,
+		WebSecurityIcon,
+		Settings01Icon,
+	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
-	import { KeyIcon, SecurityValidationIcon, ActivityIcon } from '@hugeicons/core-free-icons';
+
+	const iconStrokeWidth = 2.5;
 
 	const router = useRouter();
 
@@ -116,7 +155,6 @@
 			userData.value = {
 				username: status.username,
 				email: status.email || null,
-				role: status.role || 'User',
 				createdAt: status.createdAt || null,
 				lastLoginAt: status.lastLoginAt || null
 			};
@@ -148,6 +186,14 @@
 
 	function goToBrowserDiagnostics() {
 		router.push('/browser-diagnostics');
+	}
+
+	function goToMyPermissions() {
+		router.push('/user-control-panel/permissions');
+	}
+
+	function goToUserPreferences() {
+		router.push('/user-control-panel/preferences');
 	}
 
 	async function logout() {
@@ -201,6 +247,18 @@
 				icon: SecurityValidationIcon,
 				name: 'change-password',
 				description: 'Change your account password'
+			});
+
+			localNavigation.value.addCallback('User Preferences', goToUserPreferences, {
+				icon: Settings01Icon,
+				name: 'user-preferences',
+				description: 'Language and personal settings'
+			});
+
+			localNavigation.value.addCallback('My Permissions', goToMyPermissions, {
+				icon: WebSecurityIcon,
+				name: 'my-permissions',
+				description: 'Review your group membership and effective permissions'
 			});
 
 			localNavigation.value.addCallback('Browser Diagnostics', goToBrowserDiagnostics, {

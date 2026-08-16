@@ -35,8 +35,10 @@ import (
 	"github.com/jamesread/japella/internal/debuglog"
 	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/jamesread/japella/internal/layers/authentication"
+	"github.com/jamesread/japella/internal/httpserver/i18n"
 	"github.com/jamesread/japella/internal/media"
 	"github.com/jamesread/japella/internal/rbac"
+	"github.com/jamesread/japella/internal/webhook"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
@@ -209,11 +211,15 @@ func (s *ControlApi) processDueScheduledPosts() {
 		if status.Success {
 			if err := s.DB.MarkPostCompleted(p.ID, status.PostUrl, true); err != nil {
 				log.Errorf("Scheduler: failed to mark post %d completed: %v", p.ID, err)
+			} else {
+				s.dispatchPostOutcome(context.Background(), p, sa, true, status.PostUrl)
 			}
 		} else {
 			// Mark failed posts as error state to prevent infinite retries
 			if err := s.DB.MarkPostCompleted(p.ID, "", false); err != nil {
 				log.Errorf("Scheduler: failed to mark post %d as error: %v", p.ID, err)
+			} else {
+				s.dispatchPostOutcome(context.Background(), p, sa, false, "")
 			}
 			log.Warnf("Scheduler: posting failed for post %d, marked as error", p.ID)
 		}
@@ -521,6 +527,7 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		DatabaseConnected:      dbConnected,
 		AmqpEnabled:            amqpEn,
 		AmqpConnected:          amqpConn,
+		WebhookEvents:          append([]string(nil), webhook.SupportedEvents...),
 	})
 
 	if authenticatedUser == nil || !authenticatedUser.CanViewSystemDiagnostics() {
@@ -602,6 +609,26 @@ func (s *ControlApi) marshalSocialAccountsForUser(au *authentication.Authenticat
 	return accounts
 }
 
+func (s *ControlApi) userCanReadSocialAccount(au *authentication.AuthenticatedUser, socialAccountID uint32) bool {
+	if au == nil || au.User == nil || socialAccountID == 0 {
+		return false
+	}
+	if au.RBAC != nil && au.RBAC.IsSuperuser {
+		return true
+	}
+	if au.HasPermission(rbac.PermissionSocialAccountsViewAll) {
+		return true
+	}
+	socialAccount, err := s.DB.GetSocialAccount(socialAccountID)
+	if err != nil || socialAccount == nil {
+		return false
+	}
+	if socialAccount.OwnerUserID.Valid && uint32(socialAccount.OwnerUserID.Int32) == au.User.ID {
+		return true
+	}
+	return s.DB.CanUserAccessSocialAccount(au.User.ID, socialAccountID, "read")
+}
+
 func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[controlv1.SubmitPostRequest]) (*connect.Response[controlv1.SubmitPostResponse], error) {
 	res := &controlv1.SubmitPostResponse{}
 	au := s.getAuthenticatedUser(ctx)
@@ -656,6 +683,29 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			scheduledAt = sql.NullTime{Time: *scheduledTime, Valid: true}
 		}
 
+		if req.Msg.SaveAsDraft {
+			post := &db.Post{
+				SocialAccountID:   socialAccount.ID,
+				Content:           req.Msg.Content,
+				Status:            false,
+				State:             db.PostStateDraft,
+				CampaignID:        campaignID,
+				SubmissionSource:  source,
+				SubmittedByUserID: submittedBy,
+			}
+			if err := s.DB.CreatePost(post); err != nil {
+				log.Errorf("Failed to create draft post: %v", err)
+				postStatus.State = db.PostStateError
+			} else {
+				postStatus.Id = post.ID
+				postStatus.Success = true
+				postStatus.State = db.PostStateDraft
+				postStatus.SocialAccountIdentity = socialAccount.Identity
+			}
+			res.Posts = append(res.Posts, postStatus)
+			continue
+		}
+
 		if s.shouldHoldForApproval(socialAccount.ID, source) {
 			policy, _ := s.DB.GetAccountPolicyForSocialAccount(socialAccount.ID)
 			post := &db.Post{
@@ -678,6 +728,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				postStatus.Success = true
 				postStatus.State = db.PostStatePendingApproval
 				postStatus.SocialAccountIdentity = socialAccount.Identity
+				s.dispatchApprovalRequested(ctx, post, socialAccount, policy)
 			}
 			res.Posts = append(res.Posts, postStatus)
 			continue
@@ -712,7 +763,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				Content:           req.Msg.Content,
 				Status:            postStatus.Success,
 				State:             state,
-				PostURL:           postStatus.PostUrl,
+				PostURL:           sql.NullString{String: postStatus.PostUrl, Valid: postStatus.PostUrl != ""},
 				CampaignID:        campaignID,
 				SubmissionSource:  source,
 				SubmittedByUserID: submittedBy,
@@ -720,6 +771,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			_ = s.DB.CreatePost(post)
 			postStatus.Id = post.ID
 			postStatus.State = state
+			s.dispatchPostOutcome(ctx, post, socialAccount, postStatus.Success, postStatus.PostUrl)
 		}
 
 		res.Posts = append(res.Posts, postStatus)
@@ -747,7 +799,7 @@ func (s *ControlApi) shouldHoldForApproval(socialAccountID uint32, source string
 }
 
 // releaseApprovedPost posts or schedules a post after all approval stages pass.
-func (s *ControlApi) releaseApprovedPost(post *db.Post, socialAccount *db.SocialAccount) *controlv1.PostStatus {
+func (s *ControlApi) releaseApprovedPost(ctx context.Context, post *db.Post, socialAccount *db.SocialAccount) *controlv1.PostStatus {
 	postStatus := &controlv1.PostStatus{
 		Id:              post.ID,
 		SocialAccountId: post.SocialAccountID,
@@ -768,6 +820,7 @@ func (s *ControlApi) releaseApprovedPost(post *db.Post, socialAccount *db.Social
 	} else {
 		postStatus.State = db.PostStateError
 	}
+	s.dispatchPostOutcome(ctx, post, socialAccount, postStatus.Success, postStatus.PostUrl)
 	return postStatus
 }
 
@@ -1379,7 +1432,7 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 			SocialAccountIdentity: socialAccountIdentity,
 			Content:               post.Content,
 			Success:               post.Status,
-			PostUrl:               post.PostURL,
+			PostUrl:               post.PostURL.String,
 			CampaignId:            uint32(post.CampaignID.Int32),
 			CampaignName:          post.CampaignName.String,
 			State:                 post.State,
@@ -1642,6 +1695,7 @@ func (s *ControlApi) RetryPost(ctx context.Context, req *connect.Request[control
 		log.Errorf("Error updating post after retry: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update post: %w", err))
 	}
+	s.dispatchPostOutcome(ctx, post, socialAccount, postStatus.Success, postStatus.PostUrl)
 
 	// Set the post status fields for response
 	postStatus.Id = post.ID
@@ -1709,7 +1763,17 @@ func (s *ControlApi) GetLogs(ctx context.Context, req *connect.Request[controlv1
 		limit = 100 // Default limit
 	}
 
-	logEntries, err := s.DB.SelectTableLogs(limit)
+	relatedSocialAccountID := req.Msg.RelatedSocialAccountId
+	if relatedSocialAccountID == 0 {
+		if !authenticatedUser.HasPermission(rbac.PermissionSystemLogs) &&
+			(authenticatedUser.RBAC == nil || !authenticatedUser.RBAC.IsSuperuser) {
+			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: system.logs required"))
+		}
+	} else if !s.userCanReadSocialAccount(authenticatedUser, relatedSocialAccountID) {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: cannot view logs for this social account"))
+	}
+
+	logEntries, err := s.DB.SelectTableLogs(limit, relatedSocialAccountID)
 	if err != nil {
 		log.Errorf("Error selecting table logs: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve logs: %w", err))
@@ -2219,8 +2283,8 @@ func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[contro
 
 	log.Infof("Created user account: %s (id %d)", username, user.ID)
 
-	if err := s.DB.AssignRBACRoleByName(user.ID, rbac.RoleMember); err != nil {
-		log.Warnf("Could not assign %s role to new user %d: %v", rbac.RoleMember, user.ID, err)
+	if err := s.DB.EnsureUserInEveryoneGroup(user.ID); err != nil {
+		log.Warnf("Could not add new user %d to Everyone group: %v", user.ID, err)
 	}
 
 	message := "User created successfully"
@@ -2297,12 +2361,18 @@ func (s *ControlApi) GetApiKeys(ctx context.Context, req *connect.Request[contro
 		if key.UserAccount != nil {
 			username = key.UserAccount.Username
 		}
+		lastUsedAt := ""
+		if key.LastUsedAt.Valid {
+			lastUsedAt = key.LastUsedAt.Time.Format("2006-01-02 15:04:05")
+		}
 		res.Msg.Keys = append(res.Msg.Keys, &controlv1.ApiKey{
-			Id:        key.ID,
-			KeyValue:  redact.RedactString(key.KeyValue),
-			CreatedAt: key.CreatedAt.Format("2006-01-02 15:04:05"),
-			UserId:    key.UserAccountID,
-			Username:  username,
+			Id:         key.ID,
+			KeyValue:   redact.RedactString(key.KeyValue),
+			CreatedAt:  key.CreatedAt.Format("2006-01-02 15:04:05"),
+			UserId:     key.UserAccountID,
+			Username:   username,
+			LastUsedAt: lastUsedAt,
+			Name:       key.Name,
 		})
 	}
 
@@ -2358,6 +2428,25 @@ func (s *ControlApi) GetCvars(ctx context.Context, req *connect.Request[controlv
 	return res, nil
 }
 
+func (s *ControlApi) GetUserPreferences(ctx context.Context, req *connect.Request[controlv1.GetUserPreferencesRequest]) (*connect.Response[controlv1.GetUserPreferencesResponse], error) {
+	_ = ctx
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"))
+	}
+
+	prefs, err := s.DB.GetUserPreferences(authenticatedUser.User.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load user preferences"))
+	}
+
+	return connect.NewResponse(&controlv1.GetUserPreferencesResponse{
+		Language:           prefs.Language,
+		AvailableLanguages: i18n.AvailableLanguageCodes(),
+		SidebarEnabled:     prefs.SidebarEnabled,
+	}), nil
+}
+
 func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Request[controlv1.SaveUserPreferencesRequest]) (*connect.Response[controlv1.SaveUserPreferencesResponse], error) {
 	authenticatedUser := s.getAuthenticatedUser(ctx)
 
@@ -2365,11 +2454,17 @@ func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Reque
 		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("user not authenticated"))
 	}
 
+	language := strings.TrimSpace(req.Msg.Language)
+	if !i18n.IsSupportedLanguage(language) {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported language: %s", language))
+	}
+
 	log.Infof("Saving user preferences for user: %s", authenticatedUser.User.Username)
 
 	err := s.DB.SaveUserPreferences(&db.UserPreferences{
-		UserAccountID: authenticatedUser.User.ID,
-		Language:      req.Msg.Language,
+		UserAccountID:  authenticatedUser.User.ID,
+		Language:       language,
+		SidebarEnabled: req.Msg.SidebarEnabled,
 	})
 
 	if err != nil {
@@ -2382,6 +2477,7 @@ func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Reque
 			Success: true,
 			Message: "Preferences saved successfully",
 		},
+		Username: authenticatedUser.User.Username,
 	})
 
 	return res, nil
@@ -2406,9 +2502,17 @@ func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[cont
 
 	log.Infof("Creating API key for user: %s (requested by %s)", targetUser.Username, authenticatedUser.User.Username)
 
+	name := strings.TrimSpace(req.Msg.Name)
+	if name == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("API key name is required"))
+	}
+	if len(name) > 128 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("API key name must be 128 characters or fewer"))
+	}
+
 	newKeyValue := uuid.New().String()
 
-	apiKey, err := s.DB.CreateApiKey(targetUser, newKeyValue)
+	apiKey, err := s.DB.CreateApiKey(targetUser, name, newKeyValue)
 
 	if err != nil {
 		log.Errorf("Error creating API key: %v", err)

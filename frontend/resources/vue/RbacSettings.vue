@@ -1,179 +1,124 @@
 <template>
+	<CreateRbacRole ref="createRoleDialog" :permissions="permissions" @created="onRoleCreated" />
+
 	<Section
-		title="Roles & permissions"
-		subtitle="Manage RBAC roles, link them to permissions, and assign roles to users. Superuser has all permissions."
-		classes="rbac-settings"
+		subtitle="Manage RBAC roles, link them to permissions, and assign roles to user groups. Superuser has all permissions."
+		classes="rbac-settings settings-users"
+		:padding="false"
 	>
+		<template #title>
+			<span class="section-title-with-icon">
+				<HugeiconsIcon :icon="WebSecurityIcon" width="22" height="22" aria-hidden="true" />
+				Roles &amp; Permissions
+			</span>
+		</template>
+
 		<template #toolbar>
-			<button type="button" class="neutral" title="Refresh" :disabled="loading" @click="loadAll">
-				<Icon icon="material-symbols:refresh" />
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Refresh"
+				title="Refresh"
+				:disabled="loading"
+				@click="loadAll"
+			>
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+			</button>
+			<button
+				v-if="canManage"
+				type="button"
+				class="inline-icon good"
+				aria-label="Create role"
+				title="Create role"
+				:disabled="loading"
+				@click="openCreateRoleDialog"
+			>
+				<HugeiconsIcon
+					:icon="Add01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</div>
-
-		<div v-if="loading && !permissions.length" class="muted">Loading…</div>
+		<div v-if="errorMessage" class="inline-notification error list-banner-pad">{{ errorMessage }}</div>
+		<div v-if="loading && !roles.length" class="list-banner-pad muted">Loading…</div>
 
 		<template v-else>
-			<h3 class="subsection-title">Roles</h3>
-			<p v-if="!canManage" class="inline-notification note">You can view roles. Editing requires the rbac.manage permission.</p>
+			<p v-if="!canManage" class="inline-notification note list-banner-pad">
+				You can view roles. Editing requires the rbac.manage permission.
+			</p>
 
-			<table v-if="roles.length" class="roles-table">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th>Description</th>
-						<th>Permissions</th>
-						<th v-if="canManage" class="small">Actions</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="r in roles" :key="r.id">
-						<td>
-							<strong>{{ r.name }}</strong>
-							<span v-if="r.name === 'superuser'" class="badge">all access</span>
-						</td>
-						<td>{{ r.description }}</td>
-						<td class="perm-cells">{{ permissionLabels(r.permissionIds) }}</td>
-						<td v-if="canManage" align="right">
-							<button
-								v-if="r.name !== 'superuser' && r.name !== 'member'"
-								type="button"
-								class="neutral small"
-								@click="openEditRole(r)"
-							>
-								Edit
-							</button>
-							<button
-								v-if="r.name !== 'superuser' && r.name !== 'member'"
-								type="button"
-								class="bad small"
-								@click="deleteRole(r)"
-							>
-								Delete
-							</button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
+			<p v-if="!roles.length" class="inline-notification note list-banner-pad">No roles yet.</p>
 
-			<div v-if="canManage" class="create-role-panel">
-				<h4 class="subsection-title">Create role</h4>
-				<div class="form-row">
-					<label for="new-role-name">Name</label>
-					<input id="new-role-name" v-model="newRole.name" type="text" autocomplete="off" />
-				</div>
-				<div class="form-row">
-					<label for="new-role-desc">Description</label>
-					<input id="new-role-desc" v-model="newRole.description" type="text" />
-				</div>
-				<fieldset class="perm-checks">
-					<legend>Permissions</legend>
-					<table class="perm-table data-table">
-						<thead>
-							<tr>
-								<th class="perm-col-check" scope="col"><span class="a11yhidden">Grant</span></th>
-								<th scope="col">Permission</th>
-								<th scope="col">Description</th>
-							</tr>
-						</thead>
-						<tbody>
-							<tr v-for="p in permissionsSorted" :key="'n-' + p.id">
-								<td class="perm-col-check">
-									<input v-model="newRole.permissionIds" type="checkbox" :value="p.id" :aria-label="'Grant ' + p.name" />
-								</td>
-								<td><code>{{ p.name }}</code></td>
-								<td>{{ p.description || '—' }}</td>
-							</tr>
-						</tbody>
-					</table>
-				</fieldset>
-				<button type="button" class="good" :disabled="saving || !newRole.name.trim()" @click="createRole">
-					Create role
-				</button>
-			</div>
-
-			<h3 class="subsection-title">User role assignment</h3>
-			<div class="user-roles-row">
-				<label for="ur-user">User</label>
-				<select id="ur-user" v-model.number="userRolesUserId" @change="loadUserRoles">
-					<option :value="0">Select user…</option>
-					<option v-for="u in users" :key="u.id" :value="u.id">{{ u.username }} ({{ u.id }})</option>
-				</select>
-			</div>
-			<fieldset v-if="userRolesUserId && canManage" class="perm-checks">
-				<legend>Roles for selected user</legend>
-				<label v-for="r in roles" :key="'ur-' + r.id" class="check-label">
-					<input v-model="selectedUserRoleIds" type="checkbox" :value="r.id" />
-					{{ r.name }}
-				</label>
-				<button type="button" class="good" :disabled="saving" @click="saveUserRoles">Save user roles</button>
-			</fieldset>
-			<p v-else-if="userRolesUserId && !canManage" class="inline-notification note">You need rbac.manage to change user roles.</p>
+			<Table
+				v-else
+				class="roles-table-wrap"
+				row-clickable
+				:data="tableRows"
+				:headers="tableHeaders"
+				@row-click="onRoleRowClick"
+			>
+				<template #cell-name="{ row, value }">
+					<router-link :to="{ name: 'rbacRoleDetails', params: { id: String(row.id) } }" class="username-link">
+						<strong>{{ value }}</strong>
+					</router-link>
+				</template>
+				<template #cell-permissionsLabel="{ value }">
+					<span class="perm-cells">{{ value }}</span>
+				</template>
+				<template #cell-tags="{ row }">
+					<span class="role-tags">
+						<span v-if="isSystemRole(row.name)" class="tag fg-note">system role</span>
+						<span v-if="row.name === 'superuser'" class="tag fg-good">all access</span>
+						<span v-if="!isSystemRole(row.name)" class="muted">—</span>
+					</span>
+				</template>
+				<template #cell-userCount="{ row }">
+					<span class="used-by-cell">{{ row.usedByLabel }}</span>
+				</template>
+				<template #cell-actions="{ row }">
+					<div v-if="canDeleteRole(row)" class="actions-cell">
+						<button type="button" class="bad small" :disabled="saving" @click="deleteRole(row)">
+							Delete
+						</button>
+					</div>
+				</template>
+			</Table>
 		</template>
 	</Section>
-
-	<dialog ref="editDialog" class="dialog" @close="editRole = null">
-		<form v-if="editRole" @submit.prevent="saveEditedRole">
-			<h3>Edit role: {{ editRole.name }}</h3>
-			<label>Name</label>
-			<input v-model="editRole.name" type="text" required :disabled="editRole.originalName === 'member'" />
-			<label>Description</label>
-			<input v-model="editRole.description" type="text" />
-			<fieldset class="perm-checks">
-				<legend>Permissions</legend>
-				<table class="perm-table data-table">
-					<thead>
-						<tr>
-							<th class="perm-col-check" scope="col"><span class="a11yhidden">Grant</span></th>
-							<th scope="col">Permission</th>
-							<th scope="col">Description</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr v-for="p in permissionsSorted" :key="'e-' + p.id">
-							<td class="perm-col-check">
-								<input
-									v-model="editRole.permissionIds"
-									type="checkbox"
-									:value="p.id"
-									:aria-label="'Grant ' + p.name"
-								/>
-							</td>
-							<td><code>{{ p.name }}</code></td>
-							<td>{{ p.description || '—' }}</td>
-						</tr>
-					</tbody>
-				</table>
-			</fieldset>
-			<div class="dialog-actions">
-				<button type="button" class="neutral" @click="editDialog?.close()">Cancel</button>
-				<button type="submit" class="good" :disabled="saving">Save</button>
-			</div>
-		</form>
-	</dialog>
 </template>
 
 <script setup>
 	import { ref, computed, onMounted } from 'vue';
+	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { Add01Icon, RefreshIcon, WebSecurityIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import Table from './picocrank/TableWithRowClick.vue';
+	import CreateRbacRole from './CreateRbacRole.vue';
+
+	const iconStrokeWidth = 2.5;
+	const router = useRouter();
 
 	const permissions = ref([]);
 	const roles = ref([]);
-	const users = ref([]);
 	const loading = ref(true);
 	const saving = ref(false);
 	const errorMessage = ref('');
 	const statusPerms = ref([]);
 	const statusSuper = ref(false);
 
-	const newRole = ref({ name: '', description: '', permissionIds: [] });
-	const editRole = ref(null);
-	const editDialog = ref(null);
-	const userRolesUserId = ref(0);
-	const selectedUserRoleIds = ref([]);
+	const createRoleDialog = ref(null);
 
 	const canView = computed(
 		() => statusSuper.value || (Array.isArray(statusPerms.value) && statusPerms.value.includes('rbac.view'))
@@ -190,11 +135,46 @@
 		return m;
 	});
 
-	const permissionsSorted = computed(() =>
-		[...permissions.value].sort((a, b) =>
-			String(a.name || '').localeCompare(String(b.name || ''), undefined, { sensitivity: 'base' }),
-		),
+	const tableHeaders = computed(() => {
+		const headers = [
+			{ key: 'name', label: 'Name', sortable: true },
+			{ key: 'description', label: 'Description', sortable: true },
+			{ key: 'permissionsLabel', label: 'Permissions', sortable: true },
+			{ key: 'tags', label: 'Tags', sortable: false, width: '11rem' },
+			{ key: 'userCount', label: 'Used By', sortable: true, width: '11rem' },
+		];
+		if (canManage.value) {
+			headers.push({ key: 'actions', label: 'Actions', sortable: false, width: '6rem' });
+		}
+		return headers;
+	});
+
+	function formatUsedBy(groupCount, userCount) {
+		const g = Number(groupCount) || 0;
+		const u = Number(userCount) || 0;
+		const groupLabel = g === 1 ? 'group' : 'groups';
+		const userLabel = u === 1 ? 'user' : 'users';
+		return `${g} ${groupLabel} (${u} ${userLabel})`;
+	}
+
+	const tableRows = computed(() =>
+		roles.value.map((r) => ({
+			...r,
+			description: r.description || '—',
+			permissionsLabel: permissionLabels(r.permissionIds),
+			groupCount: r.groupCount ?? 0,
+			userCount: r.userCount ?? 0,
+			usedByLabel: formatUsedBy(r.groupCount, r.userCount),
+		})),
 	);
+
+	function canDeleteRole(r) {
+		return canManage.value && r.name !== 'superuser' && r.name !== 'member';
+	}
+
+	function isSystemRole(name) {
+		return name === 'superuser' || name === 'member';
+	}
 
 	function permissionLabels(ids) {
 		if (!ids?.length) {
@@ -204,6 +184,10 @@
 			.map((id) => permById.value[id]?.name || id)
 			.sort()
 			.join(', ');
+	}
+
+	function onRoleRowClick(r) {
+		router.push({ name: 'rbacRoleDetails', params: { id: String(r.id) } });
 	}
 
 	async function refreshStatus() {
@@ -223,14 +207,12 @@
 				errorMessage.value = 'You do not have permission to view RBAC (rbac.view).';
 				return;
 			}
-			const [pr, rr, ur] = await Promise.all([
+			const [pr, rr] = await Promise.all([
 				window.client.listRbacPermissions({}),
 				window.client.listRbacRoles({}),
-				window.client.getUsers({})
 			]);
 			permissions.value = pr.permissions || [];
 			roles.value = rr.roles || [];
-			users.value = ur.users || [];
 		} catch (e) {
 			console.error(e);
 			errorMessage.value = e.message || 'Failed to load RBAC data.';
@@ -239,102 +221,20 @@
 		}
 	}
 
-	async function loadUserRoles() {
-		if (!userRolesUserId.value || !canManage.value) {
-			selectedUserRoleIds.value = [];
-			return;
-		}
-		try {
-			await waitForClient();
-			const res = await window.client.getUserRbacRoles({ userId: userRolesUserId.value });
-			selectedUserRoleIds.value = [...(res.roleIds || [])];
-		} catch (e) {
-			console.error(e);
-			errorMessage.value = e.message || 'Failed to load user roles.';
-		}
+	function openCreateRoleDialog() {
+		createRoleDialog.value?.open();
 	}
 
-	async function saveUserRoles() {
-		if (!canManage.value) {
+	function onRoleCreated(roleId) {
+		if (roleId) {
+			router.push({ name: 'rbacRoleDetails', params: { id: String(roleId) } });
 			return;
 		}
-		saving.value = true;
-		errorMessage.value = '';
-		try {
-			await waitForClient();
-			await window.client.setUserRbacRoles({
-				userId: userRolesUserId.value,
-				roleIds: selectedUserRoleIds.value
-			});
-			await loadAll();
-		} catch (e) {
-			console.error(e);
-			errorMessage.value = e.message || 'Failed to save user roles.';
-		} finally {
-			saving.value = false;
-		}
-	}
-
-	async function createRole() {
-		if (!canManage.value) {
-			return;
-		}
-		saving.value = true;
-		errorMessage.value = '';
-		try {
-			await waitForClient();
-			await window.client.createRbacRole({
-				name: newRole.value.name.trim(),
-				description: newRole.value.description.trim(),
-				permissionIds: newRole.value.permissionIds
-			});
-			newRole.value = { name: '', description: '', permissionIds: [] };
-			await loadAll();
-		} catch (e) {
-			console.error(e);
-			errorMessage.value = e.message || 'Failed to create role.';
-		} finally {
-			saving.value = false;
-		}
-	}
-
-	function openEditRole(r) {
-		editRole.value = {
-			id: r.id,
-			name: r.name,
-			originalName: r.name,
-			description: r.description || '',
-			permissionIds: [...(r.permissionIds || [])]
-		};
-		editDialog.value?.showModal();
-	}
-
-	async function saveEditedRole() {
-		if (!editRole.value || !canManage.value) {
-			return;
-		}
-		saving.value = true;
-		errorMessage.value = '';
-		try {
-			await waitForClient();
-			await window.client.updateRbacRole({
-				roleId: editRole.value.id,
-				name: editRole.value.name.trim(),
-				description: editRole.value.description.trim(),
-				permissionIds: editRole.value.permissionIds
-			});
-			editDialog.value?.close();
-			await loadAll();
-		} catch (e) {
-			console.error(e);
-			errorMessage.value = e.message || 'Failed to update role.';
-		} finally {
-			saving.value = false;
-		}
+		loadAll();
 	}
 
 	async function deleteRole(r) {
-		if (!canManage.value || !confirm(`Delete role "${r.name}"? Users lose this role assignment.`)) {
+		if (!canManage.value || !confirm(`Delete role "${r.name}"? Groups lose this role assignment.`)) {
 			return;
 		}
 		saving.value = true;
@@ -357,89 +257,41 @@
 </script>
 
 <style scoped>
-	.subsection-title {
-		margin: 1.25rem 0 0.5rem;
-		font-size: 1.05rem;
-		font-weight: 600;
-	}
-
-	.perm-table {
-		width: 100%;
-		margin: 0.25rem 0 0;
-	}
-
-	.perm-col-check {
-		width: 2.5rem;
+	.section-title-with-icon {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45em;
 		vertical-align: middle;
-		text-align: center;
 	}
 
-	.perm-table td.perm-col-check input {
-		margin: 0;
+	.list-banner-pad {
+		padding-left: 1em;
+		padding-right: 1em;
 	}
 
-	.roles-table {
-		width: 100%;
-		max-width: 56rem;
+	.roles-table-wrap {
+		margin-top: 0.5rem;
 		margin-bottom: 1.5rem;
+	}
+
+	.actions-cell {
+		text-align: right;
 	}
 
 	.perm-cells {
 		font-size: 0.85em;
-		max-width: 24rem;
 	}
 
-	.badge {
-		margin-left: 0.35rem;
-		font-size: 0.75rem;
-		font-weight: 600;
-		opacity: 0.75;
-	}
-
-	.create-role-panel {
-		margin-bottom: 2rem;
-		padding: 1rem 0;
-		border-top: 1px solid var(--pico-muted-border-color, rgba(0, 0, 0, 0.12));
-		max-width: 40rem;
-	}
-
-	.form-row {
-		display: grid;
-		grid-template-columns: 8rem 1fr;
-		gap: 0.5rem 1rem;
-		align-items: center;
-		margin-bottom: 0.5rem;
-	}
-
-	.perm-checks {
-		margin: 0.75rem 0;
-		border: 1px solid var(--pico-muted-border-color, rgba(0, 0, 0, 0.12));
-		padding: 0.75rem 1rem;
-		border-radius: 4px;
-	}
-
-	.check-label {
-		display: block;
-		margin: 0.25rem 0;
-		font-size: 0.9em;
-	}
-
-	.user-roles-row {
+	.role-tags {
 		display: flex;
 		flex-wrap: wrap;
+		gap: 0.25rem;
 		align-items: center;
-		gap: 0.75rem;
-		margin-bottom: 0.75rem;
 	}
 
-	.user-roles-row select {
-		min-width: 14rem;
-	}
-
-	.dialog-actions {
-		display: flex;
-		gap: 0.75rem;
-		margin-top: 1rem;
+	.used-by-cell {
+		font-size: 0.9em;
+		white-space: nowrap;
 	}
 
 	.muted {

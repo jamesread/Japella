@@ -240,3 +240,25 @@ export function connectorHasBlockingIssues(issues) {
 }
 
 export const CONNECTOR_FIX_ACTION_REGISTER_CLIENT = 'register_client';
+
+/** Decode HTML entities (e.g. &amp;, &raquo;) for plain-text display. */
+export function decodeHtmlEntities(text) {
+	if (!text) {
+		return '';
+	}
+	if (typeof document === 'undefined') {
+		return text;
+	}
+
+	const el = document.createElement('div');
+	let current = text;
+	for (let i = 0; i < 3; i++) {
+		el.innerHTML = current;
+		const next = el.textContent || '';
+		if (next === current) {
+			break;
+		}
+		current = next;
+	}
+	return current;
+}

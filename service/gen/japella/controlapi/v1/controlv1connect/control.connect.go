@@ -132,15 +132,30 @@ const (
 	// JapellaControlApiServiceGetUserRbacRolesProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetUserRbacRoles RPC.
 	JapellaControlApiServiceGetUserRbacRolesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUserRbacRoles"
-	// JapellaControlApiServiceSetUserRbacRolesProcedure is the fully-qualified name of the
-	// JapellaControlApiService's SetUserRbacRoles RPC.
-	JapellaControlApiServiceSetUserRbacRolesProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetUserRbacRoles"
+	// JapellaControlApiServiceGetMyPermissionsAuditProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetMyPermissionsAudit RPC.
+	JapellaControlApiServiceGetMyPermissionsAuditProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetMyPermissionsAudit"
+	// JapellaControlApiServiceGetUserGroupRbacRolesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetUserGroupRbacRoles RPC.
+	JapellaControlApiServiceGetUserGroupRbacRolesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUserGroupRbacRoles"
+	// JapellaControlApiServiceSetUserGroupRbacRolesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetUserGroupRbacRoles RPC.
+	JapellaControlApiServiceSetUserGroupRbacRolesProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetUserGroupRbacRoles"
+	// JapellaControlApiServiceGetRbacRoleUsersProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetRbacRoleUsers RPC.
+	JapellaControlApiServiceGetRbacRoleUsersProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetRbacRoleUsers"
+	// JapellaControlApiServiceGetRbacRoleGroupsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetRbacRoleGroups RPC.
+	JapellaControlApiServiceGetRbacRoleGroupsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetRbacRoleGroups"
 	// JapellaControlApiServiceGetApiKeysProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetApiKeys RPC.
 	JapellaControlApiServiceGetApiKeysProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetApiKeys"
 	// JapellaControlApiServiceGetCvarsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetCvars RPC.
 	JapellaControlApiServiceGetCvarsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetCvars"
+	// JapellaControlApiServiceGetUserPreferencesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetUserPreferences RPC.
+	JapellaControlApiServiceGetUserPreferencesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetUserPreferences"
 	// JapellaControlApiServiceSaveUserPreferencesProcedure is the fully-qualified name of the
 	// JapellaControlApiService's SaveUserPreferences RPC.
 	JapellaControlApiServiceSaveUserPreferencesProcedure = "/japella.controlapi.v1.JapellaControlApiService/SaveUserPreferences"
@@ -294,6 +309,21 @@ const (
 	// JapellaControlApiServiceUpdatePendingPostProcedure is the fully-qualified name of the
 	// JapellaControlApiService's UpdatePendingPost RPC.
 	JapellaControlApiServiceUpdatePendingPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdatePendingPost"
+	// JapellaControlApiServiceListWebhooksProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListWebhooks RPC.
+	JapellaControlApiServiceListWebhooksProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListWebhooks"
+	// JapellaControlApiServiceCreateWebhookProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateWebhook RPC.
+	JapellaControlApiServiceCreateWebhookProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateWebhook"
+	// JapellaControlApiServiceUpdateWebhookProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateWebhook RPC.
+	JapellaControlApiServiceUpdateWebhookProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateWebhook"
+	// JapellaControlApiServiceDeleteWebhookProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteWebhook RPC.
+	JapellaControlApiServiceDeleteWebhookProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteWebhook"
+	// JapellaControlApiServiceListBotWebhooksProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListBotWebhooks RPC.
+	JapellaControlApiServiceListBotWebhooksProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListBotWebhooks"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -332,9 +362,14 @@ type JapellaControlApiServiceClient interface {
 	UpdateRbacRole(context.Context, *connect.Request[v1.UpdateRbacRoleRequest]) (*connect.Response[v1.UpdateRbacRoleResponse], error)
 	DeleteRbacRole(context.Context, *connect.Request[v1.DeleteRbacRoleRequest]) (*connect.Response[v1.DeleteRbacRoleResponse], error)
 	GetUserRbacRoles(context.Context, *connect.Request[v1.GetUserRbacRolesRequest]) (*connect.Response[v1.GetUserRbacRolesResponse], error)
-	SetUserRbacRoles(context.Context, *connect.Request[v1.SetUserRbacRolesRequest]) (*connect.Response[v1.SetUserRbacRolesResponse], error)
+	GetMyPermissionsAudit(context.Context, *connect.Request[v1.GetMyPermissionsAuditRequest]) (*connect.Response[v1.GetMyPermissionsAuditResponse], error)
+	GetUserGroupRbacRoles(context.Context, *connect.Request[v1.GetUserGroupRbacRolesRequest]) (*connect.Response[v1.GetUserGroupRbacRolesResponse], error)
+	SetUserGroupRbacRoles(context.Context, *connect.Request[v1.SetUserGroupRbacRolesRequest]) (*connect.Response[v1.SetUserGroupRbacRolesResponse], error)
+	GetRbacRoleUsers(context.Context, *connect.Request[v1.GetRbacRoleUsersRequest]) (*connect.Response[v1.GetRbacRoleUsersResponse], error)
+	GetRbacRoleGroups(context.Context, *connect.Request[v1.GetRbacRoleGroupsRequest]) (*connect.Response[v1.GetRbacRoleGroupsResponse], error)
 	GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error)
 	GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error)
+	GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error)
 	SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error)
 	CreateApiKey(context.Context, *connect.Request[v1.CreateApiKeyRequest]) (*connect.Response[v1.CreateApiKeyResponse], error)
 	RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error)
@@ -386,6 +421,11 @@ type JapellaControlApiServiceClient interface {
 	RejectPost(context.Context, *connect.Request[v1.RejectPostRequest]) (*connect.Response[v1.RejectPostResponse], error)
 	GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error)
 	UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error)
+	ListWebhooks(context.Context, *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error)
+	CreateWebhook(context.Context, *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error)
+	UpdateWebhook(context.Context, *connect.Request[v1.UpdateWebhookRequest]) (*connect.Response[v1.UpdateWebhookResponse], error)
+	DeleteWebhook(context.Context, *connect.Request[v1.DeleteWebhookRequest]) (*connect.Response[v1.DeleteWebhookResponse], error)
+	ListBotWebhooks(context.Context, *connect.Request[v1.ListBotWebhooksRequest]) (*connect.Response[v1.ListBotWebhooksResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -598,10 +638,34 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserRbacRoles")),
 			connect.WithClientOptions(opts...),
 		),
-		setUserRbacRoles: connect.NewClient[v1.SetUserRbacRolesRequest, v1.SetUserRbacRolesResponse](
+		getMyPermissionsAudit: connect.NewClient[v1.GetMyPermissionsAuditRequest, v1.GetMyPermissionsAuditResponse](
 			httpClient,
-			baseURL+JapellaControlApiServiceSetUserRbacRolesProcedure,
-			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserRbacRoles")),
+			baseURL+JapellaControlApiServiceGetMyPermissionsAuditProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetMyPermissionsAudit")),
+			connect.WithClientOptions(opts...),
+		),
+		getUserGroupRbacRoles: connect.NewClient[v1.GetUserGroupRbacRolesRequest, v1.GetUserGroupRbacRolesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetUserGroupRbacRolesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserGroupRbacRoles")),
+			connect.WithClientOptions(opts...),
+		),
+		setUserGroupRbacRoles: connect.NewClient[v1.SetUserGroupRbacRolesRequest, v1.SetUserGroupRbacRolesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetUserGroupRbacRolesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserGroupRbacRoles")),
+			connect.WithClientOptions(opts...),
+		),
+		getRbacRoleUsers: connect.NewClient[v1.GetRbacRoleUsersRequest, v1.GetRbacRoleUsersResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetRbacRoleUsersProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetRbacRoleUsers")),
+			connect.WithClientOptions(opts...),
+		),
+		getRbacRoleGroups: connect.NewClient[v1.GetRbacRoleGroupsRequest, v1.GetRbacRoleGroupsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetRbacRoleGroupsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetRbacRoleGroups")),
 			connect.WithClientOptions(opts...),
 		),
 		getApiKeys: connect.NewClient[v1.GetApiKeysRequest, v1.GetApiKeysResponse](
@@ -614,6 +678,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceGetCvarsProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCvars")),
+			connect.WithClientOptions(opts...),
+		),
+		getUserPreferences: connect.NewClient[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetUserPreferencesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserPreferences")),
 			connect.WithClientOptions(opts...),
 		),
 		saveUserPreferences: connect.NewClient[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse](
@@ -922,6 +992,36 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePendingPost")),
 			connect.WithClientOptions(opts...),
 		),
+		listWebhooks: connect.NewClient[v1.ListWebhooksRequest, v1.ListWebhooksResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListWebhooksProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListWebhooks")),
+			connect.WithClientOptions(opts...),
+		),
+		createWebhook: connect.NewClient[v1.CreateWebhookRequest, v1.CreateWebhookResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateWebhookProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateWebhook")),
+			connect.WithClientOptions(opts...),
+		),
+		updateWebhook: connect.NewClient[v1.UpdateWebhookRequest, v1.UpdateWebhookResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateWebhookProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateWebhook")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteWebhook: connect.NewClient[v1.DeleteWebhookRequest, v1.DeleteWebhookResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteWebhookProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteWebhook")),
+			connect.WithClientOptions(opts...),
+		),
+		listBotWebhooks: connect.NewClient[v1.ListBotWebhooksRequest, v1.ListBotWebhooksResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListBotWebhooksProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListBotWebhooks")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -960,9 +1060,14 @@ type japellaControlApiServiceClient struct {
 	updateRbacRole                  *connect.Client[v1.UpdateRbacRoleRequest, v1.UpdateRbacRoleResponse]
 	deleteRbacRole                  *connect.Client[v1.DeleteRbacRoleRequest, v1.DeleteRbacRoleResponse]
 	getUserRbacRoles                *connect.Client[v1.GetUserRbacRolesRequest, v1.GetUserRbacRolesResponse]
-	setUserRbacRoles                *connect.Client[v1.SetUserRbacRolesRequest, v1.SetUserRbacRolesResponse]
+	getMyPermissionsAudit           *connect.Client[v1.GetMyPermissionsAuditRequest, v1.GetMyPermissionsAuditResponse]
+	getUserGroupRbacRoles           *connect.Client[v1.GetUserGroupRbacRolesRequest, v1.GetUserGroupRbacRolesResponse]
+	setUserGroupRbacRoles           *connect.Client[v1.SetUserGroupRbacRolesRequest, v1.SetUserGroupRbacRolesResponse]
+	getRbacRoleUsers                *connect.Client[v1.GetRbacRoleUsersRequest, v1.GetRbacRoleUsersResponse]
+	getRbacRoleGroups               *connect.Client[v1.GetRbacRoleGroupsRequest, v1.GetRbacRoleGroupsResponse]
 	getApiKeys                      *connect.Client[v1.GetApiKeysRequest, v1.GetApiKeysResponse]
 	getCvars                        *connect.Client[v1.GetCvarsRequest, v1.GetCvarsResponse]
+	getUserPreferences              *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
 	saveUserPreferences             *connect.Client[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse]
 	createApiKey                    *connect.Client[v1.CreateApiKeyRequest, v1.CreateApiKeyResponse]
 	revokeApiKey                    *connect.Client[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse]
@@ -1014,6 +1119,11 @@ type japellaControlApiServiceClient struct {
 	rejectPost                      *connect.Client[v1.RejectPostRequest, v1.RejectPostResponse]
 	getPost                         *connect.Client[v1.GetPostRequest, v1.GetPostResponse]
 	updatePendingPost               *connect.Client[v1.UpdatePendingPostRequest, v1.UpdatePendingPostResponse]
+	listWebhooks                    *connect.Client[v1.ListWebhooksRequest, v1.ListWebhooksResponse]
+	createWebhook                   *connect.Client[v1.CreateWebhookRequest, v1.CreateWebhookResponse]
+	updateWebhook                   *connect.Client[v1.UpdateWebhookRequest, v1.UpdateWebhookResponse]
+	deleteWebhook                   *connect.Client[v1.DeleteWebhookRequest, v1.DeleteWebhookResponse]
+	listBotWebhooks                 *connect.Client[v1.ListBotWebhooksRequest, v1.ListBotWebhooksResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -1183,9 +1293,29 @@ func (c *japellaControlApiServiceClient) GetUserRbacRoles(ctx context.Context, r
 	return c.getUserRbacRoles.CallUnary(ctx, req)
 }
 
-// SetUserRbacRoles calls japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles.
-func (c *japellaControlApiServiceClient) SetUserRbacRoles(ctx context.Context, req *connect.Request[v1.SetUserRbacRolesRequest]) (*connect.Response[v1.SetUserRbacRolesResponse], error) {
-	return c.setUserRbacRoles.CallUnary(ctx, req)
+// GetMyPermissionsAudit calls japella.controlapi.v1.JapellaControlApiService.GetMyPermissionsAudit.
+func (c *japellaControlApiServiceClient) GetMyPermissionsAudit(ctx context.Context, req *connect.Request[v1.GetMyPermissionsAuditRequest]) (*connect.Response[v1.GetMyPermissionsAuditResponse], error) {
+	return c.getMyPermissionsAudit.CallUnary(ctx, req)
+}
+
+// GetUserGroupRbacRoles calls japella.controlapi.v1.JapellaControlApiService.GetUserGroupRbacRoles.
+func (c *japellaControlApiServiceClient) GetUserGroupRbacRoles(ctx context.Context, req *connect.Request[v1.GetUserGroupRbacRolesRequest]) (*connect.Response[v1.GetUserGroupRbacRolesResponse], error) {
+	return c.getUserGroupRbacRoles.CallUnary(ctx, req)
+}
+
+// SetUserGroupRbacRoles calls japella.controlapi.v1.JapellaControlApiService.SetUserGroupRbacRoles.
+func (c *japellaControlApiServiceClient) SetUserGroupRbacRoles(ctx context.Context, req *connect.Request[v1.SetUserGroupRbacRolesRequest]) (*connect.Response[v1.SetUserGroupRbacRolesResponse], error) {
+	return c.setUserGroupRbacRoles.CallUnary(ctx, req)
+}
+
+// GetRbacRoleUsers calls japella.controlapi.v1.JapellaControlApiService.GetRbacRoleUsers.
+func (c *japellaControlApiServiceClient) GetRbacRoleUsers(ctx context.Context, req *connect.Request[v1.GetRbacRoleUsersRequest]) (*connect.Response[v1.GetRbacRoleUsersResponse], error) {
+	return c.getRbacRoleUsers.CallUnary(ctx, req)
+}
+
+// GetRbacRoleGroups calls japella.controlapi.v1.JapellaControlApiService.GetRbacRoleGroups.
+func (c *japellaControlApiServiceClient) GetRbacRoleGroups(ctx context.Context, req *connect.Request[v1.GetRbacRoleGroupsRequest]) (*connect.Response[v1.GetRbacRoleGroupsResponse], error) {
+	return c.getRbacRoleGroups.CallUnary(ctx, req)
 }
 
 // GetApiKeys calls japella.controlapi.v1.JapellaControlApiService.GetApiKeys.
@@ -1196,6 +1326,11 @@ func (c *japellaControlApiServiceClient) GetApiKeys(ctx context.Context, req *co
 // GetCvars calls japella.controlapi.v1.JapellaControlApiService.GetCvars.
 func (c *japellaControlApiServiceClient) GetCvars(ctx context.Context, req *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error) {
 	return c.getCvars.CallUnary(ctx, req)
+}
+
+// GetUserPreferences calls japella.controlapi.v1.JapellaControlApiService.GetUserPreferences.
+func (c *japellaControlApiServiceClient) GetUserPreferences(ctx context.Context, req *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error) {
+	return c.getUserPreferences.CallUnary(ctx, req)
 }
 
 // SaveUserPreferences calls japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences.
@@ -1462,6 +1597,31 @@ func (c *japellaControlApiServiceClient) UpdatePendingPost(ctx context.Context, 
 	return c.updatePendingPost.CallUnary(ctx, req)
 }
 
+// ListWebhooks calls japella.controlapi.v1.JapellaControlApiService.ListWebhooks.
+func (c *japellaControlApiServiceClient) ListWebhooks(ctx context.Context, req *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error) {
+	return c.listWebhooks.CallUnary(ctx, req)
+}
+
+// CreateWebhook calls japella.controlapi.v1.JapellaControlApiService.CreateWebhook.
+func (c *japellaControlApiServiceClient) CreateWebhook(ctx context.Context, req *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error) {
+	return c.createWebhook.CallUnary(ctx, req)
+}
+
+// UpdateWebhook calls japella.controlapi.v1.JapellaControlApiService.UpdateWebhook.
+func (c *japellaControlApiServiceClient) UpdateWebhook(ctx context.Context, req *connect.Request[v1.UpdateWebhookRequest]) (*connect.Response[v1.UpdateWebhookResponse], error) {
+	return c.updateWebhook.CallUnary(ctx, req)
+}
+
+// DeleteWebhook calls japella.controlapi.v1.JapellaControlApiService.DeleteWebhook.
+func (c *japellaControlApiServiceClient) DeleteWebhook(ctx context.Context, req *connect.Request[v1.DeleteWebhookRequest]) (*connect.Response[v1.DeleteWebhookResponse], error) {
+	return c.deleteWebhook.CallUnary(ctx, req)
+}
+
+// ListBotWebhooks calls japella.controlapi.v1.JapellaControlApiService.ListBotWebhooks.
+func (c *japellaControlApiServiceClient) ListBotWebhooks(ctx context.Context, req *connect.Request[v1.ListBotWebhooksRequest]) (*connect.Response[v1.ListBotWebhooksResponse], error) {
+	return c.listBotWebhooks.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -1498,9 +1658,14 @@ type JapellaControlApiServiceHandler interface {
 	UpdateRbacRole(context.Context, *connect.Request[v1.UpdateRbacRoleRequest]) (*connect.Response[v1.UpdateRbacRoleResponse], error)
 	DeleteRbacRole(context.Context, *connect.Request[v1.DeleteRbacRoleRequest]) (*connect.Response[v1.DeleteRbacRoleResponse], error)
 	GetUserRbacRoles(context.Context, *connect.Request[v1.GetUserRbacRolesRequest]) (*connect.Response[v1.GetUserRbacRolesResponse], error)
-	SetUserRbacRoles(context.Context, *connect.Request[v1.SetUserRbacRolesRequest]) (*connect.Response[v1.SetUserRbacRolesResponse], error)
+	GetMyPermissionsAudit(context.Context, *connect.Request[v1.GetMyPermissionsAuditRequest]) (*connect.Response[v1.GetMyPermissionsAuditResponse], error)
+	GetUserGroupRbacRoles(context.Context, *connect.Request[v1.GetUserGroupRbacRolesRequest]) (*connect.Response[v1.GetUserGroupRbacRolesResponse], error)
+	SetUserGroupRbacRoles(context.Context, *connect.Request[v1.SetUserGroupRbacRolesRequest]) (*connect.Response[v1.SetUserGroupRbacRolesResponse], error)
+	GetRbacRoleUsers(context.Context, *connect.Request[v1.GetRbacRoleUsersRequest]) (*connect.Response[v1.GetRbacRoleUsersResponse], error)
+	GetRbacRoleGroups(context.Context, *connect.Request[v1.GetRbacRoleGroupsRequest]) (*connect.Response[v1.GetRbacRoleGroupsResponse], error)
 	GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error)
 	GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error)
+	GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error)
 	SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error)
 	CreateApiKey(context.Context, *connect.Request[v1.CreateApiKeyRequest]) (*connect.Response[v1.CreateApiKeyResponse], error)
 	RevokeApiKey(context.Context, *connect.Request[v1.RevokeApiKeyRequest]) (*connect.Response[v1.RevokeApiKeyResponse], error)
@@ -1552,6 +1717,11 @@ type JapellaControlApiServiceHandler interface {
 	RejectPost(context.Context, *connect.Request[v1.RejectPostRequest]) (*connect.Response[v1.RejectPostResponse], error)
 	GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error)
 	UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error)
+	ListWebhooks(context.Context, *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error)
+	CreateWebhook(context.Context, *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error)
+	UpdateWebhook(context.Context, *connect.Request[v1.UpdateWebhookRequest]) (*connect.Response[v1.UpdateWebhookResponse], error)
+	DeleteWebhook(context.Context, *connect.Request[v1.DeleteWebhookRequest]) (*connect.Response[v1.DeleteWebhookResponse], error)
+	ListBotWebhooks(context.Context, *connect.Request[v1.ListBotWebhooksRequest]) (*connect.Response[v1.ListBotWebhooksResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -1759,10 +1929,34 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserRbacRoles")),
 		connect.WithHandlerOptions(opts...),
 	)
-	japellaControlApiServiceSetUserRbacRolesHandler := connect.NewUnaryHandler(
-		JapellaControlApiServiceSetUserRbacRolesProcedure,
-		svc.SetUserRbacRoles,
-		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserRbacRoles")),
+	japellaControlApiServiceGetMyPermissionsAuditHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetMyPermissionsAuditProcedure,
+		svc.GetMyPermissionsAudit,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetMyPermissionsAudit")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetUserGroupRbacRolesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetUserGroupRbacRolesProcedure,
+		svc.GetUserGroupRbacRoles,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserGroupRbacRoles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetUserGroupRbacRolesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetUserGroupRbacRolesProcedure,
+		svc.SetUserGroupRbacRoles,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetUserGroupRbacRoles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetRbacRoleUsersHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetRbacRoleUsersProcedure,
+		svc.GetRbacRoleUsers,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetRbacRoleUsers")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetRbacRoleGroupsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetRbacRoleGroupsProcedure,
+		svc.GetRbacRoleGroups,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetRbacRoleGroups")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceGetApiKeysHandler := connect.NewUnaryHandler(
@@ -1775,6 +1969,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceGetCvarsProcedure,
 		svc.GetCvars,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetCvars")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetUserPreferencesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetUserPreferencesProcedure,
+		svc.GetUserPreferences,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetUserPreferences")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceSaveUserPreferencesHandler := connect.NewUnaryHandler(
@@ -2083,6 +2283,36 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePendingPost")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceListWebhooksHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListWebhooksProcedure,
+		svc.ListWebhooks,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListWebhooks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateWebhookHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateWebhookProcedure,
+		svc.CreateWebhook,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateWebhook")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateWebhookHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateWebhookProcedure,
+		svc.UpdateWebhook,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateWebhook")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteWebhookHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteWebhookProcedure,
+		svc.DeleteWebhook,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteWebhook")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListBotWebhooksHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListBotWebhooksProcedure,
+		svc.ListBotWebhooks,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListBotWebhooks")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -2151,12 +2381,22 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceDeleteRbacRoleHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetUserRbacRolesProcedure:
 			japellaControlApiServiceGetUserRbacRolesHandler.ServeHTTP(w, r)
-		case JapellaControlApiServiceSetUserRbacRolesProcedure:
-			japellaControlApiServiceSetUserRbacRolesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetMyPermissionsAuditProcedure:
+			japellaControlApiServiceGetMyPermissionsAuditHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetUserGroupRbacRolesProcedure:
+			japellaControlApiServiceGetUserGroupRbacRolesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetUserGroupRbacRolesProcedure:
+			japellaControlApiServiceSetUserGroupRbacRolesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetRbacRoleUsersProcedure:
+			japellaControlApiServiceGetRbacRoleUsersHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetRbacRoleGroupsProcedure:
+			japellaControlApiServiceGetRbacRoleGroupsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetApiKeysProcedure:
 			japellaControlApiServiceGetApiKeysHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetCvarsProcedure:
 			japellaControlApiServiceGetCvarsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetUserPreferencesProcedure:
+			japellaControlApiServiceGetUserPreferencesHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceSaveUserPreferencesProcedure:
 			japellaControlApiServiceSaveUserPreferencesHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceCreateApiKeyProcedure:
@@ -2259,6 +2499,16 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceUpdatePendingPostProcedure:
 			japellaControlApiServiceUpdatePendingPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListWebhooksProcedure:
+			japellaControlApiServiceListWebhooksHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateWebhookProcedure:
+			japellaControlApiServiceCreateWebhookHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateWebhookProcedure:
+			japellaControlApiServiceUpdateWebhookHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteWebhookProcedure:
+			japellaControlApiServiceDeleteWebhookHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListBotWebhooksProcedure:
+			japellaControlApiServiceListBotWebhooksHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2400,8 +2650,24 @@ func (UnimplementedJapellaControlApiServiceHandler) GetUserRbacRoles(context.Con
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles is not implemented"))
 }
 
-func (UnimplementedJapellaControlApiServiceHandler) SetUserRbacRoles(context.Context, *connect.Request[v1.SetUserRbacRolesRequest]) (*connect.Response[v1.SetUserRbacRolesResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetUserRbacRoles is not implemented"))
+func (UnimplementedJapellaControlApiServiceHandler) GetMyPermissionsAudit(context.Context, *connect.Request[v1.GetMyPermissionsAuditRequest]) (*connect.Response[v1.GetMyPermissionsAuditResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetMyPermissionsAudit is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetUserGroupRbacRoles(context.Context, *connect.Request[v1.GetUserGroupRbacRolesRequest]) (*connect.Response[v1.GetUserGroupRbacRolesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUserGroupRbacRoles is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetUserGroupRbacRoles(context.Context, *connect.Request[v1.SetUserGroupRbacRolesRequest]) (*connect.Response[v1.SetUserGroupRbacRolesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetUserGroupRbacRoles is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetRbacRoleUsers(context.Context, *connect.Request[v1.GetRbacRoleUsersRequest]) (*connect.Response[v1.GetRbacRoleUsersResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetRbacRoleUsers is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetRbacRoleGroups(context.Context, *connect.Request[v1.GetRbacRoleGroupsRequest]) (*connect.Response[v1.GetRbacRoleGroupsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetRbacRoleGroups is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) GetApiKeys(context.Context, *connect.Request[v1.GetApiKeysRequest]) (*connect.Response[v1.GetApiKeysResponse], error) {
@@ -2410,6 +2676,10 @@ func (UnimplementedJapellaControlApiServiceHandler) GetApiKeys(context.Context, 
 
 func (UnimplementedJapellaControlApiServiceHandler) GetCvars(context.Context, *connect.Request[v1.GetCvarsRequest]) (*connect.Response[v1.GetCvarsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetCvars is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetUserPreferences(context.Context, *connect.Request[v1.GetUserPreferencesRequest]) (*connect.Response[v1.GetUserPreferencesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetUserPreferences is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) SaveUserPreferences(context.Context, *connect.Request[v1.SaveUserPreferencesRequest]) (*connect.Response[v1.SaveUserPreferencesResponse], error) {
@@ -2614,4 +2884,24 @@ func (UnimplementedJapellaControlApiServiceHandler) GetPost(context.Context, *co
 
 func (UnimplementedJapellaControlApiServiceHandler) UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdatePendingPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListWebhooks(context.Context, *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListWebhooks is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateWebhook(context.Context, *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateWebhook is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateWebhook(context.Context, *connect.Request[v1.UpdateWebhookRequest]) (*connect.Response[v1.UpdateWebhookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateWebhook is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteWebhook(context.Context, *connect.Request[v1.DeleteWebhookRequest]) (*connect.Response[v1.DeleteWebhookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteWebhook is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListBotWebhooks(context.Context, *connect.Request[v1.ListBotWebhooksRequest]) (*connect.Response[v1.ListBotWebhooksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListBotWebhooks is not implemented"))
 }

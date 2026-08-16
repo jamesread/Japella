@@ -96,6 +96,7 @@
 		if (props.post.state === 'error') return 'Error';
 		if (props.post.state === 'pending_approval') return 'Pending approval';
 		if (props.post.state === 'rejected') return 'Rejected';
+		if (props.post.state === 'draft') return 'Draft';
 		if (props.post.state === 'pending' || props.post.state === 'scheduled') return 'Scheduled';
 		if (props.post.state === 'completed') return 'Completed';
 		return 'Unknown';
@@ -106,7 +107,7 @@
 		if (text === 'Error') return 'bad';
 		if (text === 'Completed') return 'good';
 		if (text === 'Unknown') return 'warn';
-		if (text === 'Scheduled') return 'note';
+		if (text === 'Scheduled' || text === 'Draft') return 'note';
 		return '';
 	});
 

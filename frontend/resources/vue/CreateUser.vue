@@ -5,15 +5,20 @@
 		classes="create-user"
 	>
 		<template #toolbar>
-			<router-link :to="{ name: 'settingsUsers' }" class="button neutral">
-				<Icon icon="material-symbols:arrow-back" />
-				Back to Users
+			<router-link :to="{ name: 'settingsUsers' }" class="button inline-icon neutral">
+				<HugeiconsIcon
+					:icon="ArrowLeft01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Back to Users</span>
 			</router-link>
 		</template>
 
-		<form class="create-user-panel" @submit.prevent="createUser">
-			<div class="create-user-grid">
-				<label for="new-user-username">Username</label>
+		<FormLayout @submit.prevent="createUser">
+			<FormField label="Username" for="new-user-username" :disabled="creating">
 				<input
 					id="new-user-username"
 					v-model="createForm.username"
@@ -22,21 +27,25 @@
 					required
 					:disabled="creating"
 				/>
+			</FormField>
 
-				<label for="new-user-password">Password</label>
-				<div>
-					<input
-						id="new-user-password"
-						v-model="createForm.password"
-						type="password"
-						autocomplete="new-password"
-						minlength="8"
-						:disabled="creating"
-					/>
-					<small class="field-hint">Optional. Leave blank to create without interactive login. If set, at least 8 characters.</small>
-				</div>
+			<FormField
+				label="Password"
+				for="new-user-password"
+				:disabled="creating"
+				description="Optional. Leave blank to create without interactive login. If set, at least 8 characters."
+			>
+				<input
+					id="new-user-password"
+					v-model="createForm.password"
+					type="password"
+					autocomplete="new-password"
+					minlength="8"
+					:disabled="creating"
+				/>
+			</FormField>
 
-				<label for="new-user-password-confirm">Confirm password</label>
+			<FormField label="Confirm password" for="new-user-password-confirm" :disabled="creating">
 				<input
 					id="new-user-password-confirm"
 					v-model="createForm.confirmPassword"
@@ -44,31 +53,48 @@
 					autocomplete="new-password"
 					:disabled="creating"
 				/>
+			</FormField>
 
-				<div class="create-user-actions">
-					<button type="submit" class="good" :disabled="creating || !isCreateFormValid">
-						<Icon v-if="creating" icon="eos-icons:loading" width="16" height="16" />
-						<Icon v-else icon="material-symbols:person-add" width="16" height="16" />
-						<span>{{ creating ? 'Creating…' : 'Create user' }}</span>
-					</button>
-					<button type="button" class="neutral" :disabled="creating" @click="resetCreateForm">
-						Clear
-					</button>
-				</div>
+			<template #actions>
+				<button type="submit" class="inline-icon good" :disabled="creating || !isCreateFormValid">
+					<HugeiconsIcon
+						v-if="creating"
+						:icon="Loading01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<HugeiconsIcon
+						v-else
+						:icon="UserAdd01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>{{ creating ? 'Creating…' : 'Create user' }}</span>
+				</button>
+				<button type="button" class="neutral" :disabled="creating" @click="resetCreateForm">
+					Clear
+				</button>
+			</template>
+		</FormLayout>
 
-				<div v-if="createMessage" class="create-user-message span-all">
-					<p class="inline-notification" :class="createMessageType">{{ createMessage }}</p>
-				</div>
-			</div>
-		</form>
+		<p v-if="createMessage" class="inline-notification" :class="createMessageType">{{ createMessage }}</p>
 	</Section>
 </template>
 
 <script setup>
 	import { ref, computed } from 'vue';
 	import { waitForClient } from '../javascript/util';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { ArrowLeft01Icon, Loading01Icon, UserAdd01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
+	import FormField from 'picocrank/vue/components/FormField.vue';
+
+	const iconStrokeWidth = 2.5;
 
 	const creating = ref(false);
 	const createForm = ref({
@@ -140,51 +166,3 @@
 		}
 	}
 </script>
-
-<style scoped>
-	.create-user-panel {
-		max-width: 36rem;
-	}
-
-	.create-user-grid {
-		display: grid;
-		grid-template-columns: minmax(8rem, 180px) 1fr;
-		gap: 0.75rem 1rem;
-		align-items: start;
-	}
-
-	.create-user-grid label {
-		padding-top: 0.65em;
-	}
-
-	.create-user-grid input {
-		width: 100%;
-	}
-
-	.field-hint {
-		display: block;
-		margin-top: 0.25rem;
-		font-size: 0.8em;
-		opacity: 0.85;
-	}
-
-	.create-user-actions {
-		grid-column: 1 / -1;
-		display: flex;
-		flex-wrap: wrap;
-		gap: 0.75rem;
-		align-items: center;
-		margin-top: 0.25rem;
-	}
-
-	.create-user-actions button {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-	}
-
-	.create-user-message.span-all {
-		grid-column: 1 / -1;
-		margin: 0;
-	}
-</style>

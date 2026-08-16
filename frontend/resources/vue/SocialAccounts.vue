@@ -8,20 +8,45 @@
 		<template #toolbar>
 			<button
 				type="button"
-				class="neutral"
+				class="inline-icon neutral"
+				:aria-label="viewToggleTitle"
 				:title="viewToggleTitle"
 				:disabled="!clientReady"
 				@click="cycleViewMode"
 			>
-				<Icon :icon="viewToggleIcon" />
+				<HugeiconsIcon
+					:icon="viewToggleIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 			</button>
-			<router-link :to="{ name: 'addSocialAccount' }" class="button good" title="Add social account">
-				<Icon icon="material-symbols:add" />
-				Add account
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Refresh"
+				:disabled="!clientReady"
+				@click="refreshAccounts()"
+			>
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+			</button>
+			<router-link :to="{ name: 'addSocialAccount' }" class="button inline-icon good" title="Add social account">
+				<HugeiconsIcon
+					:icon="Add01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Add account</span>
 			</router-link>
-			<button type="button" @click="refreshAccounts()" :disabled="!clientReady" class="neutral" title="Refresh">
-				<Icon icon="material-symbols:refresh" />
-			</button>
 		</template>
 
 		<div v-if="errorMessage" class="padding">
@@ -53,15 +78,54 @@
 							<span v-else class="owner-tag none">—</span>
 						</td>
 						<td align="right">
-							<button type="button" @click="openProfile(account)" class="neutral" :title="'Open ' + account.identity + ' profile'">
-								<Icon icon="material-symbols:open-in-new" />
+							<button
+								type="button"
+								class="inline-icon neutral"
+								:aria-label="'Open ' + account.identity + ' profile'"
+								:title="'Open ' + account.identity + ' profile'"
+								@click="openProfile(account)"
+							>
+								<HugeiconsIcon
+									:icon="LinkSquare01Icon"
+									width="1em"
+									height="1em"
+									:strokeWidth="iconStrokeWidth"
+									aria-hidden="true"
+								/>
 							</button>
 							<template v-if="account.canManage">
 								&nbsp;
-								<button type="button" @click="refreshAccount(account.id)" class="good" :disabled="isAccountRefreshing(account.id)">
-									<Icon v-if="isAccountSuccess(account.id)" icon="material-symbols:check-circle" />
-									<Icon v-else-if="isAccountRefreshing(account.id)" icon="material-symbols:hourglass-top" />
-									<Icon v-else icon="material-symbols:refresh" />
+								<button
+									type="button"
+									class="inline-icon good"
+									:aria-label="'Refresh ' + account.identity"
+									:disabled="isAccountRefreshing(account.id)"
+									@click="refreshAccount(account.id)"
+								>
+									<HugeiconsIcon
+										v-if="isAccountSuccess(account.id)"
+										:icon="CheckmarkCircle01Icon"
+										width="1em"
+										height="1em"
+										:strokeWidth="iconStrokeWidth"
+										aria-hidden="true"
+									/>
+									<HugeiconsIcon
+										v-else-if="isAccountRefreshing(account.id)"
+										:icon="Loading01Icon"
+										width="1em"
+										height="1em"
+										:strokeWidth="iconStrokeWidth"
+										aria-hidden="true"
+									/>
+									<HugeiconsIcon
+										v-else
+										:icon="RefreshIcon"
+										width="1em"
+										height="1em"
+										:strokeWidth="iconStrokeWidth"
+										aria-hidden="true"
+									/>
 								</button>
 							</template>
 						</td>
@@ -79,6 +143,16 @@
 
 <script setup>
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import {
+		Add01Icon,
+		CheckmarkCircle01Icon,
+		GridViewIcon,
+		LinkSquare01Icon,
+		Loading01Icon,
+		RefreshIcon,
+		TableIcon,
+	} from '@hugeicons/core-free-icons';
 	import { ref, computed, onMounted, inject, onActivated, watch, nextTick } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { waitForClient, connectorHugeIcon } from '../javascript/util';
@@ -88,6 +162,8 @@
 
 	const VIEW_MODES = ['table', 'grid'];
 	const VIEW_STORAGE_KEY = 'socialAccounts.viewMode';
+	const iconStrokeWidth = 2.5;
+	const DEACTIVATED_ACCOUNT_ICON_COLOR = '#dc3545';
 
 	const router = useRouter();
 	const clientReady = ref(false);
@@ -106,7 +182,7 @@
 	const viewMode = ref(loadViewMode());
 
 	const viewToggleIcon = computed(() =>
-		viewMode.value === 'table' ? 'material-symbols:grid-view' : 'material-symbols:table-rows'
+		viewMode.value === 'table' ? GridViewIcon : TableIcon
 	);
 
 	const viewToggleTitle = computed(() =>
@@ -148,6 +224,12 @@
 		return parts.join(' · ');
 	}
 
+	function accountGridDescription(account) {
+		const statusText = account.active ? 'Active' : 'Deactivated';
+		const description = accountDescription(account);
+		return `${statusText} · ${description}`;
+	}
+
 	function updateAccountsNavigation() {
 		const nav = accountsNavigation.value;
 		if (!nav || viewMode.value !== 'grid') {
@@ -162,7 +244,8 @@
 			}, {
 				icon: connectorHugeIcon(account.connector),
 				name: `social-account-${account.id}`,
-				description: accountDescription(account),
+				description: accountGridDescription(account),
+				iconColor: account.active ? null : DEACTIVATED_ACCOUNT_ICON_COLOR,
 			});
 		}
 	}

@@ -19,53 +19,61 @@
 		<div v-else-if="!campaignList || campaignList.length === 0">
 			<p class="inline-notification note">No campaigns available. Please create a new campaign.</p>
 		</div>
-		<table class = "data-table" v-else>
-			<thead>
-				<tr>
-					<th class = "larger">Name</th>
-					<th>Posts</th>
-					<th>Last Post</th>
-					<th class="actions" style="text-align: right">Actions</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr v-for="campaign in paginatedCampaigns" :key="campaign.id">
-					<td>
-					<template v-if="!campaign.editing">
-						<router-link :to="{ name: 'campaignDetails', params: { id: campaign.id } }">{{ getCampaignDisplayName(campaign) }}</router-link>
-					</template>
-					<input v-else
-						class="editable"
-						type="text"
-						v-model="campaign.name"
-						@keyup.enter="saveCampaign(campaign)"
-						@keyup.esc="cancelEditing(campaign)"
-						@blur="cancelEditing(campaign)"
-					/>
-					</td>
-					<td>{{ campaign.postCount }}</td>
-					<td :title="getFullDate(campaign.lastPostDate)">{{ formatRelativeDate(campaign.lastPostDate) }}</td>
-					<td align="right">
-					<button @click="openAccountsDialog(campaign)" class="">
-						<Icon icon="jam:users" /> {{ campaign.accountCount ?? 0 }}
+		<Table
+			v-else
+			class="campaigns-table"
+			:data="campaignList"
+			:headers="tableHeaders"
+			:show-pagination="true"
+		>
+			<template #cell-name="{ row }">
+				<template v-if="!row.editing">
+					<router-link :to="{ name: 'campaignDetails', params: { id: row.id } }">
+						{{ getCampaignDisplayName(row) }}
+					</router-link>
+				</template>
+				<input
+					v-else
+					class="editable"
+					type="text"
+					v-model="row.name"
+					@keyup.enter="saveCampaign(row)"
+					@keyup.esc="cancelEditing(row)"
+					@blur="cancelEditing(row)"
+				/>
+			</template>
+			<template #cell-lastPostDate="{ row }">
+				<span :title="getFullDate(row.lastPostDate)">{{ formatRelativeDate(row.lastPostDate) }}</span>
+			</template>
+			<template #cell-actions="{ row }">
+				<div class="actions-cell">
+					<button type="button" class="inline-icon neutral" @click="openAccountsDialog(row)">
+						<HugeiconsIcon
+							:icon="UserMultiple02Icon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<span>{{ row.accountCount ?? 0 }}</span>
 					</button>
-					&nbsp;
-					<button @click="usePost(campaign)" class="good">
-							<Icon icon="jam:write-f" />
-						</button>
-					</td>
-				</tr>
-			</tbody>
-		</table>
-
-		<!-- Pagination Controls -->
-		<div>
-			<Pagination
-				:total="campaignList.length"
-				v-model:page="currentPage"
-				v-model:pageSize="pageSize"
-			/>
-		</div>
+					<button
+						type="button"
+						class="inline-icon good"
+						aria-label="Use campaign for post"
+						@click="usePost(row)"
+					>
+						<HugeiconsIcon
+							:icon="EditIcon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+					</button>
+				</div>
+			</template>
+		</Table>
 
 	<!-- Campaign Accounts Dialog -->
 	<div v-if="showAccountsDialog" class="modal-overlay" @click.self="cancelAccountsDialog">
@@ -102,26 +110,14 @@
 		width: 95%;
 	}
 
-	.data-table {
+	.campaigns-table {
 		width: 100%;
-		table-layout: fixed;
 	}
 
-	.larger {
-		width: 100%;
-		min-width: 200px;
-	}
-
-	th:nth-child(2) {
-		width: 80px;
-	}
-
-	th:nth-child(3) {
-		width: 120px;
-	}
-
-	th.actions {
-		width: 140px;
+	.actions-cell {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.35rem;
 	}
 
 	input.editable {
@@ -252,23 +248,25 @@
 <script setup>
 	import { waitForClient } from '../javascript/util.js'
 	import { Icon } from '@iconify/vue';
-	import { ref, onMounted, computed } from 'vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { EditIcon, UserMultiple02Icon } from '@hugeicons/core-free-icons';
+	import { ref, onMounted } from 'vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import Table from 'picocrank/vue/components/Table.vue';
 	import Loading from './Loading.vue';
-	import Pagination from 'picocrank/vue/components/Pagination.vue';
+
+	const iconStrokeWidth = 2.5;
+
+	const tableHeaders = [
+		{ key: 'name', label: 'Name', sortable: true },
+		{ key: 'postCount', label: 'Posts', sortable: true, width: '5rem' },
+		{ key: 'lastPostDate', label: 'Last Post', sortable: true, width: '8rem' },
+		{ key: 'actions', label: 'Actions', sortable: false, width: '9rem' },
+	];
 
 	const campaignList = ref([]);
 	const clientReady = ref(false);
 	const campaignsLoading = ref(true);
-	const currentPage = ref(1);
-	const pageSize = ref(10);
-
-	// Computed properties
-	const totalPages = computed(() => Math.ceil(campaignList.value.length / pageSize.value));
-	const paginatedCampaigns = computed(() => {
-		const start = (currentPage.value - 1) * pageSize.value;
-		return campaignList.value.slice(start, start + pageSize.value);
-	});
 
 // Accounts dialog state
 const showAccountsDialog = ref(false)
@@ -326,11 +324,9 @@ function refreshCampaigns() {
         }
 
         campaignList.value = campaigns;
-        currentPage.value = 1; // Reset to first page when data changes
     }).catch(error => {
         console.error("Error fetching campaigns:", error);
         campaignList.value = [];
-        currentPage.value = 1; // Reset to first page on error
     }).finally(() => {
         campaignsLoading.value = false;
     });

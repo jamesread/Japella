@@ -222,6 +222,11 @@ func (s *ControlApi) ListPendingApprovals(ctx context.Context, req *connect.Requ
 }
 
 func (s *ControlApi) marshalPendingApproval(p *db.Post, viewerID uint32) *controlv1.PendingApproval {
+	postedDate := p.CreatedAt
+	if p.ScheduledAt.Valid {
+		postedDate = p.ScheduledAt.Time
+	}
+
 	item := &controlv1.PendingApproval{
 		Post: &controlv1.PostStatus{
 			Id:              p.ID,
@@ -229,7 +234,9 @@ func (s *ControlApi) marshalPendingApproval(p *db.Post, viewerID uint32) *contro
 			Content:         p.Content,
 			State:           p.State,
 			Success:         false,
-			PostUrl:         p.PostURL,
+			PostUrl:         p.PostURL.String,
+			Created:         p.CreatedAt.Format("2006-01-02 15:04:05"),
+			PostedDate:      postedDate.Format("2006-01-02 15:04:05"),
 		},
 		ApprovalStage:    p.ApprovalStage,
 		SubmissionSource: p.SubmissionSource,
@@ -359,7 +366,7 @@ func (s *ControlApi) ApprovePost(ctx context.Context, req *connect.Request[contr
 	if err != nil || socialAccount == nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("social account not found"))
 	}
-	postStatus := s.releaseApprovedPost(post, socialAccount)
+	postStatus := s.releaseApprovedPost(ctx, post, socialAccount)
 	log.Infof("Post %d fully approved and released (state=%s)", post.ID, postStatus.State)
 
 	return connect.NewResponse(&controlv1.ApprovePostResponse{
@@ -423,7 +430,7 @@ func (s *ControlApi) marshalPostStatus(post *db.Post) *controlv1.PostStatus {
 		SocialAccountId: post.SocialAccountID,
 		Content:         post.Content,
 		Success:         post.Status,
-		PostUrl:         post.PostURL,
+		PostUrl:         post.PostURL.String,
 		State:           post.State,
 		Created:         post.CreatedAt.Format("2006-01-02 15:04:05"),
 	}

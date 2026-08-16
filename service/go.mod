@@ -21,39 +21,39 @@ require (
 	github.com/jamesread/golure v0.0.0-20260510214136-6ef80e0ce8da
 	github.com/jamesread/httpauthshim v0.1.0
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/mark3labs/mcp-go v0.57.0
+	github.com/mark3labs/mcp-go v0.58.0
 	github.com/mattn/go-isatty v0.0.24
 	github.com/mattn/go-sqlite3 v1.14.49
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/common v0.70.1
 	github.com/rabbitmq/amqp091-go v1.13.0
 	github.com/rs/cors v1.11.1
-	github.com/sirupsen/logrus v1.9.4
+	github.com/sirupsen/logrus v1.10.0
 	github.com/stretchr/testify v1.11.1
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
-	go.mau.fi/whatsmeow v0.0.0-20260806224404-e277b766ab33
-	golang.org/x/net v0.57.0
+	go.mau.fi/whatsmeow v0.0.0-20260814123134-0dcf1f50f4b1
+	golang.org/x/net v0.58.0
 	golang.org/x/oauth2 v0.36.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2
-	google.golang.org/protobuf v1.36.11
+	google.golang.org/protobuf v1.36.12
 )
 
 require (
-	buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.11-20260722160903-4d94f3df3a7b.1 // indirect
-	buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.11-20250109164928-1da0de137947.1 // indirect
-	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.11-20260709200747-435963d16310.1 // indirect
+	buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.12-20260722160903-4d94f3df3a7b.1 // indirect
+	buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.12-20250109164928-1da0de137947.1 // indirect
+	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260709200747-435963d16310.1 // indirect
 	buf.build/gen/go/bufbuild/registry/connectrpc/go v1.20.0-20260713175918-10d915f5b43b.1 // indirect
-	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.11-20260713175918-10d915f5b43b.1 // indirect
-	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.11-20241007202033-cf42259fcbfc.1 // indirect
+	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20260713175918-10d915f5b43b.1 // indirect
+	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.12-20241007202033-cf42259fcbfc.1 // indirect
 	buf.build/go/app v0.2.1-0.20260626143626-be153867abea // indirect
 	buf.build/go/bufplugin v0.10.0 // indirect
 	buf.build/go/bufprivateusage v0.1.0 // indirect
 	buf.build/go/interrupt v1.1.0 // indirect
-	buf.build/go/protovalidate v1.2.0 // indirect
+	buf.build/go/protovalidate v1.3.0 // indirect
 	buf.build/go/protoyaml v0.7.0 // indirect
 	buf.build/go/spdx v0.2.0 // indirect
 	buf.build/go/standard v0.1.1-0.20260325175353-2b287e071df5 // indirect
-	cel.dev/expr v0.25.2 // indirect
+	cel.dev/expr v0.25.3 // indirect
 	connectrpc.com/otelconnect v0.9.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	filippo.io/edwards25519 v1.2.0 // indirect
@@ -104,7 +104,7 @@ require (
 	github.com/gohugoio/hashstructure v0.6.0 // indirect
 	github.com/gohugoio/hugo v0.163.3 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
-	github.com/google/cel-go v0.30.0 // indirect
+	github.com/google/cel-go v0.31.0 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/go-containerregistry v0.21.9 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect
@@ -127,7 +127,7 @@ require (
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.3.1 // indirect
-	github.com/petermattis/goid v0.0.0-20260725062400-500c67a39b75 // indirect
+	github.com/petermattis/goid v0.0.0-20260815043759-38adf17aac52 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_model v0.6.2 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
@@ -165,18 +165,18 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	go.uber.org/zap v1.28.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
-	golang.org/x/exp v0.0.0-20260727155853-b88d891fe743 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20260727155853-b88d891fe743 // indirect
-	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
+	golang.org/x/exp v0.0.0-20260813180055-c1d0aacb2297 // indirect
+	golang.org/x/exp/typeparams v0.0.0-20260813180055-c1d0aacb2297 // indirect
+	golang.org/x/mod v0.40.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
-	golang.org/x/tools v0.48.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260803160001-6ac0973c030d // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260803160001-6ac0973c030d // indirect
+	golang.org/x/tools v0.49.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260810153831-ec0a7760b754 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260810153831-ec0a7760b754 // indirect
 	google.golang.org/grpc v1.83.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	mvdan.cc/xurls/v2 v2.6.0 // indirect

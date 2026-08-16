@@ -1,75 +1,73 @@
 <template>
 	<dialog
 		ref="dlg"
-		class="user-lookup-dialog dialog"
 		@close="onDialogClose"
 	>
-		<h2 class="dlg-title">{{ title }}</h2>
-		<p v-if="subtitle" class="dlg-subtitle">{{ subtitle }}</p>
+		<div class="dialog-panel user-lookup-panel">
+			<h2 class="dlg-title">{{ title }}</h2>
+			<p v-if="subtitle" class="dlg-subtitle">{{ subtitle }}</p>
 
-		<div class="search-row">
-			<label class="sr-only" for="user-lookup-search">Search by username</label>
-			<input
-				id="user-lookup-search"
-				ref="searchInput"
-				v-model="searchQuery"
-				type="search"
-				class="search-input"
-				placeholder="Search by username…"
-				autocomplete="off"
-				@keydown.enter.prevent="onSearchEnter"
-			/>
-		</div>
+			<div class="search-row">
+				<label class="sr-only" for="user-lookup-search">Search by username</label>
+				<input
+					id="user-lookup-search"
+					ref="searchInput"
+					v-model="searchQuery"
+					type="search"
+					class="search-input"
+					placeholder="Search by username…"
+					autocomplete="off"
+					@keydown.enter.prevent="onSearchEnter"
+				/>
+			</div>
 
-		<div v-if="loading" class="muted">Loading users…</div>
-		<div v-else-if="loadError" class="inline-notification error">{{ loadError }}</div>
-		<div v-else class="list-wrap">
-			<p v-if="!filteredUsers.length" class="inline-notification note">
-				{{ users.length === 0 ? 'No users in the system.' : 'No matching users.' }}
-			</p>
-			<ul v-else class="user-list" role="listbox" :aria-multiselectable="multiple ? 'true' : undefined">
-				<li
-					v-for="u in filteredUsers"
-					:key="u.id"
-					class="user-row"
-					:class="{
-						selected: multiple && selectedIds.includes(u.id),
-					}"
-					role="option"
-					:aria-selected="multiple ? selectedIds.includes(u.id) : undefined"
-					@click="multiple ? toggleSelect(u.id) : pickSingle(u)"
+			<div v-if="loading" class="muted">Loading users…</div>
+			<div v-else-if="loadError" class="inline-notification error">{{ loadError }}</div>
+			<div v-else class="list-wrap">
+				<p v-if="!filteredUsers.length" class="inline-notification note">
+					{{ users.length === 0 ? 'No users in the system.' : 'No matching users.' }}
+				</p>
+				<CheckGroup
+					v-else-if="multiple"
+					v-model="selectedIds"
+					name="user-lookup"
+					class="user-check-group"
+					aria-label="Select users"
+					:options="userOptions"
+				/>
+				<ul v-else class="user-list" role="listbox">
+					<li
+						v-for="u in filteredUsers"
+						:key="u.id"
+						class="user-row"
+						role="option"
+						@click="pickSingle(u)"
+					>
+						<span class="username">{{ u.username }}</span>
+						<span class="meta muted">{{ u.createdAt }}</span>
+					</li>
+				</ul>
+			</div>
+
+			<div class="dialog-actions">
+				<button type="button" class="neutral" @click="onCancel">Cancel</button>
+				<button
+					v-if="multiple"
+					type="button"
+					class="good"
+					:disabled="!selectedIds.length"
+					@click="confirmMultiple"
 				>
-					<span v-if="multiple" class="check" aria-hidden="true">
-						<Icon
-							:icon="selectedIds.includes(u.id) ? 'material-symbols:check-box' : 'material-symbols:check-box-outline-blank'"
-							width="20"
-							height="20"
-						/>
-					</span>
-					<span class="username">{{ u.username }}</span>
-					<span class="meta muted">{{ u.createdAt }}</span>
-				</li>
-			</ul>
-		</div>
-
-		<div class="dialog-actions">
-			<button type="button" class="neutral" @click="onCancel">Cancel</button>
-			<button
-				v-if="multiple"
-				type="button"
-				class="good"
-				:disabled="!selectedIds.length"
-				@click="confirmMultiple"
-			>
-				{{ confirmLabel }}{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
-			</button>
+					{{ confirmLabel }}{{ selectedIds.length ? ` (${selectedIds.length})` : '' }}
+				</button>
+			</div>
 		</div>
 	</dialog>
 </template>
 
 <script setup>
 	import { ref, computed, watch, nextTick } from 'vue';
-	import { Icon } from '@iconify/vue';
+	import CheckGroup from 'picocrank/vue/components/CheckGroup.vue';
 	import { waitForClient } from '../javascript/util';
 
 	const props = defineProps({
@@ -106,6 +104,13 @@
 			return u.username.toLowerCase().includes(q);
 		});
 	});
+
+	const userOptions = computed(() =>
+		filteredUsers.value.map((u) => ({
+			value: u.id,
+			label: u.username,
+		}))
+	);
 
 	watch(
 		() => props.excludeUserIds,
@@ -164,15 +169,6 @@
 		close();
 	}
 
-	function toggleSelect(id) {
-		const i = selectedIds.value.indexOf(id);
-		if (i >= 0) {
-			selectedIds.value = selectedIds.value.filter((x) => x !== id);
-		} else {
-			selectedIds.value = [...selectedIds.value, id];
-		}
-	}
-
 	function confirmMultiple() {
 		const picked = users.value.filter((u) => selectedIds.value.includes(u.id));
 		emit('picked', picked);
@@ -189,12 +185,11 @@
 </script>
 
 <style scoped>
-	.user-lookup-dialog {
+	.user-lookup-panel {
 		width: min(32rem, calc(100vw - 2rem));
 		max-height: min(70vh, 28rem);
 		display: flex;
 		flex-direction: column;
-		padding: 1rem 1.25rem;
 	}
 
 	.dlg-title {
@@ -237,6 +232,14 @@
 		flex-direction: column;
 	}
 
+	.user-check-group {
+		overflow-y: auto;
+		flex: 1;
+		min-height: 0;
+		width: 100%;
+		max-width: 100%;
+	}
+
 	.user-list {
 		list-style: none;
 		margin: 0;
@@ -264,16 +267,6 @@
 		background: rgba(255, 255, 255, 0.06);
 	}
 
-	.user-row.selected {
-		background: rgba(255, 255, 255, 0.1);
-	}
-
-	.check {
-		display: flex;
-		flex-shrink: 0;
-		opacity: 0.9;
-	}
-
 	.username {
 		font-weight: 600;
 		flex: 1;
@@ -294,7 +287,5 @@
 		justify-content: flex-end;
 		gap: 0.5rem;
 		margin-top: 1rem;
-		padding-top: 0.75rem;
-		border-top: 1px solid rgba(255, 255, 255, 0.15);
 	}
 </style>

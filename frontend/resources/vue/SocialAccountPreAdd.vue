@@ -5,20 +5,32 @@
 		classes="social-account-pre-add"
 	>
 		<template #toolbar>
-			<router-link :to="{ name: 'addSocialAccount' }" class="button neutral">
-				<Icon icon="material-symbols:arrow-back" />
-				Choose Connector
+			<router-link :to="{ name: 'addSocialAccount' }" class="button inline-icon neutral">
+				<HugeiconsIcon
+					:icon="ArrowLeft01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Choose Connector</span>
 			</router-link>
 			<a
 				v-if="connector"
 				:href="connectorDocsUrl(connector.protocol)"
 				target="_blank"
 				rel="noopener noreferrer"
-				class="button neutral"
+				class="button inline-icon neutral"
 				title="Open documentation"
 			>
-				<Icon icon="material-symbols:menu-book" />
-				Documentation
+				<HugeiconsIcon
+					:icon="Book01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Documentation</span>
 			</a>
 		</template>
 
@@ -92,13 +104,27 @@
 			<button
 				v-else
 				type="button"
-				class="good connect-btn"
+				class="inline-icon good"
 				:disabled="connecting"
 				@click="startOAuth"
 			>
-				<Icon v-if="connecting" icon="eos-icons:loading" width="16" height="16" />
-				<Icon v-else icon="material-symbols:login" width="16" height="16" />
-				{{ connecting ? 'Redirecting…' : 'Connect with ' + connector.name }}
+				<HugeiconsIcon
+					v-if="connecting"
+					:icon="Loading01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<HugeiconsIcon
+					v-else
+					:icon="Login01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>{{ connecting ? 'Redirecting…' : 'Connect with ' + connector.name }}</span>
 			</button>
 		</template>
 
@@ -115,8 +141,8 @@
 <script setup>
 	import { ref, computed, onMounted } from 'vue';
 	import { useRoute } from 'vue-router';
-	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { ArrowLeft01Icon, Book01Icon, Loading01Icon, Login01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import ConnectorConfigurationIssues from './ConnectorConfigurationIssues.vue';
 	import {
@@ -131,6 +157,7 @@
 	} from '../javascript/util';
 
 	const route = useRoute();
+	const iconStrokeWidth = 2.5;
 
 	const loading = ref(true);
 	const errorMessage = ref('');
@@ -307,12 +334,6 @@
 	.good-tag {
 		background: rgba(46, 125, 50, 0.2);
 		color: #2e7d32;
-	}
-
-	.connect-btn {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
 	}
 
 	.muted {

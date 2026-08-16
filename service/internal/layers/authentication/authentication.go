@@ -10,7 +10,6 @@ import (
 	"github.com/jamesread/httpauthshim/authpublic"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/debuglog"
-	"github.com/jamesread/japella/internal/rbac"
 
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
 	japauth "github.com/jamesread/httpauthshim"
@@ -134,8 +133,8 @@ func (al *AuthLayer) resolveDBUser(shimUser *authpublic.AuthenticatedUser) (*db.
 
 	log.Infof("Auto-created user %q from JWT SSO (id %d)", created.Username, created.ID)
 
-	if err := al.DB.AssignRBACRoleByName(created.ID, rbac.RoleMember); err != nil {
-		log.Warnf("Could not assign %s role to SSO user %d: %v", rbac.RoleMember, created.ID, err)
+	if err := al.DB.EnsureUserInEveryoneGroup(created.ID); err != nil {
+		log.Warnf("Could not add SSO user %d to Everyone group: %v", created.ID, err)
 	}
 
 	if reloaded := al.DB.GetUserByID(created.ID); reloaded != nil {

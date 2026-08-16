@@ -2,10 +2,12 @@
 	<Header
 		:username="isLoggedIn ? username : ''"
 		@toggleSidebar="toggleSidebar"
+		@logoClick="goToWelcome"
 		@userClick="goToUserControlPanel"
 		title="Japella"
 		:logoUrl="logoUrl"
-		:sidebarEnabled="isLoggedIn"
+		:sidebarEnabled="isLoggedIn && sidebarPreferenceEnabled"
+		:breadcrumbs="isLoggedIn"
 	>
 		<template #toolbar>
 			<div v-if="isImpersonating" class="impersonation-banner">
@@ -113,6 +115,7 @@
 <script setup>
     import { waitForClient } from '../javascript/util.js'
     import { fetchAppStatus } from '../javascript/status.js'
+    import { loadAndApplyUserPreferences, registerSidebarApplier } from '../javascript/userPreferences.js'
     import { ref, onMounted, provide, watch } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { Icon } from '@iconify/vue';
@@ -125,9 +128,13 @@
     import Sidebar from 'picocrank/vue/components/Sidebar.vue';
     import QuickSearch from 'picocrank/vue/components/QuickSearch.vue';
 	import logoUrl from '../../logo.png';
-	import { canAccessControlPanelFromStatus } from '../javascript/rbacAccess.js';
+	import {
+		fetchApprovalsCount,
+		setupSidebarNavigation,
+		showControlPanelInSidebar,
+	} from '../javascript/sidebarNavigation.js';
 
-    const { t } = useI18n();
+    const { t, locale, fallbackLocale } = useI18n();
     const route = useRoute();
     const router = useRouter();
 
@@ -144,11 +151,25 @@
     const loadingWarning = ref('');
     const navigation = ref(null);
     const sidebar = ref(null);
+    const sidebarPreferenceEnabled = ref(true);
     const errorDialogRef = ref();
 
 	provide('showSectionError', (msg) => {
 		errorDialogRef.value?.showError(msg)
 	});
+
+	function applySidebarPreference(enabled) {
+		sidebarPreferenceEnabled.value = enabled;
+		if (!sidebar.value) {
+			return;
+		}
+		if (enabled) {
+			sidebar.value.open();
+			sidebar.value.stick();
+		} else {
+			sidebar.value.close();
+		}
+	}
 
 	function toggleSidebar() {
 		if (sidebar.value) {
@@ -160,14 +181,8 @@
 		router.push({ name: 'userControlPanel' });
 	}
 
-	async function fetchApprovalsCount() {
-		try {
-			const res = await window.client.listPendingApprovals({});
-			return (res.pending || []).length;
-		} catch (e) {
-			console.warn('Failed to load approvals count for navigation', e);
-			return 0;
-		}
+	function goToWelcome() {
+		router.push({ name: 'welcome' });
 	}
 
 	async function setupNavigation() {
@@ -175,52 +190,17 @@
 
 		const approvalsCount = await fetchApprovalsCount();
 
-		// Clear existing navigation
-		navigation.value.clearNavigationLinks();
+		setupSidebarNavigation(navigation.value, {
+			approvalsCount,
+			showControlPanel: showControlPanelInSidebar({
+				rbacIsSuperuser: window.userRbacIsSuperuser,
+				rbacPermissions: window.userRbacPermissions,
+			}),
+		});
 
-		navigation.value.addSection('Write', { name: 'nav-write' });
-
-		// Add router links
-		navigation.value.addRouterLink('postBox');
-
-		navigation.value.addRouterLink('approvals', null, { count: approvalsCount });
-
-		navigation.value.addRouterLink('media');
-
-		navigation.value.addRouterLink('campaigns');
-
-		navigation.value.addRouterLink('cannedPosts');
-
-		navigation.value.addRouterLink('calendar');
-
-		navigation.value.addRouterLink('timeline');
-
-		navigation.value.addSection('Read', { name: 'nav-read' });
-
-		navigation.value.addRouterLink('feed');
-
-		navigation.value.addRouterLink('chatBotConversationsAll');
-
-		navigation.value.addSection('Settings', { name: 'nav-settings' });
-
-		navigation.value.addRouterLink('socialAccounts');
-
-		navigation.value.addRouterLink('chatBots');
-
-		if (canAccessControlPanelFromStatus({
-			isLoggedIn: isLoggedIn.value,
-			rbacIsSuperuser: window.userRbacIsSuperuser,
-			rbacPermissions: window.userRbacPermissions,
-		})) {
-			navigation.value.addRouterLink('controlPanel');
-		}
-
-		navigation.value.addRouterLink('appStatus');
-
-		// Open and stick the sidebar for logged-in users
+		// Apply sidebar visibility preference for logged-in users
 		if (isLoggedIn.value && sidebar.value) {
-			sidebar.value.open();
-			sidebar.value.stick();
+			applySidebarPreference(sidebarPreferenceEnabled.value);
 		}
 	}
 
@@ -291,6 +271,7 @@
         window.userRbacPermissions = st.rbacPermissions || [];
         window.userRbacIsSuperuser = Boolean(st.rbacIsSuperuser);
         setupNavigation();
+        loadAndApplyUserPreferences({ localeRef: locale, fallbackLocale: fallbackLocale.value });
     }
 
     /**
@@ -312,6 +293,8 @@
     }
 
     onMounted(async () => {
+        registerSidebarApplier(applySidebarPreference);
+
         setTimeout(() => {
             loadingWarning.value = 'If you are reading this text after waiting more than a few seconds, something has gone wrong. Please check your browser console for errors.';
         }, 2000);

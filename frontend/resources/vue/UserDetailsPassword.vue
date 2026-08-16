@@ -5,13 +5,25 @@
 		classes="user-details-password"
 	>
 		<template #toolbar>
-			<router-link :to="{ name: 'userDetails', params: { id: String(userId) } }" class="button neutral">
-				<Icon icon="material-symbols:arrow-back" />
-				Back to user
+			<router-link :to="{ name: 'userDetails', params: { id: String(userId) } }" class="button inline-icon neutral">
+				<HugeiconsIcon
+					:icon="ArrowLeft01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Back to user</span>
 			</router-link>
-			<router-link :to="{ name: 'settingsUsers' }" class="button neutral">
-				<Icon icon="material-symbols:group" />
-				All users
+			<router-link :to="{ name: 'settingsUsers' }" class="button inline-icon neutral">
+				<HugeiconsIcon
+					:icon="UserGroupIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>All users</span>
 			</router-link>
 		</template>
 
@@ -19,22 +31,25 @@
 		<div v-else-if="!canResetPassword" class="inline-notification error">
 			You do not have permission to reset this user’s password.
 		</div>
-		<form v-else class="reset-pw-form" @submit.prevent="resetPassword">
-			<div class="reset-pw-grid">
-				<label for="reset-pw">New password</label>
-				<div>
-					<input
-						id="reset-pw"
-						v-model="resetPw"
-						type="password"
-						autocomplete="new-password"
-						required
-						minlength="8"
-						:disabled="resetPwSaving"
-					/>
-					<small class="field-hint">At least 8 characters</small>
-				</div>
-				<label for="reset-pw-confirm">Confirm password</label>
+		<FormLayout v-else @submit.prevent="resetPassword">
+			<FormField
+				label="New password"
+				for="reset-pw"
+				:disabled="resetPwSaving"
+				description="At least 8 characters."
+			>
+				<input
+					id="reset-pw"
+					v-model="resetPw"
+					type="password"
+					autocomplete="new-password"
+					required
+					minlength="8"
+					:disabled="resetPwSaving"
+				/>
+			</FormField>
+
+			<FormField label="Confirm password" for="reset-pw-confirm" :disabled="resetPwSaving">
 				<input
 					id="reset-pw-confirm"
 					v-model="resetPwConfirm"
@@ -43,26 +58,30 @@
 					required
 					:disabled="resetPwSaving"
 				/>
-				<div class="reset-pw-actions">
-					<button type="submit" class="good" :disabled="resetPwSaving || !isResetPwValid">
-						{{ resetPwSaving ? 'Resetting…' : 'Reset password' }}
-					</button>
-				</div>
-				<div v-if="resetPwMessage" class="span-all">
-					<p class="inline-notification" :class="resetPwMessageType">{{ resetPwMessage }}</p>
-				</div>
-			</div>
-		</form>
+			</FormField>
+
+			<template #actions>
+				<button type="submit" class="good" :disabled="resetPwSaving || !isResetPwValid">
+					{{ resetPwSaving ? 'Resetting…' : 'Reset password' }}
+				</button>
+			</template>
+		</FormLayout>
+
+		<p v-if="resetPwMessage" class="inline-notification" :class="resetPwMessageType">{{ resetPwMessage }}</p>
 	</Section>
 </template>
 
 <script setup>
 	import { ref, computed, watch } from 'vue';
 	import { useRoute } from 'vue-router';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { ArrowLeft01Icon, UserGroupIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
+	import FormField from 'picocrank/vue/components/FormField.vue';
 	import { waitForClient } from '../javascript/util';
 
+	const iconStrokeWidth = 2.5;
 	const route = useRoute();
 	const username = ref('');
 
@@ -143,41 +162,3 @@
 		load();
 	}, { immediate: true });
 </script>
-
-<style scoped>
-	.reset-pw-form {
-		max-width: 36rem;
-		margin-top: 0.5rem;
-	}
-
-	.reset-pw-grid {
-		display: grid;
-		grid-template-columns: minmax(8rem, 180px) 1fr;
-		gap: 0.75rem 1rem;
-		align-items: start;
-	}
-
-	.reset-pw-grid label {
-		padding-top: 0.65em;
-	}
-
-	.reset-pw-grid input {
-		width: 100%;
-	}
-
-	.field-hint {
-		display: block;
-		margin-top: 0.25rem;
-		font-size: 0.8em;
-		opacity: 0.85;
-	}
-
-	.reset-pw-actions {
-		grid-column: 1 / -1;
-		margin-top: 0.25rem;
-	}
-
-	.span-all {
-		grid-column: 1 / -1;
-	}
-</style>

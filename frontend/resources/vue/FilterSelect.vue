@@ -6,19 +6,28 @@
 		<button
 			v-if="showClear"
 			type="button"
-			class="filter-clear neutral small"
+			class="inline-icon neutral small"
 			:title="clearTitle"
 			:aria-label="clearTitle"
 			@click="clear"
 		>
-			<Icon icon="mdi:close" width="14" height="14" />
+			<HugeiconsIcon
+				:icon="Cancel01Icon"
+				width="1em"
+				height="1em"
+				:strokeWidth="iconStrokeWidth"
+				aria-hidden="true"
+			/>
 		</button>
 	</div>
 </template>
 
 <script setup>
 	import { computed } from 'vue';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { Cancel01Icon } from '@hugeicons/core-free-icons';
+
+	const iconStrokeWidth = 2.5;
 
 	const props = defineProps({
 		modelValue: {
@@ -69,15 +78,6 @@
 		outline: none;
 		border-color: #4CAF50;
 		box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
-	}
-
-	.filter-clear {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		flex-shrink: 0;
-		padding: 0.35rem;
-		min-width: 0;
 	}
 
 	@media (max-width: 768px) {

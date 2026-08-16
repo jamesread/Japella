@@ -39,25 +39,84 @@
 					<div class="post-meta">
 						<span class="post-date">{{ formatFuzzyDate(p.createdAt) }}</span>
 						<div class="post-actions">
-							<button v-if="!p.editing" @click="usePost(p)" class="good" title="Use this post">
-								<Icon icon="jam:write-f" />
-								Use
+							<button
+								v-if="!p.editing"
+								type="button"
+								class="inline-icon good"
+								title="Use this post"
+								@click="usePost(p)"
+							>
+								<HugeiconsIcon
+									:icon="EditIcon"
+									width="1em"
+									height="1em"
+									:strokeWidth="iconStrokeWidth"
+									aria-hidden="true"
+								/>
+								<span>Use</span>
 							</button>
-							<button v-if="!p.editing" @click="beginEditing(p)" class="neutral" title="Edit post">
-								<Icon icon="material-symbols:edit" />
-								Edit
+							<button
+								v-if="!p.editing"
+								type="button"
+								class="inline-icon neutral"
+								title="Edit post"
+								@click="beginEditing(p)"
+							>
+								<HugeiconsIcon
+									:icon="EditIcon"
+									width="1em"
+									height="1em"
+									:strokeWidth="iconStrokeWidth"
+									aria-hidden="true"
+								/>
+								<span>Edit</span>
 							</button>
-							<button v-if="p.editing" @click="saveCannedPost(p)" class="good" title="Save changes">
-								<Icon icon="material-symbols:save" />
-								Save
+							<button
+								v-if="p.editing"
+								type="button"
+								class="inline-icon good"
+								title="Save changes"
+								@click="saveCannedPost(p)"
+							>
+								<HugeiconsIcon
+									:icon="SaveIcon"
+									width="1em"
+									height="1em"
+									:strokeWidth="iconStrokeWidth"
+									aria-hidden="true"
+								/>
+								<span>Save</span>
 							</button>
-							<button v-if="p.editing" @click="cancelEditing(p)" class="neutral" title="Cancel editing">
-								<Icon icon="material-symbols:cancel" />
-								Cancel
+							<button
+								v-if="p.editing"
+								type="button"
+								class="inline-icon neutral"
+								title="Cancel editing"
+								@click="cancelEditing(p)"
+							>
+								<HugeiconsIcon
+									:icon="CancelCircleIcon"
+									width="1em"
+									height="1em"
+									:strokeWidth="iconStrokeWidth"
+									aria-hidden="true"
+								/>
+								<span>Cancel</span>
 							</button>
-							<button @click="deleteCannedPost(p.id)" class="bad" title="Delete post">
-								<Icon icon="material-symbols:delete" />
-								Delete
+							<button
+								type="button"
+								class="inline-icon bad"
+								title="Delete post"
+								@click="deleteCannedPost(p.id)"
+							>
+								<HugeiconsIcon
+									:icon="Delete02Icon"
+									width="1em"
+									height="1em"
+									:strokeWidth="iconStrokeWidth"
+									aria-hidden="true"
+								/>
+								<span>Delete</span>
 							</button>
 						</div>
 					</div>
@@ -68,10 +127,19 @@
 
 <script setup>
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import {
+		CancelCircleIcon,
+		Delete02Icon,
+		EditIcon,
+		SaveIcon,
+	} from '@hugeicons/core-free-icons';
 	import { ref, onMounted, inject } from 'vue';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import PostPreview from './PostPreview.vue';
+
+	const iconStrokeWidth = 2.5;
 
 	const posts = ref([])
 	const clientReady = ref(false)

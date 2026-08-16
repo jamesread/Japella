@@ -1,13 +1,76 @@
 <template>
+	<dialog ref="createGroupDialog" class="dialog" @close="closeCreateGroupDialog">
+		<h2>Create group</h2>
+		<p>Give the new group a name. You can add members after it is created.</p>
+
+		<FormLayout @submit.prevent="createGroup">
+			<FormField label="Name" for="new-group-name" :disabled="saving">
+				<input
+					id="new-group-name"
+					ref="createGroupNameInput"
+					v-model="newGroupName"
+					type="text"
+					autocomplete="off"
+					:disabled="saving"
+					required
+				/>
+			</FormField>
+
+			<p v-if="createGroupError" class="inline-notification error">{{ createGroupError }}</p>
+
+			<template #actions>
+				<button type="button" class="neutral" :disabled="saving" @click="closeCreateGroupDialog">Cancel</button>
+				<button type="submit" class="good" :disabled="saving || !newGroupName.trim()">
+					{{ saving ? 'Creating…' : 'Create group' }}
+				</button>
+			</template>
+		</FormLayout>
+	</dialog>
+
 	<Section
-		title="User Groups"
 		subtitle="Manage user groups and their membership. Groups let you organise users for easier administration."
 		classes="user-groups settings-users"
 		:padding="false"
 	>
+		<template #title>
+			<span class="section-title-with-icon">
+				<HugeiconsIcon :icon="UserGroupIcon" width="22" height="22" aria-hidden="true" />
+				User Groups
+			</span>
+		</template>
 		<template #toolbar>
-			<button type="button" class="neutral" title="Refresh" :disabled="loading" @click="loadAll">
-				<Icon icon="material-symbols:refresh" />
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Refresh"
+				title="Refresh"
+				:disabled="loading"
+				@click="loadAll"
+			>
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+			</button>
+			<button
+				v-if="canManage"
+				type="button"
+				class="inline-icon good"
+				aria-label="Create group"
+				title="Create group"
+				:disabled="loading"
+				@click="openCreateGroupDialog"
+			>
+				<HugeiconsIcon
+					:icon="Add01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 			</button>
 		</template>
 
@@ -16,69 +79,63 @@
 		<div v-if="loading && !groups.length" class="groups-banner-pad muted">Loading…</div>
 
 		<template v-else>
-			<h3 class="subsection-title groups-banner-pad">Groups</h3>
 			<p v-if="!groups.length" class="inline-notification note groups-banner-pad">No user groups yet.</p>
 
-			<table v-if="groups.length" class="groups-table user-table-wrap">
-				<thead>
-					<tr>
-						<th>Name</th>
-						<th>Members</th>
-						<th v-if="canManage" class="actions-col">Actions</th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr
-						v-for="g in groups"
-						:key="g.id"
-						class="group-row"
-						@click="openGroupDetails(g)"
-					>
-						<td><strong>{{ g.name }}</strong></td>
-						<td>{{ g.memberCount }}</td>
-						<td v-if="canManage" align="right">
-							<button
-								type="button"
-								class="bad small"
-								@click.stop="deleteGroup(g)"
-							>
-								Delete
-							</button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-
-			<div v-if="canManage" class="create-group-panel">
-				<h4 class="subsection-title">Create group</h4>
-				<div class="form-row">
-					<label for="new-group-name">Name</label>
-					<input id="new-group-name" v-model="newGroupName" type="text" autocomplete="off" @keydown.enter="createGroup" />
-					<button type="button" class="good" :disabled="saving || !newGroupName.trim()" @click="createGroup">
-						Create
-					</button>
-				</div>
-			</div>
+			<Table
+				v-else
+				class="user-table-wrap"
+				row-clickable
+				:data="groups"
+				:headers="tableHeaders"
+				@row-click="openGroupDetails"
+			>
+				<template #cell-name="{ row, value }">
+					<span class="group-name-cell">
+						<strong>{{ value }}</strong>
+						<span v-if="isSystemGroup(row.name)" class="tag fg-note">system group</span>
+					</span>
+				</template>
+				<template #cell-actions="{ row }">
+					<div v-if="canDeleteGroup(row)" class="actions-cell">
+						<button
+							type="button"
+							class="bad small"
+							:disabled="saving"
+							@click="deleteGroup(row)"
+						>
+							Delete
+						</button>
+					</div>
+				</template>
+			</Table>
 		</template>
 	</Section>
 </template>
 
 <script setup>
-	import { ref, computed, onMounted } from 'vue';
+	import { ref, computed, onMounted, nextTick } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { Add01Icon, RefreshIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
+	import FormField from 'picocrank/vue/components/FormField.vue';
+	import Table from './picocrank/TableWithRowClick.vue';
 
 	const router = useRouter();
+	const iconStrokeWidth = 2.5;
 
 	const groups = ref([]);
 	const loading = ref(true);
 	const saving = ref(false);
 	const errorMessage = ref('');
+	const createGroupError = ref('');
 	const statusPerms = ref([]);
 	const statusSuper = ref(false);
 	const newGroupName = ref('');
+	const createGroupDialog = ref(null);
+	const createGroupNameInput = ref(null);
 
 	const canView = computed(
 		() => statusSuper.value || (Array.isArray(statusPerms.value) && statusPerms.value.includes('usergroups.view'))
@@ -86,6 +143,33 @@
 	const canManage = computed(
 		() => statusSuper.value || (Array.isArray(statusPerms.value) && statusPerms.value.includes('usergroups.manage'))
 	);
+
+	const canViewRoles = computed(
+		() => statusSuper.value || (Array.isArray(statusPerms.value) && statusPerms.value.includes('rbac.view'))
+	);
+
+	const tableHeaders = computed(() => {
+		const headers = [
+			{ key: 'name', label: 'Name', sortable: true },
+			{ key: 'memberCount', label: 'Members', sortable: true, width: '8rem' },
+		];
+		if (canViewRoles.value) {
+			headers.push({ key: 'roleCount', label: 'Roles', sortable: true, width: '8rem' });
+		}
+		headers.push({ key: 'sharedAccountCount', label: 'Shared accounts', sortable: true, width: '10rem' });
+		if (canManage.value) {
+			headers.push({ key: 'actions', label: 'Actions', sortable: false, width: '6rem' });
+		}
+		return headers;
+	});
+
+	function isSystemGroup(name) {
+		return name === 'Everyone' || name === 'Administrators';
+	}
+
+	function canDeleteGroup(group) {
+		return canManage.value && !isSystemGroup(group.name);
+	}
 
 	async function refreshStatus() {
 		await waitForClient();
@@ -105,7 +189,22 @@
 				return;
 			}
 			const gr = await window.client.listUserGroups({});
-			groups.value = gr.groups || [];
+			const rawGroups = gr.groups || [];
+			if (rawGroups.length) {
+				const [roleResults, sharedResults] = await Promise.all([
+					canViewRoles.value
+						? Promise.all(rawGroups.map((g) => window.client.getUserGroupRbacRoles({ groupId: g.id })))
+						: Promise.resolve([]),
+					Promise.all(rawGroups.map((g) => window.client.getUserGroupSharedAccounts({ groupId: g.id }))),
+				]);
+				groups.value = rawGroups.map((g, i) => ({
+					...g,
+					roleCount: canViewRoles.value ? (roleResults[i].roleIds || []).length : 0,
+					sharedAccountCount: (sharedResults[i].accounts || []).length,
+				}));
+			} else {
+				groups.value = [];
+			}
 		} catch (e) {
 			console.error(e);
 			errorMessage.value = e.message || 'Failed to load user groups.';
@@ -118,14 +217,27 @@
 		router.push({ name: 'userGroupDetails', params: { id: String(g.id) } });
 	}
 
+	function openCreateGroupDialog() {
+		newGroupName.value = '';
+		createGroupError.value = '';
+		createGroupDialog.value?.showModal();
+		nextTick(() => createGroupNameInput.value?.focus());
+	}
+
+	function closeCreateGroupDialog() {
+		createGroupDialog.value?.close();
+		newGroupName.value = '';
+		createGroupError.value = '';
+	}
+
 	async function createGroup() {
 		if (!canManage.value || !newGroupName.value.trim()) return;
 		saving.value = true;
-		errorMessage.value = '';
+		createGroupError.value = '';
 		try {
 			await waitForClient();
 			const res = await window.client.createUserGroup({ name: newGroupName.value.trim() });
-			newGroupName.value = '';
+			closeCreateGroupDialog();
 			if (res.groupId) {
 				router.push({ name: 'userGroupDetails', params: { id: String(res.groupId) } });
 				return;
@@ -133,14 +245,14 @@
 			await loadAll();
 		} catch (e) {
 			console.error(e);
-			errorMessage.value = e.message || 'Failed to create group.';
+			createGroupError.value = e.message || 'Failed to create group.';
 		} finally {
 			saving.value = false;
 		}
 	}
 
 	async function deleteGroup(g) {
-		if (!canManage.value || !confirm(`Delete group "${g.name}"? Members will be removed.`)) return;
+		if (!canDeleteGroup(g) || !confirm(`Delete group "${g.name}"? Members will be removed.`)) return;
 		saving.value = true;
 		errorMessage.value = '';
 		try {
@@ -161,58 +273,32 @@
 </script>
 
 <style scoped>
+	.section-title-with-icon {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45em;
+		vertical-align: middle;
+	}
+
 	.groups-banner-pad {
 		padding-left: 1em;
 		padding-right: 1em;
 	}
 
-	.subsection-title {
-		margin: 1.25rem 0 0.5rem;
-		font-size: 1.05rem;
-		font-weight: 600;
-	}
-
 	.user-table-wrap {
 		margin-top: 0.5rem;
-	}
-
-	.groups-table {
-		width: 100%;
 		margin-bottom: 1.5rem;
 	}
 
-	.group-row {
-		cursor: pointer;
+	.actions-cell {
+		text-align: right;
 	}
 
-	.group-row:hover {
-		background: var(--pico-muted-border-color, rgba(0, 0, 0, 0.04));
-	}
-
-	.actions-col {
-		width: 6rem;
-	}
-
-	.create-group-panel {
-		margin-bottom: 2rem;
-		padding: 1rem 1em;
-		border-top: 1px solid var(--pico-muted-border-color, rgba(0, 0, 0, 0.12));
-	}
-
-	.form-row {
-		display: flex;
+	.group-name-cell {
+		display: inline-flex;
 		flex-wrap: wrap;
 		align-items: center;
-		gap: 0.75rem;
-	}
-
-	.form-row label {
-		font-weight: 600;
-	}
-
-	.form-row input {
-		flex: 1;
-		min-width: 12rem;
+		gap: 0.45rem;
 	}
 
 	.muted {

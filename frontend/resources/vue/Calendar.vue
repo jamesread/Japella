@@ -6,8 +6,20 @@
 		:padding="false"
 	>
 		<template #toolbar>
-			<button @click="refreshEvents" :disabled="!clientReady" class="neutral">
-				<Icon icon="material-symbols:refresh" />
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Refresh"
+				:disabled="!clientReady"
+				@click="refreshEvents"
+			>
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 			</button>
 		</template>
 
@@ -30,10 +42,13 @@
 <script setup>
     import { ref, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Calendar from 'picocrank/vue/components/Calendar.vue';
 	import Notification from '../javascript/notification.js';
+
+	const iconStrokeWidth = 2.5;
 
 	const clientReady = ref(false);
 	const loading = ref(false);

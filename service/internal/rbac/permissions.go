@@ -21,3 +21,6 @@ const (
 
 const RoleSuperuser = "superuser"
 const RoleMember    = "member"
+
+const GroupEveryone       = "Everyone"
+const GroupAdministrators = "Administrators"

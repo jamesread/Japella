@@ -5,12 +5,30 @@
 		classes="add-social-account"
 	>
 		<template #toolbar>
-			<router-link :to="{ name: 'socialAccounts' }" class="button neutral">
-				<Icon icon="material-symbols:arrow-back" />
-				Back to Accounts
+			<router-link :to="{ name: 'socialAccounts' }" class="button inline-icon neutral">
+				<HugeiconsIcon
+					:icon="ArrowLeft01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Back to Accounts</span>
 			</router-link>
-			<button type="button" class="neutral" title="Refresh" :disabled="loading" @click="fetchConnectors">
-				<Icon icon="material-symbols:refresh" />
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Refresh"
+				:disabled="loading"
+				@click="fetchConnectors"
+			>
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 			</button>
 		</template>
 
@@ -32,10 +50,13 @@
 
 <script setup>
 	import { ref, onMounted } from 'vue';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import { waitForClient, normalizeConnectorIssues, connectorUsesOauth } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import ConnectorCatalog from './ConnectorCatalog.vue';
+
+	const iconStrokeWidth = 2.5;
 
 	const connectors = ref([]);
 	const unregisteredConnectors = ref([]);

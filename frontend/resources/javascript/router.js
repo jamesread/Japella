@@ -15,12 +15,17 @@ import UserDetails from '../vue/UserDetails.vue'
 import UserDetailsRoles from '../vue/UserDetailsRoles.vue'
 import UserDetailsPassword from '../vue/UserDetailsPassword.vue'
 import RbacSettings from '../vue/RbacSettings.vue'
+import RbacPermissions from '../vue/RbacPermissions.vue'
+import RoleDetails from '../vue/RoleDetails.vue'
 import SocialAccounts from '../vue/SocialAccounts.vue'
 import SocialAccountDetails from '../vue/SocialAccountDetails.vue'
 import ApiKeys from '../vue/ApiKeys.vue'
 import Media from '../vue/Media.vue'
 import ControlPanel from '../vue/ControlPanel.vue'
+import Iam from '../vue/Iam.vue'
 import UserControlPanel from '../vue/UserControlPanel.vue'
+import MyPermissions from '../vue/MyPermissions.vue'
+import UserPreferences from '../vue/UserPreferences.vue'
 import ChangePassword from '../vue/ChangePassword.vue'
 import PostDetails from '../vue/PostDetails.vue'
 import Feed from '../vue/Feed.vue'
@@ -36,6 +41,7 @@ import CreateUser from '../vue/CreateUser.vue'
 import Connectors from '../vue/Connectors.vue'
 import SystemArchitecture from '../vue/SystemArchitecture.vue'
 import SystemDiagnostics from '../vue/SystemDiagnostics.vue'
+import WebhooksAdmin from '../vue/WebhooksAdmin.vue'
 import UserGroups from '../vue/UserGroups.vue'
 import UserGroupDetails from '../vue/UserGroupDetails.vue'
 import AccountPolicies from '../vue/AccountPolicies.vue'
@@ -43,8 +49,9 @@ import AccountPolicyEditor from '../vue/AccountPolicyEditor.vue'
 import Approvals from '../vue/Approvals.vue'
 import AddSocialAccount from '../vue/AddSocialAccount.vue'
 import SocialAccountPreAdd from '../vue/SocialAccountPreAdd.vue'
-import { canAccessControlPanelFromStatus, canViewSystemDiagnosticsFromStatus } from './rbacAccess.js'
+import { canAccessControlPanelFromStatus, canViewSystemDiagnosticsFromStatus, canAccessIamFromStatus } from './rbacAccess.js'
 import { fetchAppStatus } from './status.js'
+import { applyRouteBreadcrumbs } from './breadcrumbs.js'
 
 import {
   SettingsIcon,
@@ -63,6 +70,8 @@ import {
   WebSecurityIcon,
   SecurityValidationIcon,
   MessageMultiple01Icon,
+  UserShield01Icon,
+  WebhookIcon,
 } from '@hugeicons/core-free-icons'
 
 const routes = [
@@ -305,6 +314,24 @@ const routes = [
     }
   },
   {
+    path: '/settings/rbac/permissions',
+    name: 'rbacPermissions',
+    component: RbacPermissions,
+    meta: {
+      title: 'Permissions',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/settings/rbac/:id',
+    name: 'rbacRoleDetails',
+    component: RoleDetails,
+    meta: {
+      title: 'Role',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/api-keys',
     name: 'settingsApiKeys',
     component: ApiKeys,
@@ -348,8 +375,8 @@ const routes = [
     component: UserDetailsRoles,
     meta: {
       icon: WebSecurityIcon,
-      title: 'Roles & permissions',
-      description: 'Assign RBAC roles and review effective permissions',
+      title: 'Permissions Audit',
+      description: 'Manage group membership and review effective permissions',
       requiresAuth: true
     }
   },
@@ -374,6 +401,15 @@ const routes = [
       description: 'View and manage API keys for this user',
       requiresAuth: true
     }
+  },
+  {
+    path: '/admin/webhooks',
+    name: 'adminWebhooks',
+    component: WebhooksAdmin,
+    meta: {
+      title: 'Webhooks',
+      requiresAuth: true,
+    },
   },
   {
     path: '/user-groups',
@@ -444,6 +480,18 @@ const routes = [
     }
   },
   {
+    path: '/control-panel/iam',
+    name: 'iam',
+    component: Iam,
+    meta: {
+      icon: UserShield01Icon,
+      title: 'IAM',
+      description: 'Identity and Access Management',
+      requiresAuth: true,
+      requiresIam: true,
+    }
+  },
+  {
     path: '/control-panel/system-architecture',
     name: 'systemArchitecture',
     component: SystemArchitecture,
@@ -473,6 +521,24 @@ const routes = [
     }
   },
   {
+    path: '/user-control-panel/permissions',
+    name: 'myPermissions',
+    component: MyPermissions,
+    meta: {
+      title: 'My Permissions',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/user-control-panel/preferences',
+    name: 'userPreferences',
+    component: UserPreferences,
+    meta: {
+      title: 'User Preferences',
+      requiresAuth: true
+    }
+  },
+  {
     path: '/browser-diagnostics',
     name: 'browserDiagnostics',
     component: BrowserDiagnostics,
@@ -487,6 +553,8 @@ const routes = [
     redirect: '/'
   }
 ]
+
+routes.forEach(applyRouteBreadcrumbs)
 
 const router = createRouter({
   history: createWebHistory(),
@@ -505,9 +573,9 @@ router.afterEach((to) => {
 })
 
 // Navigation guard to handle authentication
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to) => {
   const needsStatus =
-    to.meta.requiresAuth || to.meta.requiresControlPanel || to.meta.requiresSystemDiagnostics;
+    to.meta.requiresAuth || to.meta.requiresControlPanel || to.meta.requiresSystemDiagnostics || to.meta.requiresIam;
 
   let status = null;
   if (needsStatus) {
@@ -515,27 +583,25 @@ router.beforeEach(async (to, from, next) => {
       status = await fetchAppStatus();
     } catch (error) {
       console.error('Error checking server status:', error);
-      next('/');
-      return;
+      return '/';
     }
   }
 
   if (to.meta.requiresAuth && !status?.isLoggedIn) {
-    next('/');
-    return;
+    return '/';
   }
 
   if (to.meta.requiresControlPanel && !canAccessControlPanelFromStatus(status)) {
-    next('/');
-    return;
+    return '/';
+  }
+
+  if (to.meta.requiresIam && !canAccessIamFromStatus(status)) {
+    return '/';
   }
 
   if (to.meta.requiresSystemDiagnostics && !canViewSystemDiagnosticsFromStatus(status)) {
-    next('/');
-    return;
+    return '/';
   }
-
-  next();
 })
 
 export default router

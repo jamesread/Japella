@@ -274,6 +274,7 @@ func (s *ControlApi) DeleteChatBot(ctx context.Context, req *connect.Request[con
 	}
 
 	_ = s.DB.DeleteWebhookHooks(protocol, botID)
+	_ = s.DB.DeleteOrphanedWebhookHooks()
 	_ = s.DB.DeleteCvarsByKeys(chatbot.CvarKeysForInstance(protocol, botID))
 	if err := s.DB.DeleteChatBotInstance(protocol, botID); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)

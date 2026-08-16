@@ -29,10 +29,10 @@
 			<div v-for="message in systemStatus.statusMessages" :key="message.id || message.message"
 				 class="message-item" :class="message.type">
 				<div class="message-content">
-					<HugeIcon :icon="getMessageIcon(message.type)" />
+					<HugeiconsIcon :icon="getMessageIcon(message.type)" />
 					<span>{{ message.message }}</span>
 					<a v-if="message.url" :href="message.url" target="_blank" class="message-link">
-						<HugeIcon :icon="LinkSquare01Icon" />
+						<HugeiconsIcon :icon="LinkSquare01Icon" />
 					</a>
 				</div>
 			</div>
@@ -138,20 +138,6 @@
 					</div>
 				</div>
 			</div>
-
-			<div class="config-file-subsection" role="region" aria-labelledby="config-file-heading">
-				<h4 id="config-file-heading">
-					<HugeiconsIcon :icon="Settings01Icon" />
-					<span>Config file (server)</span>
-				</h4>
-				<div class="config-file-path-box">
-					<p class="config-file-subheader">Absolute path</p>
-					<code
-						class="config-file-path"
-						:title="systemStatus.configFileAbsolutePath || ''"
-					>{{ systemStatus.configFileAbsolutePath || 'Unknown' }}</code>
-				</div>
-			</div>
 		</div>
 	</Section>
 
@@ -169,7 +155,7 @@
 		</template>
 
 		<div v-if="jobsLoading" class="loading">
-			<HugeIcon :icon="Loading01Icon" />
+			<HugeiconsIcon :icon="Loading01Icon" />
 			<span>Loading job status...</span>
 		</div>
 		<div v-else-if="jobs.length === 0" class="inline-notification note">
@@ -205,6 +191,7 @@
 	import {
 		canAccessControlPanelFromStatus,
 		canViewSystemDiagnosticsFromStatus,
+		canAccessIamFromStatus,
 	} from '../javascript/rbacAccess.js';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
@@ -217,7 +204,6 @@
 		GridViewIcon,
 		InformationCircleIcon,
 		UserMultiple02Icon,
-		UserGroupIcon,
 		HardDriveIcon,
 		Database01Icon,
 		LeftToRightListNumberIcon,
@@ -227,10 +213,10 @@
 		CancelCircleIcon,
 		ApproximatelyEqualCircleIcon,
 		ActivityIcon,
-		WebSecurityIcon,
-		SecurityValidationIcon,
 		Flowchart01Icon,
 		AlertCircleIcon,
+		UserShield01Icon,
+		WebhookIcon,
 	} from '@hugeicons/core-free-icons';
 
 	const clientReady = ref(false);
@@ -362,21 +348,9 @@
 			return;
 		}
 
-		// Setup administration actions navigation (order: Users → … → System Architecture → System Logs)
+		// Setup administration actions navigation
 		if (localNavigation.value) {
 			const st = systemStatus.value;
-			const canUsers =
-				st?.rbacIsSuperuser ||
-				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('users.view'));
-			const canUserGroups =
-				st?.rbacIsSuperuser ||
-				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('usergroups.view'));
-			const canAccountPolicies =
-				st?.rbacIsSuperuser ||
-				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('account-policies.manage'));
-			const canRbac =
-				st?.rbacIsSuperuser ||
-				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('rbac.view'));
 			const canConnectors =
 				st?.rbacIsSuperuser ||
 				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('system.connectors'));
@@ -388,35 +362,11 @@
 				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('system.logs'));
 			const canDiagnosticsNav = canViewSystemDiagnosticsFromStatus(st);
 
-			if (canUsers) {
-				localNavigation.value.addCallback('Users', () => goToRoute('/users'), {
-					icon: UserMultiple02Icon,
-					name: 'users',
-					description: 'Manage system users',
-				});
-			}
-
-			if (canUserGroups) {
-				localNavigation.value.addCallback('User Groups', () => goToRoute('/user-groups'), {
-					icon: UserGroupIcon,
-					name: 'user-groups',
-					description: 'Manage user groups and membership',
-				});
-			}
-
-			if (canAccountPolicies) {
-				localNavigation.value.addCallback('Account Policies', () => goToRoute('/account-policies'), {
-					icon: SecurityValidationIcon,
-					name: 'account-policies',
-					description: 'Approval workflows for social accounts',
-				});
-			}
-
-			if (canRbac) {
-				localNavigation.value.addCallback('Roles & Permissions', () => goToRoute('/settings/rbac'), {
-					icon: WebSecurityIcon,
-					name: 'rbac-settings',
-					description: 'Manage RBAC roles and user assignments',
+			if (canAccessIamFromStatus(st)) {
+				localNavigation.value.addCallback('IAM', () => goToRoute('/control-panel/iam'), {
+					icon: UserShield01Icon,
+					name: 'iam',
+					description: 'Users, groups, account policies, and roles',
 				});
 			}
 
@@ -433,6 +383,11 @@
 					icon: Settings01Icon,
 					name: 'system-settings',
 					description: 'Configure system settings',
+				});
+				localNavigation.value.addCallback('Webhooks', () => goToRoute('/admin/webhooks'), {
+					icon: WebhookIcon,
+					name: 'webhooks',
+					description: 'Configure event webhook endpoints',
 				});
 			}
 
@@ -464,53 +419,6 @@
 <style scoped>
 	.status-overview {
 		margin-bottom: 2rem;
-	}
-
-	.config-file-subsection {
-		margin-top: 1.25rem;
-		padding-top: 1rem;
-		border-top: 1px solid rgba(255, 255, 255, 0.12);
-	}
-
-	.config-file-subsection h4 {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		margin: 0 0 0.5rem;
-		font-size: 0.95rem;
-	}
-
-	.config-file-path-box {
-		display: block;
-		margin: 0;
-		padding: 0.65rem 0.85rem;
-		border-radius: 0.35rem;
-		border: 1px solid rgba(255, 255, 255, 0.16);
-		border-left-width: 4px;
-		border-left-color: rgba(100, 180, 255, 0.55);
-		background: rgba(255, 255, 255, 0.06);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-	}
-
-	.config-file-subheader {
-		margin: 0 0 0.4rem;
-		font-size: 0.7rem;
-		font-weight: 600;
-		letter-spacing: 0.04em;
-		text-transform: uppercase;
-		opacity: 0.65;
-	}
-
-	.config-file-path {
-		display: block;
-		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-		font-size: 0.85rem;
-		line-height: 1.45;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
-		color: inherit;
-		background: transparent;
 	}
 
 	.status-grid {

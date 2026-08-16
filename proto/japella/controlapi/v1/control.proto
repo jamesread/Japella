@@ -10,6 +10,7 @@ message SubmitPostRequest {
     uint32 campaign_id = 3;
     string scheduled_at = 4; // RFC3339 or 'YYYY-MM-DDTHH:MM' local time
     repeated string media_urls = 5; // URLs to attach (e.g. /media/files/<filename>)
+    bool save_as_draft = 6; // Save without posting or scheduling
 }
 
 message SubmitPostResponse {
@@ -56,6 +57,7 @@ message GetStatusResponse {
     bool database_connected = 19;
     bool amqp_enabled = 20;
     bool amqp_connected = 21;
+    repeated string webhook_events = 22;
 }
 
 message StatusMessage {
@@ -396,6 +398,8 @@ message RbacRole {
 	string name = 2;
 	string description = 3;
 	repeated uint32 permission_ids = 4;
+	uint32 group_count = 5;
+	uint32 user_count = 6;
 }
 
 message ListRbacPermissionsRequest {
@@ -450,13 +454,53 @@ message GetUserRbacRolesResponse {
 	repeated uint32 role_ids = 1;
 }
 
-message SetUserRbacRolesRequest {
-	uint32 user_id = 1;
+message GetMyPermissionsAuditRequest {
+}
+
+message MyPermissionAuditRow {
+	string permission = 1;
+	bool granted = 2;
+	repeated string granting_groups = 3;
+}
+
+message GetMyPermissionsAuditResponse {
+	repeated string group_names = 1;
+	repeated string role_names = 2;
+	bool is_superuser = 3;
+	repeated MyPermissionAuditRow permissions = 4;
+}
+
+message GetUserGroupRbacRolesRequest {
+	uint32 group_id = 1;
+}
+
+message GetUserGroupRbacRolesResponse {
+	repeated uint32 role_ids = 1;
+}
+
+message SetUserGroupRbacRolesRequest {
+	uint32 group_id = 1;
 	repeated uint32 role_ids = 2;
 }
 
-message SetUserRbacRolesResponse {
+message SetUserGroupRbacRolesResponse {
 	StandardResponse standard_response = 1;
+}
+
+message GetRbacRoleUsersRequest {
+	uint32 role_id = 1;
+}
+
+message GetRbacRoleUsersResponse {
+	repeated uint32 user_ids = 1;
+}
+
+message GetRbacRoleGroupsRequest {
+	uint32 role_id = 1;
+}
+
+message GetRbacRoleGroupsResponse {
+	repeated uint32 group_ids = 1;
 }
 
 message GetApiKeysRequest {
@@ -472,6 +516,8 @@ message ApiKey {
 	string created_at = 3;
 	uint32 user_id = 4;
 	string username = 5;
+	string last_used_at = 6;
+	string name = 7;
 }
 
 message GetCvarsRequest {
@@ -501,6 +547,7 @@ message Cvar {
 
 message SaveUserPreferencesRequest {
 	string language = 1;
+	bool sidebar_enabled = 2;
 }
 
 message SaveUserPreferencesResponse {
@@ -508,10 +555,20 @@ message SaveUserPreferencesResponse {
 	string username = 2;
 }
 
+message GetUserPreferencesRequest {}
+
+message GetUserPreferencesResponse {
+	string language = 1;
+	repeated string available_languages = 2;
+	bool sidebar_enabled = 3;
+}
+
 message CreateApiKeyRequest {
 	// Optional. When set, create the key for this user instead of the caller.
 	// Creating for another user requires users.view (or superuser).
 	uint32 user_id = 1;
+	// Required descriptive label for this key (e.g. "CI deploy", "Cursor MCP").
+	string name = 2;
 }
 
 message CreateApiKeyResponse {
@@ -621,6 +678,9 @@ message DeleteCampaignResponse {
 
 message GetLogsRequest {
 	uint32 limit = 1; // Maximum number of logs to return, default 100
+	// When set, return only logs for this social account. Requires read access to that account.
+	// When unset, returns all logs and requires system.logs (or superuser).
+	uint32 related_social_account_id = 2;
 }
 
 message GetLogsResponse {
@@ -1088,6 +1148,64 @@ message UpdatePendingPostResponse {
 	PostStatus post = 2;
 }
 
+message Webhook {
+	uint32 id = 1;
+	string url = 2;
+	repeated string events = 3;
+	bool enabled = 4;
+	string created = 5;
+	string updated = 6;
+}
+
+message ListWebhooksRequest {}
+
+message ListWebhooksResponse {
+	repeated Webhook webhooks = 1;
+	repeated string events = 2;
+}
+
+message CreateWebhookRequest {
+	string url = 1;
+	string secret = 2;
+	repeated string events = 3;
+	bool enabled = 4;
+}
+
+message CreateWebhookResponse {
+	uint32 id = 1;
+}
+
+message UpdateWebhookRequest {
+	uint32 id = 1;
+	string url = 2;
+	string secret = 3;
+	repeated string events = 4;
+	bool enabled = 5;
+}
+
+message UpdateWebhookResponse {}
+
+message DeleteWebhookRequest {
+	uint32 id = 1;
+}
+
+message DeleteWebhookResponse {}
+
+message BotWebhook {
+	uint32 id = 1;
+	string protocol = 2;
+	string bot_id = 3;
+	string bot_name = 4;
+	string url = 5;
+	bool enabled = 6;
+}
+
+message ListBotWebhooksRequest {}
+
+message ListBotWebhooksResponse {
+	repeated BotWebhook webhooks = 1;
+}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -1155,11 +1273,21 @@ service JapellaControlApiService {
 
 	rpc GetUserRbacRoles(GetUserRbacRolesRequest) returns (GetUserRbacRolesResponse) {}
 
-	rpc SetUserRbacRoles(SetUserRbacRolesRequest) returns (SetUserRbacRolesResponse) {}
+	rpc GetMyPermissionsAudit(GetMyPermissionsAuditRequest) returns (GetMyPermissionsAuditResponse) {}
+
+	rpc GetUserGroupRbacRoles(GetUserGroupRbacRolesRequest) returns (GetUserGroupRbacRolesResponse) {}
+
+	rpc SetUserGroupRbacRoles(SetUserGroupRbacRolesRequest) returns (SetUserGroupRbacRolesResponse) {}
+
+	rpc GetRbacRoleUsers(GetRbacRoleUsersRequest) returns (GetRbacRoleUsersResponse) {}
+
+	rpc GetRbacRoleGroups(GetRbacRoleGroupsRequest) returns (GetRbacRoleGroupsResponse) {}
 
 	rpc GetApiKeys(GetApiKeysRequest) returns (GetApiKeysResponse) {}
 
 	rpc GetCvars(GetCvarsRequest) returns (GetCvarsResponse) {}
+
+	rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse) {}
 
 	rpc SaveUserPreferences(SaveUserPreferencesRequest) returns (SaveUserPreferencesResponse) {}
 
@@ -1231,4 +1359,10 @@ service JapellaControlApiService {
     rpc RejectPost(RejectPostRequest) returns (RejectPostResponse) {}
     rpc GetPost(GetPostRequest) returns (GetPostResponse) {}
     rpc UpdatePendingPost(UpdatePendingPostRequest) returns (UpdatePendingPostResponse) {}
+
+    rpc ListWebhooks(ListWebhooksRequest) returns (ListWebhooksResponse) {}
+    rpc CreateWebhook(CreateWebhookRequest) returns (CreateWebhookResponse) {}
+    rpc UpdateWebhook(UpdateWebhookRequest) returns (UpdateWebhookResponse) {}
+    rpc DeleteWebhook(DeleteWebhookRequest) returns (DeleteWebhookResponse) {}
+    rpc ListBotWebhooks(ListBotWebhooksRequest) returns (ListBotWebhooksResponse) {}
 }

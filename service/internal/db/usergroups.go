@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
+
+	"github.com/jamesread/japella/internal/rbac"
 )
 
 type UserGroupWithCount struct {
@@ -43,6 +45,14 @@ func (db *DB) DeleteUserGroup(id uint32) error {
 	if db.connx == nil {
 		db.ReconnectDatabaseAndSetErrorMessage()
 		return fmt.Errorf("database connection is not established")
+	}
+
+	g := db.GetUserGroupByID(id)
+	if g == nil {
+		return sql.ErrNoRows
+	}
+	if g.Name == rbac.GroupEveryone || g.Name == rbac.GroupAdministrators {
+		return fmt.Errorf("cannot delete system group %s", g.Name)
 	}
 
 	tx, err := db.connx.Beginx()
@@ -95,7 +105,10 @@ func (db *DB) SetUserGroupMembers(groupID uint32, userIDs []uint32) error {
 			return err
 		}
 	}
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return err
+	}
+	return db.ensureSuperuserCoverage()
 }
 
 func (db *DB) GetUserGroupByID(id uint32) *UserGroup {
@@ -108,6 +121,26 @@ func (db *DB) GetUserGroupByID(id uint32) *UserGroup {
 		return nil
 	}
 	return &g
+}
+
+func (db *DB) GetUserGroupByName(name string) *UserGroup {
+	var g UserGroup
+	err := db.ResilientGet(&g, `SELECT * FROM user_groups WHERE name = ? LIMIT 1`, name)
+	if err != nil {
+		if err != sql.ErrNoRows {
+			db.Logger().Errorf("GetUserGroupByName: %v", err)
+		}
+		return nil
+	}
+	return &g
+}
+
+func (db *DB) SelectUserGroupIDsForUser(userID uint32) ([]uint32, error) {
+	var ids []uint32
+	err := db.ResilientSelect(&ids,
+		`SELECT user_group_id FROM user_group_memberships WHERE user_account_id = ? ORDER BY user_group_id`,
+		userID)
+	return ids, err
 }
 
 // SocialAccountSharedWithGroup is a social account plus the share permissions granted to a user group.

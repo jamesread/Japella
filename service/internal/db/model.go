@@ -63,8 +63,8 @@ type Post struct {
 	Status             bool           `db:"status"`
 	State              string         `db:"state"`
 	Content            string         `db:"content"`
-	PostURL            string         `db:"post_url"`
-	RemoteID           string         `db:"remote_id"`
+	PostURL            sql.NullString `db:"post_url"`
+	RemoteID           sql.NullString `db:"remote_id"`
 	ScheduledAt        sql.NullTime   `db:"scheduled_at"`
 	CampaignID         sql.NullInt32  `db:"campaign_id"`
 	CampaignName       sql.NullString `db:"campaign_name"`
@@ -138,8 +138,10 @@ type UserGroupMembership struct {
 type ApiKey struct {
 	Model
 
-	KeyValue      string `db:"key_value"` // Key keyword in SQL
-	UserAccountID uint32 `db:"user_account_id"`
+	Name          string       `db:"name"`
+	KeyValue      string       `db:"key_value"` // Key keyword in SQL
+	LastUsedAt    sql.NullTime `db:"last_used_at"`
+	UserAccountID uint32       `db:"user_account_id"`
 	UserAccount   *UserAccount
 }
 
@@ -170,9 +172,10 @@ type Cvar struct {
 type UserPreferences struct {
 	Model
 
-	UserAccountID uint32 `db:"user_account_id"`
-	UserAccount   UserAccount
-	Language      string `db:"language"`
+	UserAccountID  uint32 `db:"user_account_id"`
+	UserAccount    UserAccount
+	Language       string `db:"language"`
+	SidebarEnabled bool   `db:"sidebar_enabled"`
 }
 
 type Campaign struct {

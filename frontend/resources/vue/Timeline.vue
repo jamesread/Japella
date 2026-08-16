@@ -29,16 +29,34 @@
 					<button
 						v-if="hasActiveFilters"
 						type="button"
-						@click="clearFilters"
-						class="neutral small"
+						class="inline-icon neutral small"
 						title="Clear Filters"
+						@click="clearFilters"
 					>
-						<Icon icon="mdi:filter-remove" width="16" height="16" />
-						Clear
+						<HugeiconsIcon
+							:icon="FilterRemoveIcon"
+							width="1em"
+							height="1em"
+							:strokeWidth="iconStrokeWidth"
+							aria-hidden="true"
+						/>
+						<span>Clear</span>
 					</button>
 				</div>
-				<button type="button" @click="refreshTimeline" :disabled="!clientReady" class="neutral" title="Refresh">
-					<Icon icon="material-symbols:refresh" />
+				<button
+					type="button"
+					class="inline-icon neutral"
+					aria-label="Refresh"
+					:disabled="!clientReady"
+					@click="refreshTimeline"
+				>
+					<HugeiconsIcon
+						:icon="RefreshIcon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
 				</button>
 			</div>
 		</template>
@@ -95,9 +113,21 @@
 				</select>
 			</div>
 			<div class="dialog-actions">
-				<button class="neutral" @click="cancelCampaignDialog" :disabled="campaignsSaving">Cancel</button>
-				<button class="good" @click="updatePostCampaign" :disabled="campaignsSaving || campaignsLoading">
-					<Icon v-if="campaignsSaving" icon="eos-icons:loading" width="16" height="16" />
+				<button type="button" class="neutral" :disabled="campaignsSaving" @click="cancelCampaignDialog">Cancel</button>
+				<button
+					type="button"
+					class="inline-icon good"
+					:disabled="campaignsSaving || campaignsLoading"
+					@click="updatePostCampaign"
+				>
+					<HugeiconsIcon
+						v-if="campaignsSaving"
+						:icon="Loading01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
 					<span>{{ campaignsSaving ? 'Updating...' : 'Update Campaign' }}</span>
 				</button>
 			</div>
@@ -112,11 +142,18 @@
 	import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
-	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import {
+		FilterRemoveIcon,
+		Loading01Icon,
+		RefreshIcon,
+	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Loading from './Loading.vue';
 	import PostPreview from './PostPreview.vue';
 	import FilterSelect from './FilterSelect.vue';
+
+	const iconStrokeWidth = 2.5;
 
 	const PAGE_SIZE = 10;
 
@@ -448,41 +485,6 @@
 		gap: 0.5rem;
 		justify-content: flex-end;
 		margin-top: 1.5rem;
-	}
-
-	.dialog-actions button {
-		padding: 0.5rem 1rem;
-		border-radius: 0.25rem;
-		border: none;
-		cursor: pointer;
-		font-size: 0.9rem;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		transition: all 0.2s ease;
-	}
-
-	.dialog-actions button:disabled {
-		opacity: 0.6;
-		cursor: not-allowed;
-	}
-
-	.dialog-actions button.neutral {
-		background-color: #f0f0f0;
-		color: #333;
-	}
-
-	.dialog-actions button.neutral:hover:not(:disabled) {
-		background-color: #e0e0e0;
-	}
-
-	.dialog-actions button.good {
-		background-color: #4CAF50;
-		color: white;
-	}
-
-	.dialog-actions button.good:hover:not(:disabled) {
-		background-color: #45a049;
 	}
 
 	.campaign-message {

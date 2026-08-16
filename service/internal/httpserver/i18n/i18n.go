@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/jamesread/golure/pkg/dirs"
@@ -75,6 +76,28 @@ func createCombineLanguageContent() *CombinedLanguageContent {
 	}
 
 	return output
+}
+
+func AvailableLanguageCodes() []string {
+	content := createCombineLanguageContent()
+	codes := make([]string, 0, len(content.Messages))
+	for code := range content.Messages {
+		codes = append(codes, code)
+	}
+	sort.Strings(codes)
+	return codes
+}
+
+func IsSupportedLanguage(code string) bool {
+	if code == "" {
+		return true
+	}
+	for _, available := range AvailableLanguageCodes() {
+		if available == code {
+			return true
+		}
+	}
+	return false
 }
 
 var isLoaded = false

@@ -23,18 +23,26 @@ func RequiredPermission(procedureName string) string {
 
 	case controlv1.JapellaControlApiServiceListRbacPermissionsProcedure,
 		controlv1.JapellaControlApiServiceListRbacRolesProcedure,
-		controlv1.JapellaControlApiServiceGetUserRbacRolesProcedure:
+		controlv1.JapellaControlApiServiceGetUserRbacRolesProcedure,
+		controlv1.JapellaControlApiServiceGetUserGroupRbacRolesProcedure,
+		controlv1.JapellaControlApiServiceGetRbacRoleUsersProcedure,
+		controlv1.JapellaControlApiServiceGetRbacRoleGroupsProcedure:
 		return rbac.PermissionRbacView
 
 	case controlv1.JapellaControlApiServiceCreateRbacRoleProcedure,
 		controlv1.JapellaControlApiServiceUpdateRbacRoleProcedure,
 		controlv1.JapellaControlApiServiceDeleteRbacRoleProcedure,
-		controlv1.JapellaControlApiServiceSetUserRbacRolesProcedure:
+		controlv1.JapellaControlApiServiceSetUserGroupRbacRolesProcedure:
 		return rbac.PermissionRbacManage
 
 	case controlv1.JapellaControlApiServiceGetCvarsProcedure,
 		controlv1.JapellaControlApiServiceSetCvarProcedure,
-		controlv1.JapellaControlApiServiceStopServiceProcedure:
+		controlv1.JapellaControlApiServiceStopServiceProcedure,
+		controlv1.JapellaControlApiServiceListWebhooksProcedure,
+		controlv1.JapellaControlApiServiceCreateWebhookProcedure,
+		controlv1.JapellaControlApiServiceUpdateWebhookProcedure,
+		controlv1.JapellaControlApiServiceDeleteWebhookProcedure,
+		controlv1.JapellaControlApiServiceListBotWebhooksProcedure:
 		return rbac.PermissionSystemSettings
 
 	case controlv1.JapellaControlApiServiceGetConnectorsProcedure,
@@ -43,8 +51,7 @@ func RequiredPermission(procedureName string) string {
 		controlv1.JapellaControlApiServiceRegisterConnectorProcedure:
 		return rbac.PermissionSystemConnectors
 
-	case controlv1.JapellaControlApiServiceGetLogsProcedure,
-		controlv1.JapellaControlApiServiceGetJobsStatusProcedure,
+	case controlv1.JapellaControlApiServiceGetJobsStatusProcedure,
 		controlv1.JapellaControlApiServiceCleanupFeedPostsProcedure:
 		return rbac.PermissionSystemLogs
 

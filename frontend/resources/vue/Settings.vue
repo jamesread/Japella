@@ -32,6 +32,9 @@
 				:label="cvar.title"
 				:for="cvar.type === 'bool' ? '' : cvar.keyName"
 				:fake="cvar.type === 'bool'"
+				:description="decodeHtmlEntities(cvar.description)"
+				:docs-url="cvar.docsUrl || ''"
+				docs-url-title="Docs"
 			>
 				<div
 					class="settings-field"
@@ -63,17 +66,8 @@
 						:value="cvar.valueInt"
 						@blur="setCvar(cvar)"
 					/>
-					<p
-						v-if="cvar.description"
-						class="subtle settings-description"
-						v-html="cvar.description"
-					></p>
-					<p
-						v-if="cvar.externalUrl || cvar.docsUrl"
-						class="settings-links"
-					>
-						<a v-if="cvar.externalUrl" :href="cvar.externalUrl">Get</a>
-						<a v-if="cvar.docsUrl" :href="cvar.docsUrl">Docs</a>
+					<p v-if="cvar.externalUrl" class="settings-links">
+						<a :href="cvar.externalUrl">Get</a>
 					</p>
 				</div>
 			</FormField>
@@ -84,7 +78,7 @@
 <script setup>
 	import { ref, computed, onMounted, nextTick } from 'vue';
 	import { useRoute } from 'vue-router';
-	import { waitForClient } from '../javascript/util';
+	import { waitForClient, decodeHtmlEntities } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
@@ -215,10 +209,6 @@
 		flex-direction: column;
 		gap: 0.4em;
 		min-width: 0;
-	}
-
-	.settings-description {
-		margin: 0;
 	}
 
 	.settings-links {

@@ -15,71 +15,99 @@
 		<div v-if="successMessage" class="inline-notification good pad">{{ successMessage }}</div>
 
 		<Loading v-if="loading" message="Loading pending approvals…" :centered="true" />
-
-		<template v-else>
-			<p v-if="!pending.length" class="inline-notification note pad">No pending approval posts for you.</p>
-
-			<div v-else class="approval-list">
-				<article v-for="item in pending" :key="item.post?.id" class="approval-card">
-					<div class="approval-meta">
-						<SocialAccountChip
-							v-if="item.post?.socialAccountId"
-							:social-account-id="item.post.socialAccountId"
-							:identity="item.post.socialAccountIdentity || `Account #${item.post.socialAccountId}`"
-							:icon="item.post.socialAccountIcon"
-						/>
-						<span v-else class="meta-pill">Unknown account</span>
-						<span class="meta-pill">{{ item.accountPolicyName || `Policy #${item.accountPolicyId}` }}</span>
-						<span class="meta-pill">Stage {{ (item.approvalStage ?? 0) + 1 }}</span>
-						<span class="meta-pill">{{ sourceLabel(item.submissionSource) }}</span>
-						<span class="meta-pill muted-pill">
-							From {{ item.submittedByUsername || (item.submittedByUserId ? `#${item.submittedByUserId}` : 'unknown') }}
-						</span>
-						<span v-if="item.waitingOn" class="meta-pill waiting-pill">Waiting on {{ item.waitingOn }}</span>
-					</div>
-
-					<pre class="approval-content">{{ item.post?.content || '(empty)' }}</pre>
-
-					<p v-if="!item.canApprove && !item.canReject" class="inline-notification note status-note">
-						You can view this pending post but cannot act on it right now.
-					</p>
-					<p v-else-if="!item.canApprove && item.canReject" class="inline-notification note status-note">
-						You cannot approve this post (submitters cannot approve their own submissions). You can withdraw it by rejecting.
-					</p>
-
-					<div class="approval-actions">
-						<router-link
-							class="button neutral"
-							:to="{ name: 'postDetails', params: { id: String(item.post?.id) }, query: { from: 'approvals' } }"
-						>
-							<Icon icon="material-symbols:edit-document" />
-							Open / Edit
-						</router-link>
-						<button
-							type="button"
-							class="good"
-							:disabled="acting === item.post?.id || !item.canApprove"
-							:title="item.canApprove ? 'Approve current stage' : 'You cannot approve this post'"
-							@click="openDialog(item, 'approve')"
-						>
-							<Icon icon="material-symbols:check-circle" />
-							Approve
-						</button>
-						<button
-							type="button"
-							class="bad"
-							:disabled="acting === item.post?.id || !item.canReject"
-							:title="item.canReject ? 'Reject / withdraw' : 'You cannot reject this post'"
-							@click="openDialog(item, 'reject')"
-						>
-							<Icon icon="material-symbols:cancel" />
-							Reject
-						</button>
-					</div>
-				</article>
-			</div>
-		</template>
 	</Section>
+
+	<p v-if="!loading && !pending.length" class="approvals-empty inline-notification note">
+		No pending approval posts for you.
+	</p>
+
+	<section
+		v-for="item in pending"
+		v-else-if="!loading"
+		:key="item.post?.id"
+		class="small approval-entry"
+		:data-approval-post-id="item.post?.id"
+	>
+		<PostPreview
+			:post="item.post"
+			timeline-mode
+			@view-details="openPostDetails(item.post)"
+		/>
+
+		<div class="approval-meta">
+			<span class="meta-pill">{{ item.accountPolicyName || `Policy #${item.accountPolicyId}` }}</span>
+			<span class="meta-pill">Stage {{ (item.approvalStage ?? 0) + 1 }}</span>
+			<span class="meta-pill">{{ sourceLabel(item.submissionSource) }}</span>
+			<span class="meta-pill muted-pill">
+				From {{ item.submittedByUsername || (item.submittedByUserId ? `#${item.submittedByUserId}` : 'unknown') }}
+			</span>
+			<span v-if="item.waitingOn" class="meta-pill waiting-pill">Waiting on {{ item.waitingOn }}</span>
+		</div>
+
+		<p v-if="!item.canApprove && !item.canReject" class="inline-notification note status-note">
+			You can view this pending post but cannot act on it right now.
+		</p>
+		<p v-else-if="!item.canApprove && item.canReject" class="inline-notification note status-note">
+			You cannot approve this post (submitters cannot approve their own submissions). You can withdraw it by rejecting.
+		</p>
+
+		<div role="toolbar" class="approval-actions">
+			<router-link
+				class="button inline-icon neutral"
+				:to="{ name: 'postDetails', params: { id: String(item.post?.id) }, query: { from: 'approvals' } }"
+			>
+				<HugeiconsIcon
+					:icon="EditIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Open / Edit</span>
+			</router-link>
+			<button
+				type="button"
+				class="inline-icon good"
+				:disabled="acting === item.post?.id || !item.canApprove"
+				:title="item.canApprove ? 'Approve current stage' : 'You cannot approve this post'"
+				@click="openDialog(item, 'approve')"
+			>
+				<HugeiconsIcon
+					v-if="acting === item.post?.id"
+					:icon="Loading01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<HugeiconsIcon
+					v-else
+					:icon="CheckmarkCircle01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>{{ acting === item.post?.id ? 'Approving…' : 'Approve' }}</span>
+			</button>
+			<button
+				type="button"
+				class="inline-icon bad"
+				:disabled="acting === item.post?.id || !item.canReject"
+				:title="item.canReject ? 'Reject / withdraw' : 'You cannot reject this post'"
+				@click="openDialog(item, 'reject')"
+			>
+				<HugeiconsIcon
+					:icon="CancelCircleIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Reject</span>
+			</button>
+		</div>
+	</section>
 
 	<div v-if="dialogOpen" class="modal-overlay" @click.self="closeDialog">
 		<div class="modal" role="dialog" :aria-labelledby="dialogTitleId">
@@ -109,25 +137,57 @@
 			</template>
 			<p v-else class="dialog-confirm">Approve this post for the current stage?</p>
 
-			<div class="dialog-actions">
+			<div role="toolbar" class="dialog-actions">
 				<button type="button" class="neutral" :disabled="acting > 0" @click="closeDialog">Cancel</button>
 				<button
 					v-if="dialogMode === 'approve'"
 					type="button"
-					class="good"
+					class="inline-icon good"
 					:disabled="acting > 0"
 					@click="confirmAction"
 				>
-					{{ acting > 0 ? 'Approving…' : 'Approve' }}
+					<HugeiconsIcon
+						v-if="acting > 0"
+						:icon="Loading01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<HugeiconsIcon
+						v-else
+						:icon="CheckmarkCircle01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>{{ acting > 0 ? 'Approving…' : 'Approve' }}</span>
 				</button>
 				<button
 					v-else
 					type="button"
-					class="bad"
+					class="inline-icon bad"
 					:disabled="acting > 0"
 					@click="confirmAction"
 				>
-					{{ acting > 0 ? 'Rejecting…' : 'Reject' }}
+					<HugeiconsIcon
+						v-if="acting > 0"
+						:icon="Loading01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<HugeiconsIcon
+						v-else
+						:icon="CancelCircleIcon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>{{ acting > 0 ? 'Rejecting…' : 'Reject' }}</span>
 				</button>
 			</div>
 		</div>
@@ -136,11 +196,22 @@
 
 <script setup>
 import { inject, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { Icon } from '@iconify/vue';
+import { HugeiconsIcon } from '@hugeicons/vue';
+import {
+	CancelCircleIcon,
+	CheckmarkCircle01Icon,
+	EditIcon,
+	Loading01Icon,
+} from '@hugeicons/core-free-icons';
 import Section from 'picocrank/vue/components/Section.vue';
 import Loading from './Loading.vue';
+import PostPreview from './PostPreview.vue';
 import SocialAccountChip from './SocialAccountChip.vue';
 
+const iconStrokeWidth = 2.5;
+const router = useRouter();
 const refreshApprovalsNavCount = inject('refreshApprovalsNavCount', null);
 
 const loading = ref(true);
@@ -159,6 +230,11 @@ function sourceLabel(source) {
 	if (source === 'mcp') return 'MCP';
 	if (source === 'ui') return 'UI';
 	return source || '—';
+}
+
+function openPostDetails(post) {
+	if (!post?.id) return;
+	router.push({ name: 'postDetails', params: { id: String(post.id) }, query: { from: 'approvals' } });
 }
 
 function openDialog(item, mode) {
@@ -231,18 +307,13 @@ onMounted(loadPending);
 	padding: 0.75rem 1rem;
 }
 
-.approval-list {
-	display: flex;
-	flex-direction: column;
-	gap: 1rem;
-	padding: 1rem;
+.approvals-empty {
+	margin: 0 0 1rem;
 }
 
-.approval-card {
-	border: 1px solid var(--border-color, #ccc);
-	border-radius: 0.5rem;
-	padding: 1rem;
-	background: var(--surface, transparent);
+section.approval-entry {
+	margin-bottom: 1rem;
+	padding: 0;
 }
 
 .approval-meta {
@@ -250,7 +321,9 @@ onMounted(loadPending);
 	flex-wrap: wrap;
 	align-items: center;
 	gap: 0.4rem;
-	margin-bottom: 0.75rem;
+	max-width: 800px;
+	margin: -0.5rem auto 0.75rem;
+	padding: 0 1rem;
 }
 
 .dialog-preview {
@@ -278,7 +351,6 @@ onMounted(loadPending);
 	border-color: #c9a227;
 }
 
-.approval-content,
 .dialog-content {
 	white-space: pre-wrap;
 	word-break: break-word;
@@ -294,7 +366,10 @@ onMounted(loadPending);
 }
 
 .status-note {
-	margin: 0 0 0.75rem;
+	max-width: 800px;
+	margin: 0 auto 0.75rem;
+	padding-left: 1rem;
+	padding-right: 1rem;
 }
 
 .approval-actions,
@@ -303,14 +378,9 @@ onMounted(loadPending);
 	gap: 0.5rem;
 	flex-wrap: wrap;
 	justify-content: flex-end;
-}
-
-.approval-actions button,
-.approval-actions .button,
-.dialog-actions button {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.35rem;
+	max-width: 800px;
+	margin: 0 auto;
+	padding: 0 1rem 0.5rem;
 }
 
 .modal-overlay {

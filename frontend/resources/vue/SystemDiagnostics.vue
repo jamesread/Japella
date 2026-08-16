@@ -26,6 +26,15 @@
 
 		<p v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</p>
 
+		<dl>
+			<dt>Absolute path</dt>
+			<dd>
+				<code :title="systemStatus.configFileAbsolutePath || ''">
+					{{ systemStatus.configFileAbsolutePath || 'Unknown' }}
+				</code>
+			</dd>
+		</dl>
+
 		<ReadOnlyTextArea
 			ref="diagnosticsRef"
 			v-model="diagnosticsYaml"
@@ -135,9 +144,6 @@
 		area.appendSection('Message broker');
 		area.appendYamlProperty('amqpEnabled', yamlValue(st.amqpEnabled));
 		area.appendYamlProperty('amqpConnected', yamlValue(st.amqpConnected));
-
-		area.appendSection('Configuration');
-		area.appendYamlProperty('configFileAbsolutePath', yamlValue(st.configFileAbsolutePath));
 
 		if (st.statusMessages?.length) {
 			area.appendSection('Status messages');

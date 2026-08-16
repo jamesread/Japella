@@ -6,8 +6,22 @@
 		:padding="false"
 	>
 		<template #toolbar>
-			<button v-if="getProfileUrl(account)" @click="openProfile" class="neutral" :disabled="!clientReady || loading" title="Open Profile">
-				<Icon icon="mdi:open-in-new" />
+			<button
+				v-if="getProfileUrl(account)"
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Open profile"
+				:disabled="!clientReady || loading"
+				title="Open Profile"
+				@click="openProfile"
+			>
+				<HugeiconsIcon
+					:icon="LinkSquare01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 			</button>
 		</template>
 
@@ -30,11 +44,19 @@
 				<span>{{ account.identity }}</span>
 				<button
 					v-if="getProfileUrl(account)"
-					@click="openProfile"
-					class="profile-link-button"
+					type="button"
+					class="inline-icon neutral small"
+					:aria-label="'Open ' + account.identity + ' profile'"
 					:title="'Open ' + account.identity + ' profile'"
+					@click="openProfile"
 				>
-					<Icon icon="mdi:open-in-new" width="16" height="16" />
+					<HugeiconsIcon
+						:icon="LinkSquare01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
 				</button>
 			</dd>
 			<dt>Owner</dt>
@@ -68,8 +90,14 @@
 					<p style="margin: 0; font-size: 0.9em;">Sync and refresh the account with the social media service.</p>
 				</div>
 			</div>
-			<button @click="refreshAccount" class="good" :disabled="!clientReady || loading">
-				<Icon icon="material-symbols:sync" width="16" height="16" />
+			<button type="button" class="inline-icon good" :disabled="!clientReady || loading" @click="refreshAccount">
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 				<span>Refresh</span>
 			</button>
 		</div>
@@ -82,8 +110,20 @@
 					<p style="margin: 0; font-size: 0.9em;">{{ account?.active ? 'Deactivate this account to prevent it from being used for posting.' : 'Activate this account to enable posting.' }}</p>
 				</div>
 			</div>
-			<button @click="toggleActive" :class="account?.active ? 'warning' : 'good'" :disabled="!clientReady || loading">
-				<Icon :icon="account?.active ? 'material-symbols:toggle-off' : 'material-symbols:toggle-on'" width="16" height="16" />
+			<button
+				type="button"
+				class="inline-icon"
+				:class="account?.active ? 'warning' : 'good'"
+				:disabled="!clientReady || loading"
+				@click="toggleActive"
+			>
+				<HugeiconsIcon
+					:icon="account?.active ? ToggleOffIcon : ToggleOnIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 				<span>{{ account?.active ? 'Deactivate' : 'Activate' }}</span>
 			</button>
 		</div>
@@ -96,82 +136,218 @@
 					<p style="margin: 0; font-size: 0.9em;">Permanently remove this social account. This action cannot be undone.</p>
 				</div>
 			</div>
-			<button @click="deleteAccount" class="bad" :disabled="!clientReady || loading">
-				<Icon icon="material-symbols:delete" width="16" height="16" />
+			<button type="button" class="inline-icon bad" :disabled="!clientReady || loading" @click="deleteAccount">
+				<HugeiconsIcon
+					:icon="Delete02Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
 				<span>Delete</span>
 			</button>
 		</div>
 	</Section>
 
 	<Section
-		v-if="!loading && account && canManageSharing"
-		title="Sharing"
-		subtitle="Grant read, post, or manage access to user groups; members of those groups inherit the permissions"
+		v-if="!loading && account"
+		title="Recent logs"
+		subtitle="The 5 most recent application events for this social account"
+		classes="social-account-logs"
 		:padding="false"
 	>
-		<div v-if="sharesLoading" style="padding: 1rem;">
-			<p>Loading shares...</p>
-		</div>
-		<div v-else-if="sharesError" style="padding: 1rem;">
-			<p class="inline-notification error">{{ sharesError }}</p>
-		</div>
-		<div v-else>
-			<table class="data-table" v-if="shares.length > 0">
-				<thead>
-					<tr>
-						<th>User group</th>
-						<th class="share-check-col">Read</th>
-						<th class="share-check-col">Post</th>
-						<th class="share-check-col">Manage</th>
-						<th class="share-check-col"></th>
-					</tr>
-				</thead>
-				<tbody>
-					<tr v-for="(share, idx) in shares" :key="share.userGroupId">
-						<td>{{ share.groupName }}</td>
-						<td class="share-check-col"><input type="checkbox" v-model="shares[idx].canRead" /></td>
-						<td class="share-check-col"><input type="checkbox" v-model="shares[idx].canPost" /></td>
-						<td class="share-check-col"><input type="checkbox" v-model="shares[idx].canManage" /></td>
-						<td class="share-check-col">
-							<button class="bad small" @click="removeShare(idx)" title="Remove share">
-								<Icon icon="material-symbols:close" width="14" height="14" />
-							</button>
-						</td>
-					</tr>
-				</tbody>
-			</table>
-			<p v-else class="inline-notification note">Not shared with any user groups.</p>
+		<template #toolbar>
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Refresh logs"
+				:disabled="logsLoading"
+				title="Refresh logs"
+				@click="loadAccountLogs"
+			>
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+			</button>
+		</template>
 
-			<div class="share-add-row">
-				<select v-model="addShareGroupId" class="share-user-select">
-					<option value="">Add user group...</option>
-					<option v-for="g in availableGroups" :key="g.id" :value="g.id">{{ g.name }}</option>
-				</select>
-				<button type="button" class="good" :disabled="!addShareGroupId" @click="addShare">
-					<Icon icon="material-symbols:group-add" width="16" height="16" />
-					Add
-				</button>
-				<span style="flex:1"></span>
-				<button class="good" :disabled="sharesSaving" @click="saveShares">
-					<Icon icon="material-symbols:save" width="16" height="16" />
-					{{ sharesSaving ? 'Saving...' : 'Save' }}
-				</button>
-			</div>
-			<div v-if="sharesMessage" style="padding: 0 1rem 1rem 1rem;">
+		<div v-if="logsLoading" style="padding: 1rem;">
+			<p>Loading logs...</p>
+		</div>
+		<div v-else-if="logsError" style="padding: 1rem;">
+			<p class="inline-notification error">{{ logsError }}</p>
+		</div>
+		<div v-else-if="accountLogs.length === 0" style="padding: 1rem;">
+			<p class="inline-notification note">No logs found for this account.</p>
+		</div>
+		<table v-else class="data-table">
+			<thead>
+				<tr>
+					<th>Time</th>
+					<th>Level</th>
+					<th>Message</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr v-for="entry in accountLogs" :key="entry.id" :class="getLogLevelClass(entry.level)">
+					<td>{{ formatLogDate(entry.createdAt) }}</td>
+					<td>
+						<span class="log-level">{{ entry.level }}</span>
+					</td>
+					<td>{{ entry.message }}</td>
+				</tr>
+			</tbody>
+		</table>
+	</Section>
+
+	<Section
+		v-if="!loading && account && canManageSharing"
+		subtitle="Grant read, post, or manage access to user groups; members of those groups inherit the permissions"
+		classes="social-account-sharing"
+		:padding="shares.length === 0"
+	>
+		<template #title>
+			<span class="section-title-with-icon">
+				<HugeiconsIcon :icon="UserGroupIcon" width="22" height="22" aria-hidden="true" />
+				Sharing
+			</span>
+		</template>
+
+		<template #toolbar>
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Refresh"
+				title="Refresh"
+				:disabled="sharesLoading"
+				@click="loadShares"
+			>
+				<HugeiconsIcon
+					:icon="RefreshIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+			</button>
+			<button
+				type="button"
+				class="inline-icon neutral"
+				aria-label="Save shares"
+				title="Save shares"
+				:disabled="sharesLoading || sharesSaving"
+				@click="saveShares"
+			>
+				<HugeiconsIcon
+					:icon="SaveIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+			</button>
+			<button
+				type="button"
+				class="inline-icon good"
+				aria-label="Add user group"
+				title="Add user group"
+				:disabled="sharesLoading"
+				@click="openShareGroupLookup"
+			>
+				<HugeiconsIcon
+					:icon="Add01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+			</button>
+		</template>
+
+		<div
+			v-if="sharesError"
+			class="inline-notification error"
+			:class="{ 'list-banner-pad': shares.length > 0 }"
+		>{{ sharesError }}</div>
+		<div v-if="sharesLoading && !shares.length" class="muted">Loading shares…</div>
+
+		<template v-else>
+			<p v-if="!shares.length" class="inline-notification note">Not shared with any user groups.</p>
+
+			<Table
+				v-else
+				class="shares-table-wrap"
+				:data="shares"
+				:headers="shareTableHeaders"
+			>
+				<template #cell-groupName="{ value }">
+					<strong>{{ value }}</strong>
+				</template>
+				<template #cell-canRead="{ row }">
+					<div class="share-check-cell">
+						<input type="checkbox" v-model="row.canRead" :aria-label="`Read access for ${row.groupName}`" />
+					</div>
+				</template>
+				<template #cell-canPost="{ row }">
+					<div class="share-check-cell">
+						<input type="checkbox" v-model="row.canPost" :aria-label="`Post access for ${row.groupName}`" />
+					</div>
+				</template>
+				<template #cell-canManage="{ row }">
+					<div class="share-check-cell">
+						<input type="checkbox" v-model="row.canManage" :aria-label="`Manage access for ${row.groupName}`" />
+					</div>
+				</template>
+				<template #cell-actions="{ row }">
+					<div class="actions-cell">
+						<button type="button" class="bad small" @click="removeShare(row)">Remove</button>
+					</div>
+				</template>
+			</Table>
+
+			<div v-if="sharesMessage" :class="{ 'list-banner-pad': shares.length > 0 }">
 				<p :class="'inline-notification ' + sharesMessageType">{{ sharesMessage }}</p>
 			</div>
-		</div>
+		</template>
 	</Section>
+
+	<UserGroupLookupDialog
+		ref="shareGroupLookup"
+		title="Share with user groups"
+		subtitle="Select groups to grant access. Groups already shared are hidden."
+		multiple
+		confirm-label="Add groups"
+		:exclude-group-ids="sharedGroupIds"
+		@picked="onShareGroupsPicked"
+	/>
 </template>
 
 <script setup>
 	import { ref, computed, onMounted } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import {
+		Add01Icon,
+		Delete02Icon,
+		LinkSquare01Icon,
+		RefreshIcon,
+		SaveIcon,
+		ToggleOffIcon,
+		ToggleOnIcon,
+		UserGroupIcon,
+	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import Table from 'picocrank/vue/components/Table.vue';
+	import UserGroupLookupDialog from './UserGroupLookupDialog.vue';
 
 	const route = useRoute();
 	const router = useRouter();
+	const iconStrokeWidth = 2.5;
 	const clientReady = ref(false)
 	const loading = ref(true)
 	const error = ref('')
@@ -188,8 +364,11 @@
 	const sharesSaving = ref(false)
 	const sharesMessage = ref('')
 	const sharesMessageType = ref('good')
-	const allGroups = ref([])
-	const addShareGroupId = ref('')
+	const shareGroupLookup = ref(null)
+
+	const accountLogs = ref([])
+	const logsLoading = ref(false)
+	const logsError = ref('')
 
 	const canManageSharing = computed(() => {
 		if (!account.value) return false
@@ -199,33 +378,33 @@
 		return false
 	})
 
-	const availableGroups = computed(() => {
-		const sharedIds = new Set(shares.value.map((s) => s.userGroupId))
-		return allGroups.value.filter((g) => !sharedIds.has(g.id))
-	})
+	const sharedGroupIds = computed(() => shares.value.map((s) => s.userGroupId))
 
-	async function loadAllGroups() {
-		try {
-			const res = await window.client.listUserGroups({})
-			allGroups.value = res.groups || []
-		} catch (e) {
-			console.error('Failed to load user groups for sharing:', e)
-		}
+	const shareTableHeaders = [
+		{ key: 'groupName', label: 'User group', sortable: true },
+		{ key: 'canRead', label: 'Read', sortable: false, width: '6rem' },
+		{ key: 'canPost', label: 'Post', sortable: false, width: '6rem' },
+		{ key: 'canManage', label: 'Manage', sortable: false, width: '6rem' },
+		{ key: 'actions', label: 'Actions', sortable: false, width: '6rem' },
+	]
+
+	function openShareGroupLookup() {
+		shareGroupLookup.value?.open()
 	}
 
-	function addShare() {
-		const gid = Number(addShareGroupId.value)
-		if (!gid) return
-		const group = allGroups.value.find((g) => g.id === gid)
-		if (!group) return
-		shares.value.push({
-			userGroupId: gid,
-			groupName: group.name,
-			canRead: true,
-			canPost: false,
-			canManage: false,
-		})
-		addShareGroupId.value = ''
+	function onShareGroupsPicked(groups) {
+		const existing = new Set(sharedGroupIds.value)
+		for (const group of groups) {
+			if (existing.has(group.id)) continue
+			shares.value.push({
+				userGroupId: group.id,
+				groupName: group.name,
+				canRead: true,
+				canPost: false,
+				canManage: false,
+			})
+			existing.add(group.id)
+		}
 	}
 
 	function waitForClient() {
@@ -247,13 +426,51 @@
 			if (!account.value) {
 				error.value = 'Account not found.'
 			} else {
-				await fetchLastPosted()
+				await Promise.all([fetchLastPosted(), loadAccountLogs()])
 			}
 		} catch (e) {
 			error.value = `Failed to load account: ${e.message || e}`
 		} finally {
 			loading.value = false
 		}
+	}
+
+	async function loadAccountLogs() {
+		if (!accountId.value) return
+		logsLoading.value = true
+		logsError.value = ''
+		try {
+			const res = await window.client.getLogs({
+				limit: 5,
+				relatedSocialAccountId: accountId.value,
+			})
+			accountLogs.value = res.logs || []
+		} catch (e) {
+			logsError.value = `Failed to load logs: ${e.message || e}`
+			accountLogs.value = []
+		} finally {
+			logsLoading.value = false
+		}
+	}
+
+	function formatLogDate(dateString) {
+		if (!dateString) return '—'
+		try {
+			const date = new Date(dateString)
+			if (Number.isNaN(date.getTime())) return dateString
+			return date.toLocaleString()
+		} catch {
+			return dateString
+		}
+	}
+
+	function getLogLevelClass(level) {
+		const levelLower = (level || '').toLowerCase()
+		if (levelLower.includes('error')) return 'log-error'
+		if (levelLower.includes('warn')) return 'log-warn'
+		if (levelLower.includes('info')) return 'log-info'
+		if (levelLower.includes('debug')) return 'log-debug'
+		return ''
 	}
 
 	async function fetchLastPosted() {
@@ -430,8 +647,9 @@ async function toggleActive() {
 		}
 	}
 
-	function removeShare(idx) {
-		shares.value.splice(idx, 1)
+	function removeShare(row) {
+		const idx = shares.value.findIndex((s) => s.userGroupId === row.userGroupId)
+		if (idx >= 0) shares.value.splice(idx, 1)
 	}
 
 	async function saveShares() {
@@ -469,7 +687,7 @@ async function toggleActive() {
 		statusSuper.value = Boolean(st.rbacIsSuperuser)
 
 		await fetchAccount()
-		await Promise.all([loadShares(), loadAllGroups()])
+		await loadShares()
 	})
 </script>
 
@@ -507,47 +725,65 @@ async function toggleActive() {
 		gap: 0.5rem;
 	}
 
-	.profile-link-button {
+	.share-check-cell {
+		text-align: center;
+	}
+
+	.section-title-with-icon {
 		display: inline-flex;
 		align-items: center;
-		justify-content: center;
-		padding: 0.25rem 0.5rem;
-		border: 1px solid #ddd;
-		border-radius: 0.25rem;
+		gap: 0.45em;
+		vertical-align: middle;
+	}
+
+	.list-banner-pad {
+		padding-left: 1em;
+		padding-right: 1em;
+	}
+
+	.shares-table-wrap {
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.actions-cell {
+		text-align: right;
+	}
+
+	.log-level {
+		display: inline-block;
+		padding: 0.25em 0.5em;
+		border-radius: 3px;
+		font-size: 0.85em;
+		font-weight: 600;
+		text-transform: uppercase;
+	}
+
+	.log-error .log-level {
+		background-color: #fee;
+		color: #c33;
+	}
+
+	.log-warn .log-level {
+		background-color: #ffe;
+		color: #c90;
+	}
+
+	.log-info .log-level {
+		background-color: #eef;
+		color: #369;
+	}
+
+	.log-debug .log-level {
 		background-color: #f5f5f5;
-		color: #333;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		font-size: 0.875rem;
+		color: #666;
 	}
 
-	.profile-link-button:hover {
-		background-color: #e0e0e0;
-		border-color: #bbb;
+	.log-error {
+		background-color: #fff5f5;
 	}
 
-	.profile-link-button:active {
-		background-color: #d0d0d0;
-	}
-
-	.share-check-col {
-		text-align: center;
-		width: 5rem;
-	}
-
-	.share-add-row {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.75rem 1rem;
-	}
-
-	button.small {
-		padding: 0.2rem 0.4rem;
-		min-width: auto;
-	}
-
-	.share-user-select {
-		max-width: 16rem;
+	.log-warn {
+		background-color: #fffbf0;
 	}
 </style>

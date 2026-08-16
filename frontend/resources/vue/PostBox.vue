@@ -78,8 +78,9 @@
             </div>
 
             <fieldset>
-                <button id = "submit" type = "button" class="good" @click="submitPost" :disabled="!canSubmit">Post now</button>
-                <button id = "open-schedule" type = "button" class="good" @click="openScheduleDialog" :disabled="!canSchedule">Post Later</button>
+                <button id="save-draft" type="button" class="neutral" @click="saveDraft" :disabled="!canSaveDraft">Save draft</button>
+                <button id="submit" type="button" class="good" @click="submitPost" :disabled="!canSubmit">Post now</button>
+                <button id="open-schedule" type="button" class="good" @click="openScheduleDialog" :disabled="!canSchedule">Post Later</button>
             </fieldset>
             <div style = "display: flex; justify-content: flex-end;">
 				<span ref = "postLengthCounter">{{ postLength }}</span>
@@ -305,6 +306,7 @@ function onPostingServiceChange() {
 
 const canSubmit = computed(() => contentLength.value > 0 && (selectedServiceCount.value > 0 || saveAsCannedPost.value))
 const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCount.value > 0)
+const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCount.value > 0 && !saveAsCannedPost.value)
 
 	async function startPost(cannedPostId) {
 		if (!cannedPostId) {
@@ -357,28 +359,49 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
         return ret;
     }
 
-    function submitPost(x) {
+    function saveDraft() {
+        submitPost({ asDraft: true });
+    }
+
+    function submitPost(options = {}) {
+        const asDraft = Boolean(options.asDraft);
         const post = document.getElementById('post').value;
         const submit = document.getElementById('submit');
+        const saveDraftBtn = document.getElementById('save-draft');
+        const scheduleBtn = document.getElementById('open-schedule');
 
         if (post.length == 0) {
             alert("Please enter a message.");
             return;
         }
-        submit.innerText = "Submitting...";
+
+        if (asDraft) {
+            const selectedServices = getSelectedPostingServices();
+            if (selectedServices.length === 0) {
+                alert("Select at least one social account to save a draft.");
+                return;
+            }
+        }
+
+        const originalSubmitText = submit.innerText;
+        submit.innerText = asDraft ? "Saving…" : "Submitting...";
         submit.disabled = true;
+        if (saveDraftBtn) saveDraftBtn.disabled = true;
+        if (scheduleBtn) scheduleBtn.disabled = true;
 
         const selectedServices = getSelectedPostingServices();
 
         // If no social accounts are selected OR canned post option is checked, create a canned post
-        if (selectedServices.length === 0 || saveAsCannedPost.value) {
+        if (!asDraft && (selectedServices.length === 0 || saveAsCannedPost.value)) {
             window.client.createCannedPost({
                 content: post,
                 campaignId: selectedCampaignId.value,
             })
             .then((res) => {
-                submit.innerText = "Post";
+                submit.innerText = originalSubmitText;
                 submit.disabled = false;
+                if (saveDraftBtn) saveDraftBtn.disabled = !canSaveDraft.value;
+                if (scheduleBtn) scheduleBtn.disabled = !canSchedule.value;
 
                 // Clear the textarea and selected media
                 document.getElementById('post').value = '';
@@ -397,8 +420,10 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
             })
             .catch((error) => {
                 alert("Error creating canned post: " + error);
-                submit.innerText = "Post";
+                submit.innerText = originalSubmitText;
                 submit.disabled = false;
+                if (saveDraftBtn) saveDraftBtn.disabled = !canSaveDraft.value;
+                if (scheduleBtn) scheduleBtn.disabled = !canSchedule.value;
             });
             return;
         }
@@ -410,7 +435,9 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
 			campaignId: selectedCampaignId.value,
         }
 
-        if (scheduledAt.value) {
+        if (asDraft) {
+            req.saveAsDraft = true;
+        } else if (scheduledAt.value) {
             req.scheduledAt = scheduledAt.value;
         }
         if (selectedMedia.value.length) {
@@ -421,8 +448,10 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
 
         window.client.submitPost(req)
             .then((res) => {
-                submit.innerText = "Post";
+                submit.innerText = originalSubmitText;
                 submit.disabled = false;
+                if (saveDraftBtn) saveDraftBtn.disabled = !canSaveDraft.value;
+                if (scheduleBtn) scheduleBtn.disabled = !canSchedule.value;
 
                 // Clear the textarea
                 document.getElementById('post').value = '';
@@ -435,6 +464,20 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
                 // Clear scheduling input and selected media
                 scheduledAt.value = "";
                 selectedMedia.value = [];
+
+                if (asDraft) {
+                    const savedCount = (res.posts || []).filter((x) => x.success).length;
+                    const n = new Notification(
+                        "good",
+                        "Draft saved",
+                        savedCount === 1
+                            ? "Your draft has been saved. Click here to view it on the timeline."
+                            : `${savedCount} drafts saved. Click here to view them on the timeline.`,
+                        "/timeline",
+                    );
+                    n.show();
+                    return;
+                }
 
                 for (let x of res.posts) {
                     let status = ""
@@ -450,9 +493,11 @@ const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCou
                 }
             })
             .catch((error) => {
-                alert("Error posting message: " + error);
-                submit.innerText = "Post";
+                alert(asDraft ? ("Error saving draft: " + error) : ("Error posting message: " + error));
+                submit.innerText = originalSubmitText;
                 submit.disabled = false;
+                if (saveDraftBtn) saveDraftBtn.disabled = !canSaveDraft.value;
+                if (scheduleBtn) scheduleBtn.disabled = !canSchedule.value;
             });
     }
 
