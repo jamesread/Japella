@@ -10,6 +10,23 @@ import {
   GridViewIcon,
 } from '@hugeicons/core-free-icons';
 
+export function insertAtCursor(textarea, text) {
+  if (!textarea || text == null) {
+    return;
+  }
+
+  const start = textarea.selectionStart ?? textarea.value.length;
+  const end = textarea.selectionEnd ?? textarea.value.length;
+  const value = textarea.value;
+
+  textarea.value = value.slice(0, start) + text + value.slice(end);
+  const caret = start + text.length;
+  textarea.selectionStart = caret;
+  textarea.selectionEnd = caret;
+  textarea.focus();
+  textarea.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
 export function waitForClient() {
   return new Promise((resolve, reject) => {
     const TIMEOUT_MS = 10_000

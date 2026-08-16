@@ -697,7 +697,7 @@ async function toggleActive() {
 		align-items: center;
 		justify-content: space-between;
 		padding: 1rem 0;
-		border-bottom: 1px solid #e0e0e0;
+		border-bottom: 1px solid var(--border-color, #e0e0e0);
 	}
 
 	.action-item:last-child {
@@ -712,11 +712,21 @@ async function toggleActive() {
 	}
 
 	.action-description h5 {
-		color: #333;
+		color: var(--text-primary, #333);
 	}
 
 	.action-description p {
-		color: #666;
+		color: var(--text-secondary, #666);
+	}
+
+	html[data-theme="dark"] {
+		.action-description h5 {
+			color: #ddd;
+		}
+
+		.action-description p {
+			color: #aaa;
+		}
 	}
 
 	dd {
@@ -748,42 +758,5 @@ async function toggleActive() {
 
 	.actions-cell {
 		text-align: right;
-	}
-
-	.log-level {
-		display: inline-block;
-		padding: 0.25em 0.5em;
-		border-radius: 3px;
-		font-size: 0.85em;
-		font-weight: 600;
-		text-transform: uppercase;
-	}
-
-	.log-error .log-level {
-		background-color: #fee;
-		color: #c33;
-	}
-
-	.log-warn .log-level {
-		background-color: #ffe;
-		color: #c90;
-	}
-
-	.log-info .log-level {
-		background-color: #eef;
-		color: #369;
-	}
-
-	.log-debug .log-level {
-		background-color: #f5f5f5;
-		color: #666;
-	}
-
-	.log-error {
-		background-color: #fff5f5;
-	}
-
-	.log-warn {
-		background-color: #fffbf0;
 	}
 </style>

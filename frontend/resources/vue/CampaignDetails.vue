@@ -1,9 +1,57 @@
 <template>
 	<Section
-		title="Campaign Details"
 		subtitle="View and manage a single campaign"
 		classes="campaign-details"
 	>
+		<template #title>
+			<span v-if="!editingCampaign" class="section-title-with-icon">
+				<HugeiconsIcon
+					:icon="VolumeUpIcon"
+					width="22"
+					height="22"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span class="campaign-title">
+					{{ campaignTitle }}
+					<button
+						v-if="campaign"
+						type="button"
+						@click="startEditingCampaign"
+						class="neutral small"
+						title="Edit campaign name"
+					>
+						<Icon icon="mdi:pencil" />
+						Edit
+					</button>
+				</span>
+			</span>
+			<span v-else class="section-title-with-icon campaign-edit">
+				<HugeiconsIcon
+					:icon="VolumeUpIcon"
+					width="22"
+					height="22"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<input
+					v-model="editingName"
+					class="campaign-name-input"
+					@keyup.enter="saveCampaign"
+					@keyup.esc="cancelEditingCampaign"
+					@blur="handleBlur"
+					ref="campaignNameInput"
+				/>
+				<button type="button" @click="saveCampaign" class="good small" :disabled="!editingName.trim()">
+					<Icon icon="mdi:check" />
+					Save
+				</button>
+				<button type="button" @click="cancelEditingCampaign" class="neutral small">
+					<Icon icon="mdi:close" />
+					Cancel
+				</button>
+			</span>
+		</template>
 		<template #toolbar>
 			<button @click="goBack" class="neutral">
 				<Icon icon="material-symbols:arrow-back" />
@@ -18,37 +66,14 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="campaign">
-			<div class="campaign-header">
-				<div v-if="!editingCampaign" class="campaign-title">
-					<h3>{{ campaign?.name || 'Unknown Campaign' }}</h3>
-					<button @click="startEditingCampaign" class="neutral small" title="Edit Campaign Name">
-						<Icon icon="mdi:pencil" />
-						Edit
-					</button>
-				</div>
-				<div v-else class="campaign-edit">
-					<input
-						v-model="editingName"
-						class="campaign-name-input"
-						@keyup.enter="saveCampaign"
-						@keyup.esc="cancelEditingCampaign"
-						@blur="handleBlur"
-						ref="campaignNameInput"
-					/>
-					<button @click="saveCampaign" class="good small" :disabled="!editingName.trim()">
-						<Icon icon="mdi:check" />
-						Save
-					</button>
-					<button @click="cancelEditingCampaign" class="neutral small">
-						<Icon icon="mdi:close" />
-						Cancel
-					</button>
-				</div>
-			</div>
-
-			<p>ID: {{ campaignId }}</p>
-			<p>Posts: {{ campaign?.postCount ?? 0 }}</p>
-			<p>Last Post: {{ campaign?.lastPostDate || 'Never' }}</p>
+			<dl class="campaign-meta">
+				<dt>ID</dt>
+				<dd>{{ campaignId }}</dd>
+				<dt>Posts</dt>
+				<dd>{{ campaign?.postCount ?? 0 }}</dd>
+				<dt>Last post</dt>
+				<dd>{{ campaign?.lastPostDate || 'Never' }}</dd>
+			</dl>
 
 			<div class="toolbar">
 				<router-link
@@ -66,7 +91,25 @@
 				</router-link>
 			</div>
 
-			&nbsp;
+			<DangerZone
+				description="These actions are permanent and cannot be undone."
+			>
+				<button
+					type="button"
+					class="inline-icon bad"
+					:disabled="deleting"
+					@click="deleteCampaign"
+				>
+					<HugeiconsIcon
+						:icon="Delete02Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>Delete campaign</span>
+				</button>
+			</DangerZone>
 
 		</div>
 	</Section>
@@ -105,11 +148,12 @@
 <script setup>
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { EditIcon } from '@hugeicons/core-free-icons';
+	import { EditIcon, Delete02Icon, VolumeUpIcon } from '@hugeicons/core-free-icons';
 	import { ref, onMounted, computed, nextTick } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Loading from './Loading.vue';
+	import DangerZone from './DangerZone.vue';
 
 	const route = useRoute();
 	const router = useRouter();
@@ -123,6 +167,17 @@
 	const editingName = ref('')
 	const campaignNameInput = ref(null)
 	const isSaving = ref(false)
+	const deleting = ref(false)
+
+	const campaignTitle = computed(() => {
+		if (!clientReady.value) {
+			return 'Campaign';
+		}
+		if (campaign.value?.name) {
+			return campaign.value.name;
+		}
+		return 'Campaign not found';
+	});
 
 	async function refresh() {
 		if (!window.client || !campaignId.value) return
@@ -235,6 +290,29 @@
 		router.push({ name: 'postDetails', params: { id: post.id } });
 	}
 
+	async function deleteCampaign() {
+		if (!window.client || !campaign.value || deleting.value) return
+
+		const name = campaign.value.name || 'this campaign'
+		const postCount = campaign.value.postCount ?? campaignPosts.value.length ?? 0
+		const postNote = postCount > 0
+			? ` ${postCount} post${postCount === 1 ? '' : 's'} will remain but no longer belong to this campaign.`
+			: ''
+		if (!confirm(`Delete campaign "${name}"?${postNote} This cannot be undone.`)) {
+			return
+		}
+
+		deleting.value = true
+		try {
+			await window.client.deleteCampaign({ id: campaign.value.id })
+			router.push({ name: 'campaigns' })
+		} catch (error) {
+			console.error('Error deleting campaign:', error)
+			alert('Failed to delete campaign: ' + (error.message || error))
+			deleting.value = false
+		}
+	}
+
 	onMounted(async () => {
 		campaignId.value = parseInt(route.params.id, 10) || 0
 		clientReady.value = true
@@ -260,38 +338,34 @@
 	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Campaign Editing Styles */
-.campaign-header {
-	margin-bottom: 1.5rem;
+/* Campaign title in section header */
+.section-title-with-icon {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45em;
+	vertical-align: middle;
 }
 
 .campaign-title {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
-	gap: 1rem;
-	justify-content: space-between;
-}
-
-.campaign-title h3 {
-	margin: 0;
-	color: var(--text-primary, #333);
-	font-size: 1.5rem;
+	gap: 0.75rem;
 }
 
 .campaign-edit {
-	display: flex;
+	display: inline-flex;
 	align-items: center;
 	gap: 0.5rem;
 	flex-wrap: wrap;
 }
 
 .campaign-name-input {
-	padding: 0.5rem;
+	padding: 0.25rem 0.5rem;
 	border: 1px solid var(--border-color, #ddd);
 	border-radius: 0.25rem;
-	font-size: 1.5rem;
-	font-weight: 500;
-	min-width: 200px;
+	font: inherit;
+	font-weight: inherit;
+	min-width: 12rem;
 	background-color: var(--background-primary, white);
 	color: var(--text-primary, #333);
 }
@@ -302,6 +376,22 @@
 	box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
 
+.campaign-meta {
+	display: grid;
+	grid-template-columns: minmax(6rem, 10rem) 1fr;
+	gap: 0.35rem 1rem;
+	margin: 0 0 1.25rem;
+	max-width: 28rem;
+}
+
+.campaign-meta dt {
+	font-weight: 600;
+	opacity: 0.85;
+}
+
+.campaign-meta dd {
+	margin: 0;
+}
 
 .campaign-timeline h3 {
 	margin: 0 0 1.5rem 0;

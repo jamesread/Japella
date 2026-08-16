@@ -91,3 +91,30 @@ func List() ([]Item, error) {
 	}
 	return list, nil
 }
+
+// Delete removes a media file from the library by filename.
+func Delete(filename string) error {
+	if filename == "" || strings.Contains(filename, "/") || strings.Contains(filename, "..") {
+		return os.ErrNotExist
+	}
+	dir, err := GetDir()
+	if err != nil {
+		return err
+	}
+	path := filepath.Join(dir, filepath.Base(filename))
+	abs, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	absDir, err := filepath.Abs(dir)
+	if err != nil {
+		return err
+	}
+	if absDir != abs && !strings.HasPrefix(abs, absDir+string(os.PathSeparator)) {
+		return os.ErrNotExist
+	}
+	if err := os.Remove(abs); err != nil {
+		return err
+	}
+	return nil
+}

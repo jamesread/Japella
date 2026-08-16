@@ -199,14 +199,14 @@ func (s *ControlApi) processDueScheduledPosts() {
 	}
 
 	for _, p := range due {
-		sa, err := s.DB.GetSocialAccount(p.SocialAccountID)
+		sa, err := s.DB.GetSocialAccount(p.SocialAccountIDUint())
 		if err != nil || sa == nil {
-			log.Errorf("Scheduler: failed to load social account %d for post %d: %v", p.SocialAccountID, p.ID, err)
+			log.Errorf("Scheduler: failed to load social account %d for post %d: %v", p.SocialAccountIDUint(), p.ID, err)
 			continue
 		}
 
-		status := &controlv1.PostStatus{SocialAccountId: p.SocialAccountID, Content: p.Content}
-		s.tryPostStatus(p.Content, nil, sa, status)
+		status := &controlv1.PostStatus{SocialAccountId: p.SocialAccountIDUint(), Content: p.Content}
+		s.tryPostStatus(p.Content, s.postMediaURLs(p.ID), sa, status)
 
 		if status.Success {
 			if err := s.DB.MarkPostCompleted(p.ID, status.PostUrl, true); err != nil {
@@ -653,6 +653,40 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		submittedBy = sql.NullInt32{Int32: int32(au.User.ID), Valid: true}
 	}
 
+	if req.Msg.SaveAsDraft && len(req.Msg.SocialAccounts) == 0 {
+		if len(req.Msg.Content) == 0 && len(req.Msg.MediaUrls) == 0 {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("draft requires content or media"))
+		}
+
+		campaignID := sql.NullInt32{}
+		if req.Msg.CampaignId != 0 {
+			campaignID = sql.NullInt32{Int32: int32(req.Msg.CampaignId), Valid: true}
+		}
+
+		post := &db.Post{
+			Content:           req.Msg.Content,
+			Status:            false,
+			State:             db.PostStateDraft,
+			CampaignID:        campaignID,
+			SubmissionSource:  source,
+			SubmittedByUserID: submittedBy,
+		}
+		postStatus := &controlv1.PostStatus{
+			Content: req.Msg.Content,
+		}
+		if err := s.DB.CreatePost(post); err != nil {
+			log.Errorf("Failed to create draft post: %v", err)
+			postStatus.State = db.PostStateError
+		} else {
+			s.savePostMedia(post.ID, req.Msg.MediaUrls)
+			postStatus.Id = post.ID
+			postStatus.Success = true
+			postStatus.State = db.PostStateDraft
+		}
+		res.Posts = append(res.Posts, postStatus)
+		return connect.NewResponse(res), nil
+	}
+
 	for _, accountId := range req.Msg.SocialAccounts {
 		log.Infof("Processing post for account: %v", accountId)
 
@@ -685,7 +719,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 		if req.Msg.SaveAsDraft {
 			post := &db.Post{
-				SocialAccountID:   socialAccount.ID,
+				SocialAccountID:   db.NullSocialAccountID(socialAccount.ID),
 				Content:           req.Msg.Content,
 				Status:            false,
 				State:             db.PostStateDraft,
@@ -697,6 +731,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				log.Errorf("Failed to create draft post: %v", err)
 				postStatus.State = db.PostStateError
 			} else {
+				s.savePostMedia(post.ID, req.Msg.MediaUrls)
 				postStatus.Id = post.ID
 				postStatus.Success = true
 				postStatus.State = db.PostStateDraft
@@ -709,7 +744,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		if s.shouldHoldForApproval(socialAccount.ID, source) {
 			policy, _ := s.DB.GetAccountPolicyForSocialAccount(socialAccount.ID)
 			post := &db.Post{
-				SocialAccountID:   socialAccount.ID,
+				SocialAccountID:   db.NullSocialAccountID(socialAccount.ID),
 				Content:           req.Msg.Content,
 				Status:            false,
 				State:             db.PostStatePendingApproval,
@@ -724,6 +759,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				log.Errorf("Failed to create pending approval post: %v", err)
 				postStatus.State = db.PostStateError
 			} else {
+				s.savePostMedia(post.ID, req.Msg.MediaUrls)
 				postStatus.Id = post.ID
 				postStatus.Success = true
 				postStatus.State = db.PostStatePendingApproval
@@ -737,7 +773,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		// If scheduled in the future, enqueue without posting now
 		if scheduledTime != nil && scheduledTime.After(time.Now().Add(5*time.Second)) {
 			post := &db.Post{
-				SocialAccountID:   socialAccount.ID,
+				SocialAccountID:   db.NullSocialAccountID(socialAccount.ID),
 				Content:           req.Msg.Content,
 				Status:            false,
 				State:             db.PostStateScheduled,
@@ -747,6 +783,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				SubmittedByUserID: submittedBy,
 			}
 			_ = s.DB.CreatePost(post)
+			s.savePostMedia(post.ID, req.Msg.MediaUrls)
 			postStatus.Id = post.ID
 			postStatus.Success = true
 			postStatus.State = db.PostStateScheduled
@@ -759,7 +796,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			}
 
 			post := &db.Post{
-				SocialAccountID:   socialAccount.ID,
+				SocialAccountID:   db.NullSocialAccountID(socialAccount.ID),
 				Content:           req.Msg.Content,
 				Status:            postStatus.Success,
 				State:             state,
@@ -769,6 +806,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				SubmittedByUserID: submittedBy,
 			}
 			_ = s.DB.CreatePost(post)
+			s.savePostMedia(post.ID, req.Msg.MediaUrls)
 			postStatus.Id = post.ID
 			postStatus.State = state
 			s.dispatchPostOutcome(ctx, post, socialAccount, postStatus.Success, postStatus.PostUrl)
@@ -802,7 +840,7 @@ func (s *ControlApi) shouldHoldForApproval(socialAccountID uint32, source string
 func (s *ControlApi) releaseApprovedPost(ctx context.Context, post *db.Post, socialAccount *db.SocialAccount) *controlv1.PostStatus {
 	postStatus := &controlv1.PostStatus{
 		Id:              post.ID,
-		SocialAccountId: post.SocialAccountID,
+		SocialAccountId: post.SocialAccountIDUint(),
 		Content:         post.Content,
 	}
 
@@ -813,7 +851,7 @@ func (s *ControlApi) releaseApprovedPost(ctx context.Context, post *db.Post, soc
 		return postStatus
 	}
 
-	s.tryPostStatus(post.Content, nil, socialAccount, postStatus)
+	s.tryPostStatus(post.Content, s.postMediaURLs(post.ID), socialAccount, postStatus)
 	_ = s.DB.MarkPostCompleted(post.ID, postStatus.PostUrl, postStatus.Success)
 	if postStatus.Success {
 		postStatus.State = db.PostStateCompleted
@@ -891,6 +929,63 @@ func resolveMediaPaths(mediaURLs []string) []string {
 		paths = append(paths, p)
 	}
 	return paths
+}
+
+func (s *ControlApi) savePostMedia(postID uint32, mediaURLs []string) {
+	if postID == 0 || len(mediaURLs) == 0 {
+		return
+	}
+	for _, u := range mediaURLs {
+		if u == "" {
+			continue
+		}
+		if err := s.DB.CreatePostMedia(postID, u); err != nil {
+			log.Warnf("Failed to save media %s for post %d: %v", u, postID, err)
+		}
+	}
+}
+
+func (s *ControlApi) postMediaURLs(postID uint32) []string {
+	urls, err := s.DB.SelectPostMediaURLs(postID)
+	if err != nil {
+		return nil
+	}
+	return urls
+}
+
+func (s *ControlApi) postToPostStatus(post *db.Post) *controlv1.PostStatus {
+	socialAccountIcon := "mdi:question-mark-circle"
+	socialAccountIdentity := "Unknown"
+
+	sa, err := s.DB.GetSocialAccount(post.SocialAccountIDUint())
+	if err == nil && sa != nil {
+		socialAccountIdentity = sa.Identity
+		if svc := s.cc.Get(sa.Connector); svc != nil {
+			socialAccountIcon = svc.GetIcon()
+		}
+	} else if !post.SocialAccountID.Valid && post.State == db.PostStateDraft {
+		socialAccountIdentity = "Draft"
+	}
+
+	postedDate := post.CreatedAt
+	if post.ScheduledAt.Valid {
+		postedDate = post.ScheduledAt.Time
+	}
+
+	return &controlv1.PostStatus{
+		Id:                    post.ID,
+		Created:               post.CreatedAt.Format("2006-01-02 15:04:05"),
+		SocialAccountId:       post.SocialAccountIDUint(),
+		SocialAccountIcon:     socialAccountIcon,
+		SocialAccountIdentity: socialAccountIdentity,
+		Content:               post.Content,
+		Success:               post.Status,
+		PostUrl:               post.PostURL.String,
+		CampaignId:            uint32(post.CampaignID.Int32),
+		CampaignName:          post.CampaignName.String,
+		State:                 post.State,
+		PostedDate:            postedDate.Format("2006-01-02 15:04:05"),
+	}
 }
 
 func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
@@ -1399,14 +1494,15 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 		var sa *db.SocialAccount
 		if post.SocialAccount != nil {
 			sa = post.SocialAccount
-		} else {
-			// Fallback: fetch the social account when not preloaded
-			fetched, ferr := s.DB.GetSocialAccount(post.SocialAccountID)
+		} else if post.SocialAccountID.Valid {
+			fetched, ferr := s.DB.GetSocialAccount(post.SocialAccountIDUint())
 			if ferr == nil {
 				sa = fetched
 			} else {
-				log.Warnf("Failed to load social account %d for post %d: %v", post.SocialAccountID, post.ID, ferr)
+				log.Warnf("Failed to load social account %d for post %d: %v", post.SocialAccountIDUint(), post.ID, ferr)
 			}
+		} else if post.State == db.PostStateDraft {
+			socialAccountIdentity = "Draft"
 		}
 
 		if sa != nil {
@@ -1427,7 +1523,7 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 		timeline = append(timeline, &controlv1.PostStatus{
 			Id:                    post.ID,
 			Created:               post.CreatedAt.Format("2006-01-02 15:04:05"),
-			SocialAccountId:       post.SocialAccountID,
+			SocialAccountId:       post.SocialAccountIDUint(),
 			SocialAccountIcon:     socialAccountIcon,
 			SocialAccountIdentity: socialAccountIdentity,
 			Content:               post.Content,
@@ -1667,22 +1763,22 @@ func (s *ControlApi) RetryPost(ctx context.Context, req *connect.Request[control
 	}
 
 	// Get the social account
-	socialAccount, err := s.DB.GetSocialAccount(post.SocialAccountID)
+	socialAccount, err := s.DB.GetSocialAccount(post.SocialAccountIDUint())
 	if err != nil || socialAccount == nil {
-		log.Errorf("Error getting social account %d for post %d: %v", post.SocialAccountID, req.Msg.PostId, err)
+		log.Errorf("Error getting social account %d for post %d: %v", post.SocialAccountIDUint(), req.Msg.PostId, err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get social account: %w", err))
 	}
 
 	// Create post status for retry attempt
 	postStatus := &controlv1.PostStatus{
 		Id:              post.ID,
-		SocialAccountId: post.SocialAccountID,
+		SocialAccountId: post.SocialAccountIDUint(),
 		Content:         post.Content,
 		Success:         false,
 	}
 
 	// Try to post again
-	s.tryPostStatus(post.Content, nil, socialAccount, postStatus)
+	s.tryPostStatus(post.Content, s.postMediaURLs(post.ID), socialAccount, postStatus)
 
 	// Update the post with the retry result
 	state := "completed"
@@ -1878,6 +1974,64 @@ func (s *ControlApi) ListMedia(ctx context.Context, req *connect.Request[control
 		items = append(items, &controlv1.MediaItem{Filename: it.Filename, Url: it.URL})
 	}
 	return connect.NewResponse(&controlv1.ListMediaResponse{Items: items}), nil
+}
+
+func (s *ControlApi) GetMediaPosts(ctx context.Context, req *connect.Request[controlv1.GetMediaPostsRequest]) (*connect.Response[controlv1.GetMediaPostsResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	filename := strings.TrimSpace(req.Msg.GetFilename())
+	if filename == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+	}
+	if strings.Contains(filename, "/") || strings.Contains(filename, "..") {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filename"))
+	}
+
+	mediaURL := "/media/files/" + filename
+	posts, err := s.DB.SelectPostsByMediaURL(mediaURL)
+	if err != nil {
+		log.Errorf("GetMediaPosts: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load posts for media: %w", err))
+	}
+
+	items := make([]*controlv1.PostStatus, 0, len(posts))
+	for _, post := range posts {
+		items = append(items, s.postToPostStatus(post))
+	}
+	return connect.NewResponse(&controlv1.GetMediaPostsResponse{Posts: items}), nil
+}
+
+func (s *ControlApi) DeleteMedia(ctx context.Context, req *connect.Request[controlv1.DeleteMediaRequest]) (*connect.Response[controlv1.DeleteMediaResponse], error) {
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	if authenticatedUser == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	filename := strings.TrimSpace(req.Msg.GetFilename())
+	if filename == "" {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+	}
+	if strings.Contains(filename, "/") || strings.Contains(filename, "..") {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filename"))
+	}
+
+	mediaURL := "/media/files/" + filename
+	if err := s.DB.DeletePostMediaByURL(mediaURL); err != nil {
+		log.Errorf("DeleteMedia: failed to remove post_media rows for %s: %v", mediaURL, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to remove media references: %w", err))
+	}
+	if err := media.Delete(filename); err != nil {
+		if os.IsNotExist(err) {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("media file not found"))
+		}
+		log.Errorf("DeleteMedia: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete media: %w", err))
+	}
+
+	return connect.NewResponse(&controlv1.DeleteMediaResponse{Message: "OK"}), nil
 }
 
 func (s *ControlApi) SetSocialAccountActive(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountActiveRequest]) (*connect.Response[controlv1.SetSocialAccountActiveResponse], error) {
@@ -2444,6 +2598,7 @@ func (s *ControlApi) GetUserPreferences(ctx context.Context, req *connect.Reques
 		Language:           prefs.Language,
 		AvailableLanguages: i18n.AvailableLanguageCodes(),
 		SidebarEnabled:     prefs.SidebarEnabled,
+		ThemeToggleEnabled: prefs.ThemeToggleEnabled,
 	}), nil
 }
 
@@ -2462,9 +2617,10 @@ func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Reque
 	log.Infof("Saving user preferences for user: %s", authenticatedUser.User.Username)
 
 	err := s.DB.SaveUserPreferences(&db.UserPreferences{
-		UserAccountID:  authenticatedUser.User.ID,
-		Language:       language,
-		SidebarEnabled: req.Msg.SidebarEnabled,
+		UserAccountID:      authenticatedUser.User.ID,
+		Language:           language,
+		SidebarEnabled:     req.Msg.SidebarEnabled,
+		ThemeToggleEnabled: req.Msg.ThemeToggleEnabled,
 	})
 
 	if err != nil {

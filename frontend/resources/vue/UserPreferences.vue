@@ -67,6 +67,36 @@
 				/>
 			</FormField>
 
+			<FormField
+				label="Theme switcher"
+				fake
+				description="Show the light/dark/auto theme button in the header."
+				:disabled="saving"
+			>
+				<RadioGroup
+					v-model="themeToggleEnabled"
+					name="user-preferences-theme-toggle"
+					variant="boolean"
+					:options="themeToggleOptions"
+					:disabled="saving"
+					aria-label="Header theme switcher visibility"
+				/>
+			</FormField>
+
+			<FormField
+				label="Theme"
+				fake
+				description="Choose light, dark, or match your system. Saved in this browser."
+			>
+				<RadioGroup
+					v-model="theme"
+					name="user-preferences-theme"
+					variant="list"
+					:options="themeOptions"
+					aria-label="Color theme"
+				/>
+			</FormField>
+
 			<p v-if="saveMessage" class="inline-notification" :class="saveMessageType">{{ saveMessage }}</p>
 
 			<template #actions>
@@ -88,9 +118,11 @@
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import RadioGroup from 'picocrank/vue/components/RadioGroup.vue';
 	import { waitForClient } from '../javascript/util';
-	import { applyUserLanguage, applyUserSidebar } from '../javascript/userPreferences.js';
+	import { applyUserLanguage, applyUserSidebar, applyUserThemeToggle } from '../javascript/userPreferences.js';
+	import { useTheme } from '../javascript/theme.js';
 
 	const { locale, fallbackLocale } = useI18n();
+	const { theme } = useTheme();
 	const iconStrokeWidth = 2.5;
 
 	const loading = ref(true);
@@ -102,11 +134,24 @@
 	const savedLanguage = ref('');
 	const sidebarEnabled = ref(true);
 	const savedSidebarEnabled = ref(true);
+	const themeToggleEnabled = ref(false);
+	const savedThemeToggleEnabled = ref(false);
 	const availableLanguages = ref([]);
 
 	const sidebarOptions = [
 		{ label: 'Enabled', value: true },
 		{ label: 'Disabled', value: false },
+	];
+
+	const themeToggleOptions = [
+		{ label: 'Enabled', value: true },
+		{ label: 'Disabled', value: false },
+	];
+
+	const themeOptions = [
+		{ label: 'Auto (system)', value: 'auto' },
+		{ label: 'Light', value: 'light' },
+		{ label: 'Dark', value: 'dark' },
 	];
 
 	const LANGUAGE_LABELS = {
@@ -118,7 +163,8 @@
 
 	const dirty = computed(() =>
 		language.value !== savedLanguage.value ||
-		sidebarEnabled.value !== savedSidebarEnabled.value,
+		sidebarEnabled.value !== savedSidebarEnabled.value ||
+		themeToggleEnabled.value !== savedThemeToggleEnabled.value,
 	);
 
 	function languageLabel(code) {
@@ -136,6 +182,8 @@
 			savedLanguage.value = res.language || '';
 			sidebarEnabled.value = res.sidebarEnabled !== false;
 			savedSidebarEnabled.value = res.sidebarEnabled !== false;
+			themeToggleEnabled.value = res.themeToggleEnabled === true;
+			savedThemeToggleEnabled.value = res.themeToggleEnabled === true;
 			availableLanguages.value = res.availableLanguages || [];
 		} catch (e) {
 			console.error(e);
@@ -156,14 +204,17 @@
 			const res = await window.client.saveUserPreferences({
 				language: language.value,
 				sidebarEnabled: sidebarEnabled.value,
+				themeToggleEnabled: themeToggleEnabled.value,
 			});
 			if (!res.standardResponse?.success) {
 				throw new Error(res.standardResponse?.message || 'Failed to save preferences.');
 			}
 			savedLanguage.value = language.value;
 			savedSidebarEnabled.value = sidebarEnabled.value;
+			savedThemeToggleEnabled.value = themeToggleEnabled.value;
 			applyUserLanguage(locale, fallbackLocale.value, language.value);
 			applyUserSidebar(sidebarEnabled.value);
+			applyUserThemeToggle(themeToggleEnabled.value);
 			saveMessageType.value = 'note';
 			saveMessage.value = res.standardResponse.message || 'Preferences saved.';
 		} catch (e) {

@@ -210,6 +210,12 @@ const (
 	// JapellaControlApiServiceListMediaProcedure is the fully-qualified name of the
 	// JapellaControlApiService's ListMedia RPC.
 	JapellaControlApiServiceListMediaProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListMedia"
+	// JapellaControlApiServiceGetMediaPostsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetMediaPosts RPC.
+	JapellaControlApiServiceGetMediaPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetMediaPosts"
+	// JapellaControlApiServiceDeleteMediaProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteMedia RPC.
+	JapellaControlApiServiceDeleteMediaProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteMedia"
 	// JapellaControlApiServiceGetChatBotsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetChatBots RPC.
 	JapellaControlApiServiceGetChatBotsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetChatBots"
@@ -388,6 +394,8 @@ type JapellaControlApiServiceClient interface {
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
+	GetMediaPosts(context.Context, *connect.Request[v1.GetMediaPostsRequest]) (*connect.Response[v1.GetMediaPostsResponse], error)
+	DeleteMedia(context.Context, *connect.Request[v1.DeleteMediaRequest]) (*connect.Response[v1.DeleteMediaResponse], error)
 	GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error)
 	CreateChatBot(context.Context, *connect.Request[v1.CreateChatBotRequest]) (*connect.Response[v1.CreateChatBotResponse], error)
 	UpdateChatBot(context.Context, *connect.Request[v1.UpdateChatBotRequest]) (*connect.Response[v1.UpdateChatBotResponse], error)
@@ -794,6 +802,18 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListMedia")),
 			connect.WithClientOptions(opts...),
 		),
+		getMediaPosts: connect.NewClient[v1.GetMediaPostsRequest, v1.GetMediaPostsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetMediaPostsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetMediaPosts")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteMedia: connect.NewClient[v1.DeleteMediaRequest, v1.DeleteMediaResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteMediaProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteMedia")),
+			connect.WithClientOptions(opts...),
+		),
 		getChatBots: connect.NewClient[v1.GetChatBotsRequest, v1.GetChatBotsResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceGetChatBotsProcedure,
@@ -1086,6 +1106,8 @@ type japellaControlApiServiceClient struct {
 	getLogs                         *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
 	getJobsStatus                   *connect.Client[v1.GetJobsStatusRequest, v1.GetJobsStatusResponse]
 	listMedia                       *connect.Client[v1.ListMediaRequest, v1.ListMediaResponse]
+	getMediaPosts                   *connect.Client[v1.GetMediaPostsRequest, v1.GetMediaPostsResponse]
+	deleteMedia                     *connect.Client[v1.DeleteMediaRequest, v1.DeleteMediaResponse]
 	getChatBots                     *connect.Client[v1.GetChatBotsRequest, v1.GetChatBotsResponse]
 	createChatBot                   *connect.Client[v1.CreateChatBotRequest, v1.CreateChatBotResponse]
 	updateChatBot                   *connect.Client[v1.UpdateChatBotRequest, v1.UpdateChatBotResponse]
@@ -1426,6 +1448,16 @@ func (c *japellaControlApiServiceClient) ListMedia(ctx context.Context, req *con
 	return c.listMedia.CallUnary(ctx, req)
 }
 
+// GetMediaPosts calls japella.controlapi.v1.JapellaControlApiService.GetMediaPosts.
+func (c *japellaControlApiServiceClient) GetMediaPosts(ctx context.Context, req *connect.Request[v1.GetMediaPostsRequest]) (*connect.Response[v1.GetMediaPostsResponse], error) {
+	return c.getMediaPosts.CallUnary(ctx, req)
+}
+
+// DeleteMedia calls japella.controlapi.v1.JapellaControlApiService.DeleteMedia.
+func (c *japellaControlApiServiceClient) DeleteMedia(ctx context.Context, req *connect.Request[v1.DeleteMediaRequest]) (*connect.Response[v1.DeleteMediaResponse], error) {
+	return c.deleteMedia.CallUnary(ctx, req)
+}
+
 // GetChatBots calls japella.controlapi.v1.JapellaControlApiService.GetChatBots.
 func (c *japellaControlApiServiceClient) GetChatBots(ctx context.Context, req *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error) {
 	return c.getChatBots.CallUnary(ctx, req)
@@ -1684,6 +1716,8 @@ type JapellaControlApiServiceHandler interface {
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
+	GetMediaPosts(context.Context, *connect.Request[v1.GetMediaPostsRequest]) (*connect.Response[v1.GetMediaPostsResponse], error)
+	DeleteMedia(context.Context, *connect.Request[v1.DeleteMediaRequest]) (*connect.Response[v1.DeleteMediaResponse], error)
 	GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error)
 	CreateChatBot(context.Context, *connect.Request[v1.CreateChatBotRequest]) (*connect.Response[v1.CreateChatBotResponse], error)
 	UpdateChatBot(context.Context, *connect.Request[v1.UpdateChatBotRequest]) (*connect.Response[v1.UpdateChatBotResponse], error)
@@ -2085,6 +2119,18 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListMedia")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetMediaPostsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetMediaPostsProcedure,
+		svc.GetMediaPosts,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetMediaPosts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteMediaHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteMediaProcedure,
+		svc.DeleteMedia,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteMedia")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceGetChatBotsHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceGetChatBotsProcedure,
 		svc.GetChatBots,
@@ -2433,6 +2479,10 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetJobsStatusHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceListMediaProcedure:
 			japellaControlApiServiceListMediaHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetMediaPostsProcedure:
+			japellaControlApiServiceGetMediaPostsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteMediaProcedure:
+			japellaControlApiServiceDeleteMediaHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetChatBotsProcedure:
 			japellaControlApiServiceGetChatBotsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceCreateChatBotProcedure:
@@ -2752,6 +2802,14 @@ func (UnimplementedJapellaControlApiServiceHandler) GetJobsStatus(context.Contex
 
 func (UnimplementedJapellaControlApiServiceHandler) ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListMedia is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetMediaPosts(context.Context, *connect.Request[v1.GetMediaPostsRequest]) (*connect.Response[v1.GetMediaPostsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetMediaPosts is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteMedia(context.Context, *connect.Request[v1.DeleteMediaRequest]) (*connect.Response[v1.DeleteMediaResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteMedia is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error) {

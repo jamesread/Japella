@@ -58,7 +58,7 @@ type CannedPost struct {
 type Post struct {
 	Model
 
-	SocialAccountID    uint32 `db:"social_account_id"`
+	SocialAccountID    sql.NullInt32 `db:"social_account_id"`
 	SocialAccount      *SocialAccount
 	Status             bool           `db:"status"`
 	State              string         `db:"state"`
@@ -72,6 +72,28 @@ type Post struct {
 	SubmittedByUserID  sql.NullInt32  `db:"submitted_by_user_id"`
 	AccountPolicyID    sql.NullInt32  `db:"account_policy_id"`
 	ApprovalStage      uint32         `db:"approval_stage"`
+}
+
+func NullSocialAccountID(id uint32) sql.NullInt32 {
+	if id == 0 {
+		return sql.NullInt32{}
+	}
+	return sql.NullInt32{Int32: int32(id), Valid: true}
+}
+
+func (p *Post) SocialAccountIDUint() uint32 {
+	if p == nil || !p.SocialAccountID.Valid {
+		return 0
+	}
+	return uint32(p.SocialAccountID.Int32)
+}
+
+func (p *Post) SocialAccountIDPtr() *uint32 {
+	if p == nil || !p.SocialAccountID.Valid {
+		return nil
+	}
+	id := p.SocialAccountIDUint()
+	return &id
 }
 
 // AccountPolicy is a named approval configuration attachable to social accounts.
@@ -176,6 +198,7 @@ type UserPreferences struct {
 	UserAccount    UserAccount
 	Language       string `db:"language"`
 	SidebarEnabled bool   `db:"sidebar_enabled"`
+	ThemeToggleEnabled bool `db:"theme_toggle_enabled"`
 }
 
 type Campaign struct {

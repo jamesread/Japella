@@ -214,7 +214,7 @@
 		box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
 	}
 
-	@media (prefers-color-scheme: dark) {
+	html[data-theme="dark"] {
 		.check-list label > span,
 		.check-list > span {
 			background-color: #2a2a2a;

@@ -13,6 +13,7 @@
 		"@iconify/vue": "^5.0.1",
 		"@vitejs/plugin-vue": "^6.0.8",
 		"@vue/tsconfig": "^0.9.1",
+		"emoji-picker-element": "^1.29.1",
 		"iconify-icon": "^3.0.2",
 		"mermaid": "^11.16.1",
 		"npm-check-updates": "^23.0.2",

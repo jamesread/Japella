@@ -17,8 +17,14 @@
 		</p>
 
 		<div v-else class="media-grid">
-			<div v-for="item in items" :key="item.filename" class="media-item">
-				<a :href="item.url" target="_blank" rel="noopener" class="media-link">
+			<button
+				v-for="item in items"
+				:key="item.filename"
+				type="button"
+				class="media-item"
+				@click.prevent.stop="openPreview(item)"
+			>
+				<span class="media-link">
 					<img
 						v-if="isImage(item.filename)"
 						:src="item.url"
@@ -37,9 +43,9 @@
 					<div v-else class="media-placeholder">
 						<span>{{ item.filename }}</span>
 					</div>
-				</a>
-				<p class="media-filename">{{ item.filename }}</p>
-			</div>
+				</span>
+				<span class="media-filename">{{ item.filename }}</span>
+			</button>
 		</div>
 	</Section>
 </template>
@@ -49,6 +55,8 @@
 	import { Icon } from '@iconify/vue';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
+
+	const emit = defineEmits(['select']);
 
 	const items = ref([]);
 	const loading = ref(true);
@@ -79,17 +87,27 @@
 		}
 	}
 
+	function openPreview(item) {
+		emit('select', item);
+	}
+
 	function onMediaUploaded() {
+		loadList();
+	}
+
+	function onMediaDeleted() {
 		loadList();
 	}
 
 	onMounted(() => {
 		loadList();
 		window.addEventListener('media-uploaded', onMediaUploaded);
+		window.addEventListener('media-deleted', onMediaDeleted);
 	});
 
 	onUnmounted(() => {
 		window.removeEventListener('media-uploaded', onMediaUploaded);
+		window.removeEventListener('media-deleted', onMediaDeleted);
 	});
 </script>
 
@@ -108,7 +126,17 @@
 		border: 1px solid var(--border-color, #ccc);
 		border-radius: 0.5em;
 		overflow: hidden;
-		background: var(--card-bg, #f5f5f5);
+		background: var(--standout-bg-color, #f5f5f5);
+		padding: 0;
+		cursor: pointer;
+		text-align: inherit;
+		font: inherit;
+		appearance: none;
+	}
+
+	.media-item:hover {
+		border-color: var(--accent-color, #5a9fd4);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 	}
 
 	.media-link {
@@ -123,6 +151,9 @@
 		height: 100%;
 		object-fit: cover;
 		display: block;
+		pointer-events: none;
+		user-select: none;
+		-webkit-user-drag: none;
 	}
 
 	.media-placeholder {
@@ -135,6 +166,7 @@
 		text-align: center;
 		font-size: 0.85em;
 		word-break: break-all;
+		color: var(--text-secondary, #666);
 	}
 
 	.media-filename {
@@ -143,6 +175,17 @@
 		font-size: 0.8em;
 		word-break: break-all;
 		text-align: center;
+		color: var(--text-primary, #333);
+	}
+
+	html[data-theme="dark"] {
+		.media-placeholder {
+			color: #aaa;
+		}
+
+		.media-filename {
+			color: #ddd;
+		}
 	}
 
 	.muted {

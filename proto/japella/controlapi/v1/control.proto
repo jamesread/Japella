@@ -548,6 +548,7 @@ message Cvar {
 message SaveUserPreferencesRequest {
 	string language = 1;
 	bool sidebar_enabled = 2;
+	bool theme_toggle_enabled = 3;
 }
 
 message SaveUserPreferencesResponse {
@@ -561,6 +562,7 @@ message GetUserPreferencesResponse {
 	string language = 1;
 	repeated string available_languages = 2;
 	bool sidebar_enabled = 3;
+	bool theme_toggle_enabled = 4;
 }
 
 message CreateApiKeyRequest {
@@ -721,6 +723,22 @@ message ListMediaResponse {
 message MediaItem {
 	string filename = 1;
 	string url = 2; // URL path to fetch the file (e.g. /media/files/<filename>)
+}
+
+message GetMediaPostsRequest {
+	string filename = 1; // Media filename from the library (e.g. uuid.png)
+}
+
+message GetMediaPostsResponse {
+	repeated PostStatus posts = 1;
+}
+
+message DeleteMediaRequest {
+	string filename = 1; // Media filename from the library (e.g. uuid.png)
+}
+
+message DeleteMediaResponse {
+	string message = 1;
 }
 
 message GetChatBotsRequest {
@@ -1322,6 +1340,8 @@ service JapellaControlApiService {
     rpc GetJobsStatus(GetJobsStatusRequest) returns (GetJobsStatusResponse) {}
 
     rpc ListMedia(ListMediaRequest) returns (ListMediaResponse) {}
+    rpc GetMediaPosts(GetMediaPostsRequest) returns (GetMediaPostsResponse) {}
+    rpc DeleteMedia(DeleteMediaRequest) returns (DeleteMediaResponse) {}
     rpc GetChatBots(GetChatBotsRequest) returns (GetChatBotsResponse) {}
     rpc CreateChatBot(CreateChatBotRequest) returns (CreateChatBotResponse) {}
     rpc UpdateChatBot(UpdateChatBotRequest) returns (UpdateChatBotResponse) {}

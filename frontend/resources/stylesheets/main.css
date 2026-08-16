@@ -7,6 +7,48 @@ section.small {
 	margin: auto;
 }
 
+/* Log table levels (Logs.vue, SocialAccountDetails.vue) */
+.log-level {
+	display: inline-block;
+	padding: 0.25em 0.5em;
+	border-radius: 3px;
+	font-size: 0.85em;
+	font-weight: 600;
+	text-transform: uppercase;
+}
+
+.log-error .log-level {
+	background-color: #fee;
+	color: #c33;
+}
+
+.log-warn .log-level {
+	background-color: #ffe;
+	color: #c90;
+}
+
+.log-info .log-level {
+	background-color: #eef;
+	color: #369;
+}
+
+.log-debug .log-level {
+	background-color: #f5f5f5;
+	color: #666;
+}
+
+.log-error {
+	background-color: #fff5f5;
+}
+
+.log-warn {
+	background-color: #fffbf0;
+}
+
+.text-muted {
+	color: #999;
+}
+
 th.actions {
 	width: 2000px;
 }
@@ -49,7 +91,41 @@ section p:last-child {
 	text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
+html[data-theme="dark"] {
+	.log-error {
+		background-color: rgba(139, 26, 26, 0.35);
+		color: #f5c6c6;
+	}
+
+	.log-error .log-level {
+		background-color: var(--karma-bad-border, #8b1a1a);
+		color: #fff;
+	}
+
+	.log-warn {
+		background-color: rgba(133, 100, 4, 0.3);
+		color: #ffe8a3;
+	}
+
+	.log-warn .log-level {
+		background-color: #856404;
+		color: #fff3cd;
+	}
+
+	.log-info .log-level {
+		background-color: #1d345c;
+		color: #b8d4f0;
+	}
+
+	.log-debug .log-level {
+		background-color: #3a3a3a;
+		color: #bbb;
+	}
+
+	.text-muted {
+		color: #888;
+	}
+
 	.social-account {
 		background-color: #2a2a2a;
 		color: #e0e0e0;
@@ -161,15 +237,6 @@ section p:last-child {
 	grid-column: 1 / span 2;
 }
 
-#notification-list {
-	position: fixed;
-	right: 0;
-	top: 0;
-	z-index: 1000;
-	width: 300px;
-	padding: 1em;
-}
-
 input:disabled {
 	cursor: not-allowed !important;
 }
@@ -189,6 +256,12 @@ aside ul li a {
   display: flex;
   place-items: center;
   gap: .6em;
+}
+
+@media (max-width: 768px) {
+	#breadcrumbs {
+		display: none;
+	}
 }
 
 @media (max-width: 600px) {

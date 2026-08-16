@@ -128,10 +128,12 @@ func (s *ControlApi) webhookDispatcher() *webhook.Dispatcher {
 
 func (s *ControlApi) buildPostWebhookPayload(post *db.Post, socialAccount *db.SocialAccount, state, postURL string) map[string]any {
 	postMap := map[string]any{
-		"id":                post.ID,
-		"content":           post.Content,
-		"state":             state,
-		"social_account_id": post.SocialAccountID,
+		"id":      post.ID,
+		"content": post.Content,
+		"state":   state,
+	}
+	if post.SocialAccountID.Valid {
+		postMap["social_account_id"] = post.SocialAccountIDUint()
 	}
 	if postURL != "" {
 		postMap["post_url"] = postURL
@@ -161,14 +163,17 @@ func (s *ControlApi) dispatchApprovalRequested(ctx context.Context, post *db.Pos
 	if post == nil {
 		return
 	}
+	postPayload := map[string]any{
+		"id":             post.ID,
+		"content":        post.Content,
+		"state":          post.State,
+		"approval_stage": post.ApprovalStage,
+	}
+	if post.SocialAccountID.Valid {
+		postPayload["social_account_id"] = post.SocialAccountIDUint()
+	}
 	payload := map[string]any{
-		"post": map[string]any{
-			"id":                post.ID,
-			"content":           post.Content,
-			"state":             post.State,
-			"social_account_id": post.SocialAccountID,
-			"approval_stage":    post.ApprovalStage,
-		},
+		"post": postPayload,
 	}
 	if socialAccount != nil {
 		payload["post"].(map[string]any)["social_account_identity"] = socialAccount.Identity

@@ -80,7 +80,7 @@
 		transform: none;
 	}
 
-	@media (prefers-color-scheme: dark) {
+	html[data-theme="dark"] {
 		.social-account-chip {
 			background-color: #2a2a2a;
 			color: #e0e0e0;

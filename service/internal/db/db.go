@@ -489,6 +489,14 @@ func (db *DB) CreatePost(post *Post) error {
 	if post.SubmissionSource == "" {
 		post.SubmissionSource = SubmissionSourceUI
 	}
+	var socialAccountID any
+	if !post.SocialAccountID.Valid && post.State == PostStateDraft {
+		socialAccountID = nil
+	} else if post.SocialAccountID.Valid {
+		socialAccountID = post.SocialAccountID.Int32
+	} else {
+		socialAccountID = nil
+	}
 	res, err := db.ResilientNamedExec(`INSERT INTO posts (
 		social_account_id, status, state, content, post_url, remote_id, scheduled_at,
 		created_at, updated_at, campaign_id, submission_source, submitted_by_user_id,
@@ -497,7 +505,20 @@ func (db *DB) CreatePost(post *Post) error {
 		:social_account_id, :status, :state, :content, :post_url, :remote_id, :scheduled_at,
 		NOW(), NOW(), :campaign_id, :submission_source, :submitted_by_user_id,
 		:account_policy_id, :approval_stage
-	)`, post)
+	)`, map[string]any{
+		"social_account_id":     socialAccountID,
+		"status":                  post.Status,
+		"state":                   post.State,
+		"content":                 post.Content,
+		"post_url":                post.PostURL,
+		"remote_id":               post.RemoteID,
+		"scheduled_at":            post.ScheduledAt,
+		"campaign_id":             post.CampaignID,
+		"submission_source":       post.SubmissionSource,
+		"submitted_by_user_id":    post.SubmittedByUserID,
+		"account_policy_id":       post.AccountPolicyID,
+		"approval_stage":          post.ApprovalStage,
+	})
 	if err != nil {
 		db.Logger().Errorf("Failed to create post: %v", err)
 		return err
@@ -506,6 +527,52 @@ func (db *DB) CreatePost(post *Post) error {
 		post.ID = uint32(id)
 	}
 	return nil
+}
+
+func (db *DB) CreatePostMedia(postID uint32, mediaURL string) error {
+	_, err := db.ResilientExec(
+		"INSERT INTO post_media (post_id, media_url, created_at) VALUES (?, ?, NOW())",
+		postID, mediaURL,
+	)
+	if err != nil {
+		db.Logger().Errorf("Failed to create post media for post %d: %v", postID, err)
+	}
+	return err
+}
+
+func (db *DB) SelectPostMediaURLs(postID uint32) ([]string, error) {
+	urls := make([]string, 0)
+	err := db.ResilientSelect(&urls, "SELECT media_url FROM post_media WHERE post_id = ? ORDER BY id ASC", postID)
+	if err != nil {
+		db.Logger().Errorf("Failed to select post media for post %d: %v", postID, err)
+		return nil, err
+	}
+	return urls, nil
+}
+
+func (db *DB) SelectPostsByMediaURL(mediaURL string) ([]*Post, error) {
+	posts := make([]*Post, 0)
+	err := db.ResilientSelect(&posts, `
+		SELECT p.id, p.social_account_id, p.status, p.state, p.content, p.post_url, p.remote_id,
+			p.scheduled_at, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name
+		FROM posts p
+		INNER JOIN post_media pm ON pm.post_id = p.id
+		LEFT JOIN campaigns c ON p.campaign_id = c.id
+		WHERE pm.media_url = ?
+		ORDER BY p.id DESC`, mediaURL)
+	if err != nil {
+		db.Logger().Errorf("Failed to select posts by media URL %s: %v", mediaURL, err)
+		return nil, err
+	}
+	return posts, nil
+}
+
+func (db *DB) DeletePostMediaByURL(mediaURL string) error {
+	_, err := db.ResilientExec("DELETE FROM post_media WHERE media_url = ?", mediaURL)
+	if err != nil {
+		db.Logger().Errorf("Failed to delete post media for URL %s: %v", mediaURL, err)
+	}
+	return err
 }
 
 func (db *DB) SelectPosts() ([]*Post, error) {
@@ -1033,7 +1100,7 @@ func (db *DB) SetCvarInt(key string, value int32) error {
 }
 
 func (db *DB) SaveUserPreferences(preferences *UserPreferences) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO user_preferences (user_account_id, language, sidebar_enabled, created_at, updated_at) VALUES (:user_account_id, :language, :sidebar_enabled, NOW(), NOW()) ON DUPLICATE KEY UPDATE language = VALUES(language), sidebar_enabled = VALUES(sidebar_enabled), updated_at = NOW()`, preferences)
+	_, err := db.ResilientNamedExec(`INSERT INTO user_preferences (user_account_id, language, sidebar_enabled, theme_toggle_enabled, created_at, updated_at) VALUES (:user_account_id, :language, :sidebar_enabled, :theme_toggle_enabled, NOW(), NOW()) ON DUPLICATE KEY UPDATE language = VALUES(language), sidebar_enabled = VALUES(sidebar_enabled), theme_toggle_enabled = VALUES(theme_toggle_enabled), updated_at = NOW()`, preferences)
 	if err != nil {
 		db.Logger().Errorf("Failed to save user preferences: %v", err)
 		return err
@@ -1043,10 +1110,10 @@ func (db *DB) SaveUserPreferences(preferences *UserPreferences) error {
 
 func (db *DB) GetUserPreferences(userAccountID uint32) (*UserPreferences, error) {
 	var prefs UserPreferences
-	err := db.ResilientGet(&prefs, `SELECT id, created_at, updated_at, user_account_id, language, sidebar_enabled FROM user_preferences WHERE user_account_id = ?`, userAccountID)
+	err := db.ResilientGet(&prefs, `SELECT id, created_at, updated_at, user_account_id, language, sidebar_enabled, theme_toggle_enabled FROM user_preferences WHERE user_account_id = ?`, userAccountID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return &UserPreferences{UserAccountID: userAccountID, Language: "", SidebarEnabled: true}, nil
+			return &UserPreferences{UserAccountID: userAccountID, Language: "", SidebarEnabled: true, ThemeToggleEnabled: false}, nil
 		}
 		db.Logger().Errorf("Failed to get user preferences: %v", err)
 		return nil, err
@@ -1105,7 +1172,13 @@ func (db *DB) UpdateCampaign(campaign *Campaign) error {
 }
 
 func (db *DB) DeleteCampaign(id uint32) error {
-	_, err := db.ResilientExec("DELETE FROM campaigns WHERE id = ?", id)
+	_, err := db.ResilientExec("DELETE FROM campaign_social_accounts WHERE campaign = ?", id)
+	if err != nil {
+		db.Logger().Errorf("Failed to delete campaign social accounts for campaign %d: %v", id, err)
+		return err
+	}
+
+	_, err = db.ResilientExec("DELETE FROM campaigns WHERE id = ?", id)
 	if err != nil {
 		db.Logger().Errorf("Failed to delete campaign: %v", err)
 		return err

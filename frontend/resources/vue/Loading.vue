@@ -77,7 +77,7 @@
 }
 
 /* Dark theme support */
-@media (prefers-color-scheme: dark) {
+html[data-theme="dark"] {
 	.loading-message {
 		color: var(--text-secondary, #ccc);
 	}

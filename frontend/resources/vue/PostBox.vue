@@ -52,47 +52,91 @@
 
 
 
-            <textarea ref = "postTextarea" id = "post" rows = "8" cols = "80" class = "gs2" placeholder = "Hello world!" @keyup = "recountLength" @input="recountLength"></textarea>
+            <div class="post-composer">
+                <textarea ref = "postTextarea" id = "post" rows = "8" class = "post-composer-input" placeholder = "Hello world!" @keyup = "recountLength" @input="recountLength"></textarea>
 
-            <div v-if="postMode != 'canned'" class="media-attach">
-                <label>Attach media</label>
-                <div v-if="selectedMedia.length" class="selected-media">
-                    <div v-for="(m, idx) in selectedMedia" :key="m.url" class="selected-media-item">
-                        <img v-if="isImageFile(m.filename)" :src="m.url" :alt="m.filename" class="selected-media-thumb" />
-                        <span v-else class="selected-media-placeholder">{{ m.filename }}</span>
-                        <button type="button" class="remove-media" @click="removeMedia(idx)" title="Remove">×</button>
-                    </div>
-                </div>
-                <button type="button" class="neutral add-media-btn" @click="toggleMediaPicker">
-                    {{ showMediaPicker ? 'Close library' : 'Add from library' }}
-                </button>
-                <div v-if="showMediaPicker" class="media-picker">
-                    <p v-if="!mediaLibrary.length">No media in library. <router-link to="/media">Upload some</router-link> first.</p>
-                    <div v-else class="media-picker-grid">
-                        <button type="button" v-for="item in mediaLibrary" :key="item.url" class="media-picker-item" @click="addMedia(item)">
-                            <img v-if="isImageFile(item.filename)" :src="item.url" :alt="item.filename" />
-                            <span v-else>{{ item.filename }}</span>
+                <div class="post-composer-meta">
+                    <div class="post-composer-tools">
+                        <button
+                            type="button"
+                            class="neutral composer-tool-btn emoji-picker-trigger"
+                            :aria-label="t('section.postbox.emoji')"
+                            :aria-expanded="showEmojiPicker"
+                            @click.stop="toggleEmojiPicker"
+                        >
+                            <Icon icon="mdi:emoticon-happy-outline" />
+                        </button>
+                        <EmojiPickerPopover
+                            :open="showEmojiPicker"
+                            @select="insertEmoji"
+                            @close="showEmojiPicker = false"
+                        />
+                        <button
+                            v-if="postMode != 'canned'"
+                            type="button"
+                            class="neutral composer-tool-btn"
+                            :class="{ active: showMediaPicker }"
+                            :aria-label="showMediaPicker ? t('section.postbox.closeMedia') : t('section.postbox.addMedia')"
+                            :aria-expanded="showMediaPicker"
+                            @click="toggleMediaPicker"
+                        >
+                            <Icon icon="mdi:image-plus" />
+                        </button>
+                        <button
+                            v-if="postMode != 'canned'"
+                            type="button"
+                            class="neutral composer-tool-btn"
+                            :class="{ active: scheduledAt || showScheduleDialog }"
+                            :aria-label="t('section.postbox.schedule')"
+                            :aria-expanded="showScheduleDialog"
+                            @click="openScheduleDialog"
+                        >
+                            <Icon icon="mdi:calendar-clock" />
                         </button>
                     </div>
+                    <span ref = "postLengthCounter" class="post-length-counter">{{ postLength }}</span>
                 </div>
+
+                <p v-if="scheduledAt" class="schedule-summary">
+                    <Icon icon="mdi:calendar-clock" />
+                    <span>{{ formatHumanDateTime(scheduledAt) }}</span>
+                    <button type="button" class="schedule-clear" :aria-label="t('section.postbox.clearSchedule')" @click="clearSchedule">×</button>
+                </p>
+
+                <div v-if="postMode != 'canned' && (showMediaPicker || selectedMedia.length)" class="media-attach">
+                    <div v-if="selectedMedia.length" class="selected-media">
+                        <div v-for="(m, idx) in selectedMedia" :key="m.url" class="selected-media-item">
+                            <img v-if="isImageFile(m.filename)" :src="m.url" :alt="m.filename" class="selected-media-thumb" />
+                            <span v-else class="selected-media-placeholder">{{ m.filename }}</span>
+                            <button type="button" class="remove-media" @click="removeMedia(idx)" title="Remove">×</button>
+                        </div>
+                    </div>
+                    <div v-if="showMediaPicker" class="media-picker">
+                        <p v-if="!mediaLibrary.length">No media in library. <router-link to="/media">Upload some</router-link> first.</p>
+                        <div v-else class="media-picker-grid">
+                            <button type="button" v-for="item in mediaLibrary" :key="item.url" class="media-picker-item" @click="addMedia(item)">
+                                <img v-if="isImageFile(item.filename)" :src="item.url" :alt="item.filename" />
+                                <span v-else>{{ item.filename }}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <fieldset class="post-actions">
+                    <button id="save-draft" type="button" class="neutral" @click="saveDraft" :disabled="!canSaveDraft">Save draft</button>
+                    <button id="submit" type="button" class="good" @click="submitPost" :disabled="!canSubmit">{{ submitButtonLabel }}</button>
+                </fieldset>
             </div>
 
-            <fieldset>
-                <button id="save-draft" type="button" class="neutral" @click="saveDraft" :disabled="!canSaveDraft">Save draft</button>
-                <button id="submit" type="button" class="good" @click="submitPost" :disabled="!canSubmit">Post now</button>
-                <button id="open-schedule" type="button" class="good" @click="openScheduleDialog" :disabled="!canSchedule">Post Later</button>
-            </fieldset>
-            <div style = "display: flex; justify-content: flex-end;">
-				<span ref = "postLengthCounter">{{ postLength }}</span>
-            </div>
             <div v-if="showScheduleDialog" class="modal-overlay" @click.self="cancelScheduleDialog">
                 <div class="modal">
                     <h3>Schedule Post</h3>
                     <label for="scheduledAtDialog">Scheduled time</label>
                     <input id="scheduledAtDialog" type="datetime-local" v-model="scheduledAtDialog" />
                     <div class="dialog-actions">
-                        <button class="neutral" @click="cancelScheduleDialog">Cancel</button>
-                        <button class="good" @click="confirmScheduleDialog" :disabled="!scheduledAtDialog">Schedule</button>
+                        <button v-if="scheduledAtDialog" type="button" class="neutral" @click="clearScheduleDialog">{{ t('section.postbox.clearSchedule') }}</button>
+                        <button type="button" class="neutral" @click="cancelScheduleDialog">{{ t('section.postbox.cancel') }}</button>
+                        <button type="button" class="good" @click="confirmScheduleDialog" :disabled="!scheduledAtDialog">{{ t('section.postbox.setSchedule') }}</button>
                     </div>
                 </div>
             </div>
@@ -109,6 +153,8 @@ import { ref, onMounted, onActivated, computed, nextTick } from 'vue';
 	import { useRoute } from 'vue-router';
     import { Icon } from '@iconify/vue';
     import InlineNotification from './InlineNotification.vue';
+    import EmojiPickerPopover from './EmojiPickerPopover.vue';
+    import { insertAtCursor, formatHumanDateTime } from '../javascript/util.js';
 
     const clientReady = ref(false);
     const items = ref([]);
@@ -126,6 +172,7 @@ const selectedServiceCount = ref(0);
 	const selectedMedia = ref([]);
 	const mediaLibrary = ref([]);
 	const showMediaPicker = ref(false);
+	const showEmojiPicker = ref(false);
 
 	const route = useRoute();
 
@@ -148,8 +195,32 @@ const selectedServiceCount = ref(0);
 	function addMedia(item) {
 		selectedMedia.value = [...selectedMedia.value, item];
 	}
+	function applyMediaFromQuery() {
+		const mediaUrl = route.query.mediaUrl;
+		if (!mediaUrl || typeof mediaUrl !== 'string') {
+			return;
+		}
+		const filename = mediaUrl.split('/').pop() || mediaUrl;
+		const item = { url: mediaUrl, filename };
+		if (selectedMedia.value.some((m) => m.url === item.url)) {
+			return;
+		}
+		selectedMedia.value = [...selectedMedia.value, item];
+	}
 	function removeMedia(index) {
 		selectedMedia.value = selectedMedia.value.filter((_, i) => i !== index);
+	}
+
+	function toggleEmojiPicker() {
+		showEmojiPicker.value = !showEmojiPicker.value;
+	}
+
+	function insertEmoji(unicode) {
+		const textarea = postTextarea.value;
+		if (!textarea) {
+			return;
+		}
+		insertAtCursor(textarea, unicode);
 	}
 
 const recountLength = (e) => {
@@ -214,6 +285,8 @@ const recountLength = (e) => {
                 await applyCampaignMembership(cid)
 			}
 		}
+
+		applyMediaFromQuery();
     });
 
     onActivated(async () => {
@@ -232,6 +305,8 @@ const recountLength = (e) => {
                 await applyCampaignMembership(cid)
 			}
 		}
+
+		applyMediaFromQuery();
 	})
 
     async function refreshAccounts() {
@@ -287,7 +362,7 @@ const recountLength = (e) => {
 
     const postingServiceCheckboxes = ref(null);
 
-    import Notification from './../javascript/notification.js'
+    import { showNotification } from './../javascript/notifications.js'
 
 function updateSelectedServiceCount() {
   if (!postingServiceCheckboxes.value) { selectedServiceCount.value = 0; return }
@@ -305,8 +380,14 @@ function onPostingServiceChange() {
 }
 
 const canSubmit = computed(() => contentLength.value > 0 && (selectedServiceCount.value > 0 || saveAsCannedPost.value))
-const canSchedule = computed(() => contentLength.value > 0 && selectedServiceCount.value > 0)
-const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCount.value > 0 && !saveAsCannedPost.value)
+const canSaveDraft = computed(() => (contentLength.value > 0 || selectedMedia.value.length > 0) && !saveAsCannedPost.value)
+
+const submitButtonLabel = computed(() => {
+  if (scheduledAt.value && !saveAsCannedPost.value) {
+    return t('section.postbox.postLater');
+  }
+  return t('section.postbox.postNow');
+})
 
 	async function startPost(cannedPostId) {
 		if (!cannedPostId) {
@@ -368,26 +449,17 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
         const post = document.getElementById('post').value;
         const submit = document.getElementById('submit');
         const saveDraftBtn = document.getElementById('save-draft');
-        const scheduleBtn = document.getElementById('open-schedule');
 
-        if (post.length == 0) {
-            alert("Please enter a message.");
+        if (post.length == 0 && selectedMedia.value.length === 0) {
+            alert(asDraft ? "Add text or attach media to save a draft." : "Please enter a message.");
             return;
         }
 
-        if (asDraft) {
-            const selectedServices = getSelectedPostingServices();
-            if (selectedServices.length === 0) {
-                alert("Select at least one social account to save a draft.");
-                return;
-            }
-        }
-
         const originalSubmitText = submit.innerText;
-        submit.innerText = asDraft ? "Saving…" : "Submitting...";
+        const isScheduled = Boolean(scheduledAt.value) && !saveAsCannedPost.value;
+        submit.innerText = asDraft ? 'Saving…' : (isScheduled ? 'Scheduling…' : 'Submitting...');
         submit.disabled = true;
         if (saveDraftBtn) saveDraftBtn.disabled = true;
-        if (scheduleBtn) scheduleBtn.disabled = true;
 
         const selectedServices = getSelectedPostingServices();
 
@@ -401,7 +473,6 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
                 submit.innerText = originalSubmitText;
                 submit.disabled = false;
                 if (saveDraftBtn) saveDraftBtn.disabled = !canSaveDraft.value;
-                if (scheduleBtn) scheduleBtn.disabled = !canSchedule.value;
 
                 // Clear the textarea and selected media
                 document.getElementById('post').value = '';
@@ -412,18 +483,19 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
                     postLengthCounter.value.classList.remove('bad');
                 }
 
-                // Show notification with link to canned posts
-                let n = new Notification("good", "Canned Post Created",
-                    `Your post has been saved as a canned post. Click here to view it.`,
-                    "/canned-posts");
-                n.show();
+                showNotification(
+                    'success',
+                    'Canned Post Created',
+                    'Your post has been saved as a canned post.',
+                    '/canned-posts',
+                    'View canned posts',
+                );
             })
             .catch((error) => {
                 alert("Error creating canned post: " + error);
                 submit.innerText = originalSubmitText;
                 submit.disabled = false;
                 if (saveDraftBtn) saveDraftBtn.disabled = !canSaveDraft.value;
-                if (scheduleBtn) scheduleBtn.disabled = !canSchedule.value;
             });
             return;
         }
@@ -451,7 +523,6 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
                 submit.innerText = originalSubmitText;
                 submit.disabled = false;
                 if (saveDraftBtn) saveDraftBtn.disabled = !canSaveDraft.value;
-                if (scheduleBtn) scheduleBtn.disabled = !canSchedule.value;
 
                 // Clear the textarea
                 document.getElementById('post').value = '';
@@ -467,29 +538,28 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
 
                 if (asDraft) {
                     const savedCount = (res.posts || []).filter((x) => x.success).length;
-                    const n = new Notification(
-                        "good",
-                        "Draft saved",
+                    showNotification(
+                        'success',
+                        'Draft saved',
                         savedCount === 1
-                            ? "Your draft has been saved. Click here to view it on the timeline."
-                            : `${savedCount} drafts saved. Click here to view them on the timeline.`,
-                        "/timeline",
+                            ? 'Your draft has been saved.'
+                            : `${savedCount} drafts saved.`,
+                        '/timeline',
+                        'View timeline',
                     );
-                    n.show();
                     return;
                 }
 
                 for (let x of res.posts) {
-                    let status = ""
+                    const statusClass = x.success ? 'success' : 'bad';
 
-                    if (x.success) {
-                        status = "good"
-                    } else {
-                        status = "bad"
-                    }
-
-                    let n = new Notification(status, "Posted to" + x.socialAccountIcon, "Post complete.", x.postUrl)
-                    n.show()
+                    showNotification(
+                        statusClass,
+                        'Posted to ' + x.socialAccountIcon,
+                        'Post complete.',
+                        x.postUrl || null,
+                        x.postUrl ? 'Open post' : undefined,
+                    );
                 }
             })
             .catch((error) => {
@@ -497,13 +567,14 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
                 submit.innerText = originalSubmitText;
                 submit.disabled = false;
                 if (saveDraftBtn) saveDraftBtn.disabled = !canSaveDraft.value;
-                if (scheduleBtn) scheduleBtn.disabled = !canSchedule.value;
             });
     }
 
     function openScheduleDialog() {
         showScheduleDialog.value = true;
         scheduledAtDialog.value = scheduledAt.value || "";
+        showEmojiPicker.value = false;
+        showMediaPicker.value = false;
     }
 
     function cancelScheduleDialog() {
@@ -513,7 +584,15 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
     function confirmScheduleDialog() {
         scheduledAt.value = scheduledAtDialog.value;
         showScheduleDialog.value = false;
-        submitPost();
+    }
+
+    function clearScheduleDialog() {
+        scheduledAtDialog.value = "";
+    }
+
+    function clearSchedule() {
+        scheduledAt.value = "";
+        scheduledAtDialog.value = "";
     }
 
 	defineExpose({
@@ -528,6 +607,86 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
 
 	fieldset {
         align-items: center;
+	}
+
+	.post-composer {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		width: 100%;
+		grid-column: 1 / -1;
+	}
+
+	.post-composer-input {
+		width: 100%;
+		box-sizing: border-box;
+		resize: vertical;
+		min-height: 8em;
+	}
+
+	.post-composer-meta {
+		display: flex;
+		justify-content: space-between;
+		align-items: flex-start;
+		position: relative;
+		margin-top: -0.35rem;
+	}
+
+	.post-composer-tools {
+		position: relative;
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.composer-tool-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		padding: 0.35rem 0.5rem;
+	}
+
+	.composer-tool-btn.active {
+		background-color: var(--hover-background-color, #e8e8e8);
+	}
+
+	.post-length-counter {
+		font-size: 0.85rem;
+		opacity: 0.75;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.post-actions {
+		grid-column: unset;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		width: 100%;
+		margin: 0;
+	}
+
+	.schedule-summary {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		margin: 0;
+		padding: 0.4rem 0.6rem;
+		border-radius: 0.5rem;
+		border: 1px solid var(--border-color, #ccc);
+		background: var(--card-bg, #f8f8f8);
+		font-size: 0.9rem;
+	}
+
+	.schedule-clear {
+		margin-left: auto;
+		width: 1.5rem;
+		height: 1.5rem;
+		padding: 0;
+		border-radius: 50%;
+		border: none;
+		background: rgba(0, 0, 0, 0.08);
+		cursor: pointer;
+		font-size: 1.1rem;
+		line-height: 1;
 	}
 
 	.check-list {
@@ -576,7 +735,7 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
 		box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
 	}
 
-	@media (prefers-color-scheme: dark) {
+	html[data-theme="dark"] {
 		.check-list label > span {
 			background-color: #2a2a2a;
 			color: #e0e0e0;
@@ -605,18 +764,17 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
 	}
 
 	.media-attach {
-		margin-top: 0.75em;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		padding-top: 0.25rem;
+		border-top: 1px solid var(--border-color, #ddd);
 	}
-	.media-attach label {
-		display: block;
-		font-weight: 500;
-		margin-bottom: 0.25em;
-	}
+
 	.selected-media {
 		display: flex;
 		flex-wrap: wrap;
 		gap: 0.5em;
-		margin-bottom: 0.5em;
 	}
 	.selected-media-item {
 		position: relative;
@@ -654,11 +812,7 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
 		font-size: 1.1em;
 		line-height: 1;
 	}
-	.add-media-btn {
-		margin-top: 0.25em;
-	}
 	.media-picker {
-		margin-top: 0.75em;
 		padding: 0.75em;
 		border: 1px solid var(--border-color, #ccc);
 		border-radius: 0.5em;
@@ -693,5 +847,50 @@ const canSaveDraft = computed(() => contentLength.value > 0 && selectedServiceCo
 		word-break: break-all;
 		text-align: center;
 		padding: 0.25em;
+	}
+
+	.modal-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: rgba(0, 0, 0, 0.5);
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		z-index: 1000;
+	}
+
+	.modal {
+		background: var(--card-bg, white);
+		padding: 2rem;
+		border-radius: 0.5rem;
+		box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+		min-width: 320px;
+		max-width: 500px;
+	}
+
+	.modal h3 {
+		margin: 0 0 1rem 0;
+	}
+
+	.modal label {
+		display: block;
+		margin-bottom: 0.5rem;
+		font-weight: 500;
+	}
+
+	.modal input[type="datetime-local"] {
+		width: 100%;
+		box-sizing: border-box;
+		margin-bottom: 1rem;
+	}
+
+	.dialog-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+		justify-content: flex-end;
 	}
 </style>

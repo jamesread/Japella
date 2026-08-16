@@ -4,6 +4,10 @@ import Components from 'unplugin-vue-components/vite'
 import mkcert from 'vite-plugin-mkcert'
 
 export default defineConfig({
+  optimizeDeps: {
+    // Keep a single module instance for the popup store (app code + host component).
+    exclude: ['picocrank/vue/composables/useNotificationPopups.js'],
+  },
   server: {
     allowedHosts: ['baneling.teratan.net'],
     proxy: {
@@ -60,6 +64,12 @@ export default defineConfig({
       deep: true,
       dts: false,
     }),
-    vue(),
+    vue({
+      template: {
+        compilerOptions: {
+          isCustomElement: (tag) => tag === 'emoji-picker',
+        },
+      },
+    }),
   ],
 })

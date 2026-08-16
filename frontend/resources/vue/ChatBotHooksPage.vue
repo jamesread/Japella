@@ -329,7 +329,7 @@
 		cursor: not-allowed;
 	}
 
-	@media (prefers-color-scheme: dark) {
+	html[data-theme="dark"] {
 		.hooks-intro {
 			color: var(--text-muted, #aaa);
 		}

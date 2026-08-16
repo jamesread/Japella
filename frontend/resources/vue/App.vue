@@ -7,6 +7,7 @@
 		title="Japella"
 		:logoUrl="logoUrl"
 		:sidebarEnabled="isLoggedIn && sidebarPreferenceEnabled"
+		:themeToggleEnabled="isLoggedIn && themeTogglePreferenceEnabled"
 		:breadcrumbs="isLoggedIn"
 	>
 		<template #toolbar>
@@ -67,6 +68,8 @@
 			</div>
 		</div>
 	</Navigation>
+
+	<NotificationPopupsHost />
 </template>
 
 <style scoped>
@@ -115,7 +118,7 @@
 <script setup>
     import { waitForClient } from '../javascript/util.js'
     import { fetchAppStatus } from '../javascript/status.js'
-    import { loadAndApplyUserPreferences, registerSidebarApplier } from '../javascript/userPreferences.js'
+    import { loadAndApplyUserPreferences, registerSidebarApplier, registerThemeToggleApplier } from '../javascript/userPreferences.js'
     import { ref, onMounted, provide, watch } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { Icon } from '@iconify/vue';
@@ -127,6 +130,7 @@
     import Navigation from 'picocrank/vue/components/Navigation.vue';
     import Sidebar from 'picocrank/vue/components/Sidebar.vue';
     import QuickSearch from 'picocrank/vue/components/QuickSearch.vue';
+    import NotificationPopupsHost from './NotificationPopupsHost.vue';
 	import logoUrl from '../../logo.png';
 	import {
 		fetchApprovalsCount,
@@ -152,6 +156,7 @@
     const navigation = ref(null);
     const sidebar = ref(null);
     const sidebarPreferenceEnabled = ref(true);
+    const themeTogglePreferenceEnabled = ref(false);
     const errorDialogRef = ref();
 
 	provide('showSectionError', (msg) => {
@@ -169,6 +174,10 @@
 		} else {
 			sidebar.value.close();
 		}
+	}
+
+	function applyThemeTogglePreference(enabled) {
+		themeTogglePreferenceEnabled.value = enabled;
 	}
 
 	function toggleSidebar() {
@@ -294,6 +303,7 @@
 
     onMounted(async () => {
         registerSidebarApplier(applySidebarPreference);
+        registerThemeToggleApplier(applyThemeTogglePreference);
 
         setTimeout(() => {
             loadingWarning.value = 'If you are reading this text after waiting more than a few seconds, something has gone wrong. Please check your browser console for errors.';

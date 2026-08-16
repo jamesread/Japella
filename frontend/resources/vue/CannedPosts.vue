@@ -3,6 +3,7 @@
 		title="Canned Posts"
 		subtitle="Manage your canned posts here. You can create, edit, and delete canned posts."
 		classes="canned-posts"
+		:padding="false"
 	>
 		<template #toolbar>
 			<button @click="refreshPosts" :disabled="!clientReady" class="neutral">
@@ -13,116 +14,119 @@
 			</button>
 		</template>
 
-		<p class="small">Canned posts are pre-defined posts that can be used in the post box. They are saved in the database and can be used multiple times.</p>
+		<p class="small section-intro">Canned posts are pre-defined posts that can be used in the post box. They are saved in the database and can be used multiple times.</p>
 
 	</Section>
 
-		<div v-if="errorMessage">
-			<p class="inline-notification error">{{ errorMessage }}</p>
-		</div>
-		<div v-else>
-			<div v-if="posts.length === 0">
-				<p class="inline-notification note">No canned posts available. Please create a new canned post.</p>
+	<div v-if="errorMessage">
+		<p class="inline-notification error">{{ errorMessage }}</p>
+	</div>
+	<div v-else-if="posts.length === 0">
+		<p class="inline-notification note">No canned posts available. Please create a new canned post.</p>
+	</div>
+	<template v-else>
+		<section
+			v-for="p in posts"
+			:key="p.id"
+			class="small canned-post-item"
+			:data-canned-post-id="p.id"
+		>
+		<PostPreview v-if="!p.editing" :post="formatPostForPreview(p)" />
+		<textarea
+			v-else
+			:id="'canned-post-' + p.id"
+			v-model="p.content"
+			@keyup.enter="saveCannedPost(p)"
+			@keyup.esc="cancelEditing(p)"
+			class="edit-textarea"
+			rows="6"
+		></textarea>
+		<div class="post-meta">
+			<span class="post-date">{{ formatFuzzyDate(p.createdAt) }}</span>
+			<div class="post-actions">
+				<button
+					v-if="!p.editing"
+					type="button"
+					class="inline-icon good"
+					title="Use this post"
+					@click="usePost(p)"
+				>
+					<HugeiconsIcon
+						:icon="EditIcon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>Use</span>
+				</button>
+				<button
+					v-if="!p.editing"
+					type="button"
+					class="inline-icon neutral"
+					title="Edit post"
+					@click="beginEditing(p)"
+				>
+					<HugeiconsIcon
+						:icon="EditIcon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>Edit</span>
+				</button>
+				<button
+					v-if="p.editing"
+					type="button"
+					class="inline-icon good"
+					title="Save changes"
+					@click="saveCannedPost(p)"
+				>
+					<HugeiconsIcon
+						:icon="SaveIcon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>Save</span>
+				</button>
+				<button
+					v-if="p.editing"
+					type="button"
+					class="inline-icon neutral"
+					title="Cancel editing"
+					@click="cancelEditing(p)"
+				>
+					<HugeiconsIcon
+						:icon="CancelCircleIcon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>Cancel</span>
+				</button>
+				<button
+					type="button"
+					class="inline-icon bad"
+					title="Delete post"
+					@click="deleteCannedPost(p.id)"
+				>
+					<HugeiconsIcon
+						:icon="Delete02Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>Delete</span>
+				</button>
 			</div>
-			<div v-else class="canned-posts-list">
-				<section v-for="p in posts" :key="p.id" class="canned-post-item small">
-					<PostPreview v-if="!p.editing" :post="formatPostForPreview(p)" class="canned-post-preview" />
-					<textarea
-						v-else
-						:id="'canned-post-' + p.id"
-						v-model="p.content"
-						@keyup.enter="saveCannedPost(p)"
-						@keyup.esc="cancelEditing(p)"
-						class="edit-textarea"
-						rows="6"
-					></textarea>
-					<div class="post-meta">
-						<span class="post-date">{{ formatFuzzyDate(p.createdAt) }}</span>
-						<div class="post-actions">
-							<button
-								v-if="!p.editing"
-								type="button"
-								class="inline-icon good"
-								title="Use this post"
-								@click="usePost(p)"
-							>
-								<HugeiconsIcon
-									:icon="EditIcon"
-									width="1em"
-									height="1em"
-									:strokeWidth="iconStrokeWidth"
-									aria-hidden="true"
-								/>
-								<span>Use</span>
-							</button>
-							<button
-								v-if="!p.editing"
-								type="button"
-								class="inline-icon neutral"
-								title="Edit post"
-								@click="beginEditing(p)"
-							>
-								<HugeiconsIcon
-									:icon="EditIcon"
-									width="1em"
-									height="1em"
-									:strokeWidth="iconStrokeWidth"
-									aria-hidden="true"
-								/>
-								<span>Edit</span>
-							</button>
-							<button
-								v-if="p.editing"
-								type="button"
-								class="inline-icon good"
-								title="Save changes"
-								@click="saveCannedPost(p)"
-							>
-								<HugeiconsIcon
-									:icon="SaveIcon"
-									width="1em"
-									height="1em"
-									:strokeWidth="iconStrokeWidth"
-									aria-hidden="true"
-								/>
-								<span>Save</span>
-							</button>
-							<button
-								v-if="p.editing"
-								type="button"
-								class="inline-icon neutral"
-								title="Cancel editing"
-								@click="cancelEditing(p)"
-							>
-								<HugeiconsIcon
-									:icon="CancelCircleIcon"
-									width="1em"
-									height="1em"
-									:strokeWidth="iconStrokeWidth"
-									aria-hidden="true"
-								/>
-								<span>Cancel</span>
-							</button>
-							<button
-								type="button"
-								class="inline-icon bad"
-								title="Delete post"
-								@click="deleteCannedPost(p.id)"
-							>
-								<HugeiconsIcon
-									:icon="Delete02Icon"
-									width="1em"
-									height="1em"
-									:strokeWidth="iconStrokeWidth"
-									aria-hidden="true"
-								/>
-								<span>Delete</span>
-							</button>
-						</div>
-					</div>
-				</section>
-			</div>
 		</div>
+		</section>
+	</template>
 </template>
 
 <script setup>
@@ -333,24 +337,24 @@
 </script>
 
 <style scoped>
-	.canned-posts-list {
-		display: flex;
-		flex-direction: column;
-		gap: 1.5rem;
-	}
-
-	.canned-post-preview {
-		margin-bottom: 1rem;
-	}
-
-	.canned-post-preview :deep(.post-preview) {
-		padding: 0;
+	.section-intro {
 		margin: 0;
-		max-width: none;
+		padding: 0 1em 1em;
+	}
+
+	section {
+		margin-bottom: 1rem;
+		padding: 0;
+	}
+
+	.canned-post-item :deep(.post-preview) {
+		margin-bottom: 0;
 	}
 
 	.edit-textarea {
-		width: 100%;
+		width: calc(100% - 2rem);
+		margin: 1rem;
+		box-sizing: border-box;
 		padding: 0.75rem;
 		border: 1px solid var(--border-color, #ddd);
 		border-radius: 0.25rem;
@@ -364,7 +368,7 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		padding-top: 1rem;
+		padding: 0 1rem 1rem;
 		border-top: 1px solid var(--border-color, #e0e0e0);
 	}
 
@@ -379,7 +383,7 @@
 		align-items: center;
 	}
 
-	@media (prefers-color-scheme: dark) {
+	html[data-theme="dark"] {
 		.edit-textarea {
 			background-color: #1a1a1a;
 			border-color: #505050;

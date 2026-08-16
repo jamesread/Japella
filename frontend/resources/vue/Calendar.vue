@@ -46,7 +46,7 @@
 	import { RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Calendar from 'picocrank/vue/components/Calendar.vue';
-	import Notification from '../javascript/notification.js';
+	import { showNotification } from '../javascript/notifications.js';
 
 	const iconStrokeWidth = 2.5;
 
@@ -59,14 +59,12 @@
 
 	function handleDateClick(date) {
 		const formattedDate = date.toLocaleDateString();
-		const notification = new Notification('good', 'Calendar Date', `You clicked on ${formattedDate}`);
-		notification.show();
+		showNotification('note', 'Calendar Date', `You clicked on ${formattedDate}`);
 		console.log('Date clicked:', formattedDate);
 	}
 
 	function handleEventClick(event) {
-		const notification = new Notification('good', 'Calendar Event', `You clicked on event: ${event.title}`);
-		notification.show();
+		showNotification('note', 'Calendar Event', `You clicked on event: ${event.title}`);
 		console.log('Event clicked:', event);
 	}
 

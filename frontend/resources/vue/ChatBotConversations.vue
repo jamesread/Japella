@@ -690,7 +690,7 @@
 		margin-top: 0.5em;
 	}
 
-	@media (prefers-color-scheme: dark) {
+	html[data-theme="dark"] {
 		.conversations-section {
 			color: var(--text-color, #f0f0f0);
 		}

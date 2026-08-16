@@ -1,5 +1,5 @@
-import 'femtocrank/style.css';
-import 'femtocrank/dark.css';
+import 'picocrank/styles.css';
+import './theme.js';
 
 import { createClient } from '@connectrpc/connect'
 import { createConnectTransport } from "@connectrpc/connect-web"
@@ -12,7 +12,7 @@ import { createI18n } from 'vue-i18n';
 import App from '../vue/App.vue';
 import router from './router.js';
 
-import Notification from './notification.js';
+import { showNotification } from './notifications.js';
 import { fetchAppStatus, invalidateAppStatus } from './status.js';
 
 /** Published docs: database readiness and startup failures. */
@@ -358,8 +358,7 @@ function displayNotifications(): void {
 		let title = params.get('title') || 'Notification';
 		let message = params.get('notification');
 
-		let n = new Notification(type, title, message);
-		n.show();
+		showNotification(type, title, message);
 
 		// Clear the notification from the URL
 		params.delete('notification');

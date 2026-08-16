@@ -6,6 +6,17 @@
 
 		<title>Japella</title>
 
+		<script>
+			(function () {
+				var key = 'picocrank-theme';
+				var stored = localStorage.getItem(key);
+				var theme = stored === 'light' || stored === 'dark'
+					? stored
+					: (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+				document.documentElement.setAttribute('data-theme', theme);
+			})();
+		</script>
+
 		<link rel = "stylesheet" type = "text/css" href = "resources/stylesheets/main.css" />
 
 		<link rel = "shortcut icon" href = "logo.png" />

@@ -230,7 +230,7 @@ func (s *ControlApi) marshalPendingApproval(p *db.Post, viewerID uint32) *contro
 	item := &controlv1.PendingApproval{
 		Post: &controlv1.PostStatus{
 			Id:              p.ID,
-			SocialAccountId: p.SocialAccountID,
+			SocialAccountId: p.SocialAccountIDUint(),
 			Content:         p.Content,
 			State:           p.State,
 			Success:         false,
@@ -253,7 +253,7 @@ func (s *ControlApi) marshalPendingApproval(p *db.Post, viewerID uint32) *contro
 			item.SubmittedByUsername = u.Username
 		}
 	}
-	if sa, err := s.DB.GetSocialAccount(p.SocialAccountID); err == nil && sa != nil {
+	if sa, err := s.DB.GetSocialAccount(p.SocialAccountIDUint()); err == nil && sa != nil {
 		item.Post.SocialAccountIdentity = sa.Identity
 		if s.cc != nil {
 			if svc := s.cc.Get(sa.Connector); svc != nil {
@@ -354,7 +354,7 @@ func (s *ControlApi) ApprovePost(ctx context.Context, req *connect.Request[contr
 			StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Stage approved; more stages remain"},
 			Post: &controlv1.PostStatus{
 				Id:              post.ID,
-				SocialAccountId: post.SocialAccountID,
+				SocialAccountId: post.SocialAccountIDUint(),
 				Content:         post.Content,
 				State:           db.PostStatePendingApproval,
 				Success:         true,
@@ -362,7 +362,7 @@ func (s *ControlApi) ApprovePost(ctx context.Context, req *connect.Request[contr
 		}), nil
 	}
 
-	socialAccount, err := s.DB.GetSocialAccount(post.SocialAccountID)
+	socialAccount, err := s.DB.GetSocialAccount(post.SocialAccountIDUint())
 	if err != nil || socialAccount == nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("social account not found"))
 	}
@@ -412,7 +412,7 @@ func (s *ControlApi) RejectPost(ctx context.Context, req *connect.Request[contro
 		_ = s.DB.InsertTableLog(
 			fmt.Sprintf("Post %d rejected by %s: %s", post.ID, au.User.Username, req.Msg.Reason),
 			"info",
-			&post.SocialAccountID,
+			post.SocialAccountIDPtr(),
 		)
 	}
 
@@ -427,7 +427,7 @@ func (s *ControlApi) marshalPostStatus(post *db.Post) *controlv1.PostStatus {
 	}
 	ps := &controlv1.PostStatus{
 		Id:              post.ID,
-		SocialAccountId: post.SocialAccountID,
+		SocialAccountId: post.SocialAccountIDUint(),
 		Content:         post.Content,
 		Success:         post.Status,
 		PostUrl:         post.PostURL.String,
@@ -445,7 +445,7 @@ func (s *ControlApi) marshalPostStatus(post *db.Post) *controlv1.PostStatus {
 	if post.CampaignName.Valid {
 		ps.CampaignName = post.CampaignName.String
 	}
-	if sa, err := s.DB.GetSocialAccount(post.SocialAccountID); err == nil && sa != nil {
+	if sa, err := s.DB.GetSocialAccount(post.SocialAccountIDUint()); err == nil && sa != nil {
 		ps.SocialAccountIdentity = sa.Identity
 		if s.cc != nil {
 			if svc := s.cc.Get(sa.Connector); svc != nil {
