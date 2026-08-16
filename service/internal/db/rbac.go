@@ -52,10 +52,7 @@ func (db *DB) ensureGroupHasRole(groupID, roleID uint32) error {
 }
 
 func (db *DB) ensureUserInGroup(userID, groupID uint32) error {
-	_, err := db.ResilientExec(
-		`INSERT IGNORE INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at) VALUES (?, ?, NOW(3), NOW(3))`,
-		userID, groupID)
-	return err
+	return db.AddUserGroupMember(userID, groupID)
 }
 
 func (db *DB) CountUsersWithSuperuserViaGroups() (int, error) {

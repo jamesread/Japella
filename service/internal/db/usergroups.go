@@ -83,6 +83,17 @@ func (db *DB) SelectUserGroupMemberIDs(groupID uint32) ([]uint32, error) {
 	return ids, err
 }
 
+func (db *DB) AddUserGroupMember(userID, groupID uint32) error {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+		return fmt.Errorf("database connection is not established")
+	}
+	_, err := db.ResilientExec(
+		`INSERT IGNORE INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at) VALUES (?, ?, NOW(3), NOW(3))`,
+		userID, groupID)
+	return err
+}
+
 func (db *DB) SetUserGroupMembers(groupID uint32, userIDs []uint32) error {
 	if db.connx == nil {
 		db.ReconnectDatabaseAndSetErrorMessage()

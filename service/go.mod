@@ -29,6 +29,7 @@ require (
 	github.com/rabbitmq/amqp091-go v1.13.0
 	github.com/rs/cors v1.11.1
 	github.com/sirupsen/logrus v1.10.0
+	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.11.1
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	go.mau.fi/whatsmeow v0.0.0-20260814123134-0dcf1f50f4b1
@@ -143,7 +144,6 @@ require (
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/spf13/cobra v1.10.2 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tdewolff/parse/v2 v2.8.12 // indirect
 	github.com/tdewolff/test v1.0.12 // indirect

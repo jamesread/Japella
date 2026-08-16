@@ -33,3 +33,14 @@ func TestHashShortPassword(t *testing.T) {
 	assert.NoError(t, err, "Expected no error while verifying short password")
 	assert.True(t, match, "Expected the short password to match the hash")
 }
+
+func TestGeneratePassword(t *testing.T) {
+	password, err := GeneratePassword()
+
+	assert.NoError(t, err)
+	assert.Len(t, password, generatedPasswordLength)
+
+	other, err := GeneratePassword()
+	assert.NoError(t, err)
+	assert.NotEqual(t, password, other)
+}
