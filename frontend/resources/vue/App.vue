@@ -7,7 +7,7 @@
 		title="Japella"
 		:logoUrl="logoUrl"
 		:sidebarEnabled="isLoggedIn && sidebarPreferenceEnabled"
-		:themeToggleEnabled="isLoggedIn && themeTogglePreferenceEnabled"
+		:themeToggleEnabled="isLoggedIn && themeColorSchemeSwitcherEnabled"
 		:breadcrumbs="isLoggedIn"
 	>
 		<template #toolbar>
@@ -118,7 +118,14 @@
 <script setup>
     import { waitForClient } from '../javascript/util.js'
     import { fetchAppStatus } from '../javascript/status.js'
-    import { loadAndApplyUserPreferences, registerSidebarApplier, registerThemeToggleApplier } from '../javascript/userPreferences.js'
+    import { loadAndApplyUserPreferences, registerSidebarApplier } from '../javascript/userPreferences.js'
+    import '../javascript/theme.js';
+    import {
+        applyAppTheming,
+        themeColorSchemeSwitcherEnabledFromFeatures,
+        themeFeaturesFromStatus,
+    } from '../javascript/applyAppTheming.js'
+    import { useCustomTheme } from '../javascript/theme.js'
     import { ref, onMounted, provide, watch } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { Icon } from '@iconify/vue';
@@ -156,12 +163,14 @@
     const navigation = ref(null);
     const sidebar = ref(null);
     const sidebarPreferenceEnabled = ref(true);
-    const themeTogglePreferenceEnabled = ref(false);
+    const themeColorSchemeSwitcherEnabled = ref(false);
+    const appThemeFeatures = ref({});
     const errorDialogRef = ref();
 
 	provide('showSectionError', (msg) => {
 		errorDialogRef.value?.showError(msg)
 	});
+	provide('appThemeFeatures', appThemeFeatures);
 
 	function applySidebarPreference(enabled) {
 		sidebarPreferenceEnabled.value = enabled;
@@ -174,10 +183,6 @@
 		} else {
 			sidebar.value.close();
 		}
-	}
-
-	function applyThemeTogglePreference(enabled) {
-		themeTogglePreferenceEnabled.value = enabled;
 	}
 
 	function toggleSidebar() {
@@ -248,6 +253,10 @@
         isImpersonating.value = Boolean(st.isImpersonating);
         impersonatorUsername.value = st.impersonatorUsername || '';
 
+        appThemeFeatures.value = themeFeaturesFromStatus(st);
+        themeColorSchemeSwitcherEnabled.value = themeColorSchemeSwitcherEnabledFromFeatures(appThemeFeatures.value);
+        applyAppTheming(appThemeFeatures.value);
+
         if (st.isLoggedIn) {
             applyAuthFromStatus(st)
         } else {
@@ -301,15 +310,17 @@
         }
     }
 
+    const { discoverThemes } = useCustomTheme();
+
     onMounted(async () => {
         registerSidebarApplier(applySidebarPreference);
-        registerThemeToggleApplier(applyThemeTogglePreference);
 
         setTimeout(() => {
             loadingWarning.value = 'If you are reading this text after waiting more than a few seconds, something has gone wrong. Please check your browser console for errors.';
         }, 2000);
 
         await waitForClient();
+        await discoverThemes();
         clientReady.value = true;
         await loadStatus();
     });

@@ -2,29 +2,62 @@ package db
 
 import "github.com/jamesread/japella/internal/debuglog"
 
+const (
+	ThemeControlSystem = "system"
+	ThemeControlUser   = "user"
+)
+
 var CvarKeys = struct {
-	BaseUrl              string
-	OAuth2RedirectURL    string
-	IsPubliclyAccessible string
-	DebugAuth            string
-	DebugFeed            string
-	DebugHTTP            string
+	BaseUrl                        string
+	OAuth2RedirectURL              string
+	IsPubliclyAccessible           string
+	ThemeColorSchemeSwitcherEnabled string
+	ThemeName                      string
+	ThemeControl                   string
+	DebugAuth                      string
+	DebugFeed                      string
+	DebugHTTP                      string
 }{
-	BaseUrl:              "base_url",
-	OAuth2RedirectURL:    "oauth2_redirect_url",
-	IsPubliclyAccessible: "is_publicly_accessible",
-	DebugAuth:            debuglog.KeyAuth,
-	DebugFeed:            debuglog.KeyFeed,
-	DebugHTTP:            debuglog.KeyHTTP,
+	BaseUrl:                         "base_url",
+	OAuth2RedirectURL:               "oauth2_redirect_url",
+	IsPubliclyAccessible:            "is_publicly_accessible",
+	ThemeColorSchemeSwitcherEnabled: "theme_color_scheme_switcher_enabled",
+	ThemeName:                       "theme_name",
+	ThemeControl:                    "theme_control",
+	DebugAuth:                       debuglog.KeyAuth,
+	DebugFeed:                       debuglog.KeyFeed,
+	DebugHTTP:                       debuglog.KeyHTTP,
 }
 
 var CvarList = []Cvar{
 	{KeyName: CvarKeys.BaseUrl, Title: "Base URL", ValueString: "http://localhost:8080", Category: "General", Description: "The base URL of the application", Type: "text"},
 	{KeyName: CvarKeys.IsPubliclyAccessible, Title: "Is Publicly Accessible", ValueInt: 0, Category: "General", Description: "When enabled, OAuth connectors (Mastodon, X, Bluesky, Facebook, Instagram) are started. When disabled, they appear in Unregistered Connectors.", Type: "bool", DefaultValue: "0"},
 	{KeyName: CvarKeys.OAuth2RedirectURL, Title: "OAuth2 Redirect URL", ValueString: "http://localhost:8080/oauth2callback", Category: "OAuth2", Description: "The redirect URL for OAuth2 authentication", Type: "text"},
+	{KeyName: CvarKeys.ThemeColorSchemeSwitcherEnabled, Title: "Color scheme switcher", ValueInt: 0, Category: "Theme", Description: "Show the auto/light/dark color scheme control in the PicoCrank header.", Type: "bool", DefaultValue: "0"},
+	{KeyName: CvarKeys.ThemeName, Title: "Theme name", ValueString: "", Category: "Theme", Description: "Default or enforced drop-in CSS theme (empty = Femtocrank base styling only).", Type: "text", DefaultValue: ""},
+	{KeyName: CvarKeys.ThemeControl, Title: "Theme control", ValueString: ThemeControlUser, Category: "Theme", Description: "System preference forces the theme name cvar for everyone. User preference uses the cvar as default and allows overrides on User Preferences.", Type: "text", DefaultValue: ThemeControlUser},
 	{KeyName: CvarKeys.DebugAuth, Title: "Auth debug logging", ValueInt: 0, Category: "Debug", Description: "Log authentication details (API key checks, httpauthshim path). Independent of config.yaml logLevel.", Type: "bool", DefaultValue: "0"},
 	{KeyName: CvarKeys.DebugFeed, Title: "Feed fetcher debug logging", ValueInt: 0, Category: "Debug", Description: "Log feed fetch cycles and per-post insert/skip details. Independent of config.yaml logLevel.", Type: "bool", DefaultValue: "0"},
 	{KeyName: CvarKeys.DebugHTTP, Title: "HTTP client debug logging", ValueInt: 0, Category: "Debug", Description: "Log outbound HTTP requests, responses, headers, and bodies. Independent of config.yaml logLevel.", Type: "bool", DefaultValue: "0"},
+}
+
+func (db *DB) ThemeColorSchemeSwitcherEnabled() bool {
+	if db.GetCvar(CvarKeys.ThemeColorSchemeSwitcherEnabled) != nil {
+		return db.GetCvarBool(CvarKeys.ThemeColorSchemeSwitcherEnabled)
+	}
+	return db.GetCvarBool("enable_theme_color_scheme_switcher")
+}
+
+func (db *DB) ThemeName() string {
+	return db.GetCvarString(CvarKeys.ThemeName)
+}
+
+func (db *DB) ThemeControl() string {
+	value := db.GetCvarString(CvarKeys.ThemeControl)
+	if value == ThemeControlSystem {
+		return ThemeControlSystem
+	}
+	return ThemeControlUser
 }
 
 func (db *DB) InsertCvarsIfNotExists(chain *ConnectionChain) {

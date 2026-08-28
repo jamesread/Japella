@@ -1,5 +1,7 @@
 import 'picocrank/styles.css';
-import './theme.js';
+import { initAppThemes } from './theme.js';
+
+initAppThemes();
 
 import { createClient } from '@connectrpc/connect'
 import { createConnectTransport } from "@connectrpc/connect-web"

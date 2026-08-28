@@ -899,6 +899,14 @@ func (db *DB) GetUserByID(id uint32) *UserAccount {
 	return &user
 }
 
+func (db *DB) TouchUserLastLogin(userID uint32) error {
+	_, err := db.ResilientExec(
+		"UPDATE user_accounts SET last_login_at = NOW(3), updated_at = NOW(3) WHERE id = ?",
+		userID,
+	)
+	return err
+}
+
 // FindUserByID loads a user by primary key. Returns sql.ErrNoRows when missing (no error log for that case).
 func (db *DB) FindUserByID(id uint32) (*UserAccount, error) {
 	var user UserAccount
@@ -1100,7 +1108,7 @@ func (db *DB) SetCvarInt(key string, value int32) error {
 }
 
 func (db *DB) SaveUserPreferences(preferences *UserPreferences) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO user_preferences (user_account_id, language, sidebar_enabled, theme_toggle_enabled, created_at, updated_at) VALUES (:user_account_id, :language, :sidebar_enabled, :theme_toggle_enabled, NOW(), NOW()) ON DUPLICATE KEY UPDATE language = VALUES(language), sidebar_enabled = VALUES(sidebar_enabled), theme_toggle_enabled = VALUES(theme_toggle_enabled), updated_at = NOW()`, preferences)
+	_, err := db.ResilientNamedExec(`INSERT INTO user_preferences (user_account_id, language, sidebar_enabled, created_at, updated_at) VALUES (:user_account_id, :language, :sidebar_enabled, NOW(), NOW()) ON DUPLICATE KEY UPDATE language = VALUES(language), sidebar_enabled = VALUES(sidebar_enabled), updated_at = NOW()`, preferences)
 	if err != nil {
 		db.Logger().Errorf("Failed to save user preferences: %v", err)
 		return err
@@ -1110,10 +1118,10 @@ func (db *DB) SaveUserPreferences(preferences *UserPreferences) error {
 
 func (db *DB) GetUserPreferences(userAccountID uint32) (*UserPreferences, error) {
 	var prefs UserPreferences
-	err := db.ResilientGet(&prefs, `SELECT id, created_at, updated_at, user_account_id, language, sidebar_enabled, theme_toggle_enabled FROM user_preferences WHERE user_account_id = ?`, userAccountID)
+	err := db.ResilientGet(&prefs, `SELECT id, created_at, updated_at, user_account_id, language, sidebar_enabled FROM user_preferences WHERE user_account_id = ?`, userAccountID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return &UserPreferences{UserAccountID: userAccountID, Language: "", SidebarEnabled: true, ThemeToggleEnabled: false}, nil
+			return &UserPreferences{UserAccountID: userAccountID, Language: "", SidebarEnabled: true}, nil
 		}
 		db.Logger().Errorf("Failed to get user preferences: %v", err)
 		return nil, err

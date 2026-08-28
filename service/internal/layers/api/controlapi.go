@@ -41,6 +41,7 @@ import (
 	"github.com/jamesread/japella/internal/webhook"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/jamesread/japella/internal/themes"
 	"github.com/jamesread/japella/internal/utils"
 	log "github.com/sirupsen/logrus"
 
@@ -506,29 +507,46 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 	dbConnected := s.DB != nil && s.DB.ConnEstablished() && s.DB.GetErrorMessage() == ""
 	amqpEn, amqpConn := amqp.ConnectionStatus()
 
+	availableThemes := themes.AvailableThemeNames()
+
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
-		Status:                 "OK!",
-		Nanoservices:           nanoservice.GetNanoservices(),
-		Version:                buildinfo.Version,
-		Username:               username,
-		IsLoggedIn:             authenticatedUser != nil,
-		StatusMessages:         s.statusMessages,
-		UsesSecureCookies:      os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
-		DatabaseHost:           s.DB.GetDatabaseHost(),
-		DatabaseName:           s.DB.GetDatabaseName(),
-		ListenAddress:          listenAddress,
-		DatabaseSchemaVersion:  s.DB.GetCurrentSchemaVersion(),
-		DatabaseSchemaDirty:    s.DB.GetCurrentSchemaDirty(),
-		RbacPermissions:        rbacPermNames,
-		RbacIsSuperuser:        rbacSuper,
-		IsImpersonating:        isImpersonating,
-		ImpersonatorUsername:   impersonatorUsername,
-		ConfigFileAbsolutePath: runtimeconfig.ConfigYAMLAbsolutePath(),
-		DatabaseConnected:      dbConnected,
-		AmqpEnabled:            amqpEn,
-		AmqpConnected:          amqpConn,
-		WebhookEvents:          append([]string(nil), webhook.SupportedEvents...),
+		Status:                          "OK!",
+		Nanoservices:                    nanoservice.GetNanoservices(),
+		Version:                         buildinfo.Version,
+		Username:                        username,
+		IsLoggedIn:                      authenticatedUser != nil,
+		StatusMessages:                  s.statusMessages,
+		UsesSecureCookies:               os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
+		DatabaseHost:                    s.DB.GetDatabaseHost(),
+		DatabaseName:                    s.DB.GetDatabaseName(),
+		ListenAddress:                   listenAddress,
+		DatabaseSchemaVersion:           s.DB.GetCurrentSchemaVersion(),
+		DatabaseSchemaDirty:             s.DB.GetCurrentSchemaDirty(),
+		RbacPermissions:                 rbacPermNames,
+		RbacIsSuperuser:                 rbacSuper,
+		IsImpersonating:                 isImpersonating,
+		ImpersonatorUsername:            impersonatorUsername,
+		ConfigFileAbsolutePath:          runtimeconfig.ConfigYAMLAbsolutePath(),
+		DatabaseConnected:               dbConnected,
+		AmqpEnabled:                     amqpEn,
+		AmqpConnected:                   amqpConn,
+		WebhookEvents:                   append([]string(nil), webhook.SupportedEvents...),
+		ThemeColorSchemeSwitcherEnabled: s.DB.ThemeColorSchemeSwitcherEnabled(),
+		ThemeName:                       s.DB.ThemeName(),
+		ThemeControl:                    s.DB.ThemeControl(),
+		AvailableThemes:                 availableThemes,
 	})
+
+	if authenticatedUser != nil {
+		if account := s.DB.GetUserByID(authenticatedUser.User.ID); account != nil {
+			if !account.CreatedAt.IsZero() {
+				res.Msg.CreatedAt = account.CreatedAt.UTC().Format(time.RFC3339)
+			}
+			if account.LastLoginAt.Valid {
+				res.Msg.LastLoginAt = account.LastLoginAt.Time.UTC().Format(time.RFC3339)
+			}
+		}
+	}
 
 	if authenticatedUser == nil || !authenticatedUser.CanViewSystemDiagnostics() {
 		res.Msg.DatabaseHost = ""
@@ -2105,6 +2123,10 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create session: %w", err))
 	}
 
+	if err := s.DB.TouchUserLastLogin(user.ID); err != nil {
+		log.Warnf("Failed to update last login for user %s: %v", user.Username, err)
+	}
+
 	c := http.Cookie{
 		Name:     "japella-sid",
 		Value:    sid,
@@ -2598,7 +2620,6 @@ func (s *ControlApi) GetUserPreferences(ctx context.Context, req *connect.Reques
 		Language:           prefs.Language,
 		AvailableLanguages: i18n.AvailableLanguageCodes(),
 		SidebarEnabled:     prefs.SidebarEnabled,
-		ThemeToggleEnabled: prefs.ThemeToggleEnabled,
 	}), nil
 }
 
@@ -2617,10 +2638,9 @@ func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Reque
 	log.Infof("Saving user preferences for user: %s", authenticatedUser.User.Username)
 
 	err := s.DB.SaveUserPreferences(&db.UserPreferences{
-		UserAccountID:      authenticatedUser.User.ID,
-		Language:           language,
-		SidebarEnabled:     req.Msg.SidebarEnabled,
-		ThemeToggleEnabled: req.Msg.ThemeToggleEnabled,
+		UserAccountID:  authenticatedUser.User.ID,
+		Language:       language,
+		SidebarEnabled: req.Msg.SidebarEnabled,
 	})
 
 	if err != nil {
@@ -2705,12 +2725,31 @@ func (s *ControlApi) RevokeApiKey(ctx context.Context, req *connect.Request[cont
 	return res, nil
 }
 
+func validateThemeCvar(keyName, valueString string, catalog []string) error {
+	switch keyName {
+	case db.CvarKeys.ThemeControl:
+		value := strings.TrimSpace(valueString)
+		if value != db.ThemeControlSystem && value != db.ThemeControlUser {
+			return fmt.Errorf("theme_control must be %q or %q", db.ThemeControlSystem, db.ThemeControlUser)
+		}
+	case db.CvarKeys.ThemeName:
+		if !themes.IsValidThemeName(strings.TrimSpace(valueString), catalog) {
+			return fmt.Errorf("theme_name is not in the available theme catalog")
+		}
+	}
+	return nil
+}
+
 func (s *ControlApi) SetCvar(ctx context.Context, req *connect.Request[controlv1.SetCvarRequest]) (*connect.Response[controlv1.SetCvarResponse], error) {
 	cvar := s.DB.GetCvar(req.Msg.KeyName)
 
 	if cvar == nil {
 		log.Warnf("cvar not found: %s", req.Msg.KeyName)
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("cvar not found: %s", req.Msg.KeyName))
+	}
+
+	if err := validateThemeCvar(cvar.KeyName, req.Msg.ValueString, themes.AvailableThemeNames()); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
 	var err error

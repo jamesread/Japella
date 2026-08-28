@@ -37,7 +37,7 @@
 				<input id="policy-apply-ui" v-model="form.applyToUi" type="checkbox" :disabled="saving" />
 			</FormField>
 
-			<FormField label="Approval stages (ordered)" fake :disabled="saving">
+			<FormField label="Approval stages (ordered)" component-has-label :disabled="saving">
 				<div class="approval-stages">
 					<div v-for="(stage, idx) in form.stages" :key="idx" class="stage-row">
 						<span class="stage-num">{{ idx + 1 }}.</span>
@@ -72,7 +72,7 @@
 			<FormField
 				v-if="accounts.length"
 				label="Social accounts"
-				fake
+				component-has-label
 				:disabled="saving"
 				description="Policies apply only to posts targeting the selected accounts."
 			>

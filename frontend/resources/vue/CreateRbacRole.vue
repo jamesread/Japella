@@ -20,7 +20,7 @@
 				<input id="new-role-desc" v-model="form.description" type="text" :disabled="saving" />
 			</FormField>
 
-			<FormField label="Permissions" fake :disabled="saving">
+			<FormField label="Permissions" component-has-label :disabled="saving">
 				<table class="perm-table data-table">
 					<thead>
 						<tr>

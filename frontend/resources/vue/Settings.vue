@@ -20,7 +20,7 @@
 	</Section>
 
 	<Section
-		v-for="category in categoryList"
+		v-for="category in nonThemeCategoryList"
 		:key="category.name"
 		:title="category.name"
 		classes="settings-category"
@@ -31,7 +31,7 @@
 				:key="cvar.keyName"
 				:label="cvar.title"
 				:for="cvar.type === 'bool' ? '' : cvar.keyName"
-				:fake="cvar.type === 'bool'"
+				:component-has-label="cvar.type === 'bool'"
 				:description="decodeHtmlEntities(cvar.description)"
 				:docs-url="cvar.docsUrl || ''"
 				docs-url-title="Docs"
@@ -73,12 +73,76 @@
 			</FormField>
 		</FormLayout>
 	</Section>
+
+	<Section
+		v-if="canAccess && themeSectionReady"
+		title="Theme"
+		subtitle="Appearance and theme policy"
+		classes="settings-category settings-theme"
+	>
+		<FormLayout @submit.prevent="saveThemeSection">
+			<FormField label="Color scheme switcher" component-has-label>
+				<RadioGroup
+					v-model="themeEdits.colorSchemeSwitcher"
+					name="settings-theme-color-scheme-switcher"
+					variant="boolean"
+					:options="boolOptions"
+					aria-label="Color scheme switcher"
+					@update:model-value="themeSectionDirty = true"
+				/>
+				<p class="subtle">Show the auto/light/dark control in the header.</p>
+			</FormField>
+
+			<FormField label="Theme name" for="settings-theme-name">
+				<select
+					id="settings-theme-name"
+					v-model="themeEdits.themeName"
+					@change="themeSectionDirty = true"
+				>
+					<option value="">Default (Femtocrank only)</option>
+					<option v-for="name in themeNameOptions" :key="name" :value="name">
+						{{ themeLabels[name] || name }}
+					</option>
+				</select>
+				<p class="subtle">Drop-in CSS theme for the app.</p>
+			</FormField>
+
+			<FormField label="Theme control" component-has-label>
+				<RadioGroup
+					v-model="themeEdits.themeControl"
+					name="settings-theme-control"
+					variant="list"
+					:options="themeControlOptions"
+					aria-label="Theme control"
+					@update:model-value="themeSectionDirty = true"
+				/>
+				<p class="subtle">
+					System preference forces the theme name for all users.
+					User preference uses this theme as the default; users may override on User Preferences.
+				</p>
+			</FormField>
+
+			<template #actions>
+				<button type="submit" class="good" :disabled="!themeSectionDirty || themeSaving">
+					{{ themeSaving ? 'Saving…' : 'Save theme settings' }}
+				</button>
+			</template>
+		</FormLayout>
+	</Section>
 </template>
 
 <script setup>
 	import { ref, computed, onMounted, nextTick } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { waitForClient, decodeHtmlEntities } from '../javascript/util';
+	import { fetchAppStatus, invalidateAppStatus } from '../javascript/status.js';
+	import {
+		applyAppTheming,
+		themeFeaturesFromStatus,
+		ThemeControlSystem,
+		ThemeControlUser,
+	} from '../javascript/applyAppTheming.js';
+	import { useCustomTheme } from '../javascript/theme.js';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
@@ -86,14 +150,28 @@
 	import InlineNotification from './InlineNotification.vue';
 
 	const route = useRoute();
+	const { themeLabels, availableThemes, discoverThemes } = useCustomTheme();
 
 	const boolOptions = [
 		{ label: 'On', value: true },
 		{ label: 'Off', value: false },
 	];
 
+	const themeControlOptions = [
+		{ label: 'System preference', value: ThemeControlSystem },
+		{ label: 'User preference', value: ThemeControlUser },
+	];
+
 	const categories = ref({});
 	const loaded = ref(false);
+	const themeSectionReady = ref(false);
+	const themeSectionDirty = ref(false);
+	const themeSaving = ref(false);
+	const themeEdits = ref({
+		colorSchemeSwitcher: false,
+		themeName: '',
+		themeControl: ThemeControlUser,
+	});
 	const statusPerms = ref([]);
 	const statusSuper = ref(false);
 
@@ -106,6 +184,73 @@
 			String(a.name || '').localeCompare(String(b.name || ''))
 		)
 	);
+
+	const nonThemeCategoryList = computed(() =>
+		categoryList.value.filter((category) => category.name !== 'Theme')
+	);
+
+	const statusThemeNames = ref([]);
+
+	const themeNameOptions = computed(() => {
+		const fromClient = availableThemes.value || [];
+		if (fromClient.length > 0) {
+			return fromClient;
+		}
+		return statusThemeNames.value;
+	});
+
+	function findThemeCvar(keyName) {
+		const themeCategory = categories.value.Theme;
+		return themeCategory?.cvars?.find((c) => c.keyName === keyName) || null;
+	}
+
+	function syncThemeEditsFromCvars() {
+		const switcher = findThemeCvar('theme_color_scheme_switcher_enabled');
+		const themeName = findThemeCvar('theme_name');
+		const themeControl = findThemeCvar('theme_control');
+		themeEdits.value = {
+			colorSchemeSwitcher: switcher?.valueInt === 1,
+			themeName: themeName?.valueString || '',
+			themeControl: themeControl?.valueString === ThemeControlSystem ? ThemeControlSystem : ThemeControlUser,
+		};
+		themeSectionDirty.value = false;
+		themeSectionReady.value = Boolean(switcher && themeName && themeControl);
+	}
+
+	async function reloadAppTheming() {
+		invalidateAppStatus();
+		const st = await fetchAppStatus({ force: true });
+		statusThemeNames.value = st.availableThemes || [];
+		applyAppTheming(themeFeaturesFromStatus(st));
+	}
+
+	async function saveThemeSection() {
+		if (!themeSectionDirty.value || themeSaving.value) {
+			return;
+		}
+		themeSaving.value = true;
+		try {
+			await window.client.setCvar({
+				keyName: 'theme_color_scheme_switcher_enabled',
+				valueInt: themeEdits.value.colorSchemeSwitcher ? 1 : 0,
+			});
+			await window.client.setCvar({
+				keyName: 'theme_name',
+				valueString: themeEdits.value.themeName || '',
+			});
+			await window.client.setCvar({
+				keyName: 'theme_control',
+				valueString: themeEdits.value.themeControl,
+			});
+			await refreshCvars();
+			syncThemeEditsFromCvars();
+			await reloadAppTheming();
+		} catch (error) {
+			console.error('Error saving theme settings:', error);
+		} finally {
+			themeSaving.value = false;
+		}
+	}
 
 	function refreshCvars() {
 		categories.value = {};
@@ -121,6 +266,7 @@
 				}
 			}
 			categories.value = filtered;
+			syncThemeEditsFromCvars();
 		}).catch((error) => {
 			console.error('Error fetching cvars:', error);
 		});
@@ -197,7 +343,10 @@
 		loaded.value = true;
 
 		if (canAccess.value) {
+			await discoverThemes();
 			await refreshCvars();
+			const st = await window.client.getStatus({});
+			statusThemeNames.value = st.availableThemes || [];
 			await focusCvarFromHash();
 		}
 	});
@@ -215,6 +364,12 @@
 		margin: 0;
 		display: flex;
 		gap: 0.75em;
+	}
+
+	.subtle {
+		margin: 0.35em 0 0;
+		font-size: 0.9em;
+		color: var(--muted-text-color, #666);
 	}
 
 	:deep(.settings-field-highlight) {

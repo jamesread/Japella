@@ -146,18 +146,18 @@ html[data-theme="dark"] {
 	justify-content: space-between;
 }
 
-.notification {
+.messages .notification {
 	padding: 0.75em;
 	border-radius: 0.25em;
 	margin-bottom: 1em;
 	cursor: pointer;
 }
 
-.notification span {
+.messages .notification span {
 	display: block;
 }
 
-.notification a {
+.messages .notification a {
 	color: black;
 	display: block;
 	margin-top: 1em;
@@ -245,11 +245,6 @@ input:disabled {
 	display: flex;
 	flex-direction: column;
 	flex-grow: 1;
-}
-
-input:invalid {
-	outline: 2px solid red;
-	background-color: salmon;
 }
 
 aside ul li a {

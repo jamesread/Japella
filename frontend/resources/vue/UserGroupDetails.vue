@@ -331,7 +331,7 @@
 		<p>Select roles to assign to this group. Members inherit permissions from these roles.</p>
 
 		<FormLayout @submit.prevent="submitAddRoles">
-			<FormField label="Roles" fake :disabled="rolesSaving">
+			<FormField label="Roles" component-has-label :disabled="rolesSaving">
 				<CheckGroup
 					v-model="addRoleIds"
 					name="user-group-add-roles"

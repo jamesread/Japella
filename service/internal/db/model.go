@@ -136,9 +136,10 @@ const (
 type UserAccount struct {
 	Model
 
-	Username     string `db:"username"`
-	PasswordHash string `db:"password_hash"`
-	CreatedBy    string `db:"created_by"`
+	Username     string       `db:"username"`
+	PasswordHash string       `db:"password_hash"`
+	CreatedBy    string       `db:"created_by"`
+	LastLoginAt  sql.NullTime `db:"last_login_at"`
 }
 
 type UserGroup struct {
@@ -198,7 +199,6 @@ type UserPreferences struct {
 	UserAccount    UserAccount
 	Language       string `db:"language"`
 	SidebarEnabled bool   `db:"sidebar_enabled"`
-	ThemeToggleEnabled bool `db:"theme_toggle_enabled"`
 }
 
 type Campaign struct {

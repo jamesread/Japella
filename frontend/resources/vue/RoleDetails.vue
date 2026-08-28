@@ -93,7 +93,7 @@
 				<FormField label="Description" for="role-desc" :disabled="saving">
 					<input id="role-desc" v-model="form.description" type="text" :disabled="saving" />
 				</FormField>
-				<FormField label="Granted permissions" fake :disabled="saving">
+				<FormField label="Granted permissions" component-has-label :disabled="saving">
 					<table class="perm-table data-table">
 						<thead>
 							<tr>

@@ -58,6 +58,14 @@ message GetStatusResponse {
     bool amqp_enabled = 20;
     bool amqp_connected = 21;
     repeated string webhook_events = 22;
+    // Hub identity (authenticated caller only).
+    string created_at = 23;
+    string last_login_at = 24;
+    // System policy from cvars ([jwr-soa-theming](../jwr-soa-theming/SKILL.md)).
+    bool theme_color_scheme_switcher_enabled = 25;
+    string theme_name = 26;
+    string theme_control = 27;
+    repeated string available_themes = 28;
 }
 
 message StatusMessage {
@@ -548,7 +556,6 @@ message Cvar {
 message SaveUserPreferencesRequest {
 	string language = 1;
 	bool sidebar_enabled = 2;
-	bool theme_toggle_enabled = 3;
 }
 
 message SaveUserPreferencesResponse {
@@ -562,7 +569,6 @@ message GetUserPreferencesResponse {
 	string language = 1;
 	repeated string available_languages = 2;
 	bool sidebar_enabled = 3;
-	bool theme_toggle_enabled = 4;
 }
 
 message CreateApiKeyRequest {

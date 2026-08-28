@@ -53,7 +53,7 @@
 
 			<FormField
 				label="Sidebar"
-				fake
+				component-has-label
 				description="Show the navigation sidebar and header menu on wide screens."
 				:disabled="saving"
 			>
@@ -68,34 +68,40 @@
 			</FormField>
 
 			<FormField
-				label="Theme switcher"
-				fake
-				description="Show the light/dark/auto theme button in the header."
-				:disabled="saving"
+				label="Color scheme preference"
+				component-has-label
+				description="Choose light, dark, or match your operating system. Saved in this browser."
 			>
 				<RadioGroup
-					v-model="themeToggleEnabled"
-					name="user-preferences-theme-toggle"
-					variant="boolean"
-					:options="themeToggleOptions"
-					:disabled="saving"
-					aria-label="Header theme switcher visibility"
+					v-model="theme"
+					name="user-preferences-color-scheme"
+					variant="list"
+					:options="colorSchemeOptions"
+					aria-label="Color scheme preference"
 				/>
 			</FormField>
 
 			<FormField
-				label="Theme"
-				fake
-				description="Choose light, dark, or match your system. Saved in this browser."
+				v-if="userThemeControl"
+				label="Theme name"
+				for="user-preferences-theme-name"
+				description="Override the administrator default theme. Saved in this browser."
 			>
-				<RadioGroup
-					v-model="theme"
-					name="user-preferences-theme"
-					variant="list"
-					:options="themeOptions"
-					aria-label="Color theme"
-				/>
+				<select
+					id="user-preferences-theme-name"
+					:value="themePreference"
+					@change="onThemeNameChange"
+				>
+					<option value="">Default (Femtocrank only)</option>
+					<option v-for="name in themeNameOptions" :key="name" :value="name">
+						{{ themeLabels[name] || name }}
+					</option>
+				</select>
 			</FormField>
+
+			<p v-else-if="adminThemeName" class="muted">
+				Theme name is set by the administrator ({{ adminThemeName }}).
+			</p>
 
 			<p v-if="saveMessage" class="inline-notification" :class="saveMessageType">{{ saveMessage }}</p>
 
@@ -109,7 +115,7 @@
 </template>
 
 <script setup>
-	import { ref, computed, onMounted } from 'vue';
+	import { ref, computed, onMounted, inject } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
@@ -118,11 +124,14 @@
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import RadioGroup from 'picocrank/vue/components/RadioGroup.vue';
 	import { waitForClient } from '../javascript/util';
-	import { applyUserLanguage, applyUserSidebar, applyUserThemeToggle } from '../javascript/userPreferences.js';
-	import { useTheme } from '../javascript/theme.js';
+	import { applyUserLanguage, applyUserSidebar } from '../javascript/userPreferences.js';
+	import { themeControlFromFeatures, ThemeControlUser } from '../javascript/applyAppTheming.js';
+	import { useTheme, useCustomTheme } from '../javascript/theme.js';
 
 	const { locale, fallbackLocale } = useI18n();
 	const { theme } = useTheme();
+	const { availableThemes, themeLabels, themePreference, setTheme } = useCustomTheme();
+	const appThemeFeatures = inject('appThemeFeatures', ref({}));
 	const iconStrokeWidth = 2.5;
 
 	const loading = ref(true);
@@ -134,16 +143,9 @@
 	const savedLanguage = ref('');
 	const sidebarEnabled = ref(true);
 	const savedSidebarEnabled = ref(true);
-	const themeToggleEnabled = ref(false);
-	const savedThemeToggleEnabled = ref(false);
 	const availableLanguages = ref([]);
 
 	const sidebarOptions = [
-		{ label: 'Enabled', value: true },
-		{ label: 'Disabled', value: false },
-	];
-
-	const themeToggleOptions = [
 		{ label: 'Enabled', value: true },
 		{ label: 'Disabled', value: false },
 	];
@@ -153,6 +155,22 @@
 		{ label: 'Light', value: 'light' },
 		{ label: 'Dark', value: 'dark' },
 	];
+	const colorSchemeOptions = themeOptions;
+
+	const themeControl = computed(() => themeControlFromFeatures(appThemeFeatures.value));
+	const userThemeControl = computed(() => themeControl.value === ThemeControlUser);
+	const adminThemeName = computed(() => (appThemeFeatures.value.themeName || '').trim());
+	const themeNameOptions = computed(() => {
+		const fromClient = availableThemes.value || [];
+		if (fromClient.length > 0) {
+			return fromClient;
+		}
+		return appThemeFeatures.value.availableThemes || [];
+	});
+
+	function onThemeNameChange(event) {
+		setTheme(event.target.value);
+	}
 
 	const LANGUAGE_LABELS = {
 		en: 'English',
@@ -163,8 +181,7 @@
 
 	const dirty = computed(() =>
 		language.value !== savedLanguage.value ||
-		sidebarEnabled.value !== savedSidebarEnabled.value ||
-		themeToggleEnabled.value !== savedThemeToggleEnabled.value,
+		sidebarEnabled.value !== savedSidebarEnabled.value,
 	);
 
 	function languageLabel(code) {
@@ -182,8 +199,6 @@
 			savedLanguage.value = res.language || '';
 			sidebarEnabled.value = res.sidebarEnabled !== false;
 			savedSidebarEnabled.value = res.sidebarEnabled !== false;
-			themeToggleEnabled.value = res.themeToggleEnabled === true;
-			savedThemeToggleEnabled.value = res.themeToggleEnabled === true;
 			availableLanguages.value = res.availableLanguages || [];
 		} catch (e) {
 			console.error(e);
@@ -204,17 +219,14 @@
 			const res = await window.client.saveUserPreferences({
 				language: language.value,
 				sidebarEnabled: sidebarEnabled.value,
-				themeToggleEnabled: themeToggleEnabled.value,
 			});
 			if (!res.standardResponse?.success) {
 				throw new Error(res.standardResponse?.message || 'Failed to save preferences.');
 			}
 			savedLanguage.value = language.value;
 			savedSidebarEnabled.value = sidebarEnabled.value;
-			savedThemeToggleEnabled.value = themeToggleEnabled.value;
 			applyUserLanguage(locale, fallbackLocale.value, language.value);
 			applyUserSidebar(sidebarEnabled.value);
-			applyUserThemeToggle(themeToggleEnabled.value);
 			saveMessageType.value = 'note';
 			saveMessage.value = res.standardResponse.message || 'Preferences saved.';
 		} catch (e) {

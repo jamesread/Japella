@@ -69,6 +69,20 @@
 				/>
 				<span>Back to User</span>
 			</router-link>
+			<router-link
+				v-else
+				:to="{ name: 'userControlPanel' }"
+				class="button inline-icon neutral"
+			>
+				<HugeiconsIcon
+					:icon="ArrowLeft01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Back to User Control Panel</span>
+			</router-link>
 			<button
 				type="button"
 				class="inline-icon neutral"

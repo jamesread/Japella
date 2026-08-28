@@ -3,6 +3,19 @@
 		title="Change Password"
 		subtitle="Update your account password"
 	>
+		<template #toolbar>
+			<router-link :to="{ name: 'userControlPanel' }" class="button inline-icon neutral">
+				<HugeiconsIcon
+					:icon="ArrowLeft01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="2.5"
+					aria-hidden="true"
+				/>
+				<span>Back to User Control Panel</span>
+			</router-link>
+		</template>
+
 		<form @submit.prevent="changePassword">
 			<div class="password-form-grid">
 				<label for="current-password">Current Password:</label>
@@ -62,6 +75,8 @@
 <script setup>
 	import { ref, computed } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
+	import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import { waitForClient } from '../javascript/util';
 

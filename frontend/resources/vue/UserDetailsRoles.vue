@@ -53,7 +53,7 @@
 			</p>
 			<p v-else-if="!allGroups.length" class="inline-notification note">No user groups exist yet.</p>
 			<FormLayout v-else-if="canManageGroups" @submit.prevent="saveUserGroups">
-				<FormField label="Groups for this user" fake :disabled="saving">
+				<FormField label="Groups for this user" component-has-label :disabled="saving">
 					<CheckGroup
 						v-model="userGroupIds"
 						name="user-details-access-groups"
@@ -65,7 +65,7 @@
 					<button type="submit" class="good" :disabled="saving">Save group membership</button>
 				</template>
 			</FormLayout>
-			<FormField v-else label="Groups for this user" fake>
+			<FormField v-else label="Groups for this user" component-has-label>
 				<CheckGroup
 					v-model="userGroupIds"
 					name="user-details-access-groups-view"

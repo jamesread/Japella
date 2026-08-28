@@ -27,7 +27,7 @@
 			</FormField>
 			<FormField
 				label="Events"
-				fake
+				component-has-label
 				description="Select one or more events that should POST to this URL."
 				:disabled="saving"
 			>
@@ -39,7 +39,7 @@
 					aria-label="Webhook events"
 				/>
 			</FormField>
-			<FormField label="Enabled" fake :disabled="saving">
+			<FormField label="Enabled" component-has-label :disabled="saving">
 				<RadioGroup
 					v-model="createForm.enabled"
 					name="create-webhook-enabled"
@@ -84,7 +84,7 @@
 			</FormField>
 			<FormField
 				label="Events"
-				fake
+				component-has-label
 				description="Select one or more events that should POST to this URL."
 				:disabled="saving"
 			>
@@ -96,7 +96,7 @@
 					aria-label="Webhook events"
 				/>
 			</FormField>
-			<FormField label="Enabled" fake :disabled="saving">
+			<FormField label="Enabled" component-has-label :disabled="saving">
 				<RadioGroup
 					v-model="editForm.enabled"
 					name="edit-webhook-enabled"

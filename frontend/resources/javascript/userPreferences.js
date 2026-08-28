@@ -8,28 +8,18 @@ export function applyUserLanguage(localeRef, fallbackLocale, language) {
 }
 
 let sidebarApplier = null;
-let themeToggleApplier = null;
 
 /** @param {(enabled: boolean) => void} fn */
 export function registerSidebarApplier(fn) {
 	sidebarApplier = fn;
 }
 
-/** @param {(enabled: boolean) => void} fn */
-export function registerThemeToggleApplier(fn) {
-	themeToggleApplier = fn;
-}
-
 export function applyUserSidebar(enabled) {
 	sidebarApplier?.(Boolean(enabled));
 }
 
-export function applyUserThemeToggle(enabled) {
-	themeToggleApplier?.(Boolean(enabled));
-}
-
 /**
- * Load preferences for the logged-in user and apply language and sidebar when set.
+ * Load preferences for the logged-in user and apply language and sidebar.
  */
 export async function loadAndApplyUserPreferences({ localeRef, fallbackLocale } = {}) {
 	if (!window.client) {
@@ -37,11 +27,10 @@ export async function loadAndApplyUserPreferences({ localeRef, fallbackLocale } 
 	}
 	try {
 		const res = await window.client.getUserPreferences({});
-		if (localeRef && res.language) {
-			applyUserLanguage(localeRef, fallbackLocale, res.language);
+		if (localeRef) {
+			applyUserLanguage(localeRef, fallbackLocale, res.language || '');
 		}
 		applyUserSidebar(res.sidebarEnabled !== false);
-		applyUserThemeToggle(res.themeToggleEnabled === true);
 		return res;
 	} catch (e) {
 		console.warn('Failed to load user preferences', e);

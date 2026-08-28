@@ -342,8 +342,16 @@ type GetStatusResponse struct {
 	AmqpEnabled       bool     `protobuf:"varint,20,opt,name=amqp_enabled,json=amqpEnabled,proto3" json:"amqp_enabled,omitempty"`
 	AmqpConnected     bool     `protobuf:"varint,21,opt,name=amqp_connected,json=amqpConnected,proto3" json:"amqp_connected,omitempty"`
 	WebhookEvents     []string `protobuf:"bytes,22,rep,name=webhook_events,json=webhookEvents,proto3" json:"webhook_events,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
+	// Hub identity (authenticated caller only).
+	CreatedAt   string `protobuf:"bytes,23,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	LastLoginAt string `protobuf:"bytes,24,opt,name=last_login_at,json=lastLoginAt,proto3" json:"last_login_at,omitempty"`
+	// System policy from cvars ([jwr-soa-theming](../jwr-soa-theming/SKILL.md)).
+	ThemeColorSchemeSwitcherEnabled bool     `protobuf:"varint,25,opt,name=theme_color_scheme_switcher_enabled,json=themeColorSchemeSwitcherEnabled,proto3" json:"theme_color_scheme_switcher_enabled,omitempty"`
+	ThemeName                       string   `protobuf:"bytes,26,opt,name=theme_name,json=themeName,proto3" json:"theme_name,omitempty"`
+	ThemeControl                    string   `protobuf:"bytes,27,opt,name=theme_control,json=themeControl,proto3" json:"theme_control,omitempty"`
+	AvailableThemes                 []string `protobuf:"bytes,28,rep,name=available_themes,json=availableThemes,proto3" json:"available_themes,omitempty"`
+	unknownFields                   protoimpl.UnknownFields
+	sizeCache                       protoimpl.SizeCache
 }
 
 func (x *GetStatusResponse) Reset() {
@@ -519,6 +527,48 @@ func (x *GetStatusResponse) GetAmqpConnected() bool {
 func (x *GetStatusResponse) GetWebhookEvents() []string {
 	if x != nil {
 		return x.WebhookEvents
+	}
+	return nil
+}
+
+func (x *GetStatusResponse) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+func (x *GetStatusResponse) GetLastLoginAt() string {
+	if x != nil {
+		return x.LastLoginAt
+	}
+	return ""
+}
+
+func (x *GetStatusResponse) GetThemeColorSchemeSwitcherEnabled() bool {
+	if x != nil {
+		return x.ThemeColorSchemeSwitcherEnabled
+	}
+	return false
+}
+
+func (x *GetStatusResponse) GetThemeName() string {
+	if x != nil {
+		return x.ThemeName
+	}
+	return ""
+}
+
+func (x *GetStatusResponse) GetThemeControl() string {
+	if x != nil {
+		return x.ThemeControl
+	}
+	return ""
+}
+
+func (x *GetStatusResponse) GetAvailableThemes() []string {
+	if x != nil {
+		return x.AvailableThemes
 	}
 	return nil
 }
@@ -5519,12 +5569,11 @@ func (x *Cvar) GetExternalUrl() string {
 }
 
 type SaveUserPreferencesRequest struct {
-	state              protoimpl.MessageState `protogen:"open.v1"`
-	Language           string                 `protobuf:"bytes,1,opt,name=language,proto3" json:"language,omitempty"`
-	SidebarEnabled     bool                   `protobuf:"varint,2,opt,name=sidebar_enabled,json=sidebarEnabled,proto3" json:"sidebar_enabled,omitempty"`
-	ThemeToggleEnabled bool                   `protobuf:"varint,3,opt,name=theme_toggle_enabled,json=themeToggleEnabled,proto3" json:"theme_toggle_enabled,omitempty"`
-	unknownFields      protoimpl.UnknownFields
-	sizeCache          protoimpl.SizeCache
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Language       string                 `protobuf:"bytes,1,opt,name=language,proto3" json:"language,omitempty"`
+	SidebarEnabled bool                   `protobuf:"varint,2,opt,name=sidebar_enabled,json=sidebarEnabled,proto3" json:"sidebar_enabled,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
 }
 
 func (x *SaveUserPreferencesRequest) Reset() {
@@ -5567,13 +5616,6 @@ func (x *SaveUserPreferencesRequest) GetLanguage() string {
 func (x *SaveUserPreferencesRequest) GetSidebarEnabled() bool {
 	if x != nil {
 		return x.SidebarEnabled
-	}
-	return false
-}
-
-func (x *SaveUserPreferencesRequest) GetThemeToggleEnabled() bool {
-	if x != nil {
-		return x.ThemeToggleEnabled
 	}
 	return false
 }
@@ -5671,7 +5713,6 @@ type GetUserPreferencesResponse struct {
 	Language           string                 `protobuf:"bytes,1,opt,name=language,proto3" json:"language,omitempty"`
 	AvailableLanguages []string               `protobuf:"bytes,2,rep,name=available_languages,json=availableLanguages,proto3" json:"available_languages,omitempty"`
 	SidebarEnabled     bool                   `protobuf:"varint,3,opt,name=sidebar_enabled,json=sidebarEnabled,proto3" json:"sidebar_enabled,omitempty"`
-	ThemeToggleEnabled bool                   `protobuf:"varint,4,opt,name=theme_toggle_enabled,json=themeToggleEnabled,proto3" json:"theme_toggle_enabled,omitempty"`
 	unknownFields      protoimpl.UnknownFields
 	sizeCache          protoimpl.SizeCache
 }
@@ -5723,13 +5764,6 @@ func (x *GetUserPreferencesResponse) GetAvailableLanguages() []string {
 func (x *GetUserPreferencesResponse) GetSidebarEnabled() bool {
 	if x != nil {
 		return x.SidebarEnabled
-	}
-	return false
-}
-
-func (x *GetUserPreferencesResponse) GetThemeToggleEnabled() bool {
-	if x != nil {
-		return x.ThemeToggleEnabled
 	}
 	return false
 }
@@ -12526,7 +12560,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x05state\x18\v \x01(\tR\x05state\x12\x1f\n" +
 	"\vposted_date\x18\f \x01(\tR\n" +
 	"postedDate\"\x12\n" +
-	"\x10GetStatusRequest\"\x95\a\n" +
+	"\x10GetStatusRequest\"\x95\t\n" +
 	"\x11GetStatusResponse\x12\x16\n" +
 	"\x06status\x18\x01 \x01(\tR\x06status\x12\"\n" +
 	"\fnanoservices\x18\x02 \x03(\tR\fnanoservices\x12\x18\n" +
@@ -12550,7 +12584,15 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x12database_connected\x18\x13 \x01(\bR\x11databaseConnected\x12!\n" +
 	"\famqp_enabled\x18\x14 \x01(\bR\vamqpEnabled\x12%\n" +
 	"\x0eamqp_connected\x18\x15 \x01(\bR\ramqpConnected\x12%\n" +
-	"\x0ewebhook_events\x18\x16 \x03(\tR\rwebhookEvents\"=\n" +
+	"\x0ewebhook_events\x18\x16 \x03(\tR\rwebhookEvents\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\x17 \x01(\tR\tcreatedAt\x12\"\n" +
+	"\rlast_login_at\x18\x18 \x01(\tR\vlastLoginAt\x12L\n" +
+	"#theme_color_scheme_switcher_enabled\x18\x19 \x01(\bR\x1fthemeColorSchemeSwitcherEnabled\x12\x1d\n" +
+	"\n" +
+	"theme_name\x18\x1a \x01(\tR\tthemeName\x12#\n" +
+	"\rtheme_control\x18\x1b \x01(\tR\fthemeControl\x12)\n" +
+	"\x10available_themes\x18\x1c \x03(\tR\x0favailableThemes\"=\n" +
 	"\rStatusMessage\x12\x18\n" +
 	"\amessage\x18\x01 \x01(\tR\amessage\x12\x12\n" +
 	"\x04type\x18\x02 \x01(\tR\x04type\"\x17\n" +
@@ -12867,20 +12909,18 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x05title\x18\b \x01(\tR\x05title\x12\x19\n" +
 	"\bdocs_url\x18\t \x01(\tR\adocsUrl\x12!\n" +
 	"\fexternal_url\x18\n" +
-	" \x01(\tR\vexternalUrl\"\x93\x01\n" +
+	" \x01(\tR\vexternalUrl\"a\n" +
 	"\x1aSaveUserPreferencesRequest\x12\x1a\n" +
 	"\blanguage\x18\x01 \x01(\tR\blanguage\x12'\n" +
-	"\x0fsidebar_enabled\x18\x02 \x01(\bR\x0esidebarEnabled\x120\n" +
-	"\x14theme_toggle_enabled\x18\x03 \x01(\bR\x12themeToggleEnabled\"\x8f\x01\n" +
+	"\x0fsidebar_enabled\x18\x02 \x01(\bR\x0esidebarEnabled\"\x8f\x01\n" +
 	"\x1bSaveUserPreferencesResponse\x12T\n" +
 	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\x12\x1a\n" +
 	"\busername\x18\x02 \x01(\tR\busername\"\x1b\n" +
-	"\x19GetUserPreferencesRequest\"\xc4\x01\n" +
+	"\x19GetUserPreferencesRequest\"\x92\x01\n" +
 	"\x1aGetUserPreferencesResponse\x12\x1a\n" +
 	"\blanguage\x18\x01 \x01(\tR\blanguage\x12/\n" +
 	"\x13available_languages\x18\x02 \x03(\tR\x12availableLanguages\x12'\n" +
-	"\x0fsidebar_enabled\x18\x03 \x01(\bR\x0esidebarEnabled\x120\n" +
-	"\x14theme_toggle_enabled\x18\x04 \x01(\bR\x12themeToggleEnabled\"B\n" +
+	"\x0fsidebar_enabled\x18\x03 \x01(\bR\x0esidebarEnabled\"B\n" +
 	"\x13CreateApiKeyRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\rR\x06userId\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\"\x90\x01\n" +

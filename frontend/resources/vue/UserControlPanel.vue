@@ -32,28 +32,26 @@
 		</div>
 
 		<div v-else-if="userData">
-			<!-- User Profile Card -->
 			<div class="icon-and-text" style="margin-bottom: 2em;">
 				<Icon icon="mdi:account-circle" width="64" height="64" />
 				<div>
-					<h3 style="margin: 0 0 0.5em 0;">{{ userData.username }}</h3>
-					<p style="margin: 0;">{{ userData.email || 'No email provided' }}</p>
+					<h3 style="margin: 0;">{{ userData.username }}</h3>
 				</div>
 			</div>
 
-			<!-- Account Information -->
 			<dl class="account-info">
 				<dt>Username</dt>
 				<dd>{{ userData.username }}</dd>
 
-				<dt>Email</dt>
-				<dd>{{ userData.email || 'Not provided' }}</dd>
+				<template v-if="userData.createdAt">
+					<dt>Account created</dt>
+					<dd>{{ formatDate(userData.createdAt) }}</dd>
+				</template>
 
-				<dt>Account Created</dt>
-				<dd>{{ formatDate(userData.createdAt) }}</dd>
-
-				<dt>Last Login</dt>
-				<dd>{{ formatDate(userData.lastLoginAt) }}</dd>
+				<template v-if="userData.lastLoginAt">
+					<dt>Last login</dt>
+					<dd>{{ formatDate(userData.lastLoginAt) }}</dd>
+				</template>
 			</dl>
 		</div>
 	</Section>
@@ -154,9 +152,8 @@
 			const status = await window.client.getStatus();
 			userData.value = {
 				username: status.username,
-				email: status.email || null,
 				createdAt: status.createdAt || null,
-				lastLoginAt: status.lastLoginAt || null
+				lastLoginAt: status.lastLoginAt || null,
 			};
 
 		} catch (error) {
@@ -168,11 +165,13 @@
 	}
 
 	function formatDate(dateString) {
-		if (!dateString) return 'Unknown';
+		if (!dateString) {
+			return '';
+		}
 		try {
-			return new Date(dateString).toLocaleDateString();
+			return new Date(dateString).toLocaleString();
 		} catch {
-			return 'Invalid date';
+			return dateString;
 		}
 	}
 
