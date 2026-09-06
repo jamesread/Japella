@@ -15,6 +15,7 @@ import (
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/layers/api"
+	"github.com/jamesread/japella/internal/layers/authentication"
 )
 
 // NewHandler returns an http.Handler that serves the MCP Streamable HTTP endpoint.
@@ -105,7 +106,17 @@ func handleListSocialAccounts(ctx context.Context, srv *api.ControlApi, req mcp.
 	return jsonResult(map[string]any{"accounts": accounts})
 }
 
+func rejectReadOnlyMCP(ctx context.Context) (*mcp.CallToolResult, error) {
+	if au := authentication.FromContext(ctx); au != nil && au.ReadOnly {
+		return mcp.NewToolResultError("read-only API key cannot perform this action"), nil
+	}
+	return nil, nil
+}
+
 func handleSubmitPost(ctx context.Context, srv *api.ControlApi, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	if denied, err := rejectReadOnlyMCP(ctx); denied != nil || err != nil {
+		return denied, err
+	}
 	content, err := req.RequireString("content")
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
@@ -189,6 +200,9 @@ func handleListPendingApprovals(ctx context.Context, srv *api.ControlApi) (*mcp.
 }
 
 func handleApprovePost(ctx context.Context, srv *api.ControlApi, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	if denied, err := rejectReadOnlyMCP(ctx); denied != nil || err != nil {
+		return denied, err
+	}
 	postID, err := req.RequireInt("post_id")
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
@@ -214,6 +228,9 @@ func handleApprovePost(ctx context.Context, srv *api.ControlApi, req mcp.CallToo
 }
 
 func handleRejectPost(ctx context.Context, srv *api.ControlApi, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	if denied, err := rejectReadOnlyMCP(ctx); denied != nil || err != nil {
+		return denied, err
+	}
 	postID, err := req.RequireInt("post_id")
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil

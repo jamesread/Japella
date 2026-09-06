@@ -5237,6 +5237,7 @@ type ApiKey struct {
 	Username      string                 `protobuf:"bytes,5,opt,name=username,proto3" json:"username,omitempty"`
 	LastUsedAt    string                 `protobuf:"bytes,6,opt,name=last_used_at,json=lastUsedAt,proto3" json:"last_used_at,omitempty"`
 	Name          string                 `protobuf:"bytes,7,opt,name=name,proto3" json:"name,omitempty"`
+	ReadOnly      bool                   `protobuf:"varint,8,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5318,6 +5319,13 @@ func (x *ApiKey) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *ApiKey) GetReadOnly() bool {
+	if x != nil {
+		return x.ReadOnly
+	}
+	return false
 }
 
 type GetCvarsRequest struct {
@@ -5774,7 +5782,9 @@ type CreateApiKeyRequest struct {
 	// Creating for another user requires users.view (or superuser).
 	UserId uint32 `protobuf:"varint,1,opt,name=user_id,json=userId,proto3" json:"user_id,omitempty"`
 	// Required descriptive label for this key (e.g. "CI deploy", "Cursor MCP").
-	Name          string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Name string `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	// When true, the key may only call read-only Connect RPCs and list MCP tools.
+	ReadOnly      bool `protobuf:"varint,3,opt,name=read_only,json=readOnly,proto3" json:"read_only,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -5821,6 +5831,13 @@ func (x *CreateApiKeyRequest) GetName() string {
 		return x.Name
 	}
 	return ""
+}
+
+func (x *CreateApiKeyRequest) GetReadOnly() bool {
+	if x != nil {
+		return x.ReadOnly
+	}
+	return false
 }
 
 type CreateApiKeyResponse struct {
@@ -12876,7 +12893,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\tgroup_ids\x18\x01 \x03(\rR\bgroupIds\"\x13\n" +
 	"\x11GetApiKeysRequest\"G\n" +
 	"\x12GetApiKeysResponse\x121\n" +
-	"\x04keys\x18\x01 \x03(\v2\x1d.japella.controlapi.v1.ApiKeyR\x04keys\"\xbf\x01\n" +
+	"\x04keys\x18\x01 \x03(\v2\x1d.japella.controlapi.v1.ApiKeyR\x04keys\"\xdc\x01\n" +
 	"\x06ApiKey\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x1b\n" +
 	"\tkey_value\x18\x02 \x01(\tR\bkeyValue\x12\x1d\n" +
@@ -12886,7 +12903,8 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\busername\x18\x05 \x01(\tR\busername\x12 \n" +
 	"\flast_used_at\x18\x06 \x01(\tR\n" +
 	"lastUsedAt\x12\x12\n" +
-	"\x04name\x18\a \x01(\tR\x04name\"\x11\n" +
+	"\x04name\x18\a \x01(\tR\x04name\x12\x1b\n" +
+	"\tread_only\x18\b \x01(\bR\breadOnly\"\x11\n" +
 	"\x0fGetCvarsRequest\"\xe0\x01\n" +
 	"\x10GetCvarsResponse\x12d\n" +
 	"\x0fcvar_categories\x18\x01 \x03(\v2;.japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntryR\x0ecvarCategories\x1af\n" +
@@ -12920,10 +12938,11 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x1aGetUserPreferencesResponse\x12\x1a\n" +
 	"\blanguage\x18\x01 \x01(\tR\blanguage\x12/\n" +
 	"\x13available_languages\x18\x02 \x03(\tR\x12availableLanguages\x12'\n" +
-	"\x0fsidebar_enabled\x18\x03 \x01(\bR\x0esidebarEnabled\"B\n" +
+	"\x0fsidebar_enabled\x18\x03 \x01(\bR\x0esidebarEnabled\"_\n" +
 	"\x13CreateApiKeyRequest\x12\x17\n" +
 	"\auser_id\x18\x01 \x01(\rR\x06userId\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\"\x90\x01\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1b\n" +
+	"\tread_only\x18\x03 \x01(\bR\breadOnly\"\x90\x01\n" +
 	"\x14CreateApiKeyResponse\x12T\n" +
 	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\x12\"\n" +
 	"\rnew_key_value\x18\x02 \x01(\tR\vnewKeyValue\"%\n" +

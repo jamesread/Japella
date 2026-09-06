@@ -162,6 +162,7 @@ type ApiKey struct {
 	Model
 
 	Name          string       `db:"name"`
+	ReadOnly      bool         `db:"read_only"`
 	KeyValue      string       `db:"key_value"` // Key keyword in SQL
 	LastUsedAt    sql.NullTime `db:"last_used_at"`
 	UserAccountID uint32       `db:"user_account_id"`

@@ -1,26 +1,32 @@
 package rbac
 
-// Permission names (must match rbac_permissions.name in the database).
+import armrbac "github.com/jamesread/armature-iam/rbac"
+
+// Core permission names from armature-iam (must match rbac_permissions.name in the database).
 const (
-	PermissionAppAccess          = "app.access"
-	PermissionUsersView          = "users.view"
-	PermissionUsersCreate        = "users.create"
-	PermissionUsersDelete        = "users.delete"
-	PermissionUsersResetPassword = "users.reset-password"
+	PermissionAppAccess          = armrbac.PermissionAppAccess
+	PermissionUsersView          = armrbac.PermissionUsersView
+	PermissionUsersCreate        = armrbac.PermissionUsersCreate
+	PermissionUsersDelete        = armrbac.PermissionUsersDelete
+	PermissionUsersResetPassword = armrbac.PermissionUsersResetPassword
+	PermissionUserGroupsView     = armrbac.PermissionUserGroupsView
+	PermissionUserGroupsManage   = armrbac.PermissionUserGroupsManage
+	PermissionRbacView           = armrbac.PermissionRbacView
+	PermissionRbacManage         = armrbac.PermissionRbacManage
+	PermissionSystemSettings     = armrbac.PermissionSystemSettings
+	PermissionSystemLogs         = armrbac.PermissionSystemLogs
+	PermissionSystemImpersonate  = armrbac.PermissionSystemImpersonate
+)
+
+// Japella-specific permissions (not in armature-iam core catalog).
+const (
 	PermissionSocialAccountsViewAll = "social-accounts.view-all"
-	PermissionSystemSettings       = "system.settings"
-	PermissionSystemConnectors     = "system.connectors"
-	PermissionSystemLogs           = "system.logs"
-	PermissionSystemImpersonate    = "system.impersonate"
-	PermissionRbacView             = "rbac.view"
-	PermissionRbacManage           = "rbac.manage"
-	PermissionUserGroupsView       = "usergroups.view"
-	PermissionUserGroupsManage     = "usergroups.manage"
+	PermissionSystemConnectors      = "system.connectors"
 	PermissionAccountPoliciesManage = "account-policies.manage"
 )
 
-const RoleSuperuser = "superuser"
-const RoleMember    = "member"
+const RoleSuperuser = armrbac.RoleSuperuser
+const RoleMember = armrbac.RoleMember
 
-const GroupEveryone       = "Everyone"
-const GroupAdministrators = "Administrators"
+const GroupEveryone = armrbac.GroupEveryone
+const GroupAdministrators = armrbac.GroupAdministrators

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sort"
 
-	"connectrpc.com/authn"
 	"connectrpc.com/connect"
 	connectcors "connectrpc.com/cors"
 	"golang.org/x/oauth2"
@@ -24,6 +23,8 @@ import (
 	"encoding/json"
 
 	"github.com/jamesread/golure/pkg/redact"
+	"github.com/jamesread/armature-iam/password"
+	"github.com/jamesread/armature-iam/store"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
 	"github.com/jamesread/japella/internal/amqp"
@@ -33,6 +34,7 @@ import (
 	"github.com/jamesread/japella/internal/connectorcontroller"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/debuglog"
+	"github.com/jamesread/japella/internal/iam"
 	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
@@ -49,7 +51,9 @@ import (
 )
 
 type ControlApi struct {
-	DB *db.DB
+	DB   *db.DB
+	IAM  store.Store
+	Auth *iam.AuthLayer
 
 	oauth2states map[string]*oauth2State
 
@@ -439,21 +443,15 @@ func (s *ControlApi) GetCannedPost(ctx context.Context, req *connect.Request[con
 }
 
 func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *authentication.AuthenticatedUser {
-	v := authn.GetInfo(ctx)
-
-	if v == nil {
-		return nil
-	} else {
-		return v.(*authentication.AuthenticatedUser)
-	}
+	return authentication.FromContext(ctx)
 }
 
 func (s *ControlApi) extractSessionID(req http.Header) string {
 	cookie := req.Get("Cookie")
 	for _, part := range strings.Split(cookie, ";") {
 		part = strings.TrimSpace(part)
-		if strings.HasPrefix(part, "japella-sid=") {
-			return strings.TrimPrefix(part, "japella-sid=")
+		if strings.HasPrefix(part, iam.CookieName+"=") {
+			return strings.TrimPrefix(part, iam.CookieName+"=")
 		}
 	}
 	return ""
@@ -2127,22 +2125,22 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 		log.Warnf("Failed to update last login for user %s: %v", user.Username, err)
 	}
 
-	c := http.Cookie{
-		Name:     "japella-sid",
-		Value:    sid,
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-	}
-
-	if os.Getenv("JAPELLA_SECURE_COOKIES") == "false" {
-		c.Secure = false
+	if s.Auth != nil {
+		c := s.Auth.NewSessionCookie(sid)
+		log.Infof("Setting session cookie: %v", c.String())
+		res.Header().Add("Set-Cookie", c.String())
 	} else {
-		c.Secure = true
+		c := http.Cookie{
+			Name:     iam.CookieName,
+			Value:    sid,
+			HttpOnly: true,
+			Path:     "/",
+			SameSite: http.SameSiteStrictMode,
+			Secure:   os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
+		}
+		log.Infof("Setting session cookie: %v", c.String())
+		res.Header().Add("Set-Cookie", c.String())
 	}
-
-	log.Infof("Setting session cookie: %v", c.String())
-	res.Header().Add("Set-Cookie", c.String())
 
 	return res, nil
 }
@@ -2248,26 +2246,7 @@ func (s *ControlApi) Logout(ctx context.Context, req *connect.Request[controlv1.
 	user := authenticatedUser.User
 	log.Infof("Logout requested for user: %s", user.Username)
 
-	// Get the session ID from the request context
-	// We need to extract it from the cookie or request headers
-	cookie := req.Header().Get("Cookie")
-	if cookie == "" {
-		log.Warnf("No cookie found in logout request for user: %s", user.Username)
-	}
-
-	var sessionID string
-	if cookie != "" {
-		// Parse the cookie to extract the session ID
-		// Cookie format: "japella-sid=session_id"
-		cookieParts := strings.Split(cookie, ";")
-		for _, part := range cookieParts {
-			part = strings.TrimSpace(part)
-			if strings.HasPrefix(part, "japella-sid=") {
-				sessionID = strings.TrimPrefix(part, "japella-sid=")
-				break
-			}
-		}
-	}
+	sessionID := s.extractSessionID(req.Header())
 
 	if sessionID != "" {
 		// Delete the session from the database
@@ -2288,24 +2267,21 @@ func (s *ControlApi) Logout(ctx context.Context, req *connect.Request[controlv1.
 		},
 	})
 
-	// Clear the session cookie by setting it to expire immediately
-	c := http.Cookie{
-		Name:     "japella-sid",
-		Value:    "",
-		HttpOnly: true,
-		Path:     "/",
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   -1, // Expire immediately
-	}
-
-	if os.Getenv("JAPELLA_SECURE_COOKIES") == "false" {
-		c.Secure = false
+	if s.Auth != nil {
+		clearCookie := s.Auth.ClearSessionCookie()
+		res.Header().Add("Set-Cookie", (&clearCookie).String())
 	} else {
-		c.Secure = true
+		c := http.Cookie{
+			Name:     iam.CookieName,
+			Value:    "",
+			HttpOnly: true,
+			Path:     "/",
+			MaxAge:   -1,
+			SameSite: http.SameSiteStrictMode,
+			Secure:   os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
+		}
+		res.Header().Add("Set-Cookie", c.String())
 	}
-
-	log.Infof("Clearing session cookie: %v", c.String())
-	res.Header().Add("Set-Cookie", c.String())
 
 	return res, nil
 }
@@ -2459,7 +2435,11 @@ func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[contro
 
 	log.Infof("Created user account: %s (id %d)", username, user.ID)
 
-	if err := s.DB.EnsureUserInEveryoneGroup(user.ID); err != nil {
+	if s.IAM != nil {
+		if err := s.IAM.EnsureUserInEveryoneGroup(ctx, int(user.ID)); err != nil {
+			log.Warnf("Could not add new user %d to Everyone group: %v", user.ID, err)
+		}
+	} else if err := s.DB.EnsureUserInEveryoneGroup(user.ID); err != nil {
 		log.Warnf("Could not add new user %d to Everyone group: %v", user.ID, err)
 	}
 
@@ -2549,6 +2529,7 @@ func (s *ControlApi) GetApiKeys(ctx context.Context, req *connect.Request[contro
 			Username:   username,
 			LastUsedAt: lastUsedAt,
 			Name:       key.Name,
+			ReadOnly:   key.ReadOnly,
 		})
 	}
 
@@ -2686,10 +2667,18 @@ func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[cont
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("API key name must be 128 characters or fewer"))
 	}
 
-	newKeyValue := uuid.New().String()
+	newKeyValue, err := password.GenerateAPIKey("")
+	if err != nil {
+		log.Errorf("Error generating API key: %v", err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to generate API key: %w", err))
+	}
 
-	apiKey, err := s.DB.CreateApiKey(targetUser, name, newKeyValue)
-
+	readOnly := req.Msg.GetReadOnly()
+	if s.IAM != nil {
+		_, err = s.IAM.CreateAPIKey(ctx, int(targetUser.ID), name, newKeyValue, readOnly)
+	} else {
+		_, err = s.DB.CreateApiKey(targetUser, name, newKeyValue, readOnly)
+	}
 	if err != nil {
 		log.Errorf("Error creating API key: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create API key: %w", err))
@@ -2702,7 +2691,7 @@ func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[cont
 		NewKeyValue: newKeyValue,
 	})
 
-	log.Infof("API key created successfully: id=%d user=%s", apiKey.ID, targetUser.Username)
+	log.Infof("API key created successfully for user=%s read_only=%v", targetUser.Username, readOnly)
 
 	return res, nil
 }

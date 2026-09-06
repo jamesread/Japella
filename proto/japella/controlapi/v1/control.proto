@@ -526,6 +526,7 @@ message ApiKey {
 	string username = 5;
 	string last_used_at = 6;
 	string name = 7;
+	bool read_only = 8;
 }
 
 message GetCvarsRequest {
@@ -577,6 +578,8 @@ message CreateApiKeyRequest {
 	uint32 user_id = 1;
 	// Required descriptive label for this key (e.g. "CI deploy", "Cursor MCP").
 	string name = 2;
+	// When true, the key may only call read-only Connect RPCs and list MCP tools.
+	bool read_only = 3;
 }
 
 message CreateApiKeyResponse {

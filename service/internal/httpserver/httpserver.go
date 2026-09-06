@@ -2,6 +2,7 @@ package httpserver
 
 import (
 	_ "embed"
+	"fmt"
 	"net/http"
 	"os"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/jamesread/japella/internal/httpserver/frontend"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
 	"github.com/jamesread/japella/internal/httpserver/upload"
+	"github.com/jamesread/japella/internal/iam"
 	"github.com/jamesread/japella/internal/layers/api"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/layers/healthcheck"
@@ -93,9 +95,18 @@ func CreateServer(endpoint string) (*http.Server, error) {
 
 	apipath, apihandler, srv := api.GetNewHandler()
 
-	authenticationLayer := authentication.DefaultAuthLayer(srv.DB)
-	authenticatedApiHandler := authenticationLayer.WrapHandler(apihandler)
-	authenticatedMCPHandler := authenticationLayer.WrapMCPHandler(mcp.NewHandler(srv))
+	iamStore := iam.NewStore(srv.DB)
+	srv.IAM = iamStore
+	srv.DB.SetIAMBootstrap(iamStore)
+
+	authLayer, err := iam.NewAuthLayer(iamStore, authentication.RequiredPermission)
+	if err != nil {
+		return nil, fmt.Errorf("armature-iam auth layer: %w", err)
+	}
+	srv.Auth = authLayer
+
+	authenticatedApiHandler := authLayer.WrapHandler(apihandler)
+	authenticatedMCPHandler := authLayer.WrapMCPHandler(mcp.NewHandler(srv))
 
 	mux.Handle("/api"+apipath, http.StripPrefix("/api", authenticatedApiHandler))
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))

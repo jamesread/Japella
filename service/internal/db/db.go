@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jamesread/golure/pkg/dirs"
+	"github.com/jamesread/armature-iam/store"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	"github.com/jmoiron/sqlx"
@@ -36,6 +38,8 @@ type DB struct {
 	connx                *sqlx.DB
 	currentSchemaVersion uint
 	currentSchemaDirty   bool
+
+	iamBootstrap store.Store
 }
 
 func (db *DB) SetErrorMessage(message string) {
@@ -279,7 +283,18 @@ func (db *DB) initAdminUser(chain *ConnectionChain) {
 	}
 }
 
+func (db *DB) SetIAMBootstrap(st store.Store) {
+	db.iamBootstrap = st
+}
+
 func (db *DB) runRBACBootstrap(chain *ConnectionChain) {
+	if db.iamBootstrap != nil {
+		if err := db.iamBootstrap.EnsureRBACBootstrap(context.Background()); err != nil {
+			db.Logger().Errorf("RBAC bootstrap failed: %v", err)
+			chain.err = err
+		}
+		return
+	}
 	if err := db.EnsureRBACBootstrap(); err != nil {
 		db.Logger().Errorf("RBAC bootstrap failed: %v", err)
 		chain.err = err
@@ -851,8 +866,10 @@ func (db *DB) DeleteUserAccount(userID uint32) error {
 	return nil
 }
 
-func (db *DB) CreateApiKey(user *UserAccount, name, keyValue string) (*ApiKey, error) {
-	res, err := db.ResilientExec("INSERT INTO api_keys (name, key_value, user_account_id, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())", name, keyValue, user.ID)
+func (db *DB) CreateApiKey(user *UserAccount, name, keyValue string, readOnly bool) (*ApiKey, error) {
+	res, err := db.ResilientExec(
+		"INSERT INTO api_keys (name, read_only, key_value, user_account_id, created_at, updated_at) VALUES (?, ?, ?, ?, NOW(), NOW())",
+		name, readOnly, keyValue, user.ID)
 	if err != nil {
 		db.Logger().Errorf("Failed to create API key: %v", err)
 		return nil, err
@@ -864,6 +881,7 @@ func (db *DB) CreateApiKey(user *UserAccount, name, keyValue string) (*ApiKey, e
 	return &ApiKey{
 		Model:         Model{ID: uint32(id)},
 		Name:          name,
+		ReadOnly:      readOnly,
 		KeyValue:      keyValue,
 		UserAccountID: user.ID,
 		UserAccount:   user,
@@ -1001,7 +1019,7 @@ func (db *DB) SelectAPIKeys() ([]*ApiKey, error) {
 	}
 	rows := make([]*apiKeyRow, 0)
 	err := db.ResilientSelect(&rows, `
-		SELECT k.id, k.created_at, k.updated_at, k.name, k.last_used_at, k.key_value, k.user_account_id,
+		SELECT k.id, k.created_at, k.updated_at, k.name, k.read_only, k.last_used_at, k.key_value, k.user_account_id,
 		       COALESCE(u.username, '') AS username
 		FROM api_keys k
 		LEFT JOIN user_accounts u ON u.id = k.user_account_id

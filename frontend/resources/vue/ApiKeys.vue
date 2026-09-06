@@ -17,6 +17,18 @@
 				/>
 			</FormField>
 
+			<FormField label="Access" for="create-api-key-read-only" :disabled="creatingKey">
+				<label class="checkbox-label">
+					<input
+						id="create-api-key-read-only"
+						v-model="createKeyReadOnly"
+						type="checkbox"
+						:disabled="creatingKey"
+					/>
+					Read-only (list and view only; cannot post, approve, or revoke)
+				</label>
+			</FormField>
+
 			<p v-if="createKeyError" class="inline-notification error">{{ createKeyError }}</p>
 
 			<template #actions>
@@ -175,6 +187,7 @@
 	const newKeyDialog = ref(null);
 	const newKeyValue = ref('');
 	const createKeyName = ref('');
+	const createKeyReadOnly = ref(false);
 	const displayedKeyName = ref('');
 	const createKeyError = ref('');
 	const creatingKey = ref(false);
@@ -230,6 +243,7 @@
 			headers.push({ key: 'username', label: 'User Account', sortable: true });
 		}
 		headers.push(
+			{ key: 'readOnlyLabel', label: 'Access', sortable: true, width: '8rem' },
 			{ key: 'createdAtLabel', label: 'Created', sortable: true, width: '11rem' },
 			{ key: 'lastUsedLabel', label: 'Last Used', sortable: true, width: '11rem' },
 			{ key: 'actions', label: 'Actions', sortable: false, width: '6rem' },
@@ -258,6 +272,7 @@
 		apiKeys.value.map((key) => ({
 			...key,
 			name: formatKeyName(key.name),
+			readOnlyLabel: key.readOnly ? 'Read-only' : 'Full access',
 			createdAtLabel: formatCreatedAt(key.createdAt),
 			lastUsedLabel: formatLastUsed(key.lastUsedAt),
 		})),
@@ -313,6 +328,7 @@
 
 	function openCreateKeyDialog() {
 		createKeyName.value = '';
+		createKeyReadOnly.value = false;
 		createKeyError.value = '';
 		createKeyDialog.value?.showModal();
 		nextTick(() => createKeyNameInput.value?.focus());
@@ -321,6 +337,7 @@
 	function closeCreateKeyDialog() {
 		createKeyDialog.value?.close();
 		createKeyName.value = '';
+		createKeyReadOnly.value = false;
 		createKeyError.value = '';
 	}
 
@@ -346,7 +363,7 @@
 
 		try {
 			await waitForClient();
-			const req = { name };
+			const req = { name, readOnly: createKeyReadOnly.value };
 			if (filterUserId.value) {
 				req.userId = filterUserId.value;
 			}
