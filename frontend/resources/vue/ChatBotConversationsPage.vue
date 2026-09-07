@@ -15,10 +15,10 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="error">
-			<p class="inline-notification error">{{ error }}</p>
+			<NotificationBlock type="error" :message="error" />
 		</div>
 		<div v-else-if="!bot">
-			<p class="inline-notification note">Bot not found.</p>
+			<NotificationBlock type="note" message="Bot not found." />
 		</div>
 		<div v-else>
 			<div class="bot-meta">
@@ -39,6 +39,7 @@
 	import { useRoute } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ChatBotConversations from './ChatBotConversations.vue';
 	import { waitForClient } from '../javascript/util';
 

@@ -30,37 +30,35 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error list-banner-pad">{{ errorMessage }}</div>
-		<div v-if="loading && !permissions.length" class="list-banner-pad muted">Loading…</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 
-		<template v-else>
-			<p v-if="!permissions.length" class="inline-notification note list-banner-pad">No permissions defined.</p>
-
-			<Table
-				v-else
-				class="permissions-table-wrap"
-				:data="tableRows"
-				:headers="tableHeaders"
-			>
-				<template #cell-name="{ value }">
-					<code>{{ value }}</code>
-				</template>
-				<template #cell-description="{ value }">
-					{{ value || '—' }}
-				</template>
-				<template #cell-rolesLabel="{ row }">
-					<span v-if="!row.roles.length" class="muted">—</span>
-					<span v-else class="role-links">
-						<template v-for="(role, index) in row.roles" :key="role.id">
-							<router-link
-								:to="{ name: 'rbacRoleDetails', params: { id: String(role.id) } }"
-								class="role-link"
-							>{{ role.name }}</router-link><span v-if="index < row.roles.length - 1">, </span>
-						</template>
-					</span>
-				</template>
-			</Table>
-		</template>
+		<Table
+			class="permissions-table-wrap"
+			:data="tableRows"
+			:headers="tableHeaders"
+			:loading="loading"
+		>
+			<template #empty>
+				No permissions defined.
+			</template>
+			<template #cell-name="{ value }">
+				<code>{{ value }}</code>
+			</template>
+			<template #cell-description="{ value }">
+				{{ value || '—' }}
+			</template>
+			<template #cell-rolesLabel="{ row }">
+				<span v-if="!row.roles.length" class="muted">—</span>
+				<span v-else class="role-links">
+					<template v-for="(role, index) in row.roles" :key="role.id">
+						<router-link
+							:to="{ name: 'rbacRoleDetails', params: { id: String(role.id) } }"
+							class="role-link"
+						>{{ role.name }}</router-link><span v-if="index < row.roles.length - 1">, </span>
+					</template>
+				</span>
+			</template>
+		</Table>
 	</Section>
 </template>
 
@@ -70,6 +68,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { RefreshIcon, ShieldKeyIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Table from 'picocrank/vue/components/Table.vue';
 
 	const iconStrokeWidth = 2.5;
@@ -164,10 +163,6 @@
 		vertical-align: middle;
 	}
 
-	.list-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
 
 	.permissions-table-wrap {
 		margin-top: 0.5rem;

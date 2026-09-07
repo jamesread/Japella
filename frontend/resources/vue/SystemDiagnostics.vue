@@ -24,7 +24,7 @@
 			</button>
 		</template>
 
-		<p v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</p>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 
 		<dl>
 			<dt>Absolute path</dt>
@@ -52,6 +52,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ReadOnlyTextArea from 'picocrank/vue/components/ReadOnlyTextArea.vue';
 	import { waitForClient } from '../javascript/util';
 	import { canViewSystemDiagnosticsFromStatus } from '../javascript/rbacAccess.js';

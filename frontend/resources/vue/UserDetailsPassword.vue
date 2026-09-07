@@ -27,10 +27,12 @@
 			</router-link>
 		</template>
 
-		<div v-if="!userId" class="inline-notification error">Invalid user ID.</div>
-		<div v-else-if="!canResetPassword" class="inline-notification error">
-			You do not have permission to reset this user’s password.
-		</div>
+		<NotificationBlock v-if="!userId" type="error" message="Invalid user ID." />
+		<NotificationBlock
+			v-else-if="!canResetPassword"
+			type="error"
+			message="You do not have permission to reset this user’s password."
+		/>
 		<FormLayout v-else @submit.prevent="resetPassword">
 			<FormField
 				label="New password"
@@ -67,7 +69,7 @@
 			</template>
 		</FormLayout>
 
-		<p v-if="resetPwMessage" class="inline-notification" :class="resetPwMessageType">{{ resetPwMessage }}</p>
+		<NotificationBlock v-if="resetPwMessage" :type="resetPwMessageType" :message="resetPwMessage" />
 	</Section>
 </template>
 
@@ -77,6 +79,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon, UserGroupIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import { waitForClient } from '../javascript/util';

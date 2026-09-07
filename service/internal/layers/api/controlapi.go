@@ -35,6 +35,7 @@ import (
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/debuglog"
 	"github.com/jamesread/japella/internal/iam"
+	"github.com/jamesread/japella/internal/keywordwatch"
 	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
@@ -60,6 +61,8 @@ type ControlApi struct {
 	statusMessages []*controlv1.StatusMessage
 
 	cc *connectorcontroller.ConnectionController
+
+	keywordWatch *keywordwatch.Service
 
 	// Job tracking
 	lastJobRunTimes map[string]time.Time
@@ -143,6 +146,39 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 			s.processTokenRefresh()
 		}
 	}()
+
+	// Keyword watch search poll + match retention (interval from cvar)
+	go func() {
+		for s.keywordWatch == nil {
+			time.Sleep(200 * time.Millisecond)
+		}
+		interval := s.keywordWatchSearchInterval()
+		recordJobRun("keyword_watch_search")
+		s.processKeywordWatchSearch()
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			next := s.keywordWatchSearchInterval()
+			if next != interval {
+				ticker.Reset(next)
+				interval = next
+			}
+			recordJobRun("keyword_watch_search")
+			s.processKeywordWatchSearch()
+		}
+	}()
+
+	go func() {
+		ticker := time.NewTicker(1 * time.Hour)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			recordJobRun("keyword_watch_cleanup")
+			s.processKeywordWatchCleanup()
+		}
+	}()
 }
 
 func (s *ControlApi) IsReady() bool {
@@ -191,6 +227,8 @@ func (s *ControlApi) initConnectorControllerWhenReady() {
 		time.Sleep(50 * time.Millisecond)
 	}
 	s.cc = connectorcontroller.New(s.DB)
+	s.keywordWatch = keywordwatch.NewService(s.DB, s.cc, webhook.NewDispatcher(s.DB))
+	s.keywordWatch.StartNativeAll(context.Background())
 }
 
 func (s *ControlApi) processDueScheduledPosts() {
@@ -327,6 +365,30 @@ func (s *ControlApi) processFeedFetching() {
 	}
 
 	debuglog.Feedf("completed feed fetch cycle")
+}
+
+func (s *ControlApi) keywordWatchSearchInterval() time.Duration {
+	secs := 300
+	if s.DB != nil {
+		if v := int(s.DB.GetCvarInt(db.CvarKeys.KeywordWatchSearchIntervalSeconds)); v > 0 {
+			secs = v
+		}
+	}
+	return time.Duration(secs) * time.Second
+}
+
+func (s *ControlApi) processKeywordWatchSearch() {
+	if s.keywordWatch == nil {
+		return
+	}
+	s.keywordWatch.ProcessSearchPoll(context.Background())
+}
+
+func (s *ControlApi) processKeywordWatchCleanup() {
+	if s.keywordWatch == nil {
+		return
+	}
+	s.keywordWatch.CleanupMatches()
 }
 
 func (s *ControlApi) processTokenRefresh() {
@@ -1959,6 +2021,27 @@ func (s *ControlApi) GetJobsStatus(ctx context.Context, req *connect.Request[con
 			Schedule:    "Every 15 minutes",
 			LastRun:     s.getJobLastRun("token_refresh"),
 		},
+		{
+			Name:        "keyword_watch_search",
+			DisplayName: "Keyword Watch Search",
+			Schedule:    fmt.Sprintf("Every %s (cvar)", s.keywordWatchSearchInterval()),
+			LastRun:     s.getJobLastRun("keyword_watch_search"),
+		},
+		{
+			Name:        "keyword_watch_cleanup",
+			DisplayName: "Keyword Watch Cleanup",
+			Schedule:    "Every 1 hour",
+			LastRun:     s.getJobLastRun("keyword_watch_cleanup"),
+		},
+	}
+
+	if s.keywordWatch != nil {
+		jobs = append(jobs, &controlv1.JobStatus{
+			Name:        "keyword_watch_native",
+			DisplayName: "Keyword Watch Native",
+			Schedule:    s.keywordWatch.StatusSummary(),
+			LastRun:     s.getJobLastRun("keyword_watch_search"),
+		})
 	}
 
 	res := connect.NewResponse(&controlv1.GetJobsStatusResponse{

@@ -17,7 +17,7 @@
 			</router-link>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 		<div v-if="loading" class="muted">Loading…</div>
 
 		<FormLayout v-else @submit.prevent="savePolicy">
@@ -70,20 +70,21 @@
 			</FormField>
 
 			<FormField
-				v-if="accounts.length"
 				label="Social accounts"
 				component-has-label
 				:disabled="saving"
 				description="Policies apply only to posts targeting the selected accounts."
 			>
-				<CheckGroup
+				<SocialAccountsSelector
 					v-model="form.socialAccountIds"
-					name="policy-social-accounts"
-					:options="socialAccountOptions"
+					:accounts="accounts"
+					:loading="loading"
 					:disabled="saving"
+					:show-connector="true"
+					:auto-load="false"
+					empty-message="No social accounts available."
 				/>
 			</FormField>
-			<p v-else class="inline-notification note">No social accounts available.</p>
 
 			<template #actions>
 				<button type="submit" class="good" :disabled="saving || !form.name.trim()">
@@ -108,10 +109,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { HugeiconsIcon } from '@hugeicons/vue';
 import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
 import Section from 'picocrank/vue/components/Section.vue';
+import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 import FormField from 'picocrank/vue/components/FormField.vue';
-import CheckGroup from 'picocrank/vue/components/CheckGroup.vue';
 import UserLookupDialog from './UserLookupDialog.vue';
+import SocialAccountsSelector from './SocialAccountsSelector.vue';
 import { fetchAppStatus } from '../javascript/status.js';
 
 const iconStrokeWidth = 2.5;
@@ -136,13 +138,6 @@ const policyId = computed(() => {
 	return Number.isFinite(n) && n > 0 ? n : 0;
 });
 const isEdit = computed(() => policyId.value > 0);
-
-const socialAccountOptions = computed(() =>
-	accounts.value.map((a) => ({
-		value: a.id,
-		label: `${a.identity} (${a.connector})`,
-	})),
-);
 
 function emptyForm() {
 	return {

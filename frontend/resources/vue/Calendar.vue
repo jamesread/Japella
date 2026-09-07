@@ -24,7 +24,7 @@
 		</template>
 
 		<div v-if="errorMessage">
-			<p class="inline-notification error">{{ errorMessage }}</p>
+			<NotificationBlock type="error" :message="errorMessage" />
 		</div>
 		<div v-else>
 			<Calendar
@@ -45,6 +45,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Calendar from 'picocrank/vue/components/Calendar.vue';
 	import { showNotification } from '../javascript/notifications.js';
 

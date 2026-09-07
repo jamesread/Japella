@@ -29,7 +29,7 @@
 				</label>
 			</FormField>
 
-			<p v-if="createKeyError" class="inline-notification error">{{ createKeyError }}</p>
+			<NotificationBlock v-if="createKeyError" type="error" :message="createKeyError" />
 
 			<template #actions>
 				<button type="button" class="neutral" :disabled="creatingKey" @click="closeCreateKeyDialog">Cancel</button>
@@ -129,38 +129,36 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error list-banner-pad">{{ errorMessage }}</div>
-		<div v-if="loading && !apiKeys.length" class="list-banner-pad muted">Loading…</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 
-		<template v-else>
-			<p v-if="!apiKeys.length" class="inline-notification note list-banner-pad">No API keys available.</p>
-
-			<Table
-				v-else
-				class="api-keys-table-wrap"
-				:data="tableRows"
-				:headers="tableHeaders"
-			>
-				<template #cell-name="{ value }">
-					<strong>{{ value }}</strong>
-				</template>
-				<template #cell-keyValue="{ value }">
-					<code>{{ value }}</code>
-				</template>
-				<template #cell-actions="{ row }">
-					<div class="actions-cell">
-						<button
-							type="button"
-							class="bad small"
-							:disabled="revoking"
-							@click="revokeKey(row)"
-						>
-							Revoke
-						</button>
-					</div>
-				</template>
-			</Table>
-		</template>
+		<Table
+			class="api-keys-table-wrap"
+			:data="tableRows"
+			:headers="tableHeaders"
+			:loading="loading"
+		>
+			<template #empty>
+				No API keys available.
+			</template>
+			<template #cell-name="{ value }">
+				<strong>{{ value }}</strong>
+			</template>
+			<template #cell-keyValue="{ value }">
+				<code>{{ value }}</code>
+			</template>
+			<template #cell-actions="{ row }">
+				<div class="actions-cell">
+					<button
+						type="button"
+						class="bad small"
+						:disabled="revoking"
+						@click="revokeKey(row)"
+					>
+						Revoke
+					</button>
+				</div>
+			</template>
+		</Table>
 	</Section>
 </template>
 
@@ -171,6 +169,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { Add01Icon, ArrowLeft01Icon, KeyIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import Table from 'picocrank/vue/components/Table.vue';
@@ -392,10 +391,6 @@
 		vertical-align: middle;
 	}
 
-	.list-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
 
 	.api-keys-table-wrap {
 		margin-top: 0.5rem;

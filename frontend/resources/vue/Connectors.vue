@@ -22,9 +22,11 @@
 		</template>
 
 		<div v-if="!loaded" class="muted">Loading…</div>
-		<p v-else-if="!canAccess" class="inline-notification error">
-			You do not have permission to view connectors.
-		</p>
+		<NotificationBlock
+			v-else-if="!canAccess"
+			type="error"
+			message="You do not have permission to view connectors."
+		/>
 
 		<template v-else>
 			<div v-if="loading && !connectors.length" class="muted">Loading connectors…</div>
@@ -47,6 +49,7 @@
 	import { Icon } from '@iconify/vue';
 	import { waitForClient, normalizeConnectorIssues } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ConnectorCatalog from './ConnectorCatalog.vue';
 
 	const connectors = ref([]);

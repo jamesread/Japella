@@ -31,10 +31,12 @@
 
 					<h4>Used in posts</h4>
 					<p v-if="loadingPosts" class="muted">Loading posts…</p>
-					<p v-else-if="postsError" class="inline-notification error">{{ postsError }}</p>
-					<p v-else-if="!posts.length" class="inline-notification note">
-						This media has not been used in any posts yet.
-					</p>
+					<NotificationBlock v-else-if="postsError" type="error" :message="postsError" />
+					<NotificationBlock
+						v-else-if="!posts.length"
+						type="note"
+						message="This media has not been used in any posts yet."
+					/>
 					<ul v-else class="post-usage-list">
 						<li v-for="post in posts" :key="post.id">
 							<router-link :to="{ name: 'postDetails', params: { id: post.id } }" @click="close">
@@ -50,18 +52,23 @@
 					</ul>
 
 					<DangerZone
-						description="Permanently removes this file from the media library. Posts that used it will no longer reference this attachment."
+						title="Danger zone"
+						subtitle="Remove this media file"
+						description="Show destructive actions"
+						warning="Permanently removes this file from the media library. Posts that used it will no longer reference this attachment."
 					>
-						<p v-if="deleteError" class="inline-notification error">{{ deleteError }}</p>
-						<button
-							type="button"
-							class="inline-icon bad"
-							:disabled="deleting"
-							@click="deleteMedia"
-						>
-							<Icon icon="mdi:delete-outline" width="1em" height="1em" aria-hidden="true" />
-							<span>{{ deleting ? 'Deleting…' : 'Delete media file' }}</span>
-						</button>
+						<NotificationBlock v-if="deleteError" type="error" :message="deleteError" />
+						<div role="toolbar" class="danger-zone-actions">
+							<button
+								type="button"
+								class="inline-icon bad"
+								:disabled="deleting"
+								@click="deleteMedia"
+							>
+								<Icon icon="mdi:delete-outline" width="1em" height="1em" aria-hidden="true" />
+								<span>{{ deleting ? 'Deleting…' : 'Delete media file' }}</span>
+							</button>
+						</div>
 					</DangerZone>
 
 					<div class="sidebar-actions">
@@ -80,7 +87,8 @@
 	import { useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import { waitForClient } from '../javascript/util';
-	import DangerZone from './DangerZone.vue';
+	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 
 	const props = defineProps({
 		open: {
@@ -374,6 +382,12 @@
 
 	.media-preview-sidebar :deep(.danger-zone) {
 		margin-top: 0.5rem;
+	}
+
+	.danger-zone-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
 	}
 
 	.muted {

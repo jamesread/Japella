@@ -1184,6 +1184,27 @@ message Webhook {
 	string updated = 6;
 }
 
+message WebhookDeliveryLog {
+	uint32 id = 1;
+	uint32 webhook_target_id = 2;
+	string event = 3;
+	bool success = 4;
+	int32 http_status = 5;
+	string error_message = 6;
+	int32 duration_ms = 7;
+	string created = 8;
+}
+
+message GetWebhookRequest {
+	uint32 id = 1;
+	uint32 log_limit = 2;
+}
+
+message GetWebhookResponse {
+	Webhook webhook = 1;
+	repeated WebhookDeliveryLog delivery_logs = 2;
+}
+
 message ListWebhooksRequest {}
 
 message ListWebhooksResponse {
@@ -1218,6 +1239,16 @@ message DeleteWebhookRequest {
 
 message DeleteWebhookResponse {}
 
+message TestWebhookRequest {
+	uint32 id = 1;
+}
+
+message TestWebhookResponse {
+	bool success = 1;
+	string message = 2;
+	int32 http_status = 3;
+}
+
 message BotWebhook {
 	uint32 id = 1;
 	string protocol = 2;
@@ -1231,6 +1262,87 @@ message ListBotWebhooksRequest {}
 
 message ListBotWebhooksResponse {
 	repeated BotWebhook webhooks = 1;
+}
+
+message KeywordWatch {
+	uint32 id = 1;
+	uint32 social_account_id = 2;
+	string keyword = 3;
+	bool enabled = 4;
+	string created = 5;
+	string updated = 6;
+}
+
+message KeywordWatchState {
+	uint32 social_account_id = 1;
+	string acquisition_mode = 2;
+	string native_fidelity = 3;
+	string backoff_until = 4;
+	string last_success_at = 5;
+	string last_error_at = 6;
+	string last_error = 7;
+	string last_poll_at = 8;
+}
+
+message KeywordMatch {
+	uint32 id = 1;
+	uint32 keyword_watch_id = 2;
+	string keyword = 3;
+	string connector = 4;
+	string remote_id = 5;
+	string remote_url = 6;
+	string author_id = 7;
+	string author_handle = 8;
+	string content_snippet = 9;
+	string matched_at = 10;
+	string acquisition_mode = 11;
+	bool webhook_dispatched = 12;
+}
+
+message ListKeywordWatchesRequest {
+	uint32 social_account_id = 1;
+}
+
+message ListKeywordWatchesResponse {
+	repeated KeywordWatch watches = 1;
+	KeywordWatchState state = 2;
+	repeated KeywordMatch recent_matches = 3;
+	bool supports_search = 4;
+	bool supports_native = 5;
+	string native_fidelity = 6;
+}
+
+message CreateKeywordWatchRequest {
+	uint32 social_account_id = 1;
+	string keyword = 2;
+	bool enabled = 3;
+}
+
+message CreateKeywordWatchResponse {
+	uint32 id = 1;
+}
+
+message UpdateKeywordWatchRequest {
+	uint32 id = 1;
+	string keyword = 2;
+	bool enabled = 3;
+}
+
+message UpdateKeywordWatchResponse {}
+
+message DeleteKeywordWatchRequest {
+	uint32 id = 1;
+}
+
+message DeleteKeywordWatchResponse {}
+
+message CreateDummySocialAccountRequest {
+	string identity = 1;
+}
+
+message CreateDummySocialAccountResponse {
+	uint32 id = 1;
+	string identity = 2;
 }
 
 service JapellaControlApiService {
@@ -1390,8 +1502,16 @@ service JapellaControlApiService {
     rpc UpdatePendingPost(UpdatePendingPostRequest) returns (UpdatePendingPostResponse) {}
 
     rpc ListWebhooks(ListWebhooksRequest) returns (ListWebhooksResponse) {}
+    rpc GetWebhook(GetWebhookRequest) returns (GetWebhookResponse) {}
     rpc CreateWebhook(CreateWebhookRequest) returns (CreateWebhookResponse) {}
     rpc UpdateWebhook(UpdateWebhookRequest) returns (UpdateWebhookResponse) {}
     rpc DeleteWebhook(DeleteWebhookRequest) returns (DeleteWebhookResponse) {}
+    rpc TestWebhook(TestWebhookRequest) returns (TestWebhookResponse) {}
     rpc ListBotWebhooks(ListBotWebhooksRequest) returns (ListBotWebhooksResponse) {}
+
+    rpc ListKeywordWatches(ListKeywordWatchesRequest) returns (ListKeywordWatchesResponse) {}
+    rpc CreateKeywordWatch(CreateKeywordWatchRequest) returns (CreateKeywordWatchResponse) {}
+    rpc UpdateKeywordWatch(UpdateKeywordWatchRequest) returns (UpdateKeywordWatchResponse) {}
+    rpc DeleteKeywordWatch(DeleteKeywordWatchRequest) returns (DeleteKeywordWatchResponse) {}
+    rpc CreateDummySocialAccount(CreateDummySocialAccountRequest) returns (CreateDummySocialAccountResponse) {}
 }

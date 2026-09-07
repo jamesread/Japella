@@ -22,11 +22,13 @@
 			</div>
 
 			<div v-if="loading" class="muted">Loading user groups…</div>
-			<div v-else-if="loadError" class="inline-notification error">{{ loadError }}</div>
+			<NotificationBlock v-else-if="loadError" type="error" :message="loadError" />
 			<div v-else class="list-wrap">
-				<p v-if="!filteredGroups.length" class="inline-notification note">
-					{{ groups.length === 0 ? 'No user groups in the system.' : 'No matching user groups.' }}
-				</p>
+				<NotificationBlock
+					v-if="!filteredGroups.length"
+					type="note"
+					:message="groups.length === 0 ? 'No user groups in the system.' : 'No matching user groups.'"
+				/>
 				<CheckGroup
 					v-else-if="multiple"
 					v-model="selectedIds"
@@ -68,6 +70,7 @@
 <script setup>
 	import { ref, computed, watch, nextTick } from 'vue';
 	import CheckGroup from 'picocrank/vue/components/CheckGroup.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';
 
 	const props = defineProps({

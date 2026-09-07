@@ -96,7 +96,7 @@
 				</div>
 
 				<div v-if="message" class="span-all">
-					<p class="inline-notification" :class="messageType">{{ message }}</p>
+					<NotificationBlock :type="messageType" :message="message" />
 				</div>
 			</div>
 		</form>
@@ -109,6 +109,7 @@
 	import { Icon } from '@iconify/vue';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 
 	const router = useRouter();
 	const creating = ref(false);

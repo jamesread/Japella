@@ -35,13 +35,13 @@
 		</template>
 
 		<div v-if="errorMessage">
-			<p class="inline-notification error">{{ errorMessage }}</p>
+			<NotificationBlock type="error" :message="errorMessage" />
 		</div>
 
 		<div v-if="loading" class="muted">Loading connector…</div>
 
 		<div v-else-if="!connector">
-			<p class="inline-notification note">Connector not found.</p>
+			<NotificationBlock type="note" message="Connector not found." />
 		</div>
 
 		<template v-else>
@@ -73,7 +73,7 @@
 
 				<dt>Status</dt>
 				<dd>
-					<span v-if="isUnregistered" class="inline-notification warning small">
+					<span v-if="isUnregistered" class="tag warning">
 						{{ connector.notStartedReason || 'Not started' }}
 					</span>
 					<span v-else class="tag good-tag">Available</span>
@@ -93,9 +93,11 @@
 		title="Connect Account"
 		subtitle="Sign in to link this connector to Japella."
 	>
-		<div v-if="isUnregistered" class="inline-notification note">
-			This connector is not running. Ask an administrator to configure and start it before you can connect an account.
-		</div>
+		<NotificationBlock
+			v-if="isUnregistered"
+			type="note"
+			message="This connector is not running. Ask an administrator to configure and start it before you can connect an account."
+		/>
 
 		<template v-else-if="connector.hasOauth">
 			<p v-if="connectorHasBlockingIssues(connector.issues)" class="muted">
@@ -128,22 +130,67 @@
 			</button>
 		</template>
 
-		<p v-else-if="connector.usesYamlConfig" class="inline-notification note">
-			This connector is configured via YAML and does not require OAuth login. Contact an administrator if you need access.
-		</p>
+		<template v-else-if="isDummyConnector">
+			<p class="muted">
+				Creates a local simulated account. The dummy driver invents posts with keywords
+				(japella, rust, golang, coffee, …) so you can exercise keyword watch without OAuth.
+			</p>
+			<div class="dummy-connect-row">
+				<input
+					v-model="dummyIdentity"
+					type="text"
+					placeholder="Identity (optional)"
+					:disabled="connecting"
+					@keyup.enter="createDummyAccount"
+				/>
+				<button
+					type="button"
+					class="inline-icon good"
+					:disabled="connecting"
+					@click="createDummyAccount"
+				>
+					<HugeiconsIcon
+						v-if="connecting"
+						:icon="Loading01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<HugeiconsIcon
+						v-else
+						:icon="Login01Icon"
+						width="1em"
+						height="1em"
+						:strokeWidth="iconStrokeWidth"
+						aria-hidden="true"
+					/>
+					<span>{{ connecting ? 'Creating…' : 'Create simulated account' }}</span>
+				</button>
+			</div>
+		</template>
 
-		<p v-else class="inline-notification note">
-			This connector does not support OAuth account linking.
-		</p>
+		<NotificationBlock
+			v-else-if="connector.usesYamlConfig"
+			type="note"
+			message="This connector is configured via YAML and does not require OAuth login. Contact an administrator if you need access."
+		/>
+
+		<NotificationBlock
+			v-else
+			type="note"
+			message="This connector does not support OAuth account linking."
+		/>
 	</Section>
 </template>
 
 <script setup>
 	import { ref, computed, onMounted } from 'vue';
-	import { useRoute } from 'vue-router';
+	import { useRoute, useRouter } from 'vue-router';
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon, Book01Icon, Loading01Icon, Login01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ConnectorConfigurationIssues from './ConnectorConfigurationIssues.vue';
 	import {
 		waitForClient,
@@ -157,6 +204,7 @@
 	} from '../javascript/util';
 
 	const route = useRoute();
+	const router = useRouter();
 	const iconStrokeWidth = 2.5;
 
 	const loading = ref(true);
@@ -165,9 +213,11 @@
 	const registeringClient = ref(false);
 	const connectors = ref([]);
 	const unregisteredConnectors = ref([]);
+	const dummyIdentity = ref('');
 
 	const connectorId = computed(() => String(route.params.connectorId || ''));
 	const isUnregistered = computed(() => route.query.unregistered === '1');
+	const isDummyConnector = computed(() => (connector.value?.protocol || '').toLowerCase() === 'dummy');
 
 	const connector = computed(() => {
 		if (isUnregistered.value) {
@@ -277,6 +327,30 @@
 		}
 	}
 
+	async function createDummyAccount() {
+		if (!isDummyConnector.value || connecting.value) {
+			return;
+		}
+		connecting.value = true;
+		errorMessage.value = '';
+		try {
+			await waitForClient();
+			const res = await window.client.createDummySocialAccount({
+				identity: dummyIdentity.value.trim(),
+			});
+			if (res.id) {
+				router.push({ name: 'socialAccountDetails', params: { id: String(res.id) } });
+				return;
+			}
+			errorMessage.value = 'Dummy account was not created.';
+		} catch (e) {
+			console.error(e);
+			errorMessage.value = e.message || 'Failed to create dummy account.';
+		} finally {
+			connecting.value = false;
+		}
+	}
+
 	onMounted(() => {
 		fetchConnectors();
 	});
@@ -324,6 +398,19 @@
 		font-weight: 600;
 		border-radius: 3px;
 		background: var(--pico-muted-border-color, rgba(255, 255, 255, 0.1));
+	}
+
+	.dummy-connect-row {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.75rem;
+		align-items: center;
+		margin-top: 0.75rem;
+	}
+
+	.dummy-connect-row input {
+		min-width: 12rem;
+		max-width: 20rem;
 	}
 
 	.oauth-tag {

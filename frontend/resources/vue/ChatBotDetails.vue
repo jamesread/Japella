@@ -35,10 +35,10 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="error">
-			<p class="inline-notification error">{{ error }}</p>
+			<NotificationBlock type="error" :message="error" />
 		</div>
 		<div v-else-if="!bot">
-			<p class="inline-notification note">Bot not found.</p>
+			<NotificationBlock type="note" message="Bot not found." />
 		</div>
 		<div v-else>
 			<dl>
@@ -67,9 +67,7 @@
 				</dd>
 				<dt v-if="bot.errorMessage">Error</dt>
 				<dd v-if="bot.errorMessage">
-					<div class="inline-notification error">
-						{{ bot.errorMessage }}
-					</div>
+					<NotificationBlock type="error" :message="bot.errorMessage" />
 				</dd>
 			</dl>
 
@@ -109,9 +107,8 @@
 
 					<div class="edit-bot-actions">
 						<button type="submit" class="good" :disabled="actionLoading">Save changes</button>
-						<button type="button" class="warning" :disabled="actionLoading" @click="deleteBot">Delete bot</button>
 					</div>
-					<p v-if="editMessage" class="inline-notification" :class="editMessageType">{{ editMessage }}</p>
+					<NotificationBlock v-if="editMessage" :type="editMessageType" :message="editMessage" />
 				</form>
 			</div>
 
@@ -127,12 +124,12 @@
 					<Icon icon="eos-icons:loading" width="24" height="24" />
 					<span style="margin-left: .5em;">Loading channels...</span>
 				</div>
-				<div v-else-if="channelsError" class="inline-notification error">
-					{{ channelsError }}
-				</div>
-				<div v-else-if="channels.length === 0" class="inline-notification note">
-					No channels found. Channels will appear here once the bot receives messages from them.
-				</div>
+				<NotificationBlock v-else-if="channelsError" type="error" :message="channelsError" />
+				<NotificationBlock
+					v-else-if="channels.length === 0"
+					type="note"
+					message="No channels found. Channels will appear here once the bot receives messages from them."
+				/>
 				<table v-else class="data-table" style="margin-top: 1em;">
 					<thead>
 						<tr>
@@ -156,6 +153,20 @@
 			</div>
 		</div>
 	</Section>
+
+	<DangerZone
+		v-if="!loading && bot"
+		title="Danger zone"
+		subtitle="Destructive actions for this chat bot"
+		description="Show destructive actions"
+		warning="Deleting this bot removes its configuration. This cannot be undone."
+	>
+		<div role="toolbar" class="danger-zone-actions">
+			<button type="button" class="inline-icon bad" :disabled="actionLoading" @click="deleteBot">
+				<span>Delete bot</span>
+			</button>
+		</div>
+	</DangerZone>
 </template>
 
 <script setup>
@@ -163,6 +174,8 @@
 	import { useRoute, useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
+	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 	import {
@@ -434,6 +447,12 @@
 </script>
 
 <style scoped>
+	.danger-zone-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
 	.bot-detail-nav-wrap {
 		margin-top: 1.5em;
 	}

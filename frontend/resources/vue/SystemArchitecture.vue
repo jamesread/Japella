@@ -17,7 +17,7 @@
 			broker reflects live status from the server when this page loads.
 		</p>
 
-		<p v-if="statusError" class="inline-notification error">{{ statusError }}</p>
+		<NotificationBlock v-if="statusError" type="error" :message="statusError" />
 		<p v-else-if="diagramLoading" class="muted">Loading diagram…</p>
 		<div
 			v-show="!diagramLoading && !statusError"
@@ -25,7 +25,7 @@
 			class="mermaid-wrap"
 			aria-label="System architecture diagram"
 		/>
-		<div v-if="diagramError" class="inline-notification error">{{ diagramError }}</div>
+		<NotificationBlock v-if="diagramError" type="error" :message="diagramError" />
 	</Section>
 </template>
 
@@ -33,6 +33,7 @@
 	import { ref, onMounted, nextTick } from 'vue';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';
 
 	const diagramRoot = ref(null);

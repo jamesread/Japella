@@ -318,6 +318,9 @@ const (
 	// JapellaControlApiServiceListWebhooksProcedure is the fully-qualified name of the
 	// JapellaControlApiService's ListWebhooks RPC.
 	JapellaControlApiServiceListWebhooksProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListWebhooks"
+	// JapellaControlApiServiceGetWebhookProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetWebhook RPC.
+	JapellaControlApiServiceGetWebhookProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetWebhook"
 	// JapellaControlApiServiceCreateWebhookProcedure is the fully-qualified name of the
 	// JapellaControlApiService's CreateWebhook RPC.
 	JapellaControlApiServiceCreateWebhookProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateWebhook"
@@ -327,9 +330,27 @@ const (
 	// JapellaControlApiServiceDeleteWebhookProcedure is the fully-qualified name of the
 	// JapellaControlApiService's DeleteWebhook RPC.
 	JapellaControlApiServiceDeleteWebhookProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteWebhook"
+	// JapellaControlApiServiceTestWebhookProcedure is the fully-qualified name of the
+	// JapellaControlApiService's TestWebhook RPC.
+	JapellaControlApiServiceTestWebhookProcedure = "/japella.controlapi.v1.JapellaControlApiService/TestWebhook"
 	// JapellaControlApiServiceListBotWebhooksProcedure is the fully-qualified name of the
 	// JapellaControlApiService's ListBotWebhooks RPC.
 	JapellaControlApiServiceListBotWebhooksProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListBotWebhooks"
+	// JapellaControlApiServiceListKeywordWatchesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListKeywordWatches RPC.
+	JapellaControlApiServiceListKeywordWatchesProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListKeywordWatches"
+	// JapellaControlApiServiceCreateKeywordWatchProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateKeywordWatch RPC.
+	JapellaControlApiServiceCreateKeywordWatchProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateKeywordWatch"
+	// JapellaControlApiServiceUpdateKeywordWatchProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateKeywordWatch RPC.
+	JapellaControlApiServiceUpdateKeywordWatchProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateKeywordWatch"
+	// JapellaControlApiServiceDeleteKeywordWatchProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteKeywordWatch RPC.
+	JapellaControlApiServiceDeleteKeywordWatchProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteKeywordWatch"
+	// JapellaControlApiServiceCreateDummySocialAccountProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateDummySocialAccount RPC.
+	JapellaControlApiServiceCreateDummySocialAccountProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateDummySocialAccount"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -430,10 +451,17 @@ type JapellaControlApiServiceClient interface {
 	GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error)
 	UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error)
 	ListWebhooks(context.Context, *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error)
+	GetWebhook(context.Context, *connect.Request[v1.GetWebhookRequest]) (*connect.Response[v1.GetWebhookResponse], error)
 	CreateWebhook(context.Context, *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error)
 	UpdateWebhook(context.Context, *connect.Request[v1.UpdateWebhookRequest]) (*connect.Response[v1.UpdateWebhookResponse], error)
 	DeleteWebhook(context.Context, *connect.Request[v1.DeleteWebhookRequest]) (*connect.Response[v1.DeleteWebhookResponse], error)
+	TestWebhook(context.Context, *connect.Request[v1.TestWebhookRequest]) (*connect.Response[v1.TestWebhookResponse], error)
 	ListBotWebhooks(context.Context, *connect.Request[v1.ListBotWebhooksRequest]) (*connect.Response[v1.ListBotWebhooksResponse], error)
+	ListKeywordWatches(context.Context, *connect.Request[v1.ListKeywordWatchesRequest]) (*connect.Response[v1.ListKeywordWatchesResponse], error)
+	CreateKeywordWatch(context.Context, *connect.Request[v1.CreateKeywordWatchRequest]) (*connect.Response[v1.CreateKeywordWatchResponse], error)
+	UpdateKeywordWatch(context.Context, *connect.Request[v1.UpdateKeywordWatchRequest]) (*connect.Response[v1.UpdateKeywordWatchResponse], error)
+	DeleteKeywordWatch(context.Context, *connect.Request[v1.DeleteKeywordWatchRequest]) (*connect.Response[v1.DeleteKeywordWatchResponse], error)
+	CreateDummySocialAccount(context.Context, *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -1018,6 +1046,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListWebhooks")),
 			connect.WithClientOptions(opts...),
 		),
+		getWebhook: connect.NewClient[v1.GetWebhookRequest, v1.GetWebhookResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetWebhookProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetWebhook")),
+			connect.WithClientOptions(opts...),
+		),
 		createWebhook: connect.NewClient[v1.CreateWebhookRequest, v1.CreateWebhookResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceCreateWebhookProcedure,
@@ -1036,10 +1070,46 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteWebhook")),
 			connect.WithClientOptions(opts...),
 		),
+		testWebhook: connect.NewClient[v1.TestWebhookRequest, v1.TestWebhookResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceTestWebhookProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("TestWebhook")),
+			connect.WithClientOptions(opts...),
+		),
 		listBotWebhooks: connect.NewClient[v1.ListBotWebhooksRequest, v1.ListBotWebhooksResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceListBotWebhooksProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListBotWebhooks")),
+			connect.WithClientOptions(opts...),
+		),
+		listKeywordWatches: connect.NewClient[v1.ListKeywordWatchesRequest, v1.ListKeywordWatchesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListKeywordWatchesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListKeywordWatches")),
+			connect.WithClientOptions(opts...),
+		),
+		createKeywordWatch: connect.NewClient[v1.CreateKeywordWatchRequest, v1.CreateKeywordWatchResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateKeywordWatchProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateKeywordWatch")),
+			connect.WithClientOptions(opts...),
+		),
+		updateKeywordWatch: connect.NewClient[v1.UpdateKeywordWatchRequest, v1.UpdateKeywordWatchResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateKeywordWatchProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateKeywordWatch")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteKeywordWatch: connect.NewClient[v1.DeleteKeywordWatchRequest, v1.DeleteKeywordWatchResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteKeywordWatchProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteKeywordWatch")),
+			connect.WithClientOptions(opts...),
+		),
+		createDummySocialAccount: connect.NewClient[v1.CreateDummySocialAccountRequest, v1.CreateDummySocialAccountResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateDummySocialAccountProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateDummySocialAccount")),
 			connect.WithClientOptions(opts...),
 		),
 	}
@@ -1142,10 +1212,17 @@ type japellaControlApiServiceClient struct {
 	getPost                         *connect.Client[v1.GetPostRequest, v1.GetPostResponse]
 	updatePendingPost               *connect.Client[v1.UpdatePendingPostRequest, v1.UpdatePendingPostResponse]
 	listWebhooks                    *connect.Client[v1.ListWebhooksRequest, v1.ListWebhooksResponse]
+	getWebhook                      *connect.Client[v1.GetWebhookRequest, v1.GetWebhookResponse]
 	createWebhook                   *connect.Client[v1.CreateWebhookRequest, v1.CreateWebhookResponse]
 	updateWebhook                   *connect.Client[v1.UpdateWebhookRequest, v1.UpdateWebhookResponse]
 	deleteWebhook                   *connect.Client[v1.DeleteWebhookRequest, v1.DeleteWebhookResponse]
+	testWebhook                     *connect.Client[v1.TestWebhookRequest, v1.TestWebhookResponse]
 	listBotWebhooks                 *connect.Client[v1.ListBotWebhooksRequest, v1.ListBotWebhooksResponse]
+	listKeywordWatches              *connect.Client[v1.ListKeywordWatchesRequest, v1.ListKeywordWatchesResponse]
+	createKeywordWatch              *connect.Client[v1.CreateKeywordWatchRequest, v1.CreateKeywordWatchResponse]
+	updateKeywordWatch              *connect.Client[v1.UpdateKeywordWatchRequest, v1.UpdateKeywordWatchResponse]
+	deleteKeywordWatch              *connect.Client[v1.DeleteKeywordWatchRequest, v1.DeleteKeywordWatchResponse]
+	createDummySocialAccount        *connect.Client[v1.CreateDummySocialAccountRequest, v1.CreateDummySocialAccountResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -1634,6 +1711,11 @@ func (c *japellaControlApiServiceClient) ListWebhooks(ctx context.Context, req *
 	return c.listWebhooks.CallUnary(ctx, req)
 }
 
+// GetWebhook calls japella.controlapi.v1.JapellaControlApiService.GetWebhook.
+func (c *japellaControlApiServiceClient) GetWebhook(ctx context.Context, req *connect.Request[v1.GetWebhookRequest]) (*connect.Response[v1.GetWebhookResponse], error) {
+	return c.getWebhook.CallUnary(ctx, req)
+}
+
 // CreateWebhook calls japella.controlapi.v1.JapellaControlApiService.CreateWebhook.
 func (c *japellaControlApiServiceClient) CreateWebhook(ctx context.Context, req *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error) {
 	return c.createWebhook.CallUnary(ctx, req)
@@ -1649,9 +1731,40 @@ func (c *japellaControlApiServiceClient) DeleteWebhook(ctx context.Context, req 
 	return c.deleteWebhook.CallUnary(ctx, req)
 }
 
+// TestWebhook calls japella.controlapi.v1.JapellaControlApiService.TestWebhook.
+func (c *japellaControlApiServiceClient) TestWebhook(ctx context.Context, req *connect.Request[v1.TestWebhookRequest]) (*connect.Response[v1.TestWebhookResponse], error) {
+	return c.testWebhook.CallUnary(ctx, req)
+}
+
 // ListBotWebhooks calls japella.controlapi.v1.JapellaControlApiService.ListBotWebhooks.
 func (c *japellaControlApiServiceClient) ListBotWebhooks(ctx context.Context, req *connect.Request[v1.ListBotWebhooksRequest]) (*connect.Response[v1.ListBotWebhooksResponse], error) {
 	return c.listBotWebhooks.CallUnary(ctx, req)
+}
+
+// ListKeywordWatches calls japella.controlapi.v1.JapellaControlApiService.ListKeywordWatches.
+func (c *japellaControlApiServiceClient) ListKeywordWatches(ctx context.Context, req *connect.Request[v1.ListKeywordWatchesRequest]) (*connect.Response[v1.ListKeywordWatchesResponse], error) {
+	return c.listKeywordWatches.CallUnary(ctx, req)
+}
+
+// CreateKeywordWatch calls japella.controlapi.v1.JapellaControlApiService.CreateKeywordWatch.
+func (c *japellaControlApiServiceClient) CreateKeywordWatch(ctx context.Context, req *connect.Request[v1.CreateKeywordWatchRequest]) (*connect.Response[v1.CreateKeywordWatchResponse], error) {
+	return c.createKeywordWatch.CallUnary(ctx, req)
+}
+
+// UpdateKeywordWatch calls japella.controlapi.v1.JapellaControlApiService.UpdateKeywordWatch.
+func (c *japellaControlApiServiceClient) UpdateKeywordWatch(ctx context.Context, req *connect.Request[v1.UpdateKeywordWatchRequest]) (*connect.Response[v1.UpdateKeywordWatchResponse], error) {
+	return c.updateKeywordWatch.CallUnary(ctx, req)
+}
+
+// DeleteKeywordWatch calls japella.controlapi.v1.JapellaControlApiService.DeleteKeywordWatch.
+func (c *japellaControlApiServiceClient) DeleteKeywordWatch(ctx context.Context, req *connect.Request[v1.DeleteKeywordWatchRequest]) (*connect.Response[v1.DeleteKeywordWatchResponse], error) {
+	return c.deleteKeywordWatch.CallUnary(ctx, req)
+}
+
+// CreateDummySocialAccount calls
+// japella.controlapi.v1.JapellaControlApiService.CreateDummySocialAccount.
+func (c *japellaControlApiServiceClient) CreateDummySocialAccount(ctx context.Context, req *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error) {
+	return c.createDummySocialAccount.CallUnary(ctx, req)
 }
 
 // JapellaControlApiServiceHandler is an implementation of the
@@ -1752,10 +1865,17 @@ type JapellaControlApiServiceHandler interface {
 	GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error)
 	UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error)
 	ListWebhooks(context.Context, *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error)
+	GetWebhook(context.Context, *connect.Request[v1.GetWebhookRequest]) (*connect.Response[v1.GetWebhookResponse], error)
 	CreateWebhook(context.Context, *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error)
 	UpdateWebhook(context.Context, *connect.Request[v1.UpdateWebhookRequest]) (*connect.Response[v1.UpdateWebhookResponse], error)
 	DeleteWebhook(context.Context, *connect.Request[v1.DeleteWebhookRequest]) (*connect.Response[v1.DeleteWebhookResponse], error)
+	TestWebhook(context.Context, *connect.Request[v1.TestWebhookRequest]) (*connect.Response[v1.TestWebhookResponse], error)
 	ListBotWebhooks(context.Context, *connect.Request[v1.ListBotWebhooksRequest]) (*connect.Response[v1.ListBotWebhooksResponse], error)
+	ListKeywordWatches(context.Context, *connect.Request[v1.ListKeywordWatchesRequest]) (*connect.Response[v1.ListKeywordWatchesResponse], error)
+	CreateKeywordWatch(context.Context, *connect.Request[v1.CreateKeywordWatchRequest]) (*connect.Response[v1.CreateKeywordWatchResponse], error)
+	UpdateKeywordWatch(context.Context, *connect.Request[v1.UpdateKeywordWatchRequest]) (*connect.Response[v1.UpdateKeywordWatchResponse], error)
+	DeleteKeywordWatch(context.Context, *connect.Request[v1.DeleteKeywordWatchRequest]) (*connect.Response[v1.DeleteKeywordWatchResponse], error)
+	CreateDummySocialAccount(context.Context, *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -2335,6 +2455,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListWebhooks")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetWebhookHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetWebhookProcedure,
+		svc.GetWebhook,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetWebhook")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceCreateWebhookHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceCreateWebhookProcedure,
 		svc.CreateWebhook,
@@ -2353,10 +2479,46 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteWebhook")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceTestWebhookHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceTestWebhookProcedure,
+		svc.TestWebhook,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("TestWebhook")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceListBotWebhooksHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceListBotWebhooksProcedure,
 		svc.ListBotWebhooks,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListBotWebhooks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListKeywordWatchesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListKeywordWatchesProcedure,
+		svc.ListKeywordWatches,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListKeywordWatches")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateKeywordWatchHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateKeywordWatchProcedure,
+		svc.CreateKeywordWatch,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateKeywordWatch")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateKeywordWatchHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateKeywordWatchProcedure,
+		svc.UpdateKeywordWatch,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateKeywordWatch")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteKeywordWatchHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteKeywordWatchProcedure,
+		svc.DeleteKeywordWatch,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteKeywordWatch")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateDummySocialAccountHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateDummySocialAccountProcedure,
+		svc.CreateDummySocialAccount,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateDummySocialAccount")),
 		connect.WithHandlerOptions(opts...),
 	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -2551,14 +2713,28 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceUpdatePendingPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceListWebhooksProcedure:
 			japellaControlApiServiceListWebhooksHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetWebhookProcedure:
+			japellaControlApiServiceGetWebhookHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceCreateWebhookProcedure:
 			japellaControlApiServiceCreateWebhookHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceUpdateWebhookProcedure:
 			japellaControlApiServiceUpdateWebhookHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceDeleteWebhookProcedure:
 			japellaControlApiServiceDeleteWebhookHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceTestWebhookProcedure:
+			japellaControlApiServiceTestWebhookHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceListBotWebhooksProcedure:
 			japellaControlApiServiceListBotWebhooksHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListKeywordWatchesProcedure:
+			japellaControlApiServiceListKeywordWatchesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateKeywordWatchProcedure:
+			japellaControlApiServiceCreateKeywordWatchHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateKeywordWatchProcedure:
+			japellaControlApiServiceUpdateKeywordWatchHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteKeywordWatchProcedure:
+			japellaControlApiServiceDeleteKeywordWatchHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateDummySocialAccountProcedure:
+			japellaControlApiServiceCreateDummySocialAccountHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -2948,6 +3124,10 @@ func (UnimplementedJapellaControlApiServiceHandler) ListWebhooks(context.Context
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListWebhooks is not implemented"))
 }
 
+func (UnimplementedJapellaControlApiServiceHandler) GetWebhook(context.Context, *connect.Request[v1.GetWebhookRequest]) (*connect.Response[v1.GetWebhookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetWebhook is not implemented"))
+}
+
 func (UnimplementedJapellaControlApiServiceHandler) CreateWebhook(context.Context, *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateWebhook is not implemented"))
 }
@@ -2960,6 +3140,30 @@ func (UnimplementedJapellaControlApiServiceHandler) DeleteWebhook(context.Contex
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteWebhook is not implemented"))
 }
 
+func (UnimplementedJapellaControlApiServiceHandler) TestWebhook(context.Context, *connect.Request[v1.TestWebhookRequest]) (*connect.Response[v1.TestWebhookResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.TestWebhook is not implemented"))
+}
+
 func (UnimplementedJapellaControlApiServiceHandler) ListBotWebhooks(context.Context, *connect.Request[v1.ListBotWebhooksRequest]) (*connect.Response[v1.ListBotWebhooksResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListBotWebhooks is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListKeywordWatches(context.Context, *connect.Request[v1.ListKeywordWatchesRequest]) (*connect.Response[v1.ListKeywordWatchesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListKeywordWatches is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateKeywordWatch(context.Context, *connect.Request[v1.CreateKeywordWatchRequest]) (*connect.Response[v1.CreateKeywordWatchResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateKeywordWatch is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateKeywordWatch(context.Context, *connect.Request[v1.UpdateKeywordWatchRequest]) (*connect.Response[v1.UpdateKeywordWatchResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateKeywordWatch is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteKeywordWatch(context.Context, *connect.Request[v1.DeleteKeywordWatchRequest]) (*connect.Response[v1.DeleteKeywordWatchResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteKeywordWatch is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateDummySocialAccount(context.Context, *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateDummySocialAccount is not implemented"))
 }

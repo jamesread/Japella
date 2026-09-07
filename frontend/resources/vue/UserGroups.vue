@@ -16,7 +16,7 @@
 				/>
 			</FormField>
 
-			<p v-if="createGroupError" class="inline-notification error">{{ createGroupError }}</p>
+			<NotificationBlock v-if="createGroupError" type="error" :message="createGroupError" />
 
 			<template #actions>
 				<button type="button" class="neutral" :disabled="saving" @click="closeCreateGroupDialog">Cancel</button>
@@ -74,41 +74,37 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error groups-banner-pad">{{ errorMessage }}</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 
-		<div v-if="loading && !groups.length" class="groups-banner-pad muted">Loading…</div>
-
-		<template v-else>
-			<p v-if="!groups.length" class="inline-notification note groups-banner-pad">No user groups yet.</p>
-
-			<Table
-				v-else
-				class="user-table-wrap"
-				row-clickable
-				:data="groups"
-				:headers="tableHeaders"
-				@row-click="openGroupDetails"
-			>
-				<template #cell-name="{ row, value }">
-					<span class="group-name-cell">
-						<strong>{{ value }}</strong>
-						<span v-if="isSystemGroup(row.name)" class="tag fg-note">system group</span>
-					</span>
-				</template>
-				<template #cell-actions="{ row }">
-					<div v-if="canDeleteGroup(row)" class="actions-cell">
-						<button
-							type="button"
-							class="bad small"
-							:disabled="saving"
-							@click="deleteGroup(row)"
-						>
-							Delete
-						</button>
-					</div>
-				</template>
-			</Table>
-		</template>
+		<Table
+			class="user-table-wrap"
+			:data="groups"
+			:headers="tableHeaders"
+			:loading="loading"
+			@row-click="openGroupDetails"
+		>
+			<template #empty>
+				No user groups yet.
+			</template>
+			<template #cell-name="{ row, value }">
+				<span class="group-name-cell">
+					<strong>{{ value }}</strong>
+					<span v-if="isSystemGroup(row.name)" class="tag fg-note">system group</span>
+				</span>
+			</template>
+			<template #cell-actions="{ row }">
+				<div v-if="canDeleteGroup(row)" class="actions-cell">
+					<button
+						type="button"
+						class="bad small"
+						:disabled="saving"
+						@click="deleteGroup(row)"
+					>
+						Delete
+					</button>
+				</div>
+			</template>
+		</Table>
 	</Section>
 </template>
 
@@ -119,9 +115,10 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { Add01Icon, RefreshIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
-	import Table from './picocrank/TableWithRowClick.vue';
+	import Table from 'picocrank/vue/components/Table.vue';
 
 	const router = useRouter();
 	const iconStrokeWidth = 2.5;
@@ -213,8 +210,8 @@
 		}
 	}
 
-	function openGroupDetails(g) {
-		router.push({ name: 'userGroupDetails', params: { id: String(g.id) } });
+	function openGroupDetails({ row }) {
+		router.push({ name: 'userGroupDetails', params: { id: String(row.id) } });
 	}
 
 	function openCreateGroupDialog() {
@@ -280,10 +277,6 @@
 		vertical-align: middle;
 	}
 
-	.groups-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
 
 	.user-table-wrap {
 		margin-top: 0.5rem;

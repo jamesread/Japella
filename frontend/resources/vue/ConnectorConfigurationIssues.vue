@@ -1,10 +1,10 @@
 <template>
 	<div v-if="issues?.length" class="connector-issues">
 		<h3 v-if="showTitle">Configuration issues</h3>
-		<p
+		<NotificationBlock
 			v-for="(issue, index) in issues"
 			:key="issueKey(issue, index)"
-			class="inline-notification error small"
+			type="error"
 		>
 			{{ issue.message }}
 			<button
@@ -30,12 +30,13 @@
 			>
 				{{ issue.fixLabel || 'Fix in Settings' }}
 			</router-link>
-		</p>
+		</NotificationBlock>
 	</div>
 </template>
 
 <script setup>
 	import { connectorIssueFixRoute, CONNECTOR_FIX_ACTION_REGISTER_CLIENT } from '../javascript/util';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 
 	defineProps({
 		issues: {

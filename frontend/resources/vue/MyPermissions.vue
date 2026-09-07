@@ -33,26 +33,26 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 		<div v-else-if="loading" class="muted">Loading…</div>
 		<template v-else>
 			<h3 class="subsection-title">Group membership</h3>
-			<p v-if="!groupNames.length" class="inline-notification note">You are not a member of any user groups.</p>
+			<NotificationBlock v-if="!groupNames.length" type="note" message="You are not a member of any user groups." />
 			<p v-else>
 				<span v-for="name in groupNames" :key="name" class="role-tag">{{ name }}</span>
 			</p>
 
 			<h3 class="subsection-title">Effective roles</h3>
 			<p class="section-hint">Computed from your group membership.</p>
-			<p v-if="!roleNames.length" class="inline-notification note">No roles via group membership.</p>
+			<NotificationBlock v-if="!roleNames.length" type="note" message="No roles via group membership." />
 			<p v-else>
 				<span v-for="name in roleNames" :key="name" class="role-tag">{{ name }}</span>
 			</p>
 
 			<h3 class="subsection-title">Effective permissions</h3>
-			<p v-if="isSuperuser" class="inline-notification note">
+			<NotificationBlock v-if="isSuperuser" type="note">
 				You have the <strong>superuser</strong> role via group membership — all permissions are granted.
-			</p>
+			</NotificationBlock>
 			<table v-if="permissionAudit.length" class="perm-audit-table">
 				<thead>
 					<tr>
@@ -88,6 +88,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';
 
 	const iconStrokeWidth = 2.5;

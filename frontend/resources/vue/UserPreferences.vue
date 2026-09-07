@@ -33,7 +33,7 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 		<div v-else-if="loading" class="muted">Loading…</div>
 
 		<FormLayout v-else @submit.prevent="save">
@@ -103,7 +103,7 @@
 				Theme name is set by the administrator ({{ adminThemeName }}).
 			</p>
 
-			<p v-if="saveMessage" class="inline-notification" :class="saveMessageType">{{ saveMessage }}</p>
+			<NotificationBlock v-if="saveMessage" :type="saveMessageType" :message="saveMessage" />
 
 			<template #actions>
 				<button type="submit" class="good" :disabled="saving || !dirty">
@@ -120,6 +120,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import RadioGroup from 'picocrank/vue/components/RadioGroup.vue';

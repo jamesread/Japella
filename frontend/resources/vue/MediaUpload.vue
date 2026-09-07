@@ -5,7 +5,7 @@
 		classes="media-upload"
 	>
 		<form id="media-upload-form" @submit.prevent="submitForm">
-			<p v-if="formMessage" class="inline-notification" :class="formMessageType">{{ formMessage }}</p>
+			<NotificationBlock v-if="formMessage" :type="formMessageType" :message="formMessage" />
 
 			<fieldset class="upload-fieldset">
 				<div ref="previewEl" class="image-preview">
@@ -65,6 +65,7 @@
 	import { ref, onMounted, onUnmounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 
 	const { t } = useI18n();
 

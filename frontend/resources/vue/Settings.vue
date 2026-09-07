@@ -8,13 +8,13 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="!canAccess">
-			<p class="inline-notification error">You do not have permission to view system settings.</p>
+			<NotificationBlock type="error" message="You do not have permission to view system settings." />
 		</div>
 		<template v-else>
 			<p>This page allows you to configure all of the cvars available in the app.</p>
-			<InlineNotification
-				message="Settings are saved immediately when you change them on this page."
+			<NotificationBlock
 				type="warning"
+				message="Settings are saved immediately when you change them on this page."
 			/>
 		</template>
 	</Section>
@@ -144,10 +144,10 @@
 	} from '../javascript/applyAppTheming.js';
 	import { useCustomTheme } from '../javascript/theme.js';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import RadioGroup from 'picocrank/vue/components/RadioGroup.vue';
-	import InlineNotification from './InlineNotification.vue';
 
 	const route = useRoute();
 	const { themeLabels, availableThemes, discoverThemes } = useCustomTheme();

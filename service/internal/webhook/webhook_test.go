@@ -40,6 +40,16 @@ func TestNormalizeURL(t *testing.T) {
 	}
 }
 
+func TestNormalizeEventWebhookTest(t *testing.T) {
+	got, err := NormalizeEvent("webhook.test")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if got != EventWebhookTest {
+		t.Fatalf("got %q", got)
+	}
+}
+
 func TestSignatureHex(t *testing.T) {
 	sig := Signature(`{"event":"approval.requested"}`, "secret")
 	if len(sig) != 64 {

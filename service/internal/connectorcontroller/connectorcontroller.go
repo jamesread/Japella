@@ -8,6 +8,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/connector/bluesky"
 	"github.com/jamesread/japella/internal/connector/discord"
+	"github.com/jamesread/japella/internal/connector/dummy"
 	"github.com/jamesread/japella/internal/connector/facebook"
 	"github.com/jamesread/japella/internal/connector/instagram"
 	"github.com/jamesread/japella/internal/connector/mastodon"
@@ -69,6 +70,9 @@ func New(dbc *db.DB) *ConnectionController {
 	}
 
 	cc.loadChatBotsFromDB()
+
+	// Always available for local/dev keyword-watch and feed testing.
+	cc.setupConnector(&dummy.Connector{}, nil)
 
 	return cc
 }

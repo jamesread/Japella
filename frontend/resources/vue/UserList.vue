@@ -47,38 +47,35 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error list-banner-pad">{{ errorMessage }}</div>
-		<div v-if="loading && !users.length" class="list-banner-pad muted">Loading…</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 
-		<template v-else>
-			<p v-if="!users.length" class="inline-notification note list-banner-pad">No users available.</p>
-
-			<Table
-				v-else
-				class="user-table-wrap"
-				row-clickable
-				:data="tableRows"
-				:headers="tableHeaders"
-				@row-click="openUserDetails"
-			>
-				<template #cell-username="{ value }">
-					<strong>{{ value }}</strong>
-				</template>
-				<template #cell-actions="{ row }">
-					<div v-if="canDelete" class="actions-cell">
-						<button
-							type="button"
-							class="bad small"
-							:disabled="saving || isCurrentUser(row)"
-							:title="isCurrentUser(row) ? 'You cannot delete your own account' : 'Delete user'"
-							@click="deleteUserAccount(row)"
-						>
-							Delete
-						</button>
-					</div>
-				</template>
-			</Table>
-		</template>
+		<Table
+			class="user-table-wrap"
+			:data="tableRows"
+			:headers="tableHeaders"
+			:loading="loading"
+			@row-click="openUserDetails"
+		>
+			<template #empty>
+				No users available.
+			</template>
+			<template #cell-username="{ value }">
+				<strong>{{ value }}</strong>
+			</template>
+			<template #cell-actions="{ row }">
+				<div v-if="canDelete" class="actions-cell">
+					<button
+						type="button"
+						class="bad small"
+						:disabled="saving || isCurrentUser(row)"
+						:title="isCurrentUser(row) ? 'You cannot delete your own account' : 'Delete user'"
+						@click="deleteUserAccount(row)"
+					>
+						Delete
+					</button>
+				</div>
+			</template>
+		</Table>
 	</Section>
 </template>
 
@@ -89,7 +86,8 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { Add01Icon, RefreshIcon, UserMultiple02Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
-	import Table from './picocrank/TableWithRowClick.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
+	import Table from 'picocrank/vue/components/Table.vue';
 
 	const iconStrokeWidth = 2.5;
 	const router = useRouter();
@@ -146,7 +144,7 @@
 		router.push({ name: 'createUser' });
 	}
 
-	function openUserDetails(row) {
+	function openUserDetails({ row }) {
 		router.push({ name: 'userDetails', params: { id: String(row.id) } });
 	}
 
@@ -210,10 +208,6 @@
 		vertical-align: middle;
 	}
 
-	.list-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
 
 	.user-table-wrap {
 		margin-top: 0.5rem;

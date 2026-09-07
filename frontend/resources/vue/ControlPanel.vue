@@ -12,7 +12,7 @@
 		</template>
 
 		<div v-if="errorMessage" class="error-section">
-			<p class="inline-notification error">{{ errorMessage }}</p>
+			<NotificationBlock type="error" :message="errorMessage" />
 		</div>
 
 		<!-- Quick Actions -->
@@ -158,9 +158,9 @@
 			<HugeiconsIcon :icon="Loading01Icon" />
 			<span>Loading job status...</span>
 		</div>
-		<div v-else-if="jobs.length === 0" class="inline-notification note">
+		<NotificationBlock v-else-if="jobs.length === 0" type="note" message="
 			No background jobs found.
-		</div>
+		" />
 		<table v-else class="data-table row-hover">
 			<thead>
 				<tr>
@@ -195,6 +195,7 @@
 	} from '../javascript/rbacAccess.js';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 	import { HugeiconsIcon} from '@hugeicons/vue';

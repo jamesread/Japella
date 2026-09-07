@@ -10,7 +10,7 @@
 			</button>
 		</template>
 
-		<p v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</p>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 
 		<p v-if="loading" class="muted">Loading diagnostics…</p>
 
@@ -29,6 +29,7 @@
 	import { ref, onMounted, nextTick } from 'vue';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ReadOnlyTextArea from 'picocrank/vue/components/ReadOnlyTextArea.vue';
 
 	const loading = ref(true);

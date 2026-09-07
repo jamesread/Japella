@@ -91,6 +91,8 @@ const CONNECTOR_INTROS = {
     'Facebook requires the connector to be started and OAuth credentials configured by an administrator before you can link an account.',
   instagram:
     'Instagram requires the connector to be started and OAuth credentials configured by an administrator before you can link an account.',
+  dummy:
+    'Local simulator for development. Invents posts that mention keywords so you can test keyword watch, feed fetch, and webhooks without real social networks.',
 };
 
 export function connectorIntroText(protocol) {
@@ -117,6 +119,7 @@ const CONNECTOR_DISPLAY_NAMES = {
   bluesky: 'Bluesky',
   facebook: 'Facebook',
   instagram: 'Instagram',
+  dummy: 'Dummy Simulator',
 };
 
 const CONNECTOR_ICON_TO_PROTOCOL = {

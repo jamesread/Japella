@@ -33,7 +33,7 @@
 	</Section>
 
 	<Section v-else title="IAM" subtitle="Identity and Access Management">
-		<p class="inline-notification error">You do not have permission to view IAM settings.</p>
+		<NotificationBlock type="error" message="You do not have permission to view IAM settings." />
 	</Section>
 </template>
 
@@ -45,6 +45,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 

@@ -17,7 +17,9 @@
 		</div>
 
 		<div v-else>
-			<p v-if = "bots.length === 0" class = "inline-notification note">No chat bots configured. Use <router-link :to="{ name: 'createChatBot' }">Add chat bot</router-link> to create one.</p>
+			<NotificationBlock v-if="bots.length === 0" type="note">
+				No chat bots configured. Use <router-link :to="{ name: 'createChatBot' }">Add chat bot</router-link> to create one.
+			</NotificationBlock>
 
 			<Navigation v-else ref = "localNavigation">
 				<NavigationGrid />
@@ -32,6 +34,7 @@
 	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 	import { Robot01Icon, TelegramIcon, DiscordIcon } from '@hugeicons/core-free-icons';

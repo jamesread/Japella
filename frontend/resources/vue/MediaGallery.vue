@@ -11,10 +11,12 @@
 		</template>
 
 		<p v-if="loading" class="muted">Loading…</p>
-		<p v-else-if="error" class="inline-notification error">{{ error }}</p>
-		<p v-else-if="!items.length" class="inline-notification note">
-			No media files yet. Upload some from the form below.
-		</p>
+		<NotificationBlock v-else-if="error" type="error" :message="error" />
+		<NotificationBlock
+			v-else-if="!items.length"
+			type="note"
+			message="No media files yet. Upload some from the form below."
+		/>
 
 		<div v-else class="media-grid">
 			<button
@@ -55,6 +57,7 @@
 	import { Icon } from '@iconify/vue';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 
 	const emit = defineEmits(['select']);
 

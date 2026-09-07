@@ -63,9 +63,7 @@
 				</div>
 
 				<div v-if="passwordMessage" class="password-form-message">
-					<div class="inline-notification" :class="passwordMessageType">
-						{{ passwordMessage }}
-					</div>
+					<NotificationBlock :type="passwordMessageType" :message="passwordMessage" />
 				</div>
 			</div>
 		</form>
@@ -78,6 +76,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';
 
 	const passwordForm = ref({

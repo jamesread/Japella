@@ -47,7 +47,7 @@
 				</table>
 			</FormField>
 
-			<p v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</p>
+			<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 
 			<template #actions>
 				<button type="button" class="neutral" :disabled="saving" @click="close">Cancel</button>
@@ -62,6 +62,7 @@
 <script setup>
 	import { computed, nextTick, reactive, ref } from 'vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import { waitForClient } from '../javascript/util';
 

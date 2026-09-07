@@ -64,13 +64,19 @@
 		<Loading v-if="timelineLoading && timeline.length === 0" message="Loading timeline..." :centered="true" />
 	</Section>
 
-	<p v-if="!timelineLoading && timeline.length > 0 && filteredTimeline.length === 0" class="timeline-empty inline-notification note">
-		No posts match the current filters.
-	</p>
+	<NotificationBlock
+		v-if="!timelineLoading && timeline.length > 0 && filteredTimeline.length === 0"
+		type="note"
+		message="No posts match the current filters."
+		class="timeline-empty"
+	/>
 
-	<p v-if="!timelineLoading && timeline.length === 0" class="timeline-empty inline-notification note">
-		No posts available.
-	</p>
+	<NotificationBlock
+		v-if="!timelineLoading && timeline.length === 0"
+		type="note"
+		message="No posts available."
+		class="timeline-empty"
+	/>
 
 	<section
 		class="small"
@@ -149,6 +155,7 @@
 		RefreshIcon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Loading from './Loading.vue';
 	import PostPreview from './PostPreview.vue';
 	import FilterSelect from './FilterSelect.vue';

@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"context"
 	"time"
 
 	"github.com/jamesread/japella/internal/db"
@@ -140,4 +141,66 @@ type ChatBotStartupConfig struct {
 type PostResult struct {
 	Err error
 	URL string
+}
+
+// RemotePost is a normalized remote platform post used by keyword watch.
+type RemotePost struct {
+	RemoteID     string
+	RemoteURL    string
+	AuthorID     string
+	AuthorHandle string
+	Content      string
+	PostedAt     time.Time
+}
+
+// MatchSink receives posts that matched one or more keywords.
+type MatchSink func(post *RemotePost, matchedKeywords []string)
+
+// WatchHandle stops a native keyword watch session.
+type WatchHandle interface {
+	Stop()
+}
+
+// NativeFidelity describes how closely native watch matches exact keywords.
+const (
+	NativeFidelityExactRule    = "exact_rule"
+	NativeFidelityClientFilter = "client_filter"
+	NativeFidelityHashtagOnly  = "hashtag_only"
+	NativeFidelitySearchOnly   = "search_only"
+)
+
+// ConnectorWithKeywordWatch can run a push/stream subscription for keywords.
+type ConnectorWithKeywordWatch interface {
+	PreferNativeWatch(sa *SocialAccount, keywords []string) bool
+	NativeWatchFidelity(sa *SocialAccount, keywords []string) string
+	StartKeywordWatch(ctx context.Context, sa *SocialAccount, keywords []string, sink MatchSink) (WatchHandle, error)
+}
+
+// ConnectorWithKeywordSearch can poll recent posts by keyword.
+type ConnectorWithKeywordSearch interface {
+	SearchRecentByKeyword(ctx context.Context, sa *SocialAccount, keyword string, since time.Time, limit int) ([]*RemotePost, error)
+}
+
+// RateLimitedError signals that the platform asked the client to back off.
+type RateLimitedError struct {
+	RetryAfter time.Duration
+	Message    string
+}
+
+func (e *RateLimitedError) Error() string {
+	if e.Message != "" {
+		return e.Message
+	}
+	return "rate limited"
+}
+
+// AsRateLimited returns *RateLimitedError if err (or a wrapped err) is one.
+func AsRateLimited(err error) *RateLimitedError {
+	if err == nil {
+		return nil
+	}
+	if rl, ok := err.(*RateLimitedError); ok {
+		return rl
+	}
+	return nil
 }

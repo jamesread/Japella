@@ -81,7 +81,7 @@
 			</template>
 		</FormLayout>
 
-		<p v-if="createMessage" class="inline-notification" :class="createMessageType">{{ createMessage }}</p>
+		<NotificationBlock v-if="createMessage" :type="createMessageType" :message="createMessage" />
 	</Section>
 </template>
 
@@ -91,6 +91,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon, Loading01Icon, UserAdd01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 

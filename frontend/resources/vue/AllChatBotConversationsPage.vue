@@ -8,16 +8,19 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="error">
-			<p class="inline-notification error">{{ error }}</p>
+			<NotificationBlock type="error" :message="error" />
 		</div>
 		<ChatBotConversations v-else-if="bots.length > 0" :bots="bots" />
-		<p v-else class="inline-notification note">No chat bots are configured. <router-link :to="{ name: 'createChatBot' }">Add a chat bot</router-link> to get started.</p>
+		<NotificationBlock v-else type="note">
+			No chat bots are configured. <router-link :to="{ name: 'createChatBot' }">Add a chat bot</router-link> to get started.
+		</NotificationBlock>
 	</Section>
 </template>
 
 <script setup>
 	import { ref, onMounted } from 'vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';
 	import ChatBotConversations from './ChatBotConversations.vue';
 

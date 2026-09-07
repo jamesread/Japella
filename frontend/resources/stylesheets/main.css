@@ -229,10 +229,6 @@ html[data-theme="dark"] {
 	opacity: 0.85;
 }
 
-.inline-notification:last-child {
-	margin-bottom: 0;
-}
-
 .gs2 {
 	grid-column: 1 / span 2;
 }

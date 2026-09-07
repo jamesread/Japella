@@ -31,29 +31,13 @@
 					aria-hidden="true"
 				/>
 			</button>
-			<button
-				v-if="canDelete"
-				type="button"
-				class="inline-icon bad"
-				:disabled="saving || loading"
-				@click="deleteRole"
-			>
-				<HugeiconsIcon
-					:icon="Delete02Icon"
-					width="1em"
-					height="1em"
-					:strokeWidth="iconStrokeWidth"
-					aria-hidden="true"
-				/>
-				<span>Delete role</span>
-			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</div>
-		<div v-if="actionMessage" class="inline-notification" :class="actionMessageType">{{ actionMessage }}</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
+		<NotificationBlock v-if="actionMessage" :type="actionMessageType" :message="actionMessage" />
 
 		<div v-if="loading" class="muted">Loading…</div>
-		<div v-else-if="!role" class="inline-notification note">Role not found.</div>
+		<NotificationBlock v-else-if="!role" type="note" message="Role not found." />
 		<template v-else>
 			<dl class="role-meta">
 				<dt>Role ID</dt>
@@ -73,12 +57,14 @@
 			</dl>
 
 			<h3 class="subsection-title">Permissions</h3>
-			<p v-if="role.name === 'superuser'" class="inline-notification note">
+			<NotificationBlock v-if="role.name === 'superuser'" type="note">
 				The <strong>superuser</strong> role grants every permission in the system. Its permission set cannot be edited.
-			</p>
-			<p v-else-if="!canManage" class="inline-notification note">
-				You can view permissions. Editing requires the rbac.manage permission.
-			</p>
+			</NotificationBlock>
+			<NotificationBlock
+				v-else-if="!canManage"
+				type="note"
+				message="You can view permissions. Editing requires the rbac.manage permission."
+			/>
 
 			<FormLayout v-if="canEdit" @submit.prevent="saveRole">
 				<FormField label="Name" for="role-name" :disabled="saving || !canEditName">
@@ -156,7 +142,7 @@
 		v-if="!loading && role"
 		subtitle="User groups that assign this role. Add groups here or manage assignments on group detail pages."
 		classes="role-details-groups settings-users"
-		:padding="assignedGroups.length === 0"
+		:padding="false"
 	>
 		<template #title>
 			<span class="section-title-with-icon">
@@ -201,22 +187,21 @@
 			</button>
 		</template>
 
-		<div
+		<NotificationBlock
 			v-if="groupsActionMessage"
-			class="inline-notification list-banner-pad"
-			:class="groupsActionMessageType"
-		>{{ groupsActionMessage }}</div>
-
-		<p v-if="!assignedGroups.length" class="inline-notification note">No groups are assigned this role.</p>
+			:type="groupsActionMessageType"
+			:message="groupsActionMessage"
+		/>
 
 		<Table
-			v-else
 			class="groups-table-wrap"
-			row-clickable
 			:data="assignedGroups"
 			:headers="groupTableHeaders"
 			@row-click="openGroupDetails"
 		>
+			<template #empty>
+				No groups are assigned this role.
+			</template>
 			<template #cell-name="{ value }">
 				<strong>{{ value }}</strong>
 			</template>
@@ -237,7 +222,7 @@
 		v-if="!loading && role"
 		subtitle="Users who inherit this role through group membership."
 		classes="role-details-users settings-users"
-		:padding="assignedUsers.length === 0"
+		:padding="false"
 	>
 		<template #title>
 			<span class="section-title-with-icon">
@@ -265,21 +250,46 @@
 			</button>
 		</template>
 
-		<p v-if="!assignedUsers.length" class="inline-notification note">No users inherit this role via groups.</p>
-
 		<Table
-			v-else
 			class="users-table-wrap"
-			row-clickable
 			:data="assignedUsers"
 			:headers="userTableHeaders"
 			@row-click="openUserDetails"
 		>
+			<template #empty>
+				No users inherit this role via groups.
+			</template>
 			<template #cell-username="{ value }">
 				<strong>{{ value }}</strong>
 			</template>
 		</Table>
 	</Section>
+
+	<DangerZone
+		v-if="!loading && role && canDelete"
+		title="Danger zone"
+		subtitle="Destructive actions for this role"
+		description="Show destructive actions"
+		warning="Deleting this role removes it from all groups that currently use it."
+	>
+		<div role="toolbar" class="danger-zone-actions">
+			<button
+				type="button"
+				class="inline-icon bad"
+				:disabled="saving || loading"
+				@click="deleteRole"
+			>
+				<HugeiconsIcon
+					:icon="Delete02Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Delete role</span>
+			</button>
+		</div>
+	</DangerZone>
 </template>
 
 <script setup>
@@ -289,9 +299,11 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon, Add01Icon, Delete02Icon, RefreshIcon, UserGroupIcon, UserMultiple02Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
+	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
-	import Table from './picocrank/TableWithRowClick.vue';
+	import Table from 'picocrank/vue/components/Table.vue';
 	import UserGroupLookupDialog from './UserGroupLookupDialog.vue';
 	import { waitForClient } from '../javascript/util';
 
@@ -396,11 +408,11 @@
 		}
 	}
 
-	function openGroupDetails(row) {
+	function openGroupDetails({ row }) {
 		router.push({ name: 'userGroupDetails', params: { id: String(row.id) } });
 	}
 
-	function openUserDetails(row) {
+	function openUserDetails({ row }) {
 		router.push({ name: 'userDetails', params: { id: String(row.id) } });
 	}
 
@@ -537,6 +549,11 @@
 </script>
 
 <style scoped>
+	.danger-zone-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
 	.role-meta {
 		display: grid;
 		grid-template-columns: auto 1fr;
@@ -601,11 +618,6 @@
 		align-items: center;
 		gap: 0.45em;
 		vertical-align: middle;
-	}
-
-	.list-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
 	}
 
 	.groups-table-wrap,

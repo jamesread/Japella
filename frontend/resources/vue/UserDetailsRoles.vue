@@ -43,15 +43,21 @@
 			</button>
 		</template>
 
-		<div v-if="!userId" class="inline-notification error">Invalid user ID.</div>
-		<div v-else-if="errorMessage" class="inline-notification error">{{ errorMessage }}</div>
+		<NotificationBlock v-if="!userId" type="error" message="Invalid user ID." />
+		<NotificationBlock v-else-if="errorMessage" type="error" :message="errorMessage" />
 		<div v-else-if="loading" class="muted">Loading…</div>
 		<template v-else>
 			<h3 class="subsection-title">Group membership</h3>
-			<p v-if="!canManageGroups" class="inline-notification note">
-				You can view group membership. Editing requires the usergroups.manage permission.
-			</p>
-			<p v-else-if="!allGroups.length" class="inline-notification note">No user groups exist yet.</p>
+			<NotificationBlock
+				v-if="!canManageGroups"
+				type="note"
+				message="You can view group membership. Editing requires the usergroups.manage permission."
+			/>
+			<NotificationBlock
+				v-else-if="!allGroups.length"
+				type="note"
+				message="No user groups exist yet."
+			/>
 			<FormLayout v-else-if="canManageGroups" @submit.prevent="saveUserGroups">
 				<FormField label="Groups for this user" component-has-label :disabled="saving">
 					<CheckGroup
@@ -73,20 +79,20 @@
 					disabled
 				/>
 			</FormField>
-			<p v-if="actionMessage" class="inline-notification" :class="actionMessageType">{{ actionMessage }}</p>
+			<NotificationBlock v-if="actionMessage" :type="actionMessageType" :message="actionMessage" />
 
 			<h3 class="subsection-title">Effective roles</h3>
 			<p class="section-hint">Computed from group membership. Assign roles on group detail pages.</p>
-			<p v-if="!effectiveRoleNames.length" class="inline-notification note">No roles via group membership.</p>
+			<NotificationBlock v-if="!effectiveRoleNames.length" type="note" message="No roles via group membership." />
 			<p v-else>
 				<span v-for="name in effectiveRoleNames" :key="name" class="role-tag">{{ name }}</span>
 			</p>
 
 			<h3 class="subsection-title">Effective permissions</h3>
 			<template v-if="permissions.length">
-				<p v-if="userIsSuperuser" class="inline-notification note">
+				<NotificationBlock v-if="userIsSuperuser" type="note">
 					This user has the <strong>superuser</strong> role via group membership — all permissions are granted.
-				</p>
+				</NotificationBlock>
 				<table class="perm-audit-table">
 					<thead>
 						<tr>
@@ -124,6 +130,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { ArrowLeft01Icon, RefreshIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import CheckGroup from 'picocrank/vue/components/CheckGroup.vue';

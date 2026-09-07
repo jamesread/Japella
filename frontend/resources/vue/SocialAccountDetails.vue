@@ -28,12 +28,8 @@
 		<div v-if="!clientReady || loading">
 			<p>Loading...</p>
 		</div>
-		<div v-else-if="error">
-			<p class="inline-notification error">{{ error }}</p>
-		</div>
-		<div v-else-if="!account">
-			<p class="inline-notification note">Account not found.</p>
-		</div>
+		<NotificationBlock v-else-if="error" type="error" :message="error" />
+		<NotificationBlock v-else-if="!account" type="note" message="Account not found." />
 		<dl v-else>
 			<dt>ID</dt>
 			<dd>{{ account.id }}</dd>
@@ -127,25 +123,118 @@
 				<span>{{ account?.active ? 'Deactivate' : 'Activate' }}</span>
 			</button>
 		</div>
+	</Section>
 
-		<div class="action-item">
-			<div class="action-description">
-				<Icon icon="material-symbols:delete" width="24" height="24" />
-				<div>
-					<h5 style="margin: 0 0 0.25em 0;">Delete Account</h5>
-					<p style="margin: 0; font-size: 0.9em;">Permanently remove this social account. This action cannot be undone.</p>
-				</div>
-			</div>
-			<button type="button" class="inline-icon bad" :disabled="!clientReady || loading" @click="deleteAccount">
-				<HugeiconsIcon
-					:icon="Delete02Icon"
-					width="1em"
-					height="1em"
-					:strokeWidth="iconStrokeWidth"
-					aria-hidden="true"
-				/>
-				<span>Delete</span>
+	<Section
+		v-if="!loading && account && account.canManage"
+		title="Keyword Watch"
+		subtitle="Monitor the network for keywords using this account's access. Matches emit the keyword.matched webhook. Posts older than the watch creation time are recorded without notifying."
+		classes="keyword-watches"
+	>
+		<dl v-if="watchCapabilities" class="watch-capabilities">
+			<dt>Search watching</dt>
+			<dd>{{ searchWatchDescription }}</dd>
+			<dt>Live watching</dt>
+			<dd>{{ liveWatchDescription }}</dd>
+			<dt v-if="watchState?.acquisitionMode">Current mode</dt>
+			<dd v-if="watchState?.acquisitionMode">{{ acquisitionModeDescription }}</dd>
+			<dt v-if="watchState?.lastError">Last error</dt>
+			<dd v-if="watchState?.lastError">{{ watchState.lastError }}</dd>
+		</dl>
+
+		<div class="keyword-add">
+			<input
+				v-model="newKeyword"
+				type="text"
+				placeholder="Add keyword or #hashtag"
+				:disabled="watchesBusy"
+				@keyup.enter="addKeywordWatch"
+			/>
+			<button type="button" class="inline-icon good" :disabled="watchesBusy || !newKeyword.trim()" @click="addKeywordWatch">
+				<HugeiconsIcon :icon="Add01Icon" width="1em" height="1em" :strokeWidth="iconStrokeWidth" aria-hidden="true" />
+				<span>Add</span>
 			</button>
+		</div>
+		<NotificationBlock v-if="watchesError" type="error" :message="watchesError" />
+
+		<Table
+			class="keyword-watches-table-wrap"
+			:data="watches"
+			:headers="watchTableHeaders"
+			:loading="watchesBusy && !watches.length"
+		>
+			<template #empty>
+				No keywords configured.
+			</template>
+			<template #cell-keyword="{ row }">
+				<input
+					v-if="editingWatchId === row.id"
+					v-model="editingWatchKeyword"
+					type="text"
+					class="keyword-edit-input"
+					:disabled="watchesBusy"
+					aria-label="Edit keyword"
+					@keyup.enter="saveKeywordWatch(row)"
+					@keyup.esc="cancelEditKeywordWatch"
+				/>
+				<span v-else>{{ row.keyword }}</span>
+			</template>
+			<template #cell-enabled="{ row }">
+				<input
+					type="checkbox"
+					:checked="row.enabled"
+					:disabled="watchesBusy || editingWatchId === row.id"
+					:aria-label="`Enable watch for ${row.keyword}`"
+					@change="toggleKeywordWatch(row, $event.target.checked)"
+				/>
+			</template>
+			<template #cell-actions="{ row }">
+				<div class="actions-cell">
+					<template v-if="editingWatchId === row.id">
+						<button type="button" class="good small" :disabled="watchesBusy || !editingWatchKeyword.trim()" @click="saveKeywordWatch(row)">
+							Save
+						</button>
+						<button type="button" class="neutral small" :disabled="watchesBusy" @click="cancelEditKeywordWatch">
+							Cancel
+						</button>
+					</template>
+					<template v-else>
+						<button type="button" class="neutral small" :disabled="watchesBusy" @click="beginEditKeywordWatch(row)">
+							Edit
+						</button>
+						<button type="button" class="bad small" :disabled="watchesBusy" @click="removeKeywordWatch(row)">
+							Remove
+						</button>
+					</template>
+				</div>
+			</template>
+		</Table>
+
+		<div v-if="recentMatches.length" class="recent-matches">
+			<h5>Recent matches</h5>
+			<table class="data-table">
+				<thead>
+					<tr>
+						<th>When</th>
+						<th>Keyword</th>
+						<th>Author</th>
+						<th>Mode</th>
+						<th>Content</th>
+					</tr>
+				</thead>
+				<tbody>
+					<tr v-for="m in recentMatches" :key="m.id">
+						<td>{{ formatLogDate(m.matchedAt) }}</td>
+						<td>{{ m.keyword }}</td>
+						<td>
+							<a v-if="m.remoteUrl" :href="m.remoteUrl" target="_blank" rel="noopener">{{ m.authorHandle || m.authorId || 'post' }}</a>
+							<span v-else>{{ m.authorHandle || m.authorId || '—' }}</span>
+						</td>
+						<td>{{ m.acquisitionMode }}</td>
+						<td>{{ m.contentSnippet }}</td>
+					</tr>
+				</tbody>
+			</table>
 		</div>
 	</Section>
 
@@ -178,12 +267,8 @@
 		<div v-if="logsLoading" style="padding: 1rem;">
 			<p>Loading logs...</p>
 		</div>
-		<div v-else-if="logsError" style="padding: 1rem;">
-			<p class="inline-notification error">{{ logsError }}</p>
-		</div>
-		<div v-else-if="accountLogs.length === 0" style="padding: 1rem;">
-			<p class="inline-notification note">No logs found for this account.</p>
-		</div>
+		<NotificationBlock v-else-if="logsError" type="error" :message="logsError" />
+		<NotificationBlock v-else-if="accountLogs.length === 0" type="note" message="No logs found for this account." />
 		<table v-else class="data-table">
 			<thead>
 				<tr>
@@ -208,7 +293,7 @@
 		v-if="!loading && account && canManageSharing"
 		subtitle="Grant read, post, or manage access to user groups; members of those groups inherit the permissions"
 		classes="social-account-sharing"
-		:padding="shares.length === 0"
+		:padding="false"
 	>
 		<template #title>
 			<span class="section-title-with-icon">
@@ -268,51 +353,47 @@
 			</button>
 		</template>
 
-		<div
-			v-if="sharesError"
-			class="inline-notification error"
-			:class="{ 'list-banner-pad': shares.length > 0 }"
-		>{{ sharesError }}</div>
-		<div v-if="sharesLoading && !shares.length" class="muted">Loading shares…</div>
+		<NotificationBlock v-if="sharesError" type="error" :message="sharesError" />
 
-		<template v-else>
-			<p v-if="!shares.length" class="inline-notification note">Not shared with any user groups.</p>
+		<Table
+			class="shares-table-wrap"
+			:data="shares"
+			:headers="shareTableHeaders"
+			:loading="sharesLoading"
+		>
+			<template #empty>
+				Not shared with any user groups.
+			</template>
+			<template #cell-groupName="{ value }">
+				<strong>{{ value }}</strong>
+			</template>
+			<template #cell-canRead="{ row }">
+				<div class="share-check-cell">
+					<input type="checkbox" v-model="row.canRead" :aria-label="`Read access for ${row.groupName}`" />
+				</div>
+			</template>
+			<template #cell-canPost="{ row }">
+				<div class="share-check-cell">
+					<input type="checkbox" v-model="row.canPost" :aria-label="`Post access for ${row.groupName}`" />
+				</div>
+			</template>
+			<template #cell-canManage="{ row }">
+				<div class="share-check-cell">
+					<input type="checkbox" v-model="row.canManage" :aria-label="`Manage access for ${row.groupName}`" />
+				</div>
+			</template>
+			<template #cell-actions="{ row }">
+				<div class="actions-cell">
+					<button type="button" class="bad small" @click="removeShare(row)">Remove</button>
+				</div>
+			</template>
+		</Table>
 
-			<Table
-				v-else
-				class="shares-table-wrap"
-				:data="shares"
-				:headers="shareTableHeaders"
-			>
-				<template #cell-groupName="{ value }">
-					<strong>{{ value }}</strong>
-				</template>
-				<template #cell-canRead="{ row }">
-					<div class="share-check-cell">
-						<input type="checkbox" v-model="row.canRead" :aria-label="`Read access for ${row.groupName}`" />
-					</div>
-				</template>
-				<template #cell-canPost="{ row }">
-					<div class="share-check-cell">
-						<input type="checkbox" v-model="row.canPost" :aria-label="`Post access for ${row.groupName}`" />
-					</div>
-				</template>
-				<template #cell-canManage="{ row }">
-					<div class="share-check-cell">
-						<input type="checkbox" v-model="row.canManage" :aria-label="`Manage access for ${row.groupName}`" />
-					</div>
-				</template>
-				<template #cell-actions="{ row }">
-					<div class="actions-cell">
-						<button type="button" class="bad small" @click="removeShare(row)">Remove</button>
-					</div>
-				</template>
-			</Table>
-
-			<div v-if="sharesMessage" :class="{ 'list-banner-pad': shares.length > 0 }">
-				<p :class="'inline-notification ' + sharesMessageType">{{ sharesMessage }}</p>
-			</div>
-		</template>
+		<NotificationBlock
+			v-if="sharesMessage"
+			:type="sharesMessageType"
+			:message="sharesMessage"
+		/>
 	</Section>
 
 	<UserGroupLookupDialog
@@ -324,6 +405,27 @@
 		:exclude-group-ids="sharedGroupIds"
 		@picked="onShareGroupsPicked"
 	/>
+
+	<DangerZone
+		v-if="!loading && account && account.canManage"
+		title="Danger zone"
+		subtitle="Destructive actions for this social account"
+		description="Show destructive actions"
+		warning="Permanently remove this social account. This action cannot be undone."
+	>
+		<div role="toolbar" class="danger-zone-actions">
+			<button type="button" class="inline-icon bad" :disabled="!clientReady || loading" @click="deleteAccount">
+				<HugeiconsIcon
+					:icon="Delete02Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Delete account</span>
+			</button>
+		</div>
+	</DangerZone>
 </template>
 
 <script setup>
@@ -342,6 +444,8 @@
 		UserGroupIcon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Table from 'picocrank/vue/components/Table.vue';
 	import UserGroupLookupDialog from './UserGroupLookupDialog.vue';
 
@@ -369,6 +473,66 @@
 	const accountLogs = ref([])
 	const logsLoading = ref(false)
 	const logsError = ref('')
+
+	const watches = ref([])
+	const watchState = ref(null)
+	const recentMatches = ref([])
+	const watchCapabilities = ref(null)
+	const watchesBusy = ref(false)
+	const watchesError = ref('')
+	const newKeyword = ref('')
+	const editingWatchId = ref(0)
+	const editingWatchKeyword = ref('')
+
+	const watchTableHeaders = [
+		{ key: 'keyword', label: 'Keyword', sortable: true },
+		{ key: 'enabled', label: 'Enabled', sortable: false, width: '6rem' },
+		{ key: 'actions', label: 'Actions', sortable: false, width: '10rem' },
+	]
+
+	const searchWatchDescription = computed(() => {
+		if (!watchCapabilities.value) return ''
+		if (watchCapabilities.value.supportsSearch) {
+			return 'Supported. Japella periodically searches the network for your keywords.'
+		}
+		return 'Not supported on this network. Keyword matches will not be found via search polling.'
+	})
+
+	const liveWatchDescription = computed(() => {
+		if (!watchCapabilities.value) return ''
+		const fidelity = String(watchCapabilities.value.nativeFidelity || '')
+		switch (fidelity) {
+			case 'hashtag_only':
+				return 'Supported for hashtags only (keywords that start with #). Those stream live; other keywords use search watching.'
+			case 'exact_rule':
+				return 'Supported. Keywords can be watched live with exact matching on this network.'
+			case 'client_filter':
+				return 'Supported with client-side filtering. Japella receives a live feed and matches your keywords locally.'
+			case 'search_only':
+				return 'Not available. This network does not offer a live keyword stream, so Japella relies on search watching.'
+			default:
+				if (watchCapabilities.value.supportsNative) {
+					return 'Supported. Live keyword watching is available on this network.'
+				}
+				return 'Not available. This network does not offer a live keyword stream, so Japella relies on search watching when search is supported.'
+		}
+	})
+
+	const acquisitionModeDescription = computed(() => {
+		const mode = String(watchState.value?.acquisitionMode || '').toLowerCase()
+		switch (mode) {
+			case 'native':
+				return 'Using live watching right now.'
+			case 'search':
+				return 'Using search watching right now.'
+			case 'evaluating':
+				return 'Choosing the best watching method for this account.'
+			case 'degraded':
+				return 'Temporarily limited (for example after rate limiting). Japella will retry when it can.'
+			default:
+				return watchState.value?.acquisitionMode || ''
+		}
+	})
 
 	const canManageSharing = computed(() => {
 		if (!account.value) return false
@@ -426,12 +590,115 @@
 			if (!account.value) {
 				error.value = 'Account not found.'
 			} else {
-				await Promise.all([fetchLastPosted(), loadAccountLogs()])
+				await Promise.all([fetchLastPosted(), loadAccountLogs(), loadKeywordWatches()])
 			}
 		} catch (e) {
 			error.value = `Failed to load account: ${e.message || e}`
 		} finally {
 			loading.value = false
+		}
+	}
+
+	async function loadKeywordWatches() {
+		if (!accountId.value || !account.value?.canManage) return
+		watchesError.value = ''
+		try {
+			const res = await window.client.listKeywordWatches({ socialAccountId: accountId.value })
+			watches.value = res.watches || []
+			watchState.value = res.state || null
+			recentMatches.value = res.recentMatches || []
+			watchCapabilities.value = {
+				supportsSearch: !!res.supportsSearch,
+				supportsNative: !!res.supportsNative,
+				nativeFidelity: res.nativeFidelity || '',
+			}
+		} catch (e) {
+			watchesError.value = `Failed to load keyword watches: ${e.message || e}`
+			watches.value = []
+			recentMatches.value = []
+		}
+	}
+
+	async function addKeywordWatch() {
+		const keyword = newKeyword.value.trim()
+		if (!keyword || !accountId.value) return
+		watchesBusy.value = true
+		watchesError.value = ''
+		try {
+			await window.client.createKeywordWatch({
+				socialAccountId: accountId.value,
+				keyword,
+				enabled: true,
+			})
+			newKeyword.value = ''
+			await loadKeywordWatches()
+		} catch (e) {
+			watchesError.value = `Failed to add keyword: ${e.message || e}`
+		} finally {
+			watchesBusy.value = false
+		}
+	}
+
+	async function toggleKeywordWatch(w, enabled) {
+		watchesBusy.value = true
+		watchesError.value = ''
+		try {
+			await window.client.updateKeywordWatch({
+				id: w.id,
+				keyword: w.keyword,
+				enabled,
+			})
+			await loadKeywordWatches()
+		} catch (e) {
+			watchesError.value = `Failed to update keyword: ${e.message || e}`
+			await loadKeywordWatches()
+		} finally {
+			watchesBusy.value = false
+		}
+	}
+
+	function beginEditKeywordWatch(w) {
+		editingWatchId.value = w.id
+		editingWatchKeyword.value = w.keyword
+		watchesError.value = ''
+	}
+
+	function cancelEditKeywordWatch() {
+		editingWatchId.value = 0
+		editingWatchKeyword.value = ''
+	}
+
+	async function saveKeywordWatch(w) {
+		const keyword = editingWatchKeyword.value.trim()
+		if (!keyword) return
+		watchesBusy.value = true
+		watchesError.value = ''
+		try {
+			await window.client.updateKeywordWatch({
+				id: w.id,
+				keyword,
+				enabled: w.enabled,
+			})
+			cancelEditKeywordWatch()
+			await loadKeywordWatches()
+		} catch (e) {
+			watchesError.value = `Failed to update keyword: ${e.message || e}`
+		} finally {
+			watchesBusy.value = false
+		}
+	}
+
+	async function removeKeywordWatch(w) {
+		if (!confirm(`Remove keyword watch "${w.keyword}"?`)) return
+		watchesBusy.value = true
+		watchesError.value = ''
+		try {
+			await window.client.deleteKeywordWatch({ id: w.id })
+			await loadKeywordWatches()
+		} catch (e) {
+			watchesError.value = `Failed to remove keyword: ${e.message || e}`
+		} finally {
+			watchesBusy.value = false
 		}
 	}
 
@@ -746,11 +1013,6 @@ async function toggleActive() {
 		vertical-align: middle;
 	}
 
-	.list-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
-
 	.shares-table-wrap {
 		margin-top: 0.5rem;
 		margin-bottom: 0.5rem;
@@ -758,5 +1020,53 @@ async function toggleActive() {
 
 	.actions-cell {
 		text-align: right;
+	}
+
+	.danger-zone-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.keyword-add {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+		margin-bottom: 1rem;
+	}
+
+	.keyword-add input {
+		flex: 1;
+		max-width: 24rem;
+	}
+
+	.keyword-watches-table-wrap {
+		margin-bottom: 0.5rem;
+	}
+
+	.keyword-edit-input {
+		width: 100%;
+		max-width: 24rem;
+		box-sizing: border-box;
+	}
+
+	.watch-capabilities {
+		display: grid;
+		grid-template-columns: 9rem 1fr;
+		gap: 0.45rem 1rem;
+		margin: 0 0 1rem;
+	}
+
+	.watch-capabilities dt {
+		font-weight: 600;
+		opacity: 0.85;
+	}
+
+	.watch-capabilities dd {
+		margin: 0;
+	}
+
+	.recent-matches {
+		margin-top: 1.25rem;
 	}
 </style>

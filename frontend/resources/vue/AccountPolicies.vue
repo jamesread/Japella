@@ -47,32 +47,29 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error list-banner-pad">{{ errorMessage }}</div>
-		<div v-if="loading && !policies.length" class="list-banner-pad muted">Loading…</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
 
-		<template v-else>
-			<p v-if="!policies.length" class="inline-notification note list-banner-pad">No account policies yet.</p>
-
-			<Table
-				v-else
-				class="policies-table-wrap"
-				row-clickable
-				:data="tableRows"
-				:headers="tableHeaders"
-				@row-click="openPolicy"
-			>
-				<template #cell-name="{ value }">
-					<strong>{{ value }}</strong>
-				</template>
-				<template #cell-actions="{ row }">
-					<div v-if="canManage" class="actions-cell">
-						<button type="button" class="bad small" :disabled="saving" @click="deletePolicy(row)">
-							Delete
-						</button>
-					</div>
-				</template>
-			</Table>
-		</template>
+		<Table
+			class="policies-table-wrap"
+			:data="tableRows"
+			:headers="tableHeaders"
+			:loading="loading"
+			@row-click="openPolicy"
+		>
+			<template #empty>
+				No account policies yet.
+			</template>
+			<template #cell-name="{ value }">
+				<strong>{{ value }}</strong>
+			</template>
+			<template #cell-actions="{ row }">
+				<div v-if="canManage" class="actions-cell">
+					<button type="button" class="bad small" :disabled="saving" @click="deletePolicy(row)">
+						Delete
+					</button>
+				</div>
+			</template>
+		</Table>
 	</Section>
 </template>
 
@@ -83,7 +80,8 @@ import { waitForClient } from '../javascript/util';
 import { HugeiconsIcon } from '@hugeicons/vue';
 import { Add01Icon, RefreshIcon, SecurityValidationIcon } from '@hugeicons/core-free-icons';
 import Section from 'picocrank/vue/components/Section.vue';
-import Table from './picocrank/TableWithRowClick.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
+import Table from 'picocrank/vue/components/Table.vue';
 
 const iconStrokeWidth = 2.5;
 
@@ -127,8 +125,8 @@ function goCreate() {
 	router.push({ name: 'createAccountPolicy' });
 }
 
-function openPolicy(p) {
-	router.push({ name: 'editAccountPolicy', params: { id: String(p.id) } });
+function openPolicy({ row }) {
+	router.push({ name: 'editAccountPolicy', params: { id: String(row.id) } });
 }
 
 async function refreshStatus() {
@@ -179,10 +177,6 @@ onMounted(loadAll);
 	vertical-align: middle;
 }
 
-.list-banner-pad {
-	padding-left: 1em;
-	padding-right: 1em;
-}
 
 .policies-table-wrap {
 	margin-top: 0.5rem;

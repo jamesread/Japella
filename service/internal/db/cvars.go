@@ -8,25 +8,37 @@ const (
 )
 
 var CvarKeys = struct {
-	BaseUrl                        string
-	OAuth2RedirectURL              string
-	IsPubliclyAccessible           string
+	BaseUrl                         string
+	OAuth2RedirectURL               string
+	IsPubliclyAccessible            string
 	ThemeColorSchemeSwitcherEnabled string
-	ThemeName                      string
-	ThemeControl                   string
-	DebugAuth                      string
-	DebugFeed                      string
-	DebugHTTP                      string
+	ThemeName                       string
+	ThemeControl                    string
+	DebugAuth                       string
+	DebugFeed                       string
+	DebugHTTP                       string
+	KeywordWatchSearchIntervalSeconds  string
+	KeywordWatchSearchLookbackSeconds  string
+	KeywordWatchNativeRetrySeconds     string
+	KeywordWatchMaxMatchesPerPoll      string
+	KeywordWatchMaxEmitsPerHour        string
+	KeywordWatchMatchRetention         string
 }{
-	BaseUrl:                         "base_url",
-	OAuth2RedirectURL:               "oauth2_redirect_url",
-	IsPubliclyAccessible:            "is_publicly_accessible",
-	ThemeColorSchemeSwitcherEnabled: "theme_color_scheme_switcher_enabled",
-	ThemeName:                       "theme_name",
-	ThemeControl:                    "theme_control",
-	DebugAuth:                       debuglog.KeyAuth,
-	DebugFeed:                       debuglog.KeyFeed,
-	DebugHTTP:                       debuglog.KeyHTTP,
+	BaseUrl:                            "base_url",
+	OAuth2RedirectURL:                  "oauth2_redirect_url",
+	IsPubliclyAccessible:               "is_publicly_accessible",
+	ThemeColorSchemeSwitcherEnabled:    "theme_color_scheme_switcher_enabled",
+	ThemeName:                          "theme_name",
+	ThemeControl:                       "theme_control",
+	DebugAuth:                          debuglog.KeyAuth,
+	DebugFeed:                          debuglog.KeyFeed,
+	DebugHTTP:                          debuglog.KeyHTTP,
+	KeywordWatchSearchIntervalSeconds:  "keyword_watch_search_interval_seconds",
+	KeywordWatchSearchLookbackSeconds:  "keyword_watch_search_lookback_seconds",
+	KeywordWatchNativeRetrySeconds:     "keyword_watch_native_retry_seconds",
+	KeywordWatchMaxMatchesPerPoll:      "keyword_watch_max_matches_per_poll",
+	KeywordWatchMaxEmitsPerHour:        "keyword_watch_max_emits_per_hour",
+	KeywordWatchMatchRetention:         "keyword_watch_match_retention",
 }
 
 var CvarList = []Cvar{
@@ -39,6 +51,12 @@ var CvarList = []Cvar{
 	{KeyName: CvarKeys.DebugAuth, Title: "Auth debug logging", ValueInt: 0, Category: "Debug", Description: "Log authentication details (API key checks, httpauthshim path). Independent of config.yaml logLevel.", Type: "bool", DefaultValue: "0"},
 	{KeyName: CvarKeys.DebugFeed, Title: "Feed fetcher debug logging", ValueInt: 0, Category: "Debug", Description: "Log feed fetch cycles and per-post insert/skip details. Independent of config.yaml logLevel.", Type: "bool", DefaultValue: "0"},
 	{KeyName: CvarKeys.DebugHTTP, Title: "HTTP client debug logging", ValueInt: 0, Category: "Debug", Description: "Log outbound HTTP requests, responses, headers, and bodies. Independent of config.yaml logLevel.", Type: "bool", DefaultValue: "0"},
+	{KeyName: CvarKeys.KeywordWatchSearchIntervalSeconds, Title: "Keyword watch search interval (seconds)", ValueInt: 300, Category: "Keyword Watch", Description: "How often Japella polls platform search APIs when native watch is unavailable or degraded.", Type: "int", DefaultValue: "300"},
+	{KeyName: CvarKeys.KeywordWatchSearchLookbackSeconds, Title: "Keyword watch search lookback (seconds)", ValueInt: 900, Category: "Keyword Watch", Description: "How far back each search poll considers recent posts.", Type: "int", DefaultValue: "900"},
+	{KeyName: CvarKeys.KeywordWatchNativeRetrySeconds, Title: "Keyword watch native retry (seconds)", ValueInt: 1800, Category: "Keyword Watch", Description: "Minimum wait before re-probing native watch after falling back to search.", Type: "int", DefaultValue: "1800"},
+	{KeyName: CvarKeys.KeywordWatchMaxMatchesPerPoll, Title: "Keyword watch max matches per poll", ValueInt: 50, Category: "Keyword Watch", Description: "Circuit breaker: max matches processed per account per search poll.", Type: "int", DefaultValue: "50"},
+	{KeyName: CvarKeys.KeywordWatchMaxEmitsPerHour, Title: "Keyword watch max webhook emits per hour", ValueInt: 100, Category: "Keyword Watch", Description: "Per social account cap on keyword.matched webhook emissions per hour.", Type: "int", DefaultValue: "100"},
+	{KeyName: CvarKeys.KeywordWatchMatchRetention, Title: "Keyword watch match retention", ValueInt: 200, Category: "Keyword Watch", Description: "How many recent matches to keep per keyword watch.", Type: "int", DefaultValue: "200"},
 }
 
 func (db *DB) ThemeColorSchemeSwitcherEnabled() bool {

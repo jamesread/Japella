@@ -33,7 +33,7 @@
 		</template>
 
 		<div v-if="errorMessage">
-			<p class="inline-notification error">{{ errorMessage }}</p>
+			<NotificationBlock type="error" :message="errorMessage" />
 		</div>
 
 		<div v-if="loading && !connectors.length" class="muted">Loading connectors…</div>
@@ -54,6 +54,7 @@
 	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import { waitForClient, normalizeConnectorIssues, connectorUsesOauth } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ConnectorCatalog from './ConnectorCatalog.vue';
 
 	const iconStrokeWidth = 2.5;

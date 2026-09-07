@@ -15,16 +15,16 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="!canAccess">
-			<p class="inline-notification error">You do not have permission to view logs.</p>
+			<NotificationBlock type="error" message="You do not have permission to view logs." />
 		</div>
 		<div v-else-if="loading">
 			<p>Loading logs...</p>
 		</div>
 		<div v-else-if="error">
-			<p class="inline-notification error">{{ error }}</p>
+			<NotificationBlock type="error" :message="error" />
 		</div>
 		<div v-else-if="logs.length === 0">
-			<p class="inline-notification note">No logs found.</p>
+			<NotificationBlock type="note" message="No logs found." />
 		</div>
 		<table v-else class="data-table">
 			<thead>
@@ -62,6 +62,7 @@
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import SocialAccountChip from './SocialAccountChip.vue';
 
 	const clientReady = ref(false);

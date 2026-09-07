@@ -39,9 +39,11 @@ func RequiredPermission(procedureName string) string {
 		controlv1.JapellaControlApiServiceSetCvarProcedure,
 		controlv1.JapellaControlApiServiceStopServiceProcedure,
 		controlv1.JapellaControlApiServiceListWebhooksProcedure,
+		controlv1.JapellaControlApiServiceGetWebhookProcedure,
 		controlv1.JapellaControlApiServiceCreateWebhookProcedure,
 		controlv1.JapellaControlApiServiceUpdateWebhookProcedure,
 		controlv1.JapellaControlApiServiceDeleteWebhookProcedure,
+		controlv1.JapellaControlApiServiceTestWebhookProcedure,
 		controlv1.JapellaControlApiServiceListBotWebhooksProcedure:
 		return rbac.PermissionSystemSettings
 

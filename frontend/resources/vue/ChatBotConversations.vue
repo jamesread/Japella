@@ -13,12 +13,8 @@
 			<Icon icon="eos-icons:loading" width="20" height="20" />
 			<span style="margin-left: .5em;">Loading conversations...</span>
 		</div>
-		<div v-else-if="conversationsError" class="inline-notification error">
-			{{ conversationsError }}
-		</div>
-		<div v-else-if="conversations.length === 0" class="inline-notification note">
-			No conversations yet.
-		</div>
+		<NotificationBlock v-else-if="conversationsError" type="error" :message="conversationsError" />
+		<NotificationBlock v-else-if="conversations.length === 0" type="note" message="No conversations yet." />
 		<div v-else class="conversation-layout">
 			<div class="conversation-list">
 				<button
@@ -50,11 +46,13 @@
 					<Icon icon="eos-icons:loading" width="20" height="20" />
 					<span style="margin-left: .5em;">Loading messages...</span>
 				</div>
-				<div v-else-if="messagesError" class="inline-notification error">
-					{{ messagesError }}
-				</div>
+				<NotificationBlock v-else-if="messagesError" type="error" :message="messagesError" />
 				<div v-else>
-					<div v-if="messages.length === 0" class="inline-notification note">No messages in this conversation.</div>
+					<NotificationBlock
+						v-if="messages.length === 0"
+						type="note"
+						message="No messages in this conversation."
+					/>
 					<div v-else ref="messagesListEl" class="messages-list">
 						<div
 							v-for="message in messages"
@@ -70,9 +68,12 @@
 						</div>
 					</div>
 
-					<div v-if="selectedRow && !canReply" class="inline-notification warning" style="margin: 0.75em;">
-						{{ offlineReplyMessage }}
-					</div>
+					<NotificationBlock
+						v-if="selectedRow && !canReply"
+						type="warning"
+						:message="offlineReplyMessage"
+						style="margin: 0.75em;"
+					/>
 
 					<div class="reply-box">
 						<textarea
@@ -85,9 +86,12 @@
 								{{ sendingReply ? 'Sending...' : 'Send reply' }}
 							</button>
 						</div>
-						<div v-if="replyMessage" class="inline-notification" :class="replyMessageType" style="margin-top: 0.75em;">
-							{{ replyMessage }}
-						</div>
+						<NotificationBlock
+							v-if="replyMessage"
+							:type="replyMessageType"
+							:message="replyMessage"
+							style="margin-top: 0.75em;"
+						/>
 					</div>
 				</div>
 			</div>
@@ -98,6 +102,7 @@
 <script setup>
 	import { ref, watch, onUnmounted, nextTick, computed } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 
 	const props = defineProps({
 		/** Single-bot mode: one bot from bot details / per-bot conversations route */

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"github.com/jamesread/japella/internal/webhook"
 	"github.com/jmoiron/sqlx"
@@ -186,5 +187,88 @@ func insertWebhookEventsTx(tx *sqlx.Tx, targetID uint32, events []string) error 
 			return err
 		}
 	}
+	return nil
+}
+
+// WebhookDeliveryLog is one outbound delivery attempt for a webhook target.
+type WebhookDeliveryLog struct {
+	ID              uint32    `db:"id"`
+	WebhookTargetID uint32    `db:"webhook_target_id"`
+	Event           string    `db:"event"`
+	Success         bool      `db:"success"`
+	HTTPStatus      int       `db:"http_status"`
+	ErrorMessage    string    `db:"error_message"`
+	DurationMs      int       `db:"duration_ms"`
+	CreatedAt       time.Time `db:"created_at"`
+}
+
+func (db *DB) InsertWebhookDeliveryLog(entry *WebhookDeliveryLog) error {
+	if entry == nil {
+		return fmt.Errorf("delivery log is nil")
+	}
+	_, err := db.ResilientExec(`
+		INSERT INTO webhook_delivery_logs (
+			webhook_target_id, event, success, http_status, error_message, duration_ms, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, NOW(3))`,
+		entry.WebhookTargetID, entry.Event, entry.Success, entry.HTTPStatus, entry.ErrorMessage, entry.DurationMs)
+	if err != nil {
+		db.Logger().Errorf("InsertWebhookDeliveryLog: %v", err)
+	}
+	return err
+}
+
+func (db *DB) ListWebhookDeliveryLogs(targetID uint32, limit int) ([]*WebhookDeliveryLog, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 200 {
+		limit = 200
+	}
+	out := make([]*WebhookDeliveryLog, 0)
+	err := db.ResilientSelect(&out, `
+		SELECT id, webhook_target_id, event, success, http_status, error_message, duration_ms, created_at
+		FROM webhook_delivery_logs
+		WHERE webhook_target_id = ?
+		ORDER BY created_at DESC, id DESC
+		LIMIT ?`, targetID, limit)
+	if err != nil {
+		db.Logger().Errorf("ListWebhookDeliveryLogs: %v", err)
+		return nil, err
+	}
+	return out, nil
+}
+
+// RecordWebhookDelivery implements webhook.DeliveryRecorder.
+// It stores a per-target delivery row and also mirrors status into table_logs for System Logs.
+func (db *DB) RecordWebhookDelivery(ctx context.Context, entry webhook.DeliveryRecord) error {
+	_ = ctx
+	err := db.InsertWebhookDeliveryLog(&WebhookDeliveryLog{
+		WebhookTargetID: entry.WebhookTargetID,
+		Event:           entry.Event,
+		Success:         entry.Success,
+		HTTPStatus:      entry.HTTPStatus,
+		ErrorMessage:    entry.ErrorMessage,
+		DurationMs:      entry.DurationMs,
+	})
+	if err != nil {
+		return err
+	}
+
+	level := "info"
+	msg := fmt.Sprintf(
+		"Webhook delivery succeeded: target=%d event=%s http=%d duration_ms=%d",
+		entry.WebhookTargetID, entry.Event, entry.HTTPStatus, entry.DurationMs,
+	)
+	if !entry.Success {
+		level = "error"
+		msg = fmt.Sprintf(
+			"Webhook delivery failed: target=%d event=%s http=%d duration_ms=%d",
+			entry.WebhookTargetID, entry.Event, entry.HTTPStatus, entry.DurationMs,
+		)
+		if entry.ErrorMessage != "" {
+			msg += ": " + entry.ErrorMessage
+		}
+	}
+	_ = db.InsertTableLog(msg, level, nil)
 	return nil
 }

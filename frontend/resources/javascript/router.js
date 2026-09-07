@@ -42,6 +42,7 @@ import Connectors from '../vue/Connectors.vue'
 import SystemArchitecture from '../vue/SystemArchitecture.vue'
 import SystemDiagnostics from '../vue/SystemDiagnostics.vue'
 import WebhooksAdmin from '../vue/WebhooksAdmin.vue'
+import WebhookDetails from '../vue/WebhookDetails.vue'
 import UserGroups from '../vue/UserGroups.vue'
 import UserGroupDetails from '../vue/UserGroupDetails.vue'
 import AccountPolicies from '../vue/AccountPolicies.vue'
@@ -408,6 +409,15 @@ const routes = [
     component: WebhooksAdmin,
     meta: {
       title: 'Webhooks',
+      requiresAuth: true,
+    },
+  },
+  {
+    path: '/admin/webhooks/:id',
+    name: 'webhookDetails',
+    component: WebhookDetails,
+    meta: {
+      title: 'Webhook',
       requiresAuth: true,
     },
   },

@@ -1,8 +1,10 @@
 <template>
 	<div class="connector-catalog">
-		<p v-if="emptyMessage && !connectors.length && !unregisteredConnectors.length" class="inline-notification note">
-			{{ emptyMessage }}
-		</p>
+		<NotificationBlock
+			v-if="emptyMessage && !connectors.length && !unregisteredConnectors.length"
+			type="note"
+			:message="emptyMessage"
+		/>
 
 		<div v-if="connectors.length">
 			<h3 v-if="startedTitle" class="subsection-title">{{ startedTitle }}</h3>
@@ -26,6 +28,7 @@
 	import { useRouter } from 'vue-router';
 	import { connectorDocsUrl, connectorHugeIcon, connectorIssueSummary, connectorHasBlockingIssues } from '../javascript/util';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 
 	const router = useRouter();

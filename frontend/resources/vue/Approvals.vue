@@ -11,15 +11,18 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error pad">{{ errorMessage }}</div>
-		<div v-if="successMessage" class="inline-notification good pad">{{ successMessage }}</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
+		<NotificationBlock v-if="successMessage" type="good" :message="successMessage" />
 
 		<Loading v-if="loading" message="Loading pending approvals…" :centered="true" />
 	</Section>
 
-	<p v-if="!loading && !pending.length" class="approvals-empty inline-notification note">
-		No pending approval posts for you.
-	</p>
+	<NotificationBlock
+		v-if="!loading && !pending.length"
+		type="note"
+		message="No pending approval posts for you."
+		class="approvals-empty"
+	/>
 
 	<section
 		v-for="item in pending"
@@ -44,12 +47,18 @@
 			<span v-if="item.waitingOn" class="meta-pill waiting-pill">Waiting on {{ item.waitingOn }}</span>
 		</div>
 
-		<p v-if="!item.canApprove && !item.canReject" class="inline-notification note status-note">
-			You can view this pending post but cannot act on it right now.
-		</p>
-		<p v-else-if="!item.canApprove && item.canReject" class="inline-notification note status-note">
-			You cannot approve this post (submitters cannot approve their own submissions). You can withdraw it by rejecting.
-		</p>
+		<NotificationBlock
+			v-if="!item.canApprove && !item.canReject"
+			type="note"
+			message="You can view this pending post but cannot act on it right now."
+			class="status-note"
+		/>
+		<NotificationBlock
+			v-else-if="!item.canApprove && item.canReject"
+			type="note"
+			message="You cannot approve this post (submitters cannot approve their own submissions). You can withdraw it by rejecting."
+			class="status-note"
+		/>
 
 		<div role="toolbar" class="approval-actions">
 			<router-link
@@ -206,6 +215,7 @@ import {
 	Loading01Icon,
 } from '@hugeicons/core-free-icons';
 import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 import Loading from './Loading.vue';
 import PostPreview from './PostPreview.vue';
 import SocialAccountChip from './SocialAccountChip.vue';

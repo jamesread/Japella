@@ -60,6 +60,7 @@ export const breadcrumbsByRouteName = {
 	connectors: () => controlPanelTrail(crumb.connectors),
 	settings: () => controlPanelTrail(crumb.systemSettings),
 	adminWebhooks: () => controlPanelTrail(crumb.webhooks),
+	webhookDetails: (route) => controlPanelTrail(crumb.webhooks, currentPage(route, 'Webhook')),
 	logs: () => controlPanelTrail(crumb.systemLogs),
 	systemArchitecture: () => controlPanelTrail(crumb.systemArchitecture),
 	systemDiagnostics: () => controlPanelTrail(crumb.systemDiagnostics),

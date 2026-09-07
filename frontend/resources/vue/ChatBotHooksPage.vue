@@ -15,10 +15,10 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="error">
-			<p class="inline-notification error">{{ error }}</p>
+			<NotificationBlock type="error" :message="error" />
 		</div>
 		<div v-else-if="!bot">
-			<p class="inline-notification note">Bot not found.</p>
+			<NotificationBlock type="note" message="Bot not found." />
 		</div>
 		<div v-else>
 			<p class="hooks-intro">
@@ -29,13 +29,13 @@
 				<Icon icon="eos-icons:loading" width="20" height="20" />
 				<span style="margin-left: .5em;">Loading hooks...</span>
 			</div>
-			<div v-else-if="hooksError" class="inline-notification error">
-				{{ hooksError }}
-			</div>
+			<NotificationBlock v-else-if="hooksError" type="error" :message="hooksError" />
 			<div v-else>
-				<div v-if="hooks.length === 0" class="inline-notification note">
-					No hooks configured. Add a webhook URL below to start receiving message notifications.
-				</div>
+				<NotificationBlock
+					v-if="hooks.length === 0"
+					type="note"
+					message="No hooks configured. Add a webhook URL below to start receiving message notifications."
+				/>
 				<div v-else class="hooks-list" style="margin-top: 1em;">
 					<div v-for="(hook, index) in hooks" :key="index" class="hook-item">
 						<div class="hook-item-content">
@@ -68,9 +68,12 @@
 					</div>
 				</div>
 
-				<div v-if="hooksMessage" class="inline-notification" :class="hooksMessageType" style="margin-top: 1em;">
-					{{ hooksMessage }}
-				</div>
+				<NotificationBlock
+					v-if="hooksMessage"
+					:type="hooksMessageType"
+					:message="hooksMessage"
+					style="margin-top: 1em;"
+				/>
 			</div>
 		</div>
 	</Section>
@@ -81,6 +84,7 @@
 	import { useRoute } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';
 
 	const route = useRoute();

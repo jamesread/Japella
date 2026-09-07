@@ -36,29 +36,13 @@
 					aria-hidden="true"
 				/>
 			</button>
-			<button
-				v-if="canManage && group && !isSystemGroup"
-				type="button"
-				class="inline-icon bad"
-				:disabled="saving"
-				@click="deleteGroup"
-			>
-				<HugeiconsIcon
-					:icon="Delete02Icon"
-					width="1em"
-					height="1em"
-					:strokeWidth="iconStrokeWidth"
-					aria-hidden="true"
-				/>
-				<span>Delete group</span>
-			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error">{{ errorMessage }}</div>
-		<div v-if="actionMessage" class="inline-notification" :class="actionMessageType">{{ actionMessage }}</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
+		<NotificationBlock v-if="actionMessage" :type="actionMessageType" :message="actionMessage" />
 
 		<div v-if="loading" class="muted">Loading…</div>
-		<div v-else-if="!group" class="inline-notification note">User group not found.</div>
+		<NotificationBlock v-else-if="!group" type="note" message="User group not found." />
 		<template v-else>
 			<dl class="group-meta">
 				<dt>Group ID</dt>
@@ -79,7 +63,7 @@
 		v-if="!loading && group && canViewRoles"
 		subtitle="Members of this group inherit these roles and their permissions."
 		classes="user-group-details-roles settings-users"
-		:padding="assignedRoleRows.length === 0"
+		:padding="false"
 	>
 		<template #title>
 			<span class="section-title-with-icon">
@@ -124,31 +108,32 @@
 			</button>
 		</template>
 
-		<p v-if="isSystemGroup" class="inline-notification note list-banner-pad">
+		<NotificationBlock v-if="isSystemGroup" type="note">
 			<strong>{{ group.name }}</strong> is a system group. Its roles are managed carefully — removing
 			<span v-if="group.name === 'Everyone'">the member role</span>
 			<span v-else-if="group.name === 'Administrators'">the superuser role</span>
 			may lock out users.
-		</p>
-		<p v-if="!canManageRoles" class="inline-notification note list-banner-pad">
-			You can view group roles. Editing requires the rbac.manage permission.
-		</p>
-		<div
+		</NotificationBlock>
+		<NotificationBlock
+			v-if="!canManageRoles"
+			type="note"
+			message="You can view group roles. Editing requires the rbac.manage permission."
+		/>
+		<NotificationBlock
 			v-if="rolesActionMessage"
-			class="inline-notification list-banner-pad"
-			:class="rolesActionMessageType"
-		>{{ rolesActionMessage }}</div>
-
-		<p v-if="!assignedRoleRows.length" class="inline-notification note">No roles assigned to this group.</p>
+			:type="rolesActionMessageType"
+			:message="rolesActionMessage"
+		/>
 
 		<Table
-			v-else
 			class="roles-table-wrap"
-			row-clickable
 			:data="assignedRoleRows"
 			:headers="roleTableHeaders"
 			@row-click="openRoleDetails"
 		>
+			<template #empty>
+				No roles assigned to this group.
+			</template>
 			<template #cell-name="{ row, value }">
 				<router-link
 					:to="{ name: 'rbacRoleDetails', params: { id: String(row.id) } }"
@@ -186,7 +171,11 @@
 				Shared social accounts
 			</span>
 		</template>
-		<p v-if="!sharedAccounts.length" class="inline-notification note">No social accounts are shared with this group.</p>
+		<NotificationBlock
+			v-if="!sharedAccounts.length"
+			type="note"
+			message="No social accounts are shared with this group."
+		/>
 		<table v-else class="shared-accounts-table">
 			<thead>
 				<tr>
@@ -244,7 +233,7 @@
 		v-if="!loading && group"
 		subtitle="Users who belong to this group."
 		classes="user-group-details-members settings-users"
-		:padding="members.length === 0"
+		:padding="false"
 	>
 		<template #title>
 			<span class="section-title-with-icon">
@@ -288,16 +277,15 @@
 			</button>
 		</template>
 
-		<p v-if="!members.length" class="inline-notification note">No members in this group yet.</p>
-
 		<Table
-			v-else
 			class="members-table-wrap"
-			row-clickable
 			:data="members"
 			:headers="memberTableHeaders"
 			@row-click="openMemberDetails"
 		>
+			<template #empty>
+				No members in this group yet.
+			</template>
 			<template #cell-username="{ row, value }">
 				<router-link
 					:to="{ name: 'userDetails', params: { id: String(row.id) } }"
@@ -340,7 +328,7 @@
 				/>
 			</FormField>
 
-			<p v-if="addRolesError" class="inline-notification error">{{ addRolesError }}</p>
+			<NotificationBlock v-if="addRolesError" type="error" :message="addRolesError" />
 
 			<template #actions>
 				<button type="button" class="neutral" :disabled="rolesSaving" @click="closeAddRolesDialog">Cancel</button>
@@ -350,6 +338,32 @@
 			</template>
 		</FormLayout>
 	</dialog>
+
+	<DangerZone
+		v-if="!loading && group && canManage && !isSystemGroup"
+		title="Danger zone"
+		subtitle="Destructive actions for this user group"
+		description="Show destructive actions"
+		warning="Deleting this group removes membership. Shared account links for the group are also removed."
+	>
+		<div role="toolbar" class="danger-zone-actions">
+			<button
+				type="button"
+				class="inline-icon bad"
+				:disabled="saving"
+				@click="deleteGroup"
+			>
+				<HugeiconsIcon
+					:icon="Delete02Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Delete group</span>
+			</button>
+		</div>
+	</DangerZone>
 </template>
 
 <script setup>
@@ -369,10 +383,12 @@
 		WebSecurityIcon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
+	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import CheckGroup from 'picocrank/vue/components/CheckGroup.vue';
-	import Table from './picocrank/TableWithRowClick.vue';
+	import Table from 'picocrank/vue/components/Table.vue';
 	import UserLookupDialog from './UserLookupDialog.vue';
 	import { waitForClient } from '../javascript/util';
 
@@ -458,7 +474,7 @@
 		return name === 'superuser' || name === 'member';
 	}
 
-	function openRoleDetails(row) {
+	function openRoleDetails({ row }) {
 		router.push({ name: 'rbacRoleDetails', params: { id: String(row.id) } });
 	}
 
@@ -487,7 +503,7 @@
 		return headers;
 	});
 
-	function openMemberDetails(row) {
+	function openMemberDetails({ row }) {
 		router.push({ name: 'userDetails', params: { id: String(row.id) } });
 	}
 
@@ -703,11 +719,6 @@
 		vertical-align: middle;
 	}
 
-	.list-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
-
 	.members-table-wrap,
 	.roles-table-wrap {
 		margin-top: 0.5rem;
@@ -723,6 +734,12 @@
 
 	.actions-cell {
 		text-align: right;
+	}
+
+	.danger-zone-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
 	}
 
 	.shared-accounts-table {

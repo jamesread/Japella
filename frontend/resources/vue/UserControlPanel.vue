@@ -23,7 +23,7 @@
 		</template>
 
 		<div v-if="errorMessage">
-			<p class="inline-notification error">{{ errorMessage }}</p>
+			<NotificationBlock type="error" :message="errorMessage" />
 		</div>
 
 		<div v-if="loading" class="icon-and-text">
@@ -125,6 +125,7 @@
 		Settings01Icon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 

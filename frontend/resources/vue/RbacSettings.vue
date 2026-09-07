@@ -49,51 +49,49 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error list-banner-pad">{{ errorMessage }}</div>
-		<div v-if="loading && !roles.length" class="list-banner-pad muted">Loading…</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
+		<NotificationBlock
+			v-if="!canManage"
+			type="note"
+			message="You can view roles. Editing requires the rbac.manage permission."
+		/>
 
-		<template v-else>
-			<p v-if="!canManage" class="inline-notification note list-banner-pad">
-				You can view roles. Editing requires the rbac.manage permission.
-			</p>
-
-			<p v-if="!roles.length" class="inline-notification note list-banner-pad">No roles yet.</p>
-
-			<Table
-				v-else
-				class="roles-table-wrap"
-				row-clickable
-				:data="tableRows"
-				:headers="tableHeaders"
-				@row-click="onRoleRowClick"
-			>
-				<template #cell-name="{ row, value }">
-					<router-link :to="{ name: 'rbacRoleDetails', params: { id: String(row.id) } }" class="username-link">
-						<strong>{{ value }}</strong>
-					</router-link>
-				</template>
-				<template #cell-permissionsLabel="{ value }">
-					<span class="perm-cells">{{ value }}</span>
-				</template>
-				<template #cell-tags="{ row }">
-					<span class="role-tags">
-						<span v-if="isSystemRole(row.name)" class="tag fg-note">system role</span>
-						<span v-if="row.name === 'superuser'" class="tag fg-good">all access</span>
-						<span v-if="!isSystemRole(row.name)" class="muted">—</span>
-					</span>
-				</template>
-				<template #cell-userCount="{ row }">
-					<span class="used-by-cell">{{ row.usedByLabel }}</span>
-				</template>
-				<template #cell-actions="{ row }">
-					<div v-if="canDeleteRole(row)" class="actions-cell">
-						<button type="button" class="bad small" :disabled="saving" @click="deleteRole(row)">
-							Delete
-						</button>
-					</div>
-				</template>
-			</Table>
-		</template>
+		<Table
+			class="roles-table-wrap"
+			:data="tableRows"
+			:headers="tableHeaders"
+			:loading="loading"
+			@row-click="onRoleRowClick"
+		>
+			<template #empty>
+				No roles yet.
+			</template>
+			<template #cell-name="{ row, value }">
+				<router-link :to="{ name: 'rbacRoleDetails', params: { id: String(row.id) } }" class="username-link">
+					<strong>{{ value }}</strong>
+				</router-link>
+			</template>
+			<template #cell-permissionsLabel="{ value }">
+				<span class="perm-cells">{{ value }}</span>
+			</template>
+			<template #cell-tags="{ row }">
+				<span class="role-tags">
+					<span v-if="isSystemRole(row.name)" class="tag fg-note">system role</span>
+					<span v-if="row.name === 'superuser'" class="tag fg-good">all access</span>
+					<span v-if="!isSystemRole(row.name)" class="muted">—</span>
+				</span>
+			</template>
+			<template #cell-userCount="{ row }">
+				<span class="used-by-cell">{{ row.usedByLabel }}</span>
+			</template>
+			<template #cell-actions="{ row }">
+				<div v-if="canDeleteRole(row)" class="actions-cell">
+					<button type="button" class="bad small" :disabled="saving" @click="deleteRole(row)">
+						Delete
+					</button>
+				</div>
+			</template>
+		</Table>
 	</Section>
 </template>
 
@@ -104,7 +102,8 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { Add01Icon, RefreshIcon, WebSecurityIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
-	import Table from './picocrank/TableWithRowClick.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
+	import Table from 'picocrank/vue/components/Table.vue';
 	import CreateRbacRole from './CreateRbacRole.vue';
 
 	const iconStrokeWidth = 2.5;
@@ -186,8 +185,8 @@
 			.join(', ');
 	}
 
-	function onRoleRowClick(r) {
-		router.push({ name: 'rbacRoleDetails', params: { id: String(r.id) } });
+	function onRoleRowClick({ row }) {
+		router.push({ name: 'rbacRoleDetails', params: { id: String(row.id) } });
 	}
 
 	async function refreshStatus() {
@@ -264,10 +263,6 @@
 		vertical-align: middle;
 	}
 
-	.list-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
 
 	.roles-table-wrap {
 		margin-top: 0.5rem;

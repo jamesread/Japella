@@ -54,10 +54,10 @@
 			<p>Loading...</p>
 		</div>
 		<div v-else-if="error">
-			<p class="inline-notification error">{{ error }}</p>
+			<NotificationBlock type="error" :message="error" />
 		</div>
 		<div v-else-if="!user">
-			<p class="inline-notification note">User not found.</p>
+			<NotificationBlock type="note" message="User not found." />
 		</div>
 		<template v-else>
 			<dl class="user-meta">
@@ -132,26 +132,33 @@
 		<div v-if="groupsLoading && !memberGroups.length" class="list-banner-pad muted">Loading groups…</div>
 
 		<template v-else>
-			<p v-if="!canManageGroups" class="inline-notification note list-banner-pad">
-				You can view group membership. Editing requires the usergroups.manage permission.
-			</p>
-			<div
+			<NotificationBlock
+				v-if="!canManageGroups"
+				type="note"
+				message="You can view group membership. Editing requires the usergroups.manage permission."
+			/>
+			<NotificationBlock
 				v-if="groupsSaveMessage"
-				class="inline-notification list-banner-pad"
-				:class="groupsSaveType"
-			>{{ groupsSaveMessage }}</div>
+				:type="groupsSaveType"
+				:message="groupsSaveMessage"
+			/>
 
-			<p v-if="!allGroups.length" class="inline-notification note">No user groups exist yet.</p>
-			<p v-else-if="!memberGroups.length" class="inline-notification note">This user is not a member of any groups.</p>
+			<NotificationBlock
+				v-if="!allGroups.length"
+				type="note"
+				message="No user groups exist yet."
+			/>
 
 			<Table
 				v-else
 				class="groups-table-wrap"
-				row-clickable
 				:data="memberGroups"
 				:headers="groupTableHeaders"
 				@row-click="openGroupDetails"
 			>
+				<template #empty>
+					This user is not a member of any groups.
+				</template>
 				<template #cell-name="{ value }">
 					<strong>{{ value }}</strong>
 				</template>
@@ -190,9 +197,10 @@
 		UserGroupIcon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
-	import Table from './picocrank/TableWithRowClick.vue';
+	import Table from 'picocrank/vue/components/Table.vue';
 	import UserGroupLookupDialog from './UserGroupLookupDialog.vue';
 	import { waitForClient } from '../javascript/util';
 
@@ -287,7 +295,7 @@
 		return Number.isFinite(n) && n > 0 ? n : 0;
 	});
 
-	function openGroupDetails(row) {
+	function openGroupDetails({ row }) {
 		router.push({ name: 'userGroupDetails', params: { id: String(row.id) } });
 	}
 

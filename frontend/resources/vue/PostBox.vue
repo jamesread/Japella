@@ -16,35 +16,16 @@
                 <p>Canned posts just get saved.</p>
             </div>
             <div v-else>
-                <div v-if="clientReady">
-                    <div v-if="items.length === 0">
-                        <InlineNotification type = "note" message = "No posting services available that support wall posting." />
-                    </div>
-                    <div v-else ref = "postingServiceCheckboxes">
-                        <span v-for = "ps in items" :key = "ps.id" class = "check-list">
-                            <label>
-                                <input type = "checkbox" :id = "ps.id" :name = "ps.id" :value = "ps.id" @change="onPostingServiceChange" />
-
-                                <span>
-                                <Icon :icon="ps.icon" />
-                                {{ ps.identity }}
-                                </span>
-                            </label
-                            >
-                        </span>
-
-                        <!-- Canned Post Option within social accounts -->
-                        <span class="check-list">
-                            <label>
-                                <input type="checkbox" id="canned-post" name="canned-post" value="canned-post" v-model="saveAsCannedPost" />
-                                <span>
-                                    <Icon icon="jam:box" />
-                                    Canned post
-                                </span>
-                            </label>
-                        </span>
-                    </div>
-                </div>
+                <SocialAccountsSelector
+                    v-if="clientReady"
+                    v-model="selectedAccountIds"
+                    v-model:canned-post="saveAsCannedPost"
+                    :only-active="true"
+                    :only-can-post="true"
+                    :show-canned-post-option="true"
+                    empty-message="No posting services available that support wall posting."
+                    @loaded="onAccountsLoaded"
+                />
                 <div v-else>
                     <p>Loading social accounts...</p>
                 </div>
@@ -152,8 +133,8 @@
 import { ref, onMounted, onActivated, computed, nextTick } from 'vue';
 	import { useRoute } from 'vue-router';
     import { Icon } from '@iconify/vue';
-    import InlineNotification from './InlineNotification.vue';
     import EmojiPickerPopover from './EmojiPickerPopover.vue';
+    import SocialAccountsSelector from './SocialAccountsSelector.vue';
     import { insertAtCursor, formatHumanDateTime } from '../javascript/util.js';
 
     const clientReady = ref(false);
@@ -164,11 +145,11 @@ const contentLength = ref(0);
 	const postTextarea = ref('');
 	const campaigns = ref([]);
 	const selectedCampaignId = ref(0);
+	const selectedAccountIds = ref([]);
 	const saveAsCannedPost = ref(false);
     const scheduledAt = ref("");
     const showScheduleDialog = ref(false);
     const scheduledAtDialog = ref("");
-const selectedServiceCount = ref(0);
 	const selectedMedia = ref([]);
 	const mediaLibrary = ref([]);
 	const showMediaPicker = ref(false);
@@ -310,49 +291,30 @@ const recountLength = (e) => {
 	})
 
     async function refreshAccounts() {
-      const ret = await window.client.getSocialAccounts({"onlyActive": true});
       const campaignsRet = await window.client.getCampaigns();
-
-      items.value = (ret.accounts || []).filter(a => a.canPost)
-
       campaigns.value = campaignsRet.campaigns || [];
 
       if (selectedCampaignId.value && selectedCampaignId.value !== 0) {
-    await applyCampaignMembership(selectedCampaignId.value)
+        await applyCampaignMembership(selectedCampaignId.value)
       }
-  await nextTick()
-  updateSelectedServiceCount()
+    }
+
+    function onAccountsLoaded(accounts) {
+      items.value = accounts || []
     }
 
     async function onCampaignChange() {
       if (!selectedCampaignId.value || selectedCampaignId.value === 0) {
-        if (postingServiceCheckboxes.value) {
-          const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
-          for (let x of boxes) {
-            if (x.id !== 'canned-post') x.checked = false;
-          }
-        }
-    updateSelectedServiceCount()
+        selectedAccountIds.value = []
         return
       }
-  await applyCampaignMembership(selectedCampaignId.value)
-  await nextTick()
-  updateSelectedServiceCount()
+      await applyCampaignMembership(selectedCampaignId.value)
     }
 
     async function applyCampaignMembership(campaignId) {
       try {
         const res = await window.client.getCampaignSocialAccounts({ campaignId })
-        const memberIds = new Set(res.socialAccountIds || [])
-        if (!postingServiceCheckboxes.value) return
-        const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
-        for (let x of boxes) {
-          if (x.id === 'canned-post') continue;
-          const idNum = Number(x.value)
-          x.checked = memberIds.has(idNum)
-        }
-    await nextTick()
-    updateSelectedServiceCount()
+        selectedAccountIds.value = [...(res.socialAccountIds || [])]
       } catch (e) {
         console.error('Failed to fetch campaign memberships', e)
       }
@@ -360,26 +322,9 @@ const recountLength = (e) => {
 
     const postMode = ref('live');
 
-    const postingServiceCheckboxes = ref(null);
-
     import { showNotification } from './../javascript/notifications.js'
 
-function updateSelectedServiceCount() {
-  if (!postingServiceCheckboxes.value) { selectedServiceCount.value = 0; return }
-  const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
-  let count = 0;
-  for (let x of boxes) {
-    if (x.id === 'canned-post') continue;
-    if (x.checked) count++
-  }
-  selectedServiceCount.value = count;
-}
-
-function onPostingServiceChange() {
-  updateSelectedServiceCount()
-}
-
-const canSubmit = computed(() => contentLength.value > 0 && (selectedServiceCount.value > 0 || saveAsCannedPost.value))
+const canSubmit = computed(() => contentLength.value > 0 && (selectedAccountIds.value.length > 0 || saveAsCannedPost.value))
 const canSaveDraft = computed(() => (contentLength.value > 0 || selectedMedia.value.length > 0) && !saveAsCannedPost.value)
 
 const submitButtonLabel = computed(() => {
@@ -426,18 +371,7 @@ const submitButtonLabel = computed(() => {
 	}
 
     function getSelectedPostingServices() {
-        const boxes = postingServiceCheckboxes.value.querySelectorAll('input[type="checkbox"]');
-
-        let ret = [];
-
-        for (let x of boxes) {
-            if (x.checked) {
-                ret.push(Number(x.value));
-            }
-        }
-
-        console.log("Boxes: ", ret)
-        return ret;
+        return [...selectedAccountIds.value];
     }
 
     function saveDraft() {
@@ -687,80 +621,6 @@ const submitButtonLabel = computed(() => {
 		cursor: pointer;
 		font-size: 1.1rem;
 		line-height: 1;
-	}
-
-	.check-list {
-		display: inline-block;
-		margin: 0.25em 0.5em 0.25em 0;
-	}
-
-	.check-list label {
-		cursor: pointer;
-		display: inline-block;
-	}
-
-	.check-list label > span {
-		white-space: nowrap;
-		border-radius: 0.5em;
-		background-color: #f5f5f5;
-		color: #333;
-		border: 1px solid #e0e0e0;
-		font-weight: 500;
-		padding: 0.4em 0.6em;
-		display: inline-flex;
-		align-items: center;
-		gap: .4em;
-		user-select: none;
-		transition: all 0.2s ease;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-	}
-
-	.check-list input[type="checkbox"]:checked + span {
-		background-color: #e3f2fd;
-		border-color: #2196f3;
-		color: #1565c0;
-		box-shadow: 0 2px 4px rgba(33, 150, 243, 0.2);
-	}
-
-	.check-list label:hover > span {
-		background-color: #e8e8e8;
-		border-color: #d0d0d0;
-		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-		transform: translateY(-1px);
-	}
-
-	.check-list input[type="checkbox"]:checked + span:hover {
-		background-color: #bbdefb;
-		border-color: #1976d2;
-		box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
-	}
-
-	html[data-theme="dark"] {
-		.check-list label > span {
-			background-color: #2a2a2a;
-			color: #e0e0e0;
-			border-color: #404040;
-			box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-		}
-
-		.check-list input[type="checkbox"]:checked + span {
-			background-color: #1e3a5f;
-			border-color: #2196f3;
-			color: #90caf9;
-			box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
-		}
-
-		.check-list label:hover > span {
-			background-color: #353535;
-			border-color: #505050;
-			box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
-		}
-
-		.check-list input[type="checkbox"]:checked + span:hover {
-			background-color: #2a4a6f;
-			border-color: #42a5f5;
-			box-shadow: 0 2px 4px rgba(33, 150, 243, 0.4);
-		}
 	}
 
 	.media-attach {

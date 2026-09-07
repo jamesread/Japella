@@ -13,15 +13,15 @@
 		</template>
 
 		<div v-if="loading" class="loading-container">
-			<p class="inline-notification note">Loading post details...</p>
+			<NotificationBlock type="note" message="Loading post details..." />
 		</div>
 
 		<div v-else-if="errorMessage" class="error-container">
-			<p class="inline-notification error">{{ errorMessage }}</p>
+			<NotificationBlock type="error" :message="errorMessage" />
 		</div>
 
 		<div v-else-if="post" class="post-details-content">
-			<div v-if="actionMessage" class="inline-notification" :class="actionMessageType">{{ actionMessage }}</div>
+			<NotificationBlock v-if="actionMessage" :type="actionMessageType" :message="actionMessage" />
 
 			<div v-if="isPendingApproval && canEdit" class="edit-section">
 				<h3>Edit content</h3>
@@ -167,29 +167,40 @@
 						<Icon v-else icon="mdi:refresh" />
 						{{ retrying ? 'Retrying...' : 'Retry Post' }}
 					</button>
-					<button
-						type="button"
-						class="inline-icon bad"
-						:disabled="acting || saving"
-						@click="forgetPost"
-					>
-						<HugeiconsIcon
-							:icon="Delete02Icon"
-							width="1em"
-							height="1em"
-							:strokeWidth="iconStrokeWidth"
-							aria-hidden="true"
-						/>
-						<span>Forget</span>
-					</button>
 				</div>
 			</div>
 		</div>
 
 		<div v-else class="no-post-container">
-			<p class="inline-notification note">No post selected or post not found.</p>
+			<NotificationBlock type="note" message="No post selected or post not found." />
 		</div>
 	</Section>
+
+	<DangerZone
+		v-if="!loading && post"
+		title="Danger zone"
+		subtitle="Destructive actions for this post"
+		description="Show destructive actions"
+		warning="Forgetting a post removes it from Japella. This cannot be undone."
+	>
+		<div role="toolbar" class="danger-zone-actions">
+			<button
+				type="button"
+				class="inline-icon bad"
+				:disabled="acting || saving"
+				@click="forgetPost"
+			>
+				<HugeiconsIcon
+					:icon="Delete02Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Forget post</span>
+			</button>
+		</div>
+	</DangerZone>
 
 	<!-- Campaign Update Dialog -->
 	<div v-if="showCampaignDialog" class="modal-overlay" @click.self="cancelCampaignDialog">
@@ -232,6 +243,8 @@
 		SaveIcon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
+	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
 	import PostPreview from './PostPreview.vue';
 
 	const iconStrokeWidth = 2.5;
@@ -531,6 +544,11 @@
 </script>
 
 <style scoped>
+	.danger-zone-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
 .loading-container,
 .error-container,
 .no-post-container {

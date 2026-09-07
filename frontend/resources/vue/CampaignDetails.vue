@@ -90,59 +90,63 @@
 					<span>Create Post</span>
 				</router-link>
 			</div>
-
-			<DangerZone
-				description="These actions are permanent and cannot be undone."
-			>
-				<button
-					type="button"
-					class="inline-icon bad"
-					:disabled="deleting"
-					@click="deleteCampaign"
-				>
-					<HugeiconsIcon
-						:icon="Delete02Icon"
-						width="1em"
-						height="1em"
-						:strokeWidth="iconStrokeWidth"
-						aria-hidden="true"
-					/>
-					<span>Delete campaign</span>
-				</button>
-			</DangerZone>
-
 		</div>
 	</Section>
 
-			<div class="campaign-timeline">
+	<div v-if="clientReady && campaign" class="campaign-timeline">
 
-				<Loading v-if="campaignPostsLoading" message="Loading campaign posts..." :centered="false" />
+		<Loading v-if="campaignPostsLoading" message="Loading campaign posts..." :centered="false" />
 
-				<div v-else-if="campaignPosts.length === 0">
-					<p class="inline-notification note">No posts found for this campaign.</p>
-				</div>
+		<div v-else-if="campaignPosts.length === 0">
+			<NotificationBlock type="note" message="No posts found for this campaign." />
+		</div>
 
-				<div v-else class="posts-list">
-					<div v-for="post in campaignPosts.slice(0, 5)" :key="post.id">
+		<div v-else class="posts-list">
+			<div v-for="post in campaignPosts.slice(0, 5)" :key="post.id">
 
-						<section class = "small">
-							<PostPreview :post="post" />
+				<section class = "small">
+					<PostPreview :post="post" />
 
-							<div class="post-meta">
-								<div class="post-status">
-									<span :class="['annotation', getPostStatusClass(post)]">{{ getPostStatusText(post) }}</span>
-								</div>
+					<div class="post-meta">
+						<div class="post-status">
+							<span :class="['annotation', getPostStatusClass(post)]">{{ getPostStatusText(post) }}</span>
+						</div>
 
-								<span class="post-date">{{ post.created }}</span>
-								<button @click="viewPost(post)" class="neutral small">
-									<Icon icon="mdi:eye" />
-									View Details
-								</button>
-							</div>
-						</section>
+						<span class="post-date">{{ post.created }}</span>
+						<button @click="viewPost(post)" class="neutral small">
+							<Icon icon="mdi:eye" />
+							View Details
+						</button>
 					</div>
-				</div>
+				</section>
 			</div>
+		</div>
+	</div>
+
+	<DangerZone
+		v-if="clientReady && campaign"
+		title="Danger zone"
+		subtitle="Destructive actions for this campaign"
+		description="Show destructive actions"
+	>
+		<div role="toolbar" class="danger-zone-actions">
+			<button
+				type="button"
+				class="inline-icon bad"
+				:disabled="deleting"
+				@click="deleteCampaign"
+			>
+				<HugeiconsIcon
+					:icon="Delete02Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Delete campaign</span>
+			</button>
+		</div>
+	</DangerZone>
 </template>
 
 <script setup>
@@ -152,8 +156,10 @@
 	import { ref, onMounted, computed, nextTick } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
+	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
 	import Loading from './Loading.vue';
-	import DangerZone from './DangerZone.vue';
+	import PostPreview from './PostPreview.vue';
 
 	const route = useRoute();
 	const router = useRouter();
@@ -321,6 +327,12 @@
 </script>
 
 <style scoped>
+
+.danger-zone-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
 
 .campaign-actions .good {
 	display: inline-flex;

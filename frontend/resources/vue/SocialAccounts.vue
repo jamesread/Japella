@@ -49,14 +49,13 @@
 			</router-link>
 		</template>
 
-		<div v-if="errorMessage" class="padding">
-			<p class="inline-notification error">{{ errorMessage }}</p>
-		</div>
-		<div v-else>
-			<div v-if="accounts.length === 0" class="padding">
-				<p class="inline-notification note">No social accounts connected yet.</p>
-			</div>
-			<table v-else-if="viewMode === 'table'" class="data-table">
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
+		<NotificationBlock
+			v-else-if="accounts.length === 0"
+			type="note"
+			message="No social accounts connected yet."
+		/>
+		<table v-else-if="viewMode === 'table'" class="data-table">
 				<thead>
 					<tr>
 						<th>Identity</th>
@@ -137,7 +136,6 @@
 					<NavigationGrid />
 				</Navigation>
 			</div>
-		</div>
 	</Section>
 </template>
 
@@ -157,6 +155,7 @@
 	import { useRouter } from 'vue-router';
 	import { waitForClient, connectorHugeIcon } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 

@@ -83,9 +83,12 @@
 		</p>
 	</Transition>
 
-	<p v-if="!feedLoading && feed.length > 0 && filteredFeed.length === 0" class="feed-empty inline-notification note">
-		No posts match the current filters.
-	</p>
+	<NotificationBlock
+		v-if="!feedLoading && feed.length > 0 && filteredFeed.length === 0"
+		type="note"
+		message="No posts match the current filters."
+		class="feed-empty"
+	/>
 
 	<section class="small" v-for="post in visibleFeed" :key="post.id" :data-feed-post-id="post.id">
 		<PostBoost
@@ -124,6 +127,7 @@
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { FilterRemoveIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Loading from './Loading.vue';
 	import PostPreview from './PostPreview.vue';
 	import PostBoost from './PostBoost.vue';

@@ -49,7 +49,7 @@
 				/>
 			</FormField>
 
-			<p v-if="createError" class="inline-notification error">{{ createError }}</p>
+			<NotificationBlock v-if="createError" type="error" :message="createError" />
 
 			<template #actions>
 				<button type="button" class="neutral" :disabled="saving" @click="closeCreateDialog">Cancel</button>
@@ -106,10 +106,18 @@
 				/>
 			</FormField>
 
-			<p v-if="editError" class="inline-notification error">{{ editError }}</p>
+			<NotificationBlock v-if="editError" type="error" :message="editError" />
 
 			<template #actions>
-				<button type="button" class="bad" :disabled="saving" @click="deleteWebhook">Delete</button>
+				<button type="button" class="bad" :disabled="saving || testingId === editingId" @click="deleteWebhook">Delete</button>
+				<button
+					type="button"
+					class="neutral"
+					:disabled="saving || testingId === editingId"
+					@click="sendTest({ id: editingId })"
+				>
+					{{ testingId === editingId ? 'Sending…' : 'Send test' }}
+				</button>
 				<span class="dialog-actions-spacer"></span>
 				<button type="button" class="neutral" :disabled="saving" @click="closeEditDialog">Cancel</button>
 				<button type="submit" class="good" :disabled="saving">{{ saving ? 'Saving…' : 'Save' }}</button>
@@ -165,37 +173,67 @@
 			</button>
 		</template>
 
-		<div v-if="errorMessage" class="inline-notification error list-banner-pad">{{ errorMessage }}</div>
-		<div v-if="loading && !webhooks.length" class="list-banner-pad muted">Loading…</div>
+		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
+		<NotificationBlock v-if="testMessage" :type="testMessageType" :message="testMessage" />
+		<NotificationBlock
+			v-if="!canManage"
+			type="note"
+			message="You can view webhooks. Editing requires the system.settings permission."
+		/>
 
-		<template v-else>
-			<p v-if="!canManage" class="inline-notification note list-banner-pad">
-				You can view webhooks. Editing requires the system.settings permission.
-			</p>
-			<p v-if="!webhooks.length" class="inline-notification note list-banner-pad">No webhooks configured yet.</p>
-
-			<div v-else class="webhooks-table-wrap">
-				<Table
-					:data="tableRows"
-					:headers="tableHeaders"
-				>
-					<template #cell-url="{ value }">
-						<span class="url-cell">{{ value }}</span>
-					</template>
-					<template #cell-eventsLabel="{ value }">
-						{{ value || '—' }}
-					</template>
-					<template #cell-status="{ value }">
-						<span :class="value === 'Enabled' ? 'fg-good' : 'muted'">{{ value }}</span>
-					</template>
-					<template #cell-actions="{ row }">
-						<div class="actions-cell">
-							<button type="button" class="small" :disabled="saving" @click="openEdit(row)">Edit</button>
-						</div>
-					</template>
-				</Table>
-			</div>
-		</template>
+		<div class="webhooks-table-wrap">
+			<Table
+				:data="tableRows"
+				:headers="tableHeaders"
+				:loading="loading"
+			>
+				<template #empty>
+					No webhooks configured yet.
+				</template>
+				<template #cell-url="{ row, value }">
+					<router-link
+						:to="{ name: 'webhookDetails', params: { id: row.id } }"
+						class="url-cell"
+					>
+						{{ value }}
+					</router-link>
+				</template>
+				<template #cell-eventsLabel="{ value }">
+					{{ value || '—' }}
+				</template>
+				<template #cell-status="{ value }">
+					<span :class="value === 'Enabled' ? 'fg-good' : 'muted'">{{ value }}</span>
+				</template>
+				<template #cell-actions="{ row }">
+					<div class="actions-cell">
+						<router-link
+							:to="{ name: 'webhookDetails', params: { id: row.id } }"
+							class="small"
+						>
+							View
+						</router-link>
+						<button
+							v-if="canManage"
+							type="button"
+							class="small"
+							:disabled="saving || testingId === row.id"
+							@click="sendTest(row)"
+						>
+							{{ testingId === row.id ? 'Sending…' : 'Send test' }}
+						</button>
+						<button
+							v-if="canManage"
+							type="button"
+							class="small"
+							:disabled="saving"
+							@click="openEdit(row)"
+						>
+							Edit
+						</button>
+					</div>
+				</template>
+			</Table>
+		</div>
 	</Section>
 
 	<Section
@@ -229,55 +267,54 @@
 			</button>
 		</template>
 
-		<div v-if="botErrorMessage" class="inline-notification error" :class="{ 'list-banner-pad': botWebhooks.length > 0 }">{{ botErrorMessage }}</div>
-		<div v-if="loading && !botWebhooks.length" class="muted">Loading…</div>
+		<NotificationBlock v-if="botErrorMessage" type="error" :message="botErrorMessage" />
 
-		<template v-else>
-			<p v-if="!botWebhooks.length" class="inline-notification note">
-				No bot message hooks configured yet.
-			</p>
-
-			<div v-else class="webhooks-table-wrap">
-				<Table
-					:data="botTableRows"
-					:headers="botTableHeaders"
-				>
-					<template #cell-botName="{ value }">
-						{{ value || '—' }}
-					</template>
-					<template #cell-protocol="{ value }">
-						{{ value || '—' }}
-					</template>
-					<template #cell-url="{ value }">
-						<span class="url-cell">{{ value }}</span>
-					</template>
-					<template #cell-status="{ value }">
-						<span :class="value === 'Enabled' ? 'fg-good' : 'muted'">{{ value }}</span>
-					</template>
-					<template #cell-actions="{ row }">
-						<div class="actions-cell">
-							<router-link
-								v-if="row.manageTo"
-								:to="row.manageTo"
-								class="small"
-							>
-								Manage
-							</router-link>
-							<span v-else class="muted">—</span>
-						</div>
-					</template>
-				</Table>
-			</div>
-		</template>
+		<div class="webhooks-table-wrap">
+			<Table
+				:data="botTableRows"
+				:headers="botTableHeaders"
+				:loading="loading"
+			>
+				<template #empty>
+					No bot message hooks configured yet.
+				</template>
+				<template #cell-botName="{ value }">
+					{{ value || '—' }}
+				</template>
+				<template #cell-protocol="{ value }">
+					{{ value || '—' }}
+				</template>
+				<template #cell-url="{ value }">
+					<span class="url-cell">{{ value }}</span>
+				</template>
+				<template #cell-status="{ value }">
+					<span :class="value === 'Enabled' ? 'fg-good' : 'muted'">{{ value }}</span>
+				</template>
+				<template #cell-actions="{ row }">
+					<div class="actions-cell">
+						<router-link
+							v-if="row.manageTo"
+							:to="row.manageTo"
+							class="small"
+						>
+							Manage
+						</router-link>
+						<span v-else class="muted">—</span>
+					</div>
+				</template>
+			</Table>
+		</div>
 	</Section>
 </template>
 
 <script setup>
 	import { ref, computed, onMounted, nextTick } from 'vue';
+	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { Add01Icon, RefreshIcon, Robot01Icon, WebhookIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import CheckGroup from 'picocrank/vue/components/CheckGroup.vue';
@@ -285,6 +322,7 @@
 	import Table from 'picocrank/vue/components/Table.vue';
 
 	const iconStrokeWidth = 2.5;
+	const router = useRouter();
 
 	const webhooks = ref([]);
 	const botWebhooks = ref([]);
@@ -295,6 +333,9 @@
 	const botErrorMessage = ref('');
 	const createError = ref('');
 	const editError = ref('');
+	const testMessage = ref('');
+	const testMessageType = ref('good');
+	const testingId = ref(0);
 	const statusPerms = ref([]);
 	const statusSuper = ref(false);
 	const editingId = ref(0);
@@ -329,10 +370,13 @@
 			{ key: 'url', label: 'URL', sortable: true },
 			{ key: 'eventsLabel', label: 'Events', sortable: true },
 			{ key: 'status', label: 'Status', sortable: true, width: '6rem' },
+			{
+				key: 'actions',
+				label: 'Actions',
+				sortable: false,
+				width: canManage.value ? '14rem' : '5rem',
+			},
 		];
-		if (canManage.value) {
-			headers.push({ key: 'actions', label: 'Actions', sortable: false, width: '6rem' });
-		}
 		return headers;
 	});
 
@@ -442,13 +486,17 @@
 		createError.value = '';
 		try {
 			await waitForClient();
-			await window.client.createWebhook({
+			const created = await window.client.createWebhook({
 				url: createForm.value.url.trim(),
 				secret: createForm.value.secret,
 				events: createForm.value.events,
 				enabled: createForm.value.enabled,
 			});
 			closeCreateDialog();
+			if (created?.id) {
+				router.push({ name: 'webhookDetails', params: { id: created.id } });
+				return;
+			}
 			await loadAll();
 		} catch (e) {
 			createError.value = e.message || 'Failed to create webhook.';
@@ -513,6 +561,33 @@
 		}
 	}
 
+	async function sendTest(row) {
+		const id = row?.id;
+		if (!id || testingId.value) return;
+		testingId.value = id;
+		testMessage.value = '';
+		editError.value = '';
+		try {
+			await waitForClient();
+			const res = await window.client.testWebhook({ id });
+			const msg = res.message || (res.success ? 'Test webhook delivered.' : 'Test webhook failed.');
+			testMessage.value = `Webhook #${id}: ${msg}`;
+			testMessageType.value = res.success ? 'good' : 'error';
+			if (editingId.value === id && !res.success) {
+				editError.value = msg;
+			}
+		} catch (e) {
+			const msg = e.message || 'Failed to send test webhook.';
+			testMessage.value = `Webhook #${id}: ${msg}`;
+			testMessageType.value = 'error';
+			if (editingId.value === id) {
+				editError.value = msg;
+			}
+		} finally {
+			testingId.value = 0;
+		}
+	}
+
 	onMounted(() => {
 		loadAll();
 	});
@@ -526,10 +601,6 @@
 		vertical-align: middle;
 	}
 
-	.list-banner-pad {
-		padding-left: 1em;
-		padding-right: 1em;
-	}
 
 	.webhooks-table-wrap {
 		margin-top: 0.5rem;
@@ -541,6 +612,10 @@
 	}
 
 	.actions-cell {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 0.35rem;
 		text-align: right;
 	}
 
