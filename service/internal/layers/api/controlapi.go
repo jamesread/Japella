@@ -213,7 +213,10 @@ func (s *ControlApi) ReadinessClientMessage() string {
 	if s == nil || s.DB == nil {
 		return "Service is not available."
 	}
-	if s.DB.GetErrorMessage() != "" {
+	if msg := s.DB.GetErrorMessage(); msg != "" {
+		if strings.HasPrefix(msg, "unsupported database server:") {
+			return msg
+		}
 		return "Cannot connect to database"
 	}
 	if s.cc == nil {

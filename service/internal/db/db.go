@@ -176,6 +176,16 @@ func (db *DB) pingOk(chain *ConnectionChain) {
 	chain.err = db.connx.Ping()
 }
 
+func (db *DB) checkServerVersionSupported(chain *ConnectionChain) {
+	var version string
+	if err := db.connx.Get(&version, "SELECT VERSION()"); err != nil {
+		chain.err = fmt.Errorf("database version check: %w", err)
+		return
+	}
+	db.Logger().Infof("Database server version: %s", version)
+	chain.err = ValidateSupportedDBServerVersion(version)
+}
+
 func (db *DB) findMigrationsDirectoryWrapped(chain *ConnectionChain) {
 	md, err := db.findMigrationsDirectory()
 
@@ -208,6 +218,7 @@ func (db *DB) reconnectDatabase() error {
 		db.buildDsn,
 		db.connectToDatabase,
 		db.pingOk,
+		db.checkServerVersionSupported,
 		db.findMigrationsDirectoryWrapped,
 		db.Migrate,
 		db.InsertCvarsIfNotExists,
