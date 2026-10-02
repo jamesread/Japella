@@ -44,7 +44,20 @@ func RequiredPermission(procedureName string) string {
 		controlv1.JapellaControlApiServiceUpdateWebhookProcedure,
 		controlv1.JapellaControlApiServiceDeleteWebhookProcedure,
 		controlv1.JapellaControlApiServiceTestWebhookProcedure,
-		controlv1.JapellaControlApiServiceListBotWebhooksProcedure:
+		controlv1.JapellaControlApiServiceListBotWebhooksProcedure,
+		controlv1.JapellaControlApiServiceListLlmConnectionsProcedure,
+		controlv1.JapellaControlApiServiceGetLlmConnectionProcedure,
+		controlv1.JapellaControlApiServiceCreateLlmConnectionProcedure,
+		controlv1.JapellaControlApiServiceUpdateLlmConnectionProcedure,
+		controlv1.JapellaControlApiServiceDeleteLlmConnectionProcedure,
+		controlv1.JapellaControlApiServiceTestLlmConnectionProcedure,
+		controlv1.JapellaControlApiServiceListLlmConnectionPresetsProcedure,
+		controlv1.JapellaControlApiServiceListLlmConnectionModelsProcedure,
+		controlv1.JapellaControlApiServiceListLlmToolsProcedure,
+		controlv1.JapellaControlApiServiceGetLlmToolProcedure,
+		controlv1.JapellaControlApiServiceCreateLlmToolProcedure,
+		controlv1.JapellaControlApiServiceUpdateLlmToolProcedure,
+		controlv1.JapellaControlApiServiceDeleteLlmToolProcedure:
 		return rbac.PermissionSystemSettings
 
 	case controlv1.JapellaControlApiServiceGetConnectorsProcedure,

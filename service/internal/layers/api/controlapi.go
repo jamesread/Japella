@@ -715,6 +715,20 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 	log.Infof("Received post request for social accounts: %+v (source=%s)", req.Msg.SocialAccounts, source)
 
+	fromDraftID := req.Msg.FromDraftPostId
+	if fromDraftID != 0 {
+		if au == nil || au.User == nil {
+			return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+		}
+		draft, err := s.DB.GetPost(fromDraftID)
+		if err != nil || draft == nil || draft.State != db.PostStateDraft {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("from_draft_post_id is invalid"))
+		}
+		if !draft.SubmittedByUserID.Valid || uint32(draft.SubmittedByUserID.Int32) != au.User.ID {
+			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("not allowed to use this draft"))
+		}
+	}
+
 	var scheduledTime *time.Time
 	if req.Msg.ScheduledAt != "" {
 		if t, err := time.Parse(time.RFC3339, req.Msg.ScheduledAt); err == nil {
@@ -760,6 +774,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			postStatus.Id = post.ID
 			postStatus.Success = true
 			postStatus.State = db.PostStateDraft
+			s.copyLlmToolRunsFromDraft(fromDraftID, post.ID)
 		}
 		res.Posts = append(res.Posts, postStatus)
 		return connect.NewResponse(res), nil
@@ -814,6 +829,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				postStatus.Success = true
 				postStatus.State = db.PostStateDraft
 				postStatus.SocialAccountIdentity = socialAccount.Identity
+				s.copyLlmToolRunsFromDraft(fromDraftID, post.ID)
 			}
 			res.Posts = append(res.Posts, postStatus)
 			continue
@@ -842,6 +858,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				postStatus.Success = true
 				postStatus.State = db.PostStatePendingApproval
 				postStatus.SocialAccountIdentity = socialAccount.Identity
+				s.copyLlmToolRunsFromDraft(fromDraftID, post.ID)
 				s.dispatchApprovalRequested(ctx, post, socialAccount, policy)
 			}
 			res.Posts = append(res.Posts, postStatus)
@@ -865,6 +882,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			postStatus.Id = post.ID
 			postStatus.Success = true
 			postStatus.State = db.PostStateScheduled
+			s.copyLlmToolRunsFromDraft(fromDraftID, post.ID)
 		} else {
 			s.tryPostStatus(req.Msg.Content, req.Msg.MediaUrls, socialAccount, postStatus)
 
@@ -887,6 +905,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 			s.savePostMedia(post.ID, req.Msg.MediaUrls)
 			postStatus.Id = post.ID
 			postStatus.State = state
+			s.copyLlmToolRunsFromDraft(fromDraftID, post.ID)
 			s.dispatchPostOutcome(ctx, post, socialAccount, postStatus.Success, postStatus.PostUrl)
 		}
 

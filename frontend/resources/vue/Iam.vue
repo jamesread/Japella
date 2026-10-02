@@ -2,7 +2,7 @@
 	<Section
 		v-if="!loaded"
 		title="IAM"
-		subtitle="Identity and Access Management — users, groups, account policies, and roles."
+		subtitle="Identity and Access Management — users, groups, and roles."
 		classes="iam"
 	>
 		<p class="muted">Loading…</p>
@@ -11,7 +11,7 @@
 	<Section
 		v-else-if="canAccessIam"
 		title="IAM"
-		subtitle="Identity and Access Management — users, groups, account policies, and roles."
+		subtitle="Identity and Access Management — users, groups, and roles."
 		classes="iam"
 	>
 		<template #toolbar>

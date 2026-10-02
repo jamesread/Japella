@@ -2,7 +2,8 @@
 	flex-grow: 1;
 }
 
-section.small {
+section.small,
+.post-compose-stack.small {
 	max-width: 720px;
 	margin: auto;
 }

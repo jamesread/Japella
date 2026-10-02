@@ -689,9 +689,15 @@ func (db *DB) GetPost(postID uint32) (*Post, error) {
 }
 
 func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {
+	if id == 0 {
+		return nil, nil
+	}
 	var account SocialAccount
 	err := db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE id = ?", id)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		db.Logger().Errorf("Failed to get social account: %v", err)
 		return nil, err
 	}

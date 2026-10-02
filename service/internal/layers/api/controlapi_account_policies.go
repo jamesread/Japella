@@ -452,6 +452,12 @@ func (s *ControlApi) marshalPostStatus(post *db.Post) *controlv1.PostStatus {
 				ps.SocialAccountIcon = svc.GetIcon()
 			}
 		}
+	} else if post.State == db.PostStateDraft {
+		ps.SocialAccountIdentity = "Draft"
+		ps.SocialAccountIcon = "mdi:file-document-outline"
+	} else {
+		ps.SocialAccountIdentity = "Unknown"
+		ps.SocialAccountIcon = "mdi:question-mark-circle"
 	}
 	return ps
 }
@@ -486,6 +492,10 @@ func (s *ControlApi) GetPost(ctx context.Context, req *connect.Request[controlv1
 		res.CanReject = pending.CanReject
 		res.CanEdit = pending.CanReject
 		res.WaitingOn = pending.WaitingOn
+	} else if post.State == db.PostStateDraft {
+		if post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == au.User.ID {
+			res.CanEdit = true
+		}
 	}
 
 	return connect.NewResponse(res), nil

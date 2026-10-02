@@ -2,19 +2,35 @@
 	<div v-if="open" class="modal-overlay" @click.self="close">
 		<div class="modal">
 			<h3>Diagnostic Info</h3>
-			<p v-if="post.state" class="diagnostic-status">
-				<span :class="['annotation', postStatusClass]">{{ postStatusText }}</span>
-			</p>
-			<dl class="diagnostic-content">
-				<dt v-if="post.id">ID</dt>
-				<dd v-if="post.id" class="id-value">{{ post.id }}</dd>
-				<dt v-if="post.remoteId">Remote ID</dt>
-				<dd v-if="post.remoteId" class="id-value remote-id">{{ post.remoteId }}</dd>
+			<dl>
+				<template v-if="post.state">
+					<dt>Status</dt>
+					<dd>
+						<span :class="['annotation', postStatusClass]">{{ postStatusText }}</span>
+					</dd>
+				</template>
+				<template v-if="post.id">
+					<dt>ID</dt>
+					<dd><span class="id-value">{{ post.id }}</span></dd>
+				</template>
+				<template v-if="post.remoteId">
+					<dt>Remote ID</dt>
+					<dd><span class="id-value remote-id">{{ post.remoteId }}</span></dd>
+				</template>
 			</dl>
 			<p v-if="refetchMessage" class="refetch-message" :class="refetchMessageType">
 				{{ refetchMessage }}
 			</p>
 			<div class="dialog-actions">
+				<button
+					v-if="canRepost"
+					type="button"
+					class="neutral"
+					@click="repost"
+				>
+					<Icon icon="mdi:content-copy" />
+					Repost
+				</button>
 				<button
 					v-if="showViewDetails && post.id"
 					type="button"
@@ -54,7 +70,9 @@
 
 <script setup>
 	import { ref, computed } from 'vue';
+	import { useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
+	import { stashComposePrefill } from '../javascript/composePrefill.js';
 
 	const props = defineProps({
 		open: {
@@ -84,6 +102,7 @@
 	});
 
 	const emit = defineEmits(['close', 'post-refetched', 'view-details', 'retry-post']);
+	const router = useRouter();
 
 	const refetching = ref(false);
 	const refetchMessage = ref('');
@@ -91,6 +110,7 @@
 
 	const canRefetch = computed(() => props.refetchable && Boolean(props.post.id));
 	const canRetry = computed(() => props.retryable && props.post.state === 'error');
+	const canRepost = computed(() => Boolean((props.post.content || '').trim()));
 
 	const postStatusText = computed(() => {
 		if (props.post.state === 'error') return 'Error';
@@ -124,6 +144,31 @@
 		emit('retry-post');
 	}
 
+	function plainPostContent(content) {
+		const raw = String(content || '');
+		if (!raw.includes('<')) {
+			return raw;
+		}
+		const el = document.createElement('div');
+		el.innerHTML = raw;
+		return (el.textContent || el.innerText || '').trim();
+	}
+
+	function repost() {
+		const content = plainPostContent(props.post.content);
+		if (!content) {
+			return;
+		}
+		const socialAccountIds = [];
+		const accountId = Number(props.post.socialAccountId);
+		if (Number.isFinite(accountId) && accountId > 0) {
+			socialAccountIds.push(accountId);
+		}
+		stashComposePrefill({ content, socialAccountIds });
+		close();
+		router.push({ name: 'postBox', query: { prefill: '1' } });
+	}
+
 	async function refetchPost() {
 		if (!props.post.id || !window.client || refetching.value) {
 			return;
@@ -155,44 +200,21 @@
 </script>
 
 <style scoped>
-.diagnostic-content {
-	margin-bottom: 1rem;
-}
-
-.diagnostic-content dt {
-	font-weight: 500;
-	font-size: 0.875rem;
-	color: var(--text-secondary, #666);
-	margin-top: 0.75rem;
-	margin-bottom: 0.25rem;
-}
-
-.diagnostic-content dt:first-child {
-	margin-top: 0;
-}
-
-.diagnostic-content dd {
-	margin: 0 0 0.75rem 0;
-	font-size: 0.875rem;
-}
-
-.diagnostic-content dd.remote-id {
-	font-size: 0.75rem;
-}
-
 .id-value {
 	font-family: monospace;
 	background-color: var(--bg-secondary, #f5f5f5);
 	padding: 0.125rem 0.375rem;
 	border-radius: 0.25rem;
 	word-break: break-all;
-	max-width: 400px;
 	overflow-wrap: break-word;
-	display: inline-block;
+}
+
+.remote-id {
+	font-size: 0.75rem;
 }
 
 .refetch-message {
-	margin: 0 0 1rem;
+	margin: 1rem 0 0;
 	font-size: 0.875rem;
 }
 
@@ -206,10 +228,6 @@
 
 .refetch-message.note {
 	color: var(--text-secondary, #666);
-}
-
-.diagnostic-status {
-	margin: 0 0 1rem;
 }
 
 .annotation {

@@ -16,7 +16,6 @@ const CONTROL_PANEL_PERMISSIONS = [
 export const IAM_PERMISSIONS = [
 	'users.view',
 	'usergroups.view',
-	'account-policies.manage',
 	'rbac.view',
 ]
 

@@ -1,5 +1,6 @@
 <template>
-    <section class = "post-box small">
+    <div class="post-compose-stack small">
+    <section class = "post-box">
         <h2>{{ t('section.postbox.title') }}</h2>
         <p>{{ t('section.postbox.intro') }}</p>
 
@@ -74,6 +75,44 @@
                         >
                             <Icon icon="mdi:calendar-clock" />
                         </button>
+                        <div
+                            v-if="postMode != 'canned' && enabledLlmTools.length"
+                            class="llm-tools-menu-wrap"
+                        >
+                            <button
+                                type="button"
+                                class="neutral composer-tool-btn llm-tools-menu-trigger"
+                                :class="{ active: showLlmToolsMenu || pendingLlmRunCount > 0 }"
+                                aria-label="LLM tools"
+                                :aria-expanded="showLlmToolsMenu"
+                                :aria-haspopup="true"
+                                @click.stop="toggleLlmToolsMenu"
+                            >
+                                <Icon icon="mdi:creation-outline" />
+                            </button>
+                            <div
+                                v-if="showLlmToolsMenu"
+                                ref="llmToolsMenuEl"
+                                class="llm-tools-menu"
+                                role="menu"
+                                aria-label="LLM tools"
+                            >
+                                <p v-if="contentLength === 0" class="llm-tools-menu-hint">Add post content to run a tool.</p>
+                                <button
+                                    v-for="tool in enabledLlmTools"
+                                    :key="tool.id"
+                                    type="button"
+                                    class="llm-tools-menu-item"
+                                    role="menuitem"
+                                    :disabled="contentLength === 0"
+                                    :title="tool.description || tool.name"
+                                    @click="onSelectLlmTool(tool.id)"
+                                >
+                                    <span class="llm-tools-menu-item-name">{{ tool.name }}</span>
+                                    <span v-if="tool.description" class="llm-tools-menu-item-desc">{{ tool.description }}</span>
+                                </button>
+                            </div>
+                        </div>
                     </div>
                     <span ref = "postLengthCounter" class="post-length-counter">{{ postLength }}</span>
                 </div>
@@ -124,18 +163,35 @@
 
         </form>
     </section>
+
+    <LlmToolRunsPanel
+        v-if="postMode != 'canned' && (llmToolSessions.length || llmToolError)"
+        :sessions="llmToolSessions"
+        :tools="enabledLlmTools"
+        :can-run="false"
+        :can-rerun="contentLength > 0"
+        :loading="llmToolsLoading"
+        :error-message="llmToolError"
+        :show-runner="false"
+        :flush="true"
+        @rerun="runLlmTool"
+    />
+    </div>
 </template>
 
 <script setup>
     import { useI18n } from 'vue-i18n'
     const { t } = useI18n()
 
-import { ref, onMounted, onActivated, computed, nextTick } from 'vue';
-	import { useRoute } from 'vue-router';
+import { ref, onMounted, onActivated, onUnmounted, computed, nextTick, watch } from 'vue';
+	import { useRoute, useRouter } from 'vue-router';
     import { Icon } from '@iconify/vue';
     import EmojiPickerPopover from './EmojiPickerPopover.vue';
     import SocialAccountsSelector from './SocialAccountsSelector.vue';
+    import LlmToolRunsPanel from './LlmToolRunsPanel.vue';
     import { insertAtCursor, formatHumanDateTime } from '../javascript/util.js';
+    import { buildLlmToolSessions, replyFromApiRun } from '../javascript/llmToolSessions.js';
+    import { takeComposePrefill } from '../javascript/composePrefill.js';
 
     const clientReady = ref(false);
     const items = ref([]);
@@ -154,8 +210,24 @@ const contentLength = ref(0);
 	const mediaLibrary = ref([]);
 	const showMediaPicker = ref(false);
 	const showEmojiPicker = ref(false);
+	const showLlmToolsMenu = ref(false);
+	const llmToolsMenuEl = ref(null);
+	const draftPostId = ref(0);
+	const enabledLlmTools = ref([]);
+	const llmToolSessions = ref([]);
+	const llmToolsLoading = ref(false);
+	const llmToolError = ref('');
+	let llmElapsedTimer = null;
+	let draftEnsurePromise = null;
+	/** @type {number[]} */
+	let pendingPrefillAccountIds = [];
 
 	const route = useRoute();
+	const router = useRouter();
+
+	const pendingLlmRunCount = computed(() =>
+		llmToolSessions.value.filter((s) => s.pending).length,
+	);
 
 	function isImageFile(filename) {
 		const ext = (filename || '').split('.').pop()?.toLowerCase();
@@ -171,6 +243,10 @@ const contentLength = ref(0);
 	}
 	function toggleMediaPicker() {
 		showMediaPicker.value = !showMediaPicker.value;
+		if (showMediaPicker.value) {
+			showEmojiPicker.value = false;
+			showLlmToolsMenu.value = false;
+		}
 		if (showMediaPicker.value && mediaLibrary.value.length === 0) loadMediaLibrary();
 	}
 	function addMedia(item) {
@@ -188,12 +264,101 @@ const contentLength = ref(0);
 		}
 		selectedMedia.value = [...selectedMedia.value, item];
 	}
+
+	function setComposerContent(content) {
+		const text = typeof content === 'string' ? content : '';
+		const textarea = postTextarea.value || document.getElementById('post');
+		if (textarea) {
+			textarea.value = text;
+		}
+		postLength.value = text.length;
+		contentLength.value = text.length;
+		if (postLengthCounter.value) {
+			if (text.length > 280) {
+				postLengthCounter.value.classList.add('bad');
+			} else {
+				postLengthCounter.value.classList.remove('bad');
+			}
+		}
+	}
+
+	function selectApplicableAccountIds(desiredIds, accounts) {
+		const wanted = (desiredIds || []).map((id) => Number(id)).filter((id) => id > 0);
+		if (!wanted.length) {
+			return;
+		}
+		const list = accounts || items.value || [];
+		if (!list.length) {
+			pendingPrefillAccountIds = wanted;
+			selectedAccountIds.value = [...wanted];
+			return;
+		}
+		const available = new Set(list.map((a) => Number(a.id)));
+		selectedAccountIds.value = wanted.filter((id) => available.has(id));
+		pendingPrefillAccountIds = [];
+	}
+
+	async function applyComposePrefillFromQuery() {
+		const flag = route.query.prefill;
+		if (flag !== '1' && flag !== 'true') {
+			return;
+		}
+		await nextTick();
+		const prefill = takeComposePrefill();
+		if (prefill?.content) {
+			setComposerContent(prefill.content);
+		}
+		if (prefill?.socialAccountIds?.length) {
+			selectApplicableAccountIds(prefill.socialAccountIds, items.value);
+		}
+		const nextQuery = { ...route.query };
+		delete nextQuery.prefill;
+		router.replace({ name: 'postBox', query: nextQuery });
+	}
 	function removeMedia(index) {
 		selectedMedia.value = selectedMedia.value.filter((_, i) => i !== index);
 	}
 
 	function toggleEmojiPicker() {
 		showEmojiPicker.value = !showEmojiPicker.value;
+		if (showEmojiPicker.value) {
+			showLlmToolsMenu.value = false;
+			showMediaPicker.value = false;
+		}
+	}
+
+	function toggleLlmToolsMenu() {
+		showLlmToolsMenu.value = !showLlmToolsMenu.value;
+		if (showLlmToolsMenu.value) {
+			showEmojiPicker.value = false;
+			showMediaPicker.value = false;
+			showScheduleDialog.value = false;
+		}
+	}
+
+	function onSelectLlmTool(toolId) {
+		showLlmToolsMenu.value = false;
+		runLlmTool(toolId);
+	}
+
+	function onDocumentPointerDown(event) {
+		if (!showLlmToolsMenu.value) {
+			return;
+		}
+		const menu = llmToolsMenuEl.value;
+		if (!menu) {
+			return;
+		}
+		if (menu.contains(event.target) || event.target.closest('.llm-tools-menu-trigger')) {
+			return;
+		}
+		showLlmToolsMenu.value = false;
+	}
+
+	function onDocumentKeydown(event) {
+		if (event.key === 'Escape' && showLlmToolsMenu.value) {
+			showLlmToolsMenu.value = false;
+		}
 	}
 
 	function insertEmoji(unicode) {
@@ -250,8 +415,11 @@ const recountLength = (e) => {
     onMounted(async () => {
       await waitForClient();
       clientReady.value = true;
+      document.addEventListener('pointerdown', onDocumentPointerDown, true);
+      document.addEventListener('keydown', onDocumentKeydown);
 
         await refreshAccounts()
+		await loadEnabledLlmTools()
 
 		// Check for canned post ID in query parameters
 		if (route.query.cannedPostId) {
@@ -268,7 +436,17 @@ const recountLength = (e) => {
 		}
 
 		applyMediaFromQuery();
+		await applyComposePrefillFromQuery();
     });
+
+	onUnmounted(() => {
+		document.removeEventListener('pointerdown', onDocumentPointerDown, true);
+		document.removeEventListener('keydown', onDocumentKeydown);
+		if (llmElapsedTimer) {
+			clearInterval(llmElapsedTimer);
+			llmElapsedTimer = null;
+		}
+	});
 
     onActivated(async () => {
         await refreshAccounts()
@@ -288,7 +466,17 @@ const recountLength = (e) => {
 		}
 
 		applyMediaFromQuery();
+		await applyComposePrefillFromQuery();
 	})
+
+	watch(
+		() => route.query.prefill,
+		async (value) => {
+			if (value === '1' || value === 'true') {
+				await applyComposePrefillFromQuery();
+			}
+		},
+	)
 
     async function refreshAccounts() {
       const campaignsRet = await window.client.getCampaigns();
@@ -301,6 +489,9 @@ const recountLength = (e) => {
 
     function onAccountsLoaded(accounts) {
       items.value = accounts || []
+      if (pendingPrefillAccountIds.length) {
+        selectApplicableAccountIds(pendingPrefillAccountIds, items.value);
+      }
     }
 
     async function onCampaignChange() {
@@ -378,6 +569,221 @@ const submitButtonLabel = computed(() => {
         submitPost({ asDraft: true });
     }
 
+    async function loadEnabledLlmTools() {
+        llmToolsLoading.value = true;
+        llmToolError.value = '';
+        try {
+            await waitForClient();
+            const res = await window.client.listEnabledLlmTools({});
+            enabledLlmTools.value = res.tools || [];
+        } catch (e) {
+            console.error(e);
+            enabledLlmTools.value = [];
+        } finally {
+            llmToolsLoading.value = false;
+        }
+    }
+
+    async function loadLlmToolRuns(postId) {
+        if (!postId) {
+            llmToolSessions.value = llmToolSessions.value.filter((s) => s.pending);
+            return;
+        }
+        try {
+            await waitForClient();
+            const res = await window.client.listLlmToolRuns({ postId });
+            const loaded = buildLlmToolSessions(res.runs || []);
+            const pendingByTool = new Map(
+                llmToolSessions.value.filter((s) => s.pending).map((s) => [s.toolId, s]),
+            );
+            const merged = loaded.map((session) => {
+                const pending = pendingByTool.get(session.toolId);
+                if (!pending) {
+                    return session;
+                }
+                pendingByTool.delete(session.toolId);
+                return {
+                    ...session,
+                    pending: true,
+                    startedAt: pending.startedAt,
+                    elapsedMs: pending.elapsedMs,
+                    elapsedLabel: pending.elapsedLabel,
+                };
+            });
+            for (const pending of pendingByTool.values()) {
+                merged.unshift(pending);
+            }
+            llmToolSessions.value = merged;
+        } catch (e) {
+            console.error(e);
+            llmToolError.value = e.message || 'Failed to load tool runs.';
+        }
+    }
+
+    async function ensureDraftForToolRun(content) {
+        if (draftPostId.value) {
+            await window.client.updatePostContent({
+                postId: draftPostId.value,
+                content,
+            });
+            return draftPostId.value;
+        }
+        if (!draftEnsurePromise) {
+            draftEnsurePromise = (async () => {
+                const res = await window.client.submitPost({
+                    content,
+                    socialAccounts: [],
+                    campaignId: selectedCampaignId.value || 0,
+                    saveAsDraft: true,
+                    mediaUrls: selectedMedia.value.map((m) => m.url),
+                });
+                const saved = (res.posts || []).find((p) => p.success && p.id);
+                if (!saved?.id) {
+                    throw new Error('Failed to save draft before running tool.');
+                }
+                draftPostId.value = saved.id;
+                return saved.id;
+            })().finally(() => {
+                draftEnsurePromise = null;
+            });
+        }
+        const postId = await draftEnsurePromise;
+        await window.client.updatePostContent({ postId, content });
+        return postId;
+    }
+
+    function formatElapsed(ms) {
+        const totalSec = Math.floor(ms / 1000);
+        const min = Math.floor(totalSec / 60);
+        const sec = totalSec % 60;
+        if (min > 0) {
+            return `${min}:${String(sec).padStart(2, '0')}`;
+        }
+        return `${sec}s`;
+    }
+
+    function syncPendingElapsed() {
+        const now = Date.now();
+        let hasPending = false;
+        llmToolSessions.value = llmToolSessions.value.map((session) => {
+            if (!session.pending) {
+                return session;
+            }
+            hasPending = true;
+            const elapsedMs = Math.max(0, now - session.startedAt);
+            return {
+                ...session,
+                elapsedMs,
+                elapsedLabel: formatElapsed(elapsedMs),
+            };
+        });
+        if (!hasPending && llmElapsedTimer) {
+            clearInterval(llmElapsedTimer);
+            llmElapsedTimer = null;
+        }
+    }
+
+    function ensureElapsedTimer() {
+        if (llmElapsedTimer) {
+            return;
+        }
+        llmElapsedTimer = setInterval(syncPendingElapsed, 250);
+    }
+
+    function toolNameById(toolId) {
+        return enabledLlmTools.value.find((t) => t.id === toolId)?.name || 'LLM tool';
+    }
+
+    function upsertSessionPending(toolId) {
+        const startedAt = Date.now();
+        const existingIdx = llmToolSessions.value.findIndex((s) => s.toolId === toolId);
+        if (existingIdx >= 0) {
+            const existing = llmToolSessions.value[existingIdx];
+            const next = {
+                ...existing,
+                pending: true,
+                startedAt,
+                elapsedMs: 0,
+                elapsedLabel: '0s',
+            };
+            const copy = [...llmToolSessions.value];
+            copy.splice(existingIdx, 1);
+            llmToolSessions.value = [next, ...copy];
+            return;
+        }
+        llmToolSessions.value = [
+            {
+                toolId,
+                toolName: toolNameById(toolId),
+                pending: true,
+                startedAt,
+                elapsedMs: 0,
+                elapsedLabel: '0s',
+                history: [],
+            },
+            ...llmToolSessions.value,
+        ];
+    }
+
+    function finishSessionReply(toolId, reply) {
+        llmToolSessions.value = llmToolSessions.value.map((session) => {
+            if (session.toolId !== toolId) {
+                return session;
+            }
+            return {
+                ...session,
+                pending: false,
+                elapsedLabel: '',
+                history: [reply, ...(session.history || [])],
+            };
+        });
+    }
+
+    async function runLlmTool(toolId) {
+        const content = (postTextarea.value?.value || document.getElementById('post')?.value || '').trim();
+        if (!content) {
+            llmToolError.value = 'Add post content before running a tool.';
+            return;
+        }
+        const existing = llmToolSessions.value.find((s) => s.toolId === toolId);
+        if (existing?.pending) {
+            return;
+        }
+        llmToolError.value = '';
+        upsertSessionPending(toolId);
+        ensureElapsedTimer();
+
+        try {
+            await waitForClient();
+            const postId = await ensureDraftForToolRun(content);
+            const res = await window.client.runLlmTool({ postId, toolId });
+            if (res.run) {
+                finishSessionReply(toolId, replyFromApiRun(res.run));
+            } else {
+                await loadLlmToolRuns(postId);
+            }
+        } catch (e) {
+            console.error(e);
+            const message = e.message || 'Failed to run LLM tool.';
+            const session = llmToolSessions.value.find((s) => s.toolId === toolId);
+            const elapsedLabel = session
+                ? formatElapsed(Math.max(0, Date.now() - session.startedAt))
+                : '0s';
+            finishSessionReply(toolId, {
+                id: `local-error-${Date.now()}`,
+                status: 'error',
+                outputContent: '',
+                errorMessage: message,
+                connectionName: '',
+                model: '',
+                created: new Date().toISOString(),
+                elapsedLabel,
+            });
+        } finally {
+            syncPendingElapsed();
+        }
+    }
+
     function submitPost(options = {}) {
         const asDraft = Boolean(options.asDraft);
         const post = document.getElementById('post').value;
@@ -449,6 +855,9 @@ const submitButtonLabel = computed(() => {
         if (selectedMedia.value.length) {
             req.mediaUrls = selectedMedia.value.map(m => m.url);
         }
+        if (!asDraft && draftPostId.value) {
+            req.fromDraftPostId = draftPostId.value;
+        }
 
         console.log(req)
 
@@ -471,7 +880,12 @@ const submitButtonLabel = computed(() => {
                 selectedMedia.value = [];
 
                 if (asDraft) {
-                    const savedCount = (res.posts || []).filter((x) => x.success).length;
+                    const saved = (res.posts || []).filter((x) => x.success);
+                    if (saved.length && saved[0].id) {
+                        draftPostId.value = saved[0].id;
+                        loadLlmToolRuns(draftPostId.value);
+                    }
+                    const savedCount = saved.length;
                     showNotification(
                         'success',
                         'Draft saved',
@@ -483,6 +897,9 @@ const submitButtonLabel = computed(() => {
                     );
                     return;
                 }
+
+                draftPostId.value = 0;
+                llmToolSessions.value = [];
 
                 for (let x of res.posts) {
                     const statusClass = x.success ? 'success' : 'bad';
@@ -509,6 +926,7 @@ const submitButtonLabel = computed(() => {
         scheduledAtDialog.value = scheduledAt.value || "";
         showEmojiPicker.value = false;
         showMediaPicker.value = false;
+        showLlmToolsMenu.value = false;
     }
 
     function cancelScheduleDialog() {
@@ -535,6 +953,13 @@ const submitButtonLabel = computed(() => {
 </script>
 
 <style scoped>
+    .post-compose-stack {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
     input[type="checkbox"] {
         display: none;
     }
@@ -571,6 +996,69 @@ const submitButtonLabel = computed(() => {
 		display: flex;
 		align-items: center;
 		gap: 0.35rem;
+	}
+
+	.llm-tools-menu-wrap {
+		position: relative;
+	}
+
+	.llm-tools-menu {
+		position: absolute;
+		top: calc(100% + 0.35rem);
+		left: 0;
+		z-index: 1000;
+		min-width: 14rem;
+		max-width: 22rem;
+		padding: 0.35rem;
+		border-radius: 0.5rem;
+		border: 1px solid var(--border-color, #ccc);
+		background: var(--background-primary, #fff);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+
+	.llm-tools-menu-hint {
+		margin: 0;
+		padding: 0.5rem 0.65rem;
+		font-size: 0.85rem;
+		opacity: 0.75;
+	}
+
+	.llm-tools-menu-item {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.15rem;
+		width: 100%;
+		text-align: left;
+		padding: 0.5rem 0.65rem;
+		border: none;
+		border-radius: 0.35rem;
+		background: transparent;
+		cursor: pointer;
+		color: inherit;
+		font: inherit;
+	}
+
+	.llm-tools-menu-item:hover:not(:disabled),
+	.llm-tools-menu-item:focus-visible:not(:disabled) {
+		background: var(--hover-background-color, #f0f0f0);
+	}
+
+	.llm-tools-menu-item:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.llm-tools-menu-item-name {
+		font-weight: 600;
+	}
+
+	.llm-tools-menu-item-desc {
+		font-size: 0.85em;
+		opacity: 0.75;
 	}
 
 	.composer-tool-btn {

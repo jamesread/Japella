@@ -29,8 +29,10 @@ type SubmitPostRequest struct {
 	ScheduledAt    string                 `protobuf:"bytes,4,opt,name=scheduled_at,json=scheduledAt,proto3" json:"scheduled_at,omitempty"`    // RFC3339 or 'YYYY-MM-DDTHH:MM' local time
 	MediaUrls      []string               `protobuf:"bytes,5,rep,name=media_urls,json=mediaUrls,proto3" json:"media_urls,omitempty"`          // URLs to attach (e.g. /media/files/<filename>)
 	SaveAsDraft    bool                   `protobuf:"varint,6,opt,name=save_as_draft,json=saveAsDraft,proto3" json:"save_as_draft,omitempty"` // Save without posting or scheduling
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Optional draft that authored LLM tool runs; copies those runs onto each created post.
+	FromDraftPostId uint32 `protobuf:"varint,7,opt,name=from_draft_post_id,json=fromDraftPostId,proto3" json:"from_draft_post_id,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
 }
 
 func (x *SubmitPostRequest) Reset() {
@@ -103,6 +105,13 @@ func (x *SubmitPostRequest) GetSaveAsDraft() bool {
 		return x.SaveAsDraft
 	}
 	return false
+}
+
+func (x *SubmitPostRequest) GetFromDraftPostId() uint32 {
+	if x != nil {
+		return x.FromDraftPostId
+	}
+	return 0
 }
 
 type SubmitPostResponse struct {
@@ -11904,6 +11913,2189 @@ func (x *UpdatePendingPostResponse) GetPost() *PostStatus {
 	return nil
 }
 
+// UpdatePostContent updates draft or pending_approval post content for callers
+// allowed to edit that post (draft submitter, or pending submitter/assignee).
+type UpdatePostContentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint32                 `protobuf:"varint,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	Content       string                 `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdatePostContentRequest) Reset() {
+	*x = UpdatePostContentRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[219]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePostContentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePostContentRequest) ProtoMessage() {}
+
+func (x *UpdatePostContentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[219]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePostContentRequest.ProtoReflect.Descriptor instead.
+func (*UpdatePostContentRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{219}
+}
+
+func (x *UpdatePostContentRequest) GetPostId() uint32 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+func (x *UpdatePostContentRequest) GetContent() string {
+	if x != nil {
+		return x.Content
+	}
+	return ""
+}
+
+type UpdatePostContentResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	StandardResponse *StandardResponse      `protobuf:"bytes,1,opt,name=standard_response,json=standardResponse,proto3" json:"standard_response,omitempty"`
+	Post             *PostStatus            `protobuf:"bytes,2,opt,name=post,proto3" json:"post,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *UpdatePostContentResponse) Reset() {
+	*x = UpdatePostContentResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[220]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdatePostContentResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdatePostContentResponse) ProtoMessage() {}
+
+func (x *UpdatePostContentResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[220]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdatePostContentResponse.ProtoReflect.Descriptor instead.
+func (*UpdatePostContentResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{220}
+}
+
+func (x *UpdatePostContentResponse) GetStandardResponse() *StandardResponse {
+	if x != nil {
+		return x.StandardResponse
+	}
+	return nil
+}
+
+func (x *UpdatePostContentResponse) GetPost() *PostStatus {
+	if x != nil {
+		return x.Post
+	}
+	return nil
+}
+
+type LlmConnection struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Id      uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name    string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	BaseUrl string                 `protobuf:"bytes,3,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	// api_key is never returned in full; Get/List may set api_key_set.
+	ApiKeySet     bool   `protobuf:"varint,4,opt,name=api_key_set,json=apiKeySet,proto3" json:"api_key_set,omitempty"`
+	Model         string `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`
+	Enabled       bool   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	Created       string `protobuf:"bytes,7,opt,name=created,proto3" json:"created,omitempty"`
+	Updated       string `protobuf:"bytes,8,opt,name=updated,proto3" json:"updated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LlmConnection) Reset() {
+	*x = LlmConnection{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[221]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LlmConnection) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LlmConnection) ProtoMessage() {}
+
+func (x *LlmConnection) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[221]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LlmConnection.ProtoReflect.Descriptor instead.
+func (*LlmConnection) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{221}
+}
+
+func (x *LlmConnection) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *LlmConnection) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LlmConnection) GetBaseUrl() string {
+	if x != nil {
+		return x.BaseUrl
+	}
+	return ""
+}
+
+func (x *LlmConnection) GetApiKeySet() bool {
+	if x != nil {
+		return x.ApiKeySet
+	}
+	return false
+}
+
+func (x *LlmConnection) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *LlmConnection) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *LlmConnection) GetCreated() string {
+	if x != nil {
+		return x.Created
+	}
+	return ""
+}
+
+func (x *LlmConnection) GetUpdated() string {
+	if x != nil {
+		return x.Updated
+	}
+	return ""
+}
+
+type ListLlmConnectionsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmConnectionsRequest) Reset() {
+	*x = ListLlmConnectionsRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[222]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmConnectionsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmConnectionsRequest) ProtoMessage() {}
+
+func (x *ListLlmConnectionsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[222]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmConnectionsRequest.ProtoReflect.Descriptor instead.
+func (*ListLlmConnectionsRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{222}
+}
+
+type ListLlmConnectionsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Connections   []*LlmConnection       `protobuf:"bytes,1,rep,name=connections,proto3" json:"connections,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmConnectionsResponse) Reset() {
+	*x = ListLlmConnectionsResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[223]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmConnectionsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmConnectionsResponse) ProtoMessage() {}
+
+func (x *ListLlmConnectionsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[223]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmConnectionsResponse.ProtoReflect.Descriptor instead.
+func (*ListLlmConnectionsResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{223}
+}
+
+func (x *ListLlmConnectionsResponse) GetConnections() []*LlmConnection {
+	if x != nil {
+		return x.Connections
+	}
+	return nil
+}
+
+type GetLlmConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLlmConnectionRequest) Reset() {
+	*x = GetLlmConnectionRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[224]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLlmConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLlmConnectionRequest) ProtoMessage() {}
+
+func (x *GetLlmConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[224]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLlmConnectionRequest.ProtoReflect.Descriptor instead.
+func (*GetLlmConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{224}
+}
+
+func (x *GetLlmConnectionRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type GetLlmConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Connection    *LlmConnection         `protobuf:"bytes,1,opt,name=connection,proto3" json:"connection,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLlmConnectionResponse) Reset() {
+	*x = GetLlmConnectionResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[225]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLlmConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLlmConnectionResponse) ProtoMessage() {}
+
+func (x *GetLlmConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[225]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLlmConnectionResponse.ProtoReflect.Descriptor instead.
+func (*GetLlmConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{225}
+}
+
+func (x *GetLlmConnectionResponse) GetConnection() *LlmConnection {
+	if x != nil {
+		return x.Connection
+	}
+	return nil
+}
+
+type CreateLlmConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	BaseUrl       string                 `protobuf:"bytes,2,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	ApiKey        string                 `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Model         string                 `protobuf:"bytes,4,opt,name=model,proto3" json:"model,omitempty"`
+	Enabled       bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateLlmConnectionRequest) Reset() {
+	*x = CreateLlmConnectionRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[226]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLlmConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLlmConnectionRequest) ProtoMessage() {}
+
+func (x *CreateLlmConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[226]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLlmConnectionRequest.ProtoReflect.Descriptor instead.
+func (*CreateLlmConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{226}
+}
+
+func (x *CreateLlmConnectionRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateLlmConnectionRequest) GetBaseUrl() string {
+	if x != nil {
+		return x.BaseUrl
+	}
+	return ""
+}
+
+func (x *CreateLlmConnectionRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *CreateLlmConnectionRequest) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *CreateLlmConnectionRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+type CreateLlmConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateLlmConnectionResponse) Reset() {
+	*x = CreateLlmConnectionResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[227]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLlmConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLlmConnectionResponse) ProtoMessage() {}
+
+func (x *CreateLlmConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[227]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLlmConnectionResponse.ProtoReflect.Descriptor instead.
+func (*CreateLlmConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{227}
+}
+
+func (x *CreateLlmConnectionResponse) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type UpdateLlmConnectionRequest struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Id      uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name    string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	BaseUrl string                 `protobuf:"bytes,3,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	// Leave api_key blank to keep the existing key.
+	ApiKey        string `protobuf:"bytes,4,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	Model         string `protobuf:"bytes,5,opt,name=model,proto3" json:"model,omitempty"`
+	Enabled       bool   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateLlmConnectionRequest) Reset() {
+	*x = UpdateLlmConnectionRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[228]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLlmConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLlmConnectionRequest) ProtoMessage() {}
+
+func (x *UpdateLlmConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[228]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLlmConnectionRequest.ProtoReflect.Descriptor instead.
+func (*UpdateLlmConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{228}
+}
+
+func (x *UpdateLlmConnectionRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UpdateLlmConnectionRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateLlmConnectionRequest) GetBaseUrl() string {
+	if x != nil {
+		return x.BaseUrl
+	}
+	return ""
+}
+
+func (x *UpdateLlmConnectionRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+func (x *UpdateLlmConnectionRequest) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+func (x *UpdateLlmConnectionRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+type UpdateLlmConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateLlmConnectionResponse) Reset() {
+	*x = UpdateLlmConnectionResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[229]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLlmConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLlmConnectionResponse) ProtoMessage() {}
+
+func (x *UpdateLlmConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[229]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLlmConnectionResponse.ProtoReflect.Descriptor instead.
+func (*UpdateLlmConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{229}
+}
+
+type DeleteLlmConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLlmConnectionRequest) Reset() {
+	*x = DeleteLlmConnectionRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[230]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLlmConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLlmConnectionRequest) ProtoMessage() {}
+
+func (x *DeleteLlmConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[230]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLlmConnectionRequest.ProtoReflect.Descriptor instead.
+func (*DeleteLlmConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{230}
+}
+
+func (x *DeleteLlmConnectionRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type DeleteLlmConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLlmConnectionResponse) Reset() {
+	*x = DeleteLlmConnectionResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[231]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLlmConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLlmConnectionResponse) ProtoMessage() {}
+
+func (x *DeleteLlmConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[231]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLlmConnectionResponse.ProtoReflect.Descriptor instead.
+func (*DeleteLlmConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{231}
+}
+
+type TestLlmConnectionRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestLlmConnectionRequest) Reset() {
+	*x = TestLlmConnectionRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[232]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestLlmConnectionRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestLlmConnectionRequest) ProtoMessage() {}
+
+func (x *TestLlmConnectionRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[232]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestLlmConnectionRequest.ProtoReflect.Descriptor instead.
+func (*TestLlmConnectionRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{232}
+}
+
+func (x *TestLlmConnectionRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type TestLlmConnectionResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TestLlmConnectionResponse) Reset() {
+	*x = TestLlmConnectionResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[233]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TestLlmConnectionResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TestLlmConnectionResponse) ProtoMessage() {}
+
+func (x *TestLlmConnectionResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[233]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TestLlmConnectionResponse.ProtoReflect.Descriptor instead.
+func (*TestLlmConnectionResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{233}
+}
+
+func (x *TestLlmConnectionResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+func (x *TestLlmConnectionResponse) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+type LlmConnectionPreset struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Id             string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name           string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	BaseUrl        string                 `protobuf:"bytes,3,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	SuggestedModel string                 `protobuf:"bytes,4,opt,name=suggested_model,json=suggestedModel,proto3" json:"suggested_model,omitempty"`
+	Description    string                 `protobuf:"bytes,5,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *LlmConnectionPreset) Reset() {
+	*x = LlmConnectionPreset{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[234]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LlmConnectionPreset) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LlmConnectionPreset) ProtoMessage() {}
+
+func (x *LlmConnectionPreset) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[234]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LlmConnectionPreset.ProtoReflect.Descriptor instead.
+func (*LlmConnectionPreset) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{234}
+}
+
+func (x *LlmConnectionPreset) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LlmConnectionPreset) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LlmConnectionPreset) GetBaseUrl() string {
+	if x != nil {
+		return x.BaseUrl
+	}
+	return ""
+}
+
+func (x *LlmConnectionPreset) GetSuggestedModel() string {
+	if x != nil {
+		return x.SuggestedModel
+	}
+	return ""
+}
+
+func (x *LlmConnectionPreset) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type ListLlmConnectionPresetsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmConnectionPresetsRequest) Reset() {
+	*x = ListLlmConnectionPresetsRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[235]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmConnectionPresetsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmConnectionPresetsRequest) ProtoMessage() {}
+
+func (x *ListLlmConnectionPresetsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[235]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmConnectionPresetsRequest.ProtoReflect.Descriptor instead.
+func (*ListLlmConnectionPresetsRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{235}
+}
+
+type ListLlmConnectionPresetsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Presets       []*LlmConnectionPreset `protobuf:"bytes,1,rep,name=presets,proto3" json:"presets,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmConnectionPresetsResponse) Reset() {
+	*x = ListLlmConnectionPresetsResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[236]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmConnectionPresetsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmConnectionPresetsResponse) ProtoMessage() {}
+
+func (x *ListLlmConnectionPresetsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[236]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmConnectionPresetsResponse.ProtoReflect.Descriptor instead.
+func (*ListLlmConnectionPresetsResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{236}
+}
+
+func (x *ListLlmConnectionPresetsResponse) GetPresets() []*LlmConnectionPreset {
+	if x != nil {
+		return x.Presets
+	}
+	return nil
+}
+
+type LlmModel struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LlmModel) Reset() {
+	*x = LlmModel{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[237]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LlmModel) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LlmModel) ProtoMessage() {}
+
+func (x *LlmModel) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[237]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LlmModel.ProtoReflect.Descriptor instead.
+func (*LlmModel) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{237}
+}
+
+func (x *LlmModel) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *LlmModel) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type ListLlmConnectionModelsRequest struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// When set, uses the stored connection base URL and API key (unless api_key is provided).
+	ConnectionId uint32 `protobuf:"varint,1,opt,name=connection_id,json=connectionId,proto3" json:"connection_id,omitempty"`
+	// Used when connection_id is unset (create form), or to override base URL.
+	BaseUrl string `protobuf:"bytes,2,opt,name=base_url,json=baseUrl,proto3" json:"base_url,omitempty"`
+	// Optional; blank with connection_id keeps the stored key. For create form, pass the form key.
+	ApiKey        string `protobuf:"bytes,3,opt,name=api_key,json=apiKey,proto3" json:"api_key,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmConnectionModelsRequest) Reset() {
+	*x = ListLlmConnectionModelsRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[238]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmConnectionModelsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmConnectionModelsRequest) ProtoMessage() {}
+
+func (x *ListLlmConnectionModelsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[238]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmConnectionModelsRequest.ProtoReflect.Descriptor instead.
+func (*ListLlmConnectionModelsRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{238}
+}
+
+func (x *ListLlmConnectionModelsRequest) GetConnectionId() uint32 {
+	if x != nil {
+		return x.ConnectionId
+	}
+	return 0
+}
+
+func (x *ListLlmConnectionModelsRequest) GetBaseUrl() string {
+	if x != nil {
+		return x.BaseUrl
+	}
+	return ""
+}
+
+func (x *ListLlmConnectionModelsRequest) GetApiKey() string {
+	if x != nil {
+		return x.ApiKey
+	}
+	return ""
+}
+
+type ListLlmConnectionModelsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Models        []*LlmModel            `protobuf:"bytes,1,rep,name=models,proto3" json:"models,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmConnectionModelsResponse) Reset() {
+	*x = ListLlmConnectionModelsResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[239]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmConnectionModelsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmConnectionModelsResponse) ProtoMessage() {}
+
+func (x *ListLlmConnectionModelsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[239]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmConnectionModelsResponse.ProtoReflect.Descriptor instead.
+func (*ListLlmConnectionModelsResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{239}
+}
+
+func (x *ListLlmConnectionModelsResponse) GetModels() []*LlmModel {
+	if x != nil {
+		return x.Models
+	}
+	return nil
+}
+
+type LlmTool struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description     string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	LlmConnectionId uint32                 `protobuf:"varint,4,opt,name=llm_connection_id,json=llmConnectionId,proto3" json:"llm_connection_id,omitempty"`
+	ConnectionName  string                 `protobuf:"bytes,5,opt,name=connection_name,json=connectionName,proto3" json:"connection_name,omitempty"`
+	Prompt          string                 `protobuf:"bytes,6,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Enabled         bool                   `protobuf:"varint,7,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	SortOrder       int32                  `protobuf:"varint,8,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	Created         string                 `protobuf:"bytes,9,opt,name=created,proto3" json:"created,omitempty"`
+	Updated         string                 `protobuf:"bytes,10,opt,name=updated,proto3" json:"updated,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LlmTool) Reset() {
+	*x = LlmTool{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[240]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LlmTool) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LlmTool) ProtoMessage() {}
+
+func (x *LlmTool) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[240]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LlmTool.ProtoReflect.Descriptor instead.
+func (*LlmTool) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{240}
+}
+
+func (x *LlmTool) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *LlmTool) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LlmTool) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *LlmTool) GetLlmConnectionId() uint32 {
+	if x != nil {
+		return x.LlmConnectionId
+	}
+	return 0
+}
+
+func (x *LlmTool) GetConnectionName() string {
+	if x != nil {
+		return x.ConnectionName
+	}
+	return ""
+}
+
+func (x *LlmTool) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *LlmTool) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *LlmTool) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
+	}
+	return 0
+}
+
+func (x *LlmTool) GetCreated() string {
+	if x != nil {
+		return x.Created
+	}
+	return ""
+}
+
+func (x *LlmTool) GetUpdated() string {
+	if x != nil {
+		return x.Updated
+	}
+	return ""
+}
+
+type ListLlmToolsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmToolsRequest) Reset() {
+	*x = ListLlmToolsRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[241]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmToolsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmToolsRequest) ProtoMessage() {}
+
+func (x *ListLlmToolsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[241]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmToolsRequest.ProtoReflect.Descriptor instead.
+func (*ListLlmToolsRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{241}
+}
+
+type ListLlmToolsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tools         []*LlmTool             `protobuf:"bytes,1,rep,name=tools,proto3" json:"tools,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmToolsResponse) Reset() {
+	*x = ListLlmToolsResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[242]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmToolsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmToolsResponse) ProtoMessage() {}
+
+func (x *ListLlmToolsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[242]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmToolsResponse.ProtoReflect.Descriptor instead.
+func (*ListLlmToolsResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{242}
+}
+
+func (x *ListLlmToolsResponse) GetTools() []*LlmTool {
+	if x != nil {
+		return x.Tools
+	}
+	return nil
+}
+
+type GetLlmToolRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLlmToolRequest) Reset() {
+	*x = GetLlmToolRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[243]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLlmToolRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLlmToolRequest) ProtoMessage() {}
+
+func (x *GetLlmToolRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[243]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLlmToolRequest.ProtoReflect.Descriptor instead.
+func (*GetLlmToolRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{243}
+}
+
+func (x *GetLlmToolRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type GetLlmToolResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tool          *LlmTool               `protobuf:"bytes,1,opt,name=tool,proto3" json:"tool,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetLlmToolResponse) Reset() {
+	*x = GetLlmToolResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[244]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetLlmToolResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetLlmToolResponse) ProtoMessage() {}
+
+func (x *GetLlmToolResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[244]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetLlmToolResponse.ProtoReflect.Descriptor instead.
+func (*GetLlmToolResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{244}
+}
+
+func (x *GetLlmToolResponse) GetTool() *LlmTool {
+	if x != nil {
+		return x.Tool
+	}
+	return nil
+}
+
+type CreateLlmToolRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Name            string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+	Description     string                 `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
+	LlmConnectionId uint32                 `protobuf:"varint,3,opt,name=llm_connection_id,json=llmConnectionId,proto3" json:"llm_connection_id,omitempty"`
+	Prompt          string                 `protobuf:"bytes,4,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Enabled         bool                   `protobuf:"varint,5,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	SortOrder       int32                  `protobuf:"varint,6,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *CreateLlmToolRequest) Reset() {
+	*x = CreateLlmToolRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[245]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLlmToolRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLlmToolRequest) ProtoMessage() {}
+
+func (x *CreateLlmToolRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[245]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLlmToolRequest.ProtoReflect.Descriptor instead.
+func (*CreateLlmToolRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{245}
+}
+
+func (x *CreateLlmToolRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateLlmToolRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *CreateLlmToolRequest) GetLlmConnectionId() uint32 {
+	if x != nil {
+		return x.LlmConnectionId
+	}
+	return 0
+}
+
+func (x *CreateLlmToolRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *CreateLlmToolRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *CreateLlmToolRequest) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
+	}
+	return 0
+}
+
+type CreateLlmToolResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateLlmToolResponse) Reset() {
+	*x = CreateLlmToolResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[246]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateLlmToolResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateLlmToolResponse) ProtoMessage() {}
+
+func (x *CreateLlmToolResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[246]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateLlmToolResponse.ProtoReflect.Descriptor instead.
+func (*CreateLlmToolResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{246}
+}
+
+func (x *CreateLlmToolResponse) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type UpdateLlmToolRequest struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name            string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description     string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	LlmConnectionId uint32                 `protobuf:"varint,4,opt,name=llm_connection_id,json=llmConnectionId,proto3" json:"llm_connection_id,omitempty"`
+	Prompt          string                 `protobuf:"bytes,5,opt,name=prompt,proto3" json:"prompt,omitempty"`
+	Enabled         bool                   `protobuf:"varint,6,opt,name=enabled,proto3" json:"enabled,omitempty"`
+	SortOrder       int32                  `protobuf:"varint,7,opt,name=sort_order,json=sortOrder,proto3" json:"sort_order,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *UpdateLlmToolRequest) Reset() {
+	*x = UpdateLlmToolRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[247]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLlmToolRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLlmToolRequest) ProtoMessage() {}
+
+func (x *UpdateLlmToolRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[247]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLlmToolRequest.ProtoReflect.Descriptor instead.
+func (*UpdateLlmToolRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{247}
+}
+
+func (x *UpdateLlmToolRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *UpdateLlmToolRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *UpdateLlmToolRequest) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+func (x *UpdateLlmToolRequest) GetLlmConnectionId() uint32 {
+	if x != nil {
+		return x.LlmConnectionId
+	}
+	return 0
+}
+
+func (x *UpdateLlmToolRequest) GetPrompt() string {
+	if x != nil {
+		return x.Prompt
+	}
+	return ""
+}
+
+func (x *UpdateLlmToolRequest) GetEnabled() bool {
+	if x != nil {
+		return x.Enabled
+	}
+	return false
+}
+
+func (x *UpdateLlmToolRequest) GetSortOrder() int32 {
+	if x != nil {
+		return x.SortOrder
+	}
+	return 0
+}
+
+type UpdateLlmToolResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateLlmToolResponse) Reset() {
+	*x = UpdateLlmToolResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[248]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateLlmToolResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateLlmToolResponse) ProtoMessage() {}
+
+func (x *UpdateLlmToolResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[248]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateLlmToolResponse.ProtoReflect.Descriptor instead.
+func (*UpdateLlmToolResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{248}
+}
+
+type DeleteLlmToolRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLlmToolRequest) Reset() {
+	*x = DeleteLlmToolRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[249]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLlmToolRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLlmToolRequest) ProtoMessage() {}
+
+func (x *DeleteLlmToolRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[249]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLlmToolRequest.ProtoReflect.Descriptor instead.
+func (*DeleteLlmToolRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{249}
+}
+
+func (x *DeleteLlmToolRequest) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type DeleteLlmToolResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteLlmToolResponse) Reset() {
+	*x = DeleteLlmToolResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[250]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteLlmToolResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteLlmToolResponse) ProtoMessage() {}
+
+func (x *DeleteLlmToolResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[250]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteLlmToolResponse.ProtoReflect.Descriptor instead.
+func (*DeleteLlmToolResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{250}
+}
+
+type LlmToolSummary struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Description   string                 `protobuf:"bytes,3,opt,name=description,proto3" json:"description,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *LlmToolSummary) Reset() {
+	*x = LlmToolSummary{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[251]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LlmToolSummary) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LlmToolSummary) ProtoMessage() {}
+
+func (x *LlmToolSummary) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[251]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LlmToolSummary.ProtoReflect.Descriptor instead.
+func (*LlmToolSummary) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{251}
+}
+
+func (x *LlmToolSummary) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *LlmToolSummary) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *LlmToolSummary) GetDescription() string {
+	if x != nil {
+		return x.Description
+	}
+	return ""
+}
+
+type ListEnabledLlmToolsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEnabledLlmToolsRequest) Reset() {
+	*x = ListEnabledLlmToolsRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[252]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEnabledLlmToolsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEnabledLlmToolsRequest) ProtoMessage() {}
+
+func (x *ListEnabledLlmToolsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[252]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEnabledLlmToolsRequest.ProtoReflect.Descriptor instead.
+func (*ListEnabledLlmToolsRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{252}
+}
+
+type ListEnabledLlmToolsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Tools         []*LlmToolSummary      `protobuf:"bytes,1,rep,name=tools,proto3" json:"tools,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListEnabledLlmToolsResponse) Reset() {
+	*x = ListEnabledLlmToolsResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[253]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListEnabledLlmToolsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListEnabledLlmToolsResponse) ProtoMessage() {}
+
+func (x *ListEnabledLlmToolsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[253]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListEnabledLlmToolsResponse.ProtoReflect.Descriptor instead.
+func (*ListEnabledLlmToolsResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{253}
+}
+
+func (x *ListEnabledLlmToolsResponse) GetTools() []*LlmToolSummary {
+	if x != nil {
+		return x.Tools
+	}
+	return nil
+}
+
+type LlmToolRun struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Id              uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	PostId          uint32                 `protobuf:"varint,2,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	LlmToolId       uint32                 `protobuf:"varint,3,opt,name=llm_tool_id,json=llmToolId,proto3" json:"llm_tool_id,omitempty"`
+	ToolName        string                 `protobuf:"bytes,4,opt,name=tool_name,json=toolName,proto3" json:"tool_name,omitempty"`
+	ConnectionName  string                 `protobuf:"bytes,5,opt,name=connection_name,json=connectionName,proto3" json:"connection_name,omitempty"`
+	InputContent    string                 `protobuf:"bytes,6,opt,name=input_content,json=inputContent,proto3" json:"input_content,omitempty"`
+	OutputContent   string                 `protobuf:"bytes,7,opt,name=output_content,json=outputContent,proto3" json:"output_content,omitempty"`
+	Status          string                 `protobuf:"bytes,8,opt,name=status,proto3" json:"status,omitempty"`
+	ErrorMessage    string                 `protobuf:"bytes,9,opt,name=error_message,json=errorMessage,proto3" json:"error_message,omitempty"`
+	CreatedByUserId uint32                 `protobuf:"varint,10,opt,name=created_by_user_id,json=createdByUserId,proto3" json:"created_by_user_id,omitempty"`
+	Created         string                 `protobuf:"bytes,11,opt,name=created,proto3" json:"created,omitempty"`
+	Model           string                 `protobuf:"bytes,12,opt,name=model,proto3" json:"model,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *LlmToolRun) Reset() {
+	*x = LlmToolRun{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[254]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *LlmToolRun) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*LlmToolRun) ProtoMessage() {}
+
+func (x *LlmToolRun) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[254]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use LlmToolRun.ProtoReflect.Descriptor instead.
+func (*LlmToolRun) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{254}
+}
+
+func (x *LlmToolRun) GetId() uint32 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *LlmToolRun) GetPostId() uint32 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+func (x *LlmToolRun) GetLlmToolId() uint32 {
+	if x != nil {
+		return x.LlmToolId
+	}
+	return 0
+}
+
+func (x *LlmToolRun) GetToolName() string {
+	if x != nil {
+		return x.ToolName
+	}
+	return ""
+}
+
+func (x *LlmToolRun) GetConnectionName() string {
+	if x != nil {
+		return x.ConnectionName
+	}
+	return ""
+}
+
+func (x *LlmToolRun) GetInputContent() string {
+	if x != nil {
+		return x.InputContent
+	}
+	return ""
+}
+
+func (x *LlmToolRun) GetOutputContent() string {
+	if x != nil {
+		return x.OutputContent
+	}
+	return ""
+}
+
+func (x *LlmToolRun) GetStatus() string {
+	if x != nil {
+		return x.Status
+	}
+	return ""
+}
+
+func (x *LlmToolRun) GetErrorMessage() string {
+	if x != nil {
+		return x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *LlmToolRun) GetCreatedByUserId() uint32 {
+	if x != nil {
+		return x.CreatedByUserId
+	}
+	return 0
+}
+
+func (x *LlmToolRun) GetCreated() string {
+	if x != nil {
+		return x.Created
+	}
+	return ""
+}
+
+func (x *LlmToolRun) GetModel() string {
+	if x != nil {
+		return x.Model
+	}
+	return ""
+}
+
+type RunLlmToolRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint32                 `protobuf:"varint,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	ToolId        uint32                 `protobuf:"varint,2,opt,name=tool_id,json=toolId,proto3" json:"tool_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunLlmToolRequest) Reset() {
+	*x = RunLlmToolRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[255]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunLlmToolRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunLlmToolRequest) ProtoMessage() {}
+
+func (x *RunLlmToolRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[255]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunLlmToolRequest.ProtoReflect.Descriptor instead.
+func (*RunLlmToolRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{255}
+}
+
+func (x *RunLlmToolRequest) GetPostId() uint32 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+func (x *RunLlmToolRequest) GetToolId() uint32 {
+	if x != nil {
+		return x.ToolId
+	}
+	return 0
+}
+
+type RunLlmToolResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Run           *LlmToolRun            `protobuf:"bytes,1,opt,name=run,proto3" json:"run,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunLlmToolResponse) Reset() {
+	*x = RunLlmToolResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[256]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunLlmToolResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunLlmToolResponse) ProtoMessage() {}
+
+func (x *RunLlmToolResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[256]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunLlmToolResponse.ProtoReflect.Descriptor instead.
+func (*RunLlmToolResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{256}
+}
+
+func (x *RunLlmToolResponse) GetRun() *LlmToolRun {
+	if x != nil {
+		return x.Run
+	}
+	return nil
+}
+
+type ListLlmToolRunsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PostId        uint32                 `protobuf:"varint,1,opt,name=post_id,json=postId,proto3" json:"post_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmToolRunsRequest) Reset() {
+	*x = ListLlmToolRunsRequest{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[257]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmToolRunsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmToolRunsRequest) ProtoMessage() {}
+
+func (x *ListLlmToolRunsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[257]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmToolRunsRequest.ProtoReflect.Descriptor instead.
+func (*ListLlmToolRunsRequest) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{257}
+}
+
+func (x *ListLlmToolRunsRequest) GetPostId() uint32 {
+	if x != nil {
+		return x.PostId
+	}
+	return 0
+}
+
+type ListLlmToolRunsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Runs          []*LlmToolRun          `protobuf:"bytes,1,rep,name=runs,proto3" json:"runs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListLlmToolRunsResponse) Reset() {
+	*x = ListLlmToolRunsResponse{}
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[258]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListLlmToolRunsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListLlmToolRunsResponse) ProtoMessage() {}
+
+func (x *ListLlmToolRunsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[258]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListLlmToolRunsResponse.ProtoReflect.Descriptor instead.
+func (*ListLlmToolRunsResponse) Descriptor() ([]byte, []int) {
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{258}
+}
+
+func (x *ListLlmToolRunsResponse) GetRuns() []*LlmToolRun {
+	if x != nil {
+		return x.Runs
+	}
+	return nil
+}
+
 type Webhook struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -11918,7 +14110,7 @@ type Webhook struct {
 
 func (x *Webhook) Reset() {
 	*x = Webhook{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[219]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[259]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -11930,7 +14122,7 @@ func (x *Webhook) String() string {
 func (*Webhook) ProtoMessage() {}
 
 func (x *Webhook) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[219]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[259]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -11943,7 +14135,7 @@ func (x *Webhook) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Webhook.ProtoReflect.Descriptor instead.
 func (*Webhook) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{219}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{259}
 }
 
 func (x *Webhook) GetId() uint32 {
@@ -12004,7 +14196,7 @@ type WebhookDeliveryLog struct {
 
 func (x *WebhookDeliveryLog) Reset() {
 	*x = WebhookDeliveryLog{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[220]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[260]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12016,7 +14208,7 @@ func (x *WebhookDeliveryLog) String() string {
 func (*WebhookDeliveryLog) ProtoMessage() {}
 
 func (x *WebhookDeliveryLog) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[220]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[260]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12029,7 +14221,7 @@ func (x *WebhookDeliveryLog) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WebhookDeliveryLog.ProtoReflect.Descriptor instead.
 func (*WebhookDeliveryLog) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{220}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{260}
 }
 
 func (x *WebhookDeliveryLog) GetId() uint32 {
@@ -12098,7 +14290,7 @@ type GetWebhookRequest struct {
 
 func (x *GetWebhookRequest) Reset() {
 	*x = GetWebhookRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[221]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[261]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12110,7 +14302,7 @@ func (x *GetWebhookRequest) String() string {
 func (*GetWebhookRequest) ProtoMessage() {}
 
 func (x *GetWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[221]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[261]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12123,7 +14315,7 @@ func (x *GetWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWebhookRequest.ProtoReflect.Descriptor instead.
 func (*GetWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{221}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{261}
 }
 
 func (x *GetWebhookRequest) GetId() uint32 {
@@ -12150,7 +14342,7 @@ type GetWebhookResponse struct {
 
 func (x *GetWebhookResponse) Reset() {
 	*x = GetWebhookResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[222]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[262]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12162,7 +14354,7 @@ func (x *GetWebhookResponse) String() string {
 func (*GetWebhookResponse) ProtoMessage() {}
 
 func (x *GetWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[222]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[262]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12175,7 +14367,7 @@ func (x *GetWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetWebhookResponse.ProtoReflect.Descriptor instead.
 func (*GetWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{222}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{262}
 }
 
 func (x *GetWebhookResponse) GetWebhook() *Webhook {
@@ -12200,7 +14392,7 @@ type ListWebhooksRequest struct {
 
 func (x *ListWebhooksRequest) Reset() {
 	*x = ListWebhooksRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[223]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[263]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12212,7 +14404,7 @@ func (x *ListWebhooksRequest) String() string {
 func (*ListWebhooksRequest) ProtoMessage() {}
 
 func (x *ListWebhooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[223]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[263]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12225,7 +14417,7 @@ func (x *ListWebhooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWebhooksRequest.ProtoReflect.Descriptor instead.
 func (*ListWebhooksRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{223}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{263}
 }
 
 type ListWebhooksResponse struct {
@@ -12238,7 +14430,7 @@ type ListWebhooksResponse struct {
 
 func (x *ListWebhooksResponse) Reset() {
 	*x = ListWebhooksResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[224]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[264]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12250,7 +14442,7 @@ func (x *ListWebhooksResponse) String() string {
 func (*ListWebhooksResponse) ProtoMessage() {}
 
 func (x *ListWebhooksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[224]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[264]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12263,7 +14455,7 @@ func (x *ListWebhooksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListWebhooksResponse.ProtoReflect.Descriptor instead.
 func (*ListWebhooksResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{224}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{264}
 }
 
 func (x *ListWebhooksResponse) GetWebhooks() []*Webhook {
@@ -12292,7 +14484,7 @@ type CreateWebhookRequest struct {
 
 func (x *CreateWebhookRequest) Reset() {
 	*x = CreateWebhookRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[225]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[265]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12304,7 +14496,7 @@ func (x *CreateWebhookRequest) String() string {
 func (*CreateWebhookRequest) ProtoMessage() {}
 
 func (x *CreateWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[225]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[265]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12317,7 +14509,7 @@ func (x *CreateWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateWebhookRequest.ProtoReflect.Descriptor instead.
 func (*CreateWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{225}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{265}
 }
 
 func (x *CreateWebhookRequest) GetUrl() string {
@@ -12357,7 +14549,7 @@ type CreateWebhookResponse struct {
 
 func (x *CreateWebhookResponse) Reset() {
 	*x = CreateWebhookResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[226]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[266]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12369,7 +14561,7 @@ func (x *CreateWebhookResponse) String() string {
 func (*CreateWebhookResponse) ProtoMessage() {}
 
 func (x *CreateWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[226]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[266]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12382,7 +14574,7 @@ func (x *CreateWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateWebhookResponse.ProtoReflect.Descriptor instead.
 func (*CreateWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{226}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{266}
 }
 
 func (x *CreateWebhookResponse) GetId() uint32 {
@@ -12405,7 +14597,7 @@ type UpdateWebhookRequest struct {
 
 func (x *UpdateWebhookRequest) Reset() {
 	*x = UpdateWebhookRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[227]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[267]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12417,7 +14609,7 @@ func (x *UpdateWebhookRequest) String() string {
 func (*UpdateWebhookRequest) ProtoMessage() {}
 
 func (x *UpdateWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[227]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[267]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12430,7 +14622,7 @@ func (x *UpdateWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateWebhookRequest.ProtoReflect.Descriptor instead.
 func (*UpdateWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{227}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{267}
 }
 
 func (x *UpdateWebhookRequest) GetId() uint32 {
@@ -12476,7 +14668,7 @@ type UpdateWebhookResponse struct {
 
 func (x *UpdateWebhookResponse) Reset() {
 	*x = UpdateWebhookResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[228]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[268]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12488,7 +14680,7 @@ func (x *UpdateWebhookResponse) String() string {
 func (*UpdateWebhookResponse) ProtoMessage() {}
 
 func (x *UpdateWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[228]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[268]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12501,7 +14693,7 @@ func (x *UpdateWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateWebhookResponse.ProtoReflect.Descriptor instead.
 func (*UpdateWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{228}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{268}
 }
 
 type DeleteWebhookRequest struct {
@@ -12513,7 +14705,7 @@ type DeleteWebhookRequest struct {
 
 func (x *DeleteWebhookRequest) Reset() {
 	*x = DeleteWebhookRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[229]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[269]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12525,7 +14717,7 @@ func (x *DeleteWebhookRequest) String() string {
 func (*DeleteWebhookRequest) ProtoMessage() {}
 
 func (x *DeleteWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[229]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[269]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12538,7 +14730,7 @@ func (x *DeleteWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteWebhookRequest.ProtoReflect.Descriptor instead.
 func (*DeleteWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{229}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{269}
 }
 
 func (x *DeleteWebhookRequest) GetId() uint32 {
@@ -12556,7 +14748,7 @@ type DeleteWebhookResponse struct {
 
 func (x *DeleteWebhookResponse) Reset() {
 	*x = DeleteWebhookResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[230]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[270]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12568,7 +14760,7 @@ func (x *DeleteWebhookResponse) String() string {
 func (*DeleteWebhookResponse) ProtoMessage() {}
 
 func (x *DeleteWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[230]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[270]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12581,7 +14773,7 @@ func (x *DeleteWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteWebhookResponse.ProtoReflect.Descriptor instead.
 func (*DeleteWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{230}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{270}
 }
 
 type TestWebhookRequest struct {
@@ -12593,7 +14785,7 @@ type TestWebhookRequest struct {
 
 func (x *TestWebhookRequest) Reset() {
 	*x = TestWebhookRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[231]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[271]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12605,7 +14797,7 @@ func (x *TestWebhookRequest) String() string {
 func (*TestWebhookRequest) ProtoMessage() {}
 
 func (x *TestWebhookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[231]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[271]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12618,7 +14810,7 @@ func (x *TestWebhookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestWebhookRequest.ProtoReflect.Descriptor instead.
 func (*TestWebhookRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{231}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{271}
 }
 
 func (x *TestWebhookRequest) GetId() uint32 {
@@ -12639,7 +14831,7 @@ type TestWebhookResponse struct {
 
 func (x *TestWebhookResponse) Reset() {
 	*x = TestWebhookResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[232]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[272]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12651,7 +14843,7 @@ func (x *TestWebhookResponse) String() string {
 func (*TestWebhookResponse) ProtoMessage() {}
 
 func (x *TestWebhookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[232]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[272]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12664,7 +14856,7 @@ func (x *TestWebhookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TestWebhookResponse.ProtoReflect.Descriptor instead.
 func (*TestWebhookResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{232}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{272}
 }
 
 func (x *TestWebhookResponse) GetSuccess() bool {
@@ -12702,7 +14894,7 @@ type BotWebhook struct {
 
 func (x *BotWebhook) Reset() {
 	*x = BotWebhook{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[233]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[273]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12714,7 +14906,7 @@ func (x *BotWebhook) String() string {
 func (*BotWebhook) ProtoMessage() {}
 
 func (x *BotWebhook) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[233]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[273]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12727,7 +14919,7 @@ func (x *BotWebhook) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use BotWebhook.ProtoReflect.Descriptor instead.
 func (*BotWebhook) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{233}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{273}
 }
 
 func (x *BotWebhook) GetId() uint32 {
@@ -12780,7 +14972,7 @@ type ListBotWebhooksRequest struct {
 
 func (x *ListBotWebhooksRequest) Reset() {
 	*x = ListBotWebhooksRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[234]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[274]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12792,7 +14984,7 @@ func (x *ListBotWebhooksRequest) String() string {
 func (*ListBotWebhooksRequest) ProtoMessage() {}
 
 func (x *ListBotWebhooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[234]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[274]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12805,7 +14997,7 @@ func (x *ListBotWebhooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBotWebhooksRequest.ProtoReflect.Descriptor instead.
 func (*ListBotWebhooksRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{234}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{274}
 }
 
 type ListBotWebhooksResponse struct {
@@ -12817,7 +15009,7 @@ type ListBotWebhooksResponse struct {
 
 func (x *ListBotWebhooksResponse) Reset() {
 	*x = ListBotWebhooksResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[235]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[275]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12829,7 +15021,7 @@ func (x *ListBotWebhooksResponse) String() string {
 func (*ListBotWebhooksResponse) ProtoMessage() {}
 
 func (x *ListBotWebhooksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[235]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[275]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12842,7 +15034,7 @@ func (x *ListBotWebhooksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListBotWebhooksResponse.ProtoReflect.Descriptor instead.
 func (*ListBotWebhooksResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{235}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{275}
 }
 
 func (x *ListBotWebhooksResponse) GetWebhooks() []*BotWebhook {
@@ -12866,7 +15058,7 @@ type KeywordWatch struct {
 
 func (x *KeywordWatch) Reset() {
 	*x = KeywordWatch{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[236]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[276]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12878,7 +15070,7 @@ func (x *KeywordWatch) String() string {
 func (*KeywordWatch) ProtoMessage() {}
 
 func (x *KeywordWatch) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[236]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[276]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12891,7 +15083,7 @@ func (x *KeywordWatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeywordWatch.ProtoReflect.Descriptor instead.
 func (*KeywordWatch) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{236}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{276}
 }
 
 func (x *KeywordWatch) GetId() uint32 {
@@ -12952,7 +15144,7 @@ type KeywordWatchState struct {
 
 func (x *KeywordWatchState) Reset() {
 	*x = KeywordWatchState{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[237]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[277]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -12964,7 +15156,7 @@ func (x *KeywordWatchState) String() string {
 func (*KeywordWatchState) ProtoMessage() {}
 
 func (x *KeywordWatchState) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[237]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[277]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -12977,7 +15169,7 @@ func (x *KeywordWatchState) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeywordWatchState.ProtoReflect.Descriptor instead.
 func (*KeywordWatchState) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{237}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{277}
 }
 
 func (x *KeywordWatchState) GetSocialAccountId() uint32 {
@@ -13056,7 +15248,7 @@ type KeywordMatch struct {
 
 func (x *KeywordMatch) Reset() {
 	*x = KeywordMatch{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[238]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[278]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13068,7 +15260,7 @@ func (x *KeywordMatch) String() string {
 func (*KeywordMatch) ProtoMessage() {}
 
 func (x *KeywordMatch) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[238]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[278]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13081,7 +15273,7 @@ func (x *KeywordMatch) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KeywordMatch.ProtoReflect.Descriptor instead.
 func (*KeywordMatch) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{238}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{278}
 }
 
 func (x *KeywordMatch) GetId() uint32 {
@@ -13177,7 +15369,7 @@ type ListKeywordWatchesRequest struct {
 
 func (x *ListKeywordWatchesRequest) Reset() {
 	*x = ListKeywordWatchesRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[239]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[279]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13189,7 +15381,7 @@ func (x *ListKeywordWatchesRequest) String() string {
 func (*ListKeywordWatchesRequest) ProtoMessage() {}
 
 func (x *ListKeywordWatchesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[239]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[279]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13202,7 +15394,7 @@ func (x *ListKeywordWatchesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListKeywordWatchesRequest.ProtoReflect.Descriptor instead.
 func (*ListKeywordWatchesRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{239}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{279}
 }
 
 func (x *ListKeywordWatchesRequest) GetSocialAccountId() uint32 {
@@ -13226,7 +15418,7 @@ type ListKeywordWatchesResponse struct {
 
 func (x *ListKeywordWatchesResponse) Reset() {
 	*x = ListKeywordWatchesResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[240]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[280]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13238,7 +15430,7 @@ func (x *ListKeywordWatchesResponse) String() string {
 func (*ListKeywordWatchesResponse) ProtoMessage() {}
 
 func (x *ListKeywordWatchesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[240]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[280]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13251,7 +15443,7 @@ func (x *ListKeywordWatchesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListKeywordWatchesResponse.ProtoReflect.Descriptor instead.
 func (*ListKeywordWatchesResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{240}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{280}
 }
 
 func (x *ListKeywordWatchesResponse) GetWatches() []*KeywordWatch {
@@ -13307,7 +15499,7 @@ type CreateKeywordWatchRequest struct {
 
 func (x *CreateKeywordWatchRequest) Reset() {
 	*x = CreateKeywordWatchRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[241]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[281]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13319,7 +15511,7 @@ func (x *CreateKeywordWatchRequest) String() string {
 func (*CreateKeywordWatchRequest) ProtoMessage() {}
 
 func (x *CreateKeywordWatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[241]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[281]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13332,7 +15524,7 @@ func (x *CreateKeywordWatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateKeywordWatchRequest.ProtoReflect.Descriptor instead.
 func (*CreateKeywordWatchRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{241}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{281}
 }
 
 func (x *CreateKeywordWatchRequest) GetSocialAccountId() uint32 {
@@ -13365,7 +15557,7 @@ type CreateKeywordWatchResponse struct {
 
 func (x *CreateKeywordWatchResponse) Reset() {
 	*x = CreateKeywordWatchResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[242]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[282]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13377,7 +15569,7 @@ func (x *CreateKeywordWatchResponse) String() string {
 func (*CreateKeywordWatchResponse) ProtoMessage() {}
 
 func (x *CreateKeywordWatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[242]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[282]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13390,7 +15582,7 @@ func (x *CreateKeywordWatchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateKeywordWatchResponse.ProtoReflect.Descriptor instead.
 func (*CreateKeywordWatchResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{242}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{282}
 }
 
 func (x *CreateKeywordWatchResponse) GetId() uint32 {
@@ -13411,7 +15603,7 @@ type UpdateKeywordWatchRequest struct {
 
 func (x *UpdateKeywordWatchRequest) Reset() {
 	*x = UpdateKeywordWatchRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[243]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[283]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13423,7 +15615,7 @@ func (x *UpdateKeywordWatchRequest) String() string {
 func (*UpdateKeywordWatchRequest) ProtoMessage() {}
 
 func (x *UpdateKeywordWatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[243]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[283]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13436,7 +15628,7 @@ func (x *UpdateKeywordWatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateKeywordWatchRequest.ProtoReflect.Descriptor instead.
 func (*UpdateKeywordWatchRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{243}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{283}
 }
 
 func (x *UpdateKeywordWatchRequest) GetId() uint32 {
@@ -13468,7 +15660,7 @@ type UpdateKeywordWatchResponse struct {
 
 func (x *UpdateKeywordWatchResponse) Reset() {
 	*x = UpdateKeywordWatchResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[244]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[284]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13480,7 +15672,7 @@ func (x *UpdateKeywordWatchResponse) String() string {
 func (*UpdateKeywordWatchResponse) ProtoMessage() {}
 
 func (x *UpdateKeywordWatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[244]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[284]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13493,7 +15685,7 @@ func (x *UpdateKeywordWatchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateKeywordWatchResponse.ProtoReflect.Descriptor instead.
 func (*UpdateKeywordWatchResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{244}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{284}
 }
 
 type DeleteKeywordWatchRequest struct {
@@ -13505,7 +15697,7 @@ type DeleteKeywordWatchRequest struct {
 
 func (x *DeleteKeywordWatchRequest) Reset() {
 	*x = DeleteKeywordWatchRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[245]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[285]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13517,7 +15709,7 @@ func (x *DeleteKeywordWatchRequest) String() string {
 func (*DeleteKeywordWatchRequest) ProtoMessage() {}
 
 func (x *DeleteKeywordWatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[245]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[285]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13530,7 +15722,7 @@ func (x *DeleteKeywordWatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteKeywordWatchRequest.ProtoReflect.Descriptor instead.
 func (*DeleteKeywordWatchRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{245}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{285}
 }
 
 func (x *DeleteKeywordWatchRequest) GetId() uint32 {
@@ -13548,7 +15740,7 @@ type DeleteKeywordWatchResponse struct {
 
 func (x *DeleteKeywordWatchResponse) Reset() {
 	*x = DeleteKeywordWatchResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[246]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[286]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13560,7 +15752,7 @@ func (x *DeleteKeywordWatchResponse) String() string {
 func (*DeleteKeywordWatchResponse) ProtoMessage() {}
 
 func (x *DeleteKeywordWatchResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[246]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[286]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13573,7 +15765,7 @@ func (x *DeleteKeywordWatchResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteKeywordWatchResponse.ProtoReflect.Descriptor instead.
 func (*DeleteKeywordWatchResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{246}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{286}
 }
 
 type CreateDummySocialAccountRequest struct {
@@ -13585,7 +15777,7 @@ type CreateDummySocialAccountRequest struct {
 
 func (x *CreateDummySocialAccountRequest) Reset() {
 	*x = CreateDummySocialAccountRequest{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[247]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[287]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13597,7 +15789,7 @@ func (x *CreateDummySocialAccountRequest) String() string {
 func (*CreateDummySocialAccountRequest) ProtoMessage() {}
 
 func (x *CreateDummySocialAccountRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[247]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[287]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13610,7 +15802,7 @@ func (x *CreateDummySocialAccountRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDummySocialAccountRequest.ProtoReflect.Descriptor instead.
 func (*CreateDummySocialAccountRequest) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{247}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{287}
 }
 
 func (x *CreateDummySocialAccountRequest) GetIdentity() string {
@@ -13630,7 +15822,7 @@ type CreateDummySocialAccountResponse struct {
 
 func (x *CreateDummySocialAccountResponse) Reset() {
 	*x = CreateDummySocialAccountResponse{}
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[248]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[288]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -13642,7 +15834,7 @@ func (x *CreateDummySocialAccountResponse) String() string {
 func (*CreateDummySocialAccountResponse) ProtoMessage() {}
 
 func (x *CreateDummySocialAccountResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_japella_controlapi_v1_control_proto_msgTypes[248]
+	mi := &file_japella_controlapi_v1_control_proto_msgTypes[288]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -13655,7 +15847,7 @@ func (x *CreateDummySocialAccountResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateDummySocialAccountResponse.ProtoReflect.Descriptor instead.
 func (*CreateDummySocialAccountResponse) Descriptor() ([]byte, []int) {
-	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{248}
+	return file_japella_controlapi_v1_control_proto_rawDescGZIP(), []int{288}
 }
 
 func (x *CreateDummySocialAccountResponse) GetId() uint32 {
@@ -13676,7 +15868,7 @@ var File_japella_controlapi_v1_control_proto protoreflect.FileDescriptor
 
 const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\n" +
-	"#japella/controlapi/v1/control.proto\x12\x15japella.controlapi.v1\"\xdd\x01\n" +
+	"#japella/controlapi/v1/control.proto\x12\x15japella.controlapi.v1\"\x8a\x02\n" +
 	"\x11SubmitPostRequest\x12\x18\n" +
 	"\acontent\x18\x01 \x01(\tR\acontent\x12'\n" +
 	"\x0fsocial_accounts\x18\x02 \x03(\rR\x0esocialAccounts\x12\x1f\n" +
@@ -13685,7 +15877,8 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\fscheduled_at\x18\x04 \x01(\tR\vscheduledAt\x12\x1d\n" +
 	"\n" +
 	"media_urls\x18\x05 \x03(\tR\tmediaUrls\x12\"\n" +
-	"\rsave_as_draft\x18\x06 \x01(\bR\vsaveAsDraft\"M\n" +
+	"\rsave_as_draft\x18\x06 \x01(\bR\vsaveAsDraft\x12+\n" +
+	"\x12from_draft_post_id\x18\a \x01(\rR\x0ffromDraftPostId\"M\n" +
 	"\x12SubmitPostResponse\x127\n" +
 	"\x05posts\x18\x01 \x03(\v2!.japella.controlapi.v1.PostStatusR\x05posts\"\x96\x03\n" +
 	"\n" +
@@ -14462,7 +16655,147 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\acontent\x18\x02 \x01(\tR\acontent\"\xa8\x01\n" +
 	"\x19UpdatePendingPostResponse\x12T\n" +
 	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\x125\n" +
-	"\x04post\x18\x02 \x01(\v2!.japella.controlapi.v1.PostStatusR\x04post\"\x91\x01\n" +
+	"\x04post\x18\x02 \x01(\v2!.japella.controlapi.v1.PostStatusR\x04post\"M\n" +
+	"\x18UpdatePostContentRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\rR\x06postId\x12\x18\n" +
+	"\acontent\x18\x02 \x01(\tR\acontent\"\xa8\x01\n" +
+	"\x19UpdatePostContentResponse\x12T\n" +
+	"\x11standard_response\x18\x01 \x01(\v2'.japella.controlapi.v1.StandardResponseR\x10standardResponse\x125\n" +
+	"\x04post\x18\x02 \x01(\v2!.japella.controlapi.v1.PostStatusR\x04post\"\xd2\x01\n" +
+	"\rLlmConnection\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
+	"\bbase_url\x18\x03 \x01(\tR\abaseUrl\x12\x1e\n" +
+	"\vapi_key_set\x18\x04 \x01(\bR\tapiKeySet\x12\x14\n" +
+	"\x05model\x18\x05 \x01(\tR\x05model\x12\x18\n" +
+	"\aenabled\x18\x06 \x01(\bR\aenabled\x12\x18\n" +
+	"\acreated\x18\a \x01(\tR\acreated\x12\x18\n" +
+	"\aupdated\x18\b \x01(\tR\aupdated\"\x1b\n" +
+	"\x19ListLlmConnectionsRequest\"d\n" +
+	"\x1aListLlmConnectionsResponse\x12F\n" +
+	"\vconnections\x18\x01 \x03(\v2$.japella.controlapi.v1.LlmConnectionR\vconnections\")\n" +
+	"\x17GetLlmConnectionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"`\n" +
+	"\x18GetLlmConnectionResponse\x12D\n" +
+	"\n" +
+	"connection\x18\x01 \x01(\v2$.japella.controlapi.v1.LlmConnectionR\n" +
+	"connection\"\x94\x01\n" +
+	"\x1aCreateLlmConnectionRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x19\n" +
+	"\bbase_url\x18\x02 \x01(\tR\abaseUrl\x12\x17\n" +
+	"\aapi_key\x18\x03 \x01(\tR\x06apiKey\x12\x14\n" +
+	"\x05model\x18\x04 \x01(\tR\x05model\x12\x18\n" +
+	"\aenabled\x18\x05 \x01(\bR\aenabled\"-\n" +
+	"\x1bCreateLlmConnectionResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"\xa4\x01\n" +
+	"\x1aUpdateLlmConnectionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
+	"\bbase_url\x18\x03 \x01(\tR\abaseUrl\x12\x17\n" +
+	"\aapi_key\x18\x04 \x01(\tR\x06apiKey\x12\x14\n" +
+	"\x05model\x18\x05 \x01(\tR\x05model\x12\x18\n" +
+	"\aenabled\x18\x06 \x01(\bR\aenabled\"\x1d\n" +
+	"\x1bUpdateLlmConnectionResponse\",\n" +
+	"\x1aDeleteLlmConnectionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"\x1d\n" +
+	"\x1bDeleteLlmConnectionResponse\"*\n" +
+	"\x18TestLlmConnectionRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"O\n" +
+	"\x19TestLlmConnectionResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\"\x9f\x01\n" +
+	"\x13LlmConnectionPreset\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x19\n" +
+	"\bbase_url\x18\x03 \x01(\tR\abaseUrl\x12'\n" +
+	"\x0fsuggested_model\x18\x04 \x01(\tR\x0esuggestedModel\x12 \n" +
+	"\vdescription\x18\x05 \x01(\tR\vdescription\"!\n" +
+	"\x1fListLlmConnectionPresetsRequest\"h\n" +
+	" ListLlmConnectionPresetsResponse\x12D\n" +
+	"\apresets\x18\x01 \x03(\v2*.japella.controlapi.v1.LlmConnectionPresetR\apresets\".\n" +
+	"\bLlmModel\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\"y\n" +
+	"\x1eListLlmConnectionModelsRequest\x12#\n" +
+	"\rconnection_id\x18\x01 \x01(\rR\fconnectionId\x12\x19\n" +
+	"\bbase_url\x18\x02 \x01(\tR\abaseUrl\x12\x17\n" +
+	"\aapi_key\x18\x03 \x01(\tR\x06apiKey\"Z\n" +
+	"\x1fListLlmConnectionModelsResponse\x127\n" +
+	"\x06models\x18\x01 \x03(\v2\x1f.japella.controlapi.v1.LlmModelR\x06models\"\xa9\x02\n" +
+	"\aLlmTool\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12*\n" +
+	"\x11llm_connection_id\x18\x04 \x01(\rR\x0fllmConnectionId\x12'\n" +
+	"\x0fconnection_name\x18\x05 \x01(\tR\x0econnectionName\x12\x16\n" +
+	"\x06prompt\x18\x06 \x01(\tR\x06prompt\x12\x18\n" +
+	"\aenabled\x18\a \x01(\bR\aenabled\x12\x1d\n" +
+	"\n" +
+	"sort_order\x18\b \x01(\x05R\tsortOrder\x12\x18\n" +
+	"\acreated\x18\t \x01(\tR\acreated\x12\x18\n" +
+	"\aupdated\x18\n" +
+	" \x01(\tR\aupdated\"\x15\n" +
+	"\x13ListLlmToolsRequest\"L\n" +
+	"\x14ListLlmToolsResponse\x124\n" +
+	"\x05tools\x18\x01 \x03(\v2\x1e.japella.controlapi.v1.LlmToolR\x05tools\"#\n" +
+	"\x11GetLlmToolRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"H\n" +
+	"\x12GetLlmToolResponse\x122\n" +
+	"\x04tool\x18\x01 \x01(\v2\x1e.japella.controlapi.v1.LlmToolR\x04tool\"\xc9\x01\n" +
+	"\x14CreateLlmToolRequest\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x02 \x01(\tR\vdescription\x12*\n" +
+	"\x11llm_connection_id\x18\x03 \x01(\rR\x0fllmConnectionId\x12\x16\n" +
+	"\x06prompt\x18\x04 \x01(\tR\x06prompt\x12\x18\n" +
+	"\aenabled\x18\x05 \x01(\bR\aenabled\x12\x1d\n" +
+	"\n" +
+	"sort_order\x18\x06 \x01(\x05R\tsortOrder\"'\n" +
+	"\x15CreateLlmToolResponse\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"\xd9\x01\n" +
+	"\x14UpdateLlmToolRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\x12*\n" +
+	"\x11llm_connection_id\x18\x04 \x01(\rR\x0fllmConnectionId\x12\x16\n" +
+	"\x06prompt\x18\x05 \x01(\tR\x06prompt\x12\x18\n" +
+	"\aenabled\x18\x06 \x01(\bR\aenabled\x12\x1d\n" +
+	"\n" +
+	"sort_order\x18\a \x01(\x05R\tsortOrder\"\x17\n" +
+	"\x15UpdateLlmToolResponse\"&\n" +
+	"\x14DeleteLlmToolRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\"\x17\n" +
+	"\x15DeleteLlmToolResponse\"V\n" +
+	"\x0eLlmToolSummary\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12 \n" +
+	"\vdescription\x18\x03 \x01(\tR\vdescription\"\x1c\n" +
+	"\x1aListEnabledLlmToolsRequest\"Z\n" +
+	"\x1bListEnabledLlmToolsResponse\x12;\n" +
+	"\x05tools\x18\x01 \x03(\v2%.japella.controlapi.v1.LlmToolSummaryR\x05tools\"\x81\x03\n" +
+	"\n" +
+	"LlmToolRun\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\rR\x02id\x12\x17\n" +
+	"\apost_id\x18\x02 \x01(\rR\x06postId\x12\x1e\n" +
+	"\vllm_tool_id\x18\x03 \x01(\rR\tllmToolId\x12\x1b\n" +
+	"\ttool_name\x18\x04 \x01(\tR\btoolName\x12'\n" +
+	"\x0fconnection_name\x18\x05 \x01(\tR\x0econnectionName\x12#\n" +
+	"\rinput_content\x18\x06 \x01(\tR\finputContent\x12%\n" +
+	"\x0eoutput_content\x18\a \x01(\tR\routputContent\x12\x16\n" +
+	"\x06status\x18\b \x01(\tR\x06status\x12#\n" +
+	"\rerror_message\x18\t \x01(\tR\ferrorMessage\x12+\n" +
+	"\x12created_by_user_id\x18\n" +
+	" \x01(\rR\x0fcreatedByUserId\x12\x18\n" +
+	"\acreated\x18\v \x01(\tR\acreated\x12\x14\n" +
+	"\x05model\x18\f \x01(\tR\x05model\"E\n" +
+	"\x11RunLlmToolRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\rR\x06postId\x12\x17\n" +
+	"\atool_id\x18\x02 \x01(\rR\x06toolId\"I\n" +
+	"\x12RunLlmToolResponse\x123\n" +
+	"\x03run\x18\x01 \x01(\v2!.japella.controlapi.v1.LlmToolRunR\x03run\"1\n" +
+	"\x16ListLlmToolRunsRequest\x12\x17\n" +
+	"\apost_id\x18\x01 \x01(\rR\x06postId\"P\n" +
+	"\x17ListLlmToolRunsResponse\x125\n" +
+	"\x04runs\x18\x01 \x03(\v2!.japella.controlapi.v1.LlmToolRunR\x04runs\"\x91\x01\n" +
 	"\aWebhook\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x10\n" +
 	"\x03url\x18\x02 \x01(\tR\x03url\x12\x16\n" +
@@ -14587,7 +16920,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\bidentity\x18\x01 \x01(\tR\bidentity\"N\n" +
 	" CreateDummySocialAccountResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x1a\n" +
-	"\bidentity\x18\x02 \x01(\tR\bidentity2\x8ca\n" +
+	"\bidentity\x18\x02 \x01(\tR\bidentity2\x84q\n" +
 	"\x18JapellaControlApiService\x12`\n" +
 	"\tGetStatus\x12'.japella.controlapi.v1.GetStatusRequest\x1a(.japella.controlapi.v1.GetStatusResponse\"\x00\x12c\n" +
 	"\n" +
@@ -14689,7 +17022,26 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\n" +
 	"RejectPost\x12(.japella.controlapi.v1.RejectPostRequest\x1a).japella.controlapi.v1.RejectPostResponse\"\x00\x12Z\n" +
 	"\aGetPost\x12%.japella.controlapi.v1.GetPostRequest\x1a&.japella.controlapi.v1.GetPostResponse\"\x00\x12x\n" +
-	"\x11UpdatePendingPost\x12/.japella.controlapi.v1.UpdatePendingPostRequest\x1a0.japella.controlapi.v1.UpdatePendingPostResponse\"\x00\x12i\n" +
+	"\x11UpdatePendingPost\x12/.japella.controlapi.v1.UpdatePendingPostRequest\x1a0.japella.controlapi.v1.UpdatePendingPostResponse\"\x00\x12x\n" +
+	"\x11UpdatePostContent\x12/.japella.controlapi.v1.UpdatePostContentRequest\x1a0.japella.controlapi.v1.UpdatePostContentResponse\"\x00\x12{\n" +
+	"\x12ListLlmConnections\x120.japella.controlapi.v1.ListLlmConnectionsRequest\x1a1.japella.controlapi.v1.ListLlmConnectionsResponse\"\x00\x12u\n" +
+	"\x10GetLlmConnection\x12..japella.controlapi.v1.GetLlmConnectionRequest\x1a/.japella.controlapi.v1.GetLlmConnectionResponse\"\x00\x12~\n" +
+	"\x13CreateLlmConnection\x121.japella.controlapi.v1.CreateLlmConnectionRequest\x1a2.japella.controlapi.v1.CreateLlmConnectionResponse\"\x00\x12~\n" +
+	"\x13UpdateLlmConnection\x121.japella.controlapi.v1.UpdateLlmConnectionRequest\x1a2.japella.controlapi.v1.UpdateLlmConnectionResponse\"\x00\x12~\n" +
+	"\x13DeleteLlmConnection\x121.japella.controlapi.v1.DeleteLlmConnectionRequest\x1a2.japella.controlapi.v1.DeleteLlmConnectionResponse\"\x00\x12x\n" +
+	"\x11TestLlmConnection\x12/.japella.controlapi.v1.TestLlmConnectionRequest\x1a0.japella.controlapi.v1.TestLlmConnectionResponse\"\x00\x12\x8d\x01\n" +
+	"\x18ListLlmConnectionPresets\x126.japella.controlapi.v1.ListLlmConnectionPresetsRequest\x1a7.japella.controlapi.v1.ListLlmConnectionPresetsResponse\"\x00\x12\x8a\x01\n" +
+	"\x17ListLlmConnectionModels\x125.japella.controlapi.v1.ListLlmConnectionModelsRequest\x1a6.japella.controlapi.v1.ListLlmConnectionModelsResponse\"\x00\x12i\n" +
+	"\fListLlmTools\x12*.japella.controlapi.v1.ListLlmToolsRequest\x1a+.japella.controlapi.v1.ListLlmToolsResponse\"\x00\x12c\n" +
+	"\n" +
+	"GetLlmTool\x12(.japella.controlapi.v1.GetLlmToolRequest\x1a).japella.controlapi.v1.GetLlmToolResponse\"\x00\x12l\n" +
+	"\rCreateLlmTool\x12+.japella.controlapi.v1.CreateLlmToolRequest\x1a,.japella.controlapi.v1.CreateLlmToolResponse\"\x00\x12l\n" +
+	"\rUpdateLlmTool\x12+.japella.controlapi.v1.UpdateLlmToolRequest\x1a,.japella.controlapi.v1.UpdateLlmToolResponse\"\x00\x12l\n" +
+	"\rDeleteLlmTool\x12+.japella.controlapi.v1.DeleteLlmToolRequest\x1a,.japella.controlapi.v1.DeleteLlmToolResponse\"\x00\x12~\n" +
+	"\x13ListEnabledLlmTools\x121.japella.controlapi.v1.ListEnabledLlmToolsRequest\x1a2.japella.controlapi.v1.ListEnabledLlmToolsResponse\"\x00\x12c\n" +
+	"\n" +
+	"RunLlmTool\x12(.japella.controlapi.v1.RunLlmToolRequest\x1a).japella.controlapi.v1.RunLlmToolResponse\"\x00\x12r\n" +
+	"\x0fListLlmToolRuns\x12-.japella.controlapi.v1.ListLlmToolRunsRequest\x1a..japella.controlapi.v1.ListLlmToolRunsResponse\"\x00\x12i\n" +
 	"\fListWebhooks\x12*.japella.controlapi.v1.ListWebhooksRequest\x1a+.japella.controlapi.v1.ListWebhooksResponse\"\x00\x12c\n" +
 	"\n" +
 	"GetWebhook\x12(.japella.controlapi.v1.GetWebhookRequest\x1a).japella.controlapi.v1.GetWebhookResponse\"\x00\x12l\n" +
@@ -14716,7 +17068,7 @@ func file_japella_controlapi_v1_control_proto_rawDescGZIP() []byte {
 	return file_japella_controlapi_v1_control_proto_rawDescData
 }
 
-var file_japella_controlapi_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 250)
+var file_japella_controlapi_v1_control_proto_msgTypes = make([]protoimpl.MessageInfo, 290)
 var file_japella_controlapi_v1_control_proto_goTypes = []any{
 	(*SubmitPostRequest)(nil),                       // 0: japella.controlapi.v1.SubmitPostRequest
 	(*SubmitPostResponse)(nil),                      // 1: japella.controlapi.v1.SubmitPostResponse
@@ -14937,37 +17289,77 @@ var file_japella_controlapi_v1_control_proto_goTypes = []any{
 	(*GetPostResponse)(nil),                         // 216: japella.controlapi.v1.GetPostResponse
 	(*UpdatePendingPostRequest)(nil),                // 217: japella.controlapi.v1.UpdatePendingPostRequest
 	(*UpdatePendingPostResponse)(nil),               // 218: japella.controlapi.v1.UpdatePendingPostResponse
-	(*Webhook)(nil),                                 // 219: japella.controlapi.v1.Webhook
-	(*WebhookDeliveryLog)(nil),                      // 220: japella.controlapi.v1.WebhookDeliveryLog
-	(*GetWebhookRequest)(nil),                       // 221: japella.controlapi.v1.GetWebhookRequest
-	(*GetWebhookResponse)(nil),                      // 222: japella.controlapi.v1.GetWebhookResponse
-	(*ListWebhooksRequest)(nil),                     // 223: japella.controlapi.v1.ListWebhooksRequest
-	(*ListWebhooksResponse)(nil),                    // 224: japella.controlapi.v1.ListWebhooksResponse
-	(*CreateWebhookRequest)(nil),                    // 225: japella.controlapi.v1.CreateWebhookRequest
-	(*CreateWebhookResponse)(nil),                   // 226: japella.controlapi.v1.CreateWebhookResponse
-	(*UpdateWebhookRequest)(nil),                    // 227: japella.controlapi.v1.UpdateWebhookRequest
-	(*UpdateWebhookResponse)(nil),                   // 228: japella.controlapi.v1.UpdateWebhookResponse
-	(*DeleteWebhookRequest)(nil),                    // 229: japella.controlapi.v1.DeleteWebhookRequest
-	(*DeleteWebhookResponse)(nil),                   // 230: japella.controlapi.v1.DeleteWebhookResponse
-	(*TestWebhookRequest)(nil),                      // 231: japella.controlapi.v1.TestWebhookRequest
-	(*TestWebhookResponse)(nil),                     // 232: japella.controlapi.v1.TestWebhookResponse
-	(*BotWebhook)(nil),                              // 233: japella.controlapi.v1.BotWebhook
-	(*ListBotWebhooksRequest)(nil),                  // 234: japella.controlapi.v1.ListBotWebhooksRequest
-	(*ListBotWebhooksResponse)(nil),                 // 235: japella.controlapi.v1.ListBotWebhooksResponse
-	(*KeywordWatch)(nil),                            // 236: japella.controlapi.v1.KeywordWatch
-	(*KeywordWatchState)(nil),                       // 237: japella.controlapi.v1.KeywordWatchState
-	(*KeywordMatch)(nil),                            // 238: japella.controlapi.v1.KeywordMatch
-	(*ListKeywordWatchesRequest)(nil),               // 239: japella.controlapi.v1.ListKeywordWatchesRequest
-	(*ListKeywordWatchesResponse)(nil),              // 240: japella.controlapi.v1.ListKeywordWatchesResponse
-	(*CreateKeywordWatchRequest)(nil),               // 241: japella.controlapi.v1.CreateKeywordWatchRequest
-	(*CreateKeywordWatchResponse)(nil),              // 242: japella.controlapi.v1.CreateKeywordWatchResponse
-	(*UpdateKeywordWatchRequest)(nil),               // 243: japella.controlapi.v1.UpdateKeywordWatchRequest
-	(*UpdateKeywordWatchResponse)(nil),              // 244: japella.controlapi.v1.UpdateKeywordWatchResponse
-	(*DeleteKeywordWatchRequest)(nil),               // 245: japella.controlapi.v1.DeleteKeywordWatchRequest
-	(*DeleteKeywordWatchResponse)(nil),              // 246: japella.controlapi.v1.DeleteKeywordWatchResponse
-	(*CreateDummySocialAccountRequest)(nil),         // 247: japella.controlapi.v1.CreateDummySocialAccountRequest
-	(*CreateDummySocialAccountResponse)(nil),        // 248: japella.controlapi.v1.CreateDummySocialAccountResponse
-	nil,                                             // 249: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
+	(*UpdatePostContentRequest)(nil),                // 219: japella.controlapi.v1.UpdatePostContentRequest
+	(*UpdatePostContentResponse)(nil),               // 220: japella.controlapi.v1.UpdatePostContentResponse
+	(*LlmConnection)(nil),                           // 221: japella.controlapi.v1.LlmConnection
+	(*ListLlmConnectionsRequest)(nil),               // 222: japella.controlapi.v1.ListLlmConnectionsRequest
+	(*ListLlmConnectionsResponse)(nil),              // 223: japella.controlapi.v1.ListLlmConnectionsResponse
+	(*GetLlmConnectionRequest)(nil),                 // 224: japella.controlapi.v1.GetLlmConnectionRequest
+	(*GetLlmConnectionResponse)(nil),                // 225: japella.controlapi.v1.GetLlmConnectionResponse
+	(*CreateLlmConnectionRequest)(nil),              // 226: japella.controlapi.v1.CreateLlmConnectionRequest
+	(*CreateLlmConnectionResponse)(nil),             // 227: japella.controlapi.v1.CreateLlmConnectionResponse
+	(*UpdateLlmConnectionRequest)(nil),              // 228: japella.controlapi.v1.UpdateLlmConnectionRequest
+	(*UpdateLlmConnectionResponse)(nil),             // 229: japella.controlapi.v1.UpdateLlmConnectionResponse
+	(*DeleteLlmConnectionRequest)(nil),              // 230: japella.controlapi.v1.DeleteLlmConnectionRequest
+	(*DeleteLlmConnectionResponse)(nil),             // 231: japella.controlapi.v1.DeleteLlmConnectionResponse
+	(*TestLlmConnectionRequest)(nil),                // 232: japella.controlapi.v1.TestLlmConnectionRequest
+	(*TestLlmConnectionResponse)(nil),               // 233: japella.controlapi.v1.TestLlmConnectionResponse
+	(*LlmConnectionPreset)(nil),                     // 234: japella.controlapi.v1.LlmConnectionPreset
+	(*ListLlmConnectionPresetsRequest)(nil),         // 235: japella.controlapi.v1.ListLlmConnectionPresetsRequest
+	(*ListLlmConnectionPresetsResponse)(nil),        // 236: japella.controlapi.v1.ListLlmConnectionPresetsResponse
+	(*LlmModel)(nil),                                // 237: japella.controlapi.v1.LlmModel
+	(*ListLlmConnectionModelsRequest)(nil),          // 238: japella.controlapi.v1.ListLlmConnectionModelsRequest
+	(*ListLlmConnectionModelsResponse)(nil),         // 239: japella.controlapi.v1.ListLlmConnectionModelsResponse
+	(*LlmTool)(nil),                                 // 240: japella.controlapi.v1.LlmTool
+	(*ListLlmToolsRequest)(nil),                     // 241: japella.controlapi.v1.ListLlmToolsRequest
+	(*ListLlmToolsResponse)(nil),                    // 242: japella.controlapi.v1.ListLlmToolsResponse
+	(*GetLlmToolRequest)(nil),                       // 243: japella.controlapi.v1.GetLlmToolRequest
+	(*GetLlmToolResponse)(nil),                      // 244: japella.controlapi.v1.GetLlmToolResponse
+	(*CreateLlmToolRequest)(nil),                    // 245: japella.controlapi.v1.CreateLlmToolRequest
+	(*CreateLlmToolResponse)(nil),                   // 246: japella.controlapi.v1.CreateLlmToolResponse
+	(*UpdateLlmToolRequest)(nil),                    // 247: japella.controlapi.v1.UpdateLlmToolRequest
+	(*UpdateLlmToolResponse)(nil),                   // 248: japella.controlapi.v1.UpdateLlmToolResponse
+	(*DeleteLlmToolRequest)(nil),                    // 249: japella.controlapi.v1.DeleteLlmToolRequest
+	(*DeleteLlmToolResponse)(nil),                   // 250: japella.controlapi.v1.DeleteLlmToolResponse
+	(*LlmToolSummary)(nil),                          // 251: japella.controlapi.v1.LlmToolSummary
+	(*ListEnabledLlmToolsRequest)(nil),              // 252: japella.controlapi.v1.ListEnabledLlmToolsRequest
+	(*ListEnabledLlmToolsResponse)(nil),             // 253: japella.controlapi.v1.ListEnabledLlmToolsResponse
+	(*LlmToolRun)(nil),                              // 254: japella.controlapi.v1.LlmToolRun
+	(*RunLlmToolRequest)(nil),                       // 255: japella.controlapi.v1.RunLlmToolRequest
+	(*RunLlmToolResponse)(nil),                      // 256: japella.controlapi.v1.RunLlmToolResponse
+	(*ListLlmToolRunsRequest)(nil),                  // 257: japella.controlapi.v1.ListLlmToolRunsRequest
+	(*ListLlmToolRunsResponse)(nil),                 // 258: japella.controlapi.v1.ListLlmToolRunsResponse
+	(*Webhook)(nil),                                 // 259: japella.controlapi.v1.Webhook
+	(*WebhookDeliveryLog)(nil),                      // 260: japella.controlapi.v1.WebhookDeliveryLog
+	(*GetWebhookRequest)(nil),                       // 261: japella.controlapi.v1.GetWebhookRequest
+	(*GetWebhookResponse)(nil),                      // 262: japella.controlapi.v1.GetWebhookResponse
+	(*ListWebhooksRequest)(nil),                     // 263: japella.controlapi.v1.ListWebhooksRequest
+	(*ListWebhooksResponse)(nil),                    // 264: japella.controlapi.v1.ListWebhooksResponse
+	(*CreateWebhookRequest)(nil),                    // 265: japella.controlapi.v1.CreateWebhookRequest
+	(*CreateWebhookResponse)(nil),                   // 266: japella.controlapi.v1.CreateWebhookResponse
+	(*UpdateWebhookRequest)(nil),                    // 267: japella.controlapi.v1.UpdateWebhookRequest
+	(*UpdateWebhookResponse)(nil),                   // 268: japella.controlapi.v1.UpdateWebhookResponse
+	(*DeleteWebhookRequest)(nil),                    // 269: japella.controlapi.v1.DeleteWebhookRequest
+	(*DeleteWebhookResponse)(nil),                   // 270: japella.controlapi.v1.DeleteWebhookResponse
+	(*TestWebhookRequest)(nil),                      // 271: japella.controlapi.v1.TestWebhookRequest
+	(*TestWebhookResponse)(nil),                     // 272: japella.controlapi.v1.TestWebhookResponse
+	(*BotWebhook)(nil),                              // 273: japella.controlapi.v1.BotWebhook
+	(*ListBotWebhooksRequest)(nil),                  // 274: japella.controlapi.v1.ListBotWebhooksRequest
+	(*ListBotWebhooksResponse)(nil),                 // 275: japella.controlapi.v1.ListBotWebhooksResponse
+	(*KeywordWatch)(nil),                            // 276: japella.controlapi.v1.KeywordWatch
+	(*KeywordWatchState)(nil),                       // 277: japella.controlapi.v1.KeywordWatchState
+	(*KeywordMatch)(nil),                            // 278: japella.controlapi.v1.KeywordMatch
+	(*ListKeywordWatchesRequest)(nil),               // 279: japella.controlapi.v1.ListKeywordWatchesRequest
+	(*ListKeywordWatchesResponse)(nil),              // 280: japella.controlapi.v1.ListKeywordWatchesResponse
+	(*CreateKeywordWatchRequest)(nil),               // 281: japella.controlapi.v1.CreateKeywordWatchRequest
+	(*CreateKeywordWatchResponse)(nil),              // 282: japella.controlapi.v1.CreateKeywordWatchResponse
+	(*UpdateKeywordWatchRequest)(nil),               // 283: japella.controlapi.v1.UpdateKeywordWatchRequest
+	(*UpdateKeywordWatchResponse)(nil),              // 284: japella.controlapi.v1.UpdateKeywordWatchResponse
+	(*DeleteKeywordWatchRequest)(nil),               // 285: japella.controlapi.v1.DeleteKeywordWatchRequest
+	(*DeleteKeywordWatchResponse)(nil),              // 286: japella.controlapi.v1.DeleteKeywordWatchResponse
+	(*CreateDummySocialAccountRequest)(nil),         // 287: japella.controlapi.v1.CreateDummySocialAccountRequest
+	(*CreateDummySocialAccountResponse)(nil),        // 288: japella.controlapi.v1.CreateDummySocialAccountResponse
+	nil,                                             // 289: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
 }
 var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	2,   // 0: japella.controlapi.v1.SubmitPostResponse.posts:type_name -> japella.controlapi.v1.PostStatus
@@ -15010,7 +17402,7 @@ var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	85,  // 37: japella.controlapi.v1.GetMyPermissionsAuditResponse.permissions:type_name -> japella.controlapi.v1.MyPermissionAuditRow
 	35,  // 38: japella.controlapi.v1.SetUserGroupRbacRolesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	97,  // 39: japella.controlapi.v1.GetApiKeysResponse.keys:type_name -> japella.controlapi.v1.ApiKey
-	249, // 40: japella.controlapi.v1.GetCvarsResponse.cvar_categories:type_name -> japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
+	289, // 40: japella.controlapi.v1.GetCvarsResponse.cvar_categories:type_name -> japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry
 	101, // 41: japella.controlapi.v1.CvarCategory.cvars:type_name -> japella.controlapi.v1.Cvar
 	35,  // 42: japella.controlapi.v1.SaveUserPreferencesResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	35,  // 43: japella.controlapi.v1.CreateApiKeyResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
@@ -15071,231 +17463,276 @@ var file_japella_controlapi_v1_control_proto_depIdxs = []int32{
 	2,   // 98: japella.controlapi.v1.GetPostResponse.post:type_name -> japella.controlapi.v1.PostStatus
 	35,  // 99: japella.controlapi.v1.UpdatePendingPostResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
 	2,   // 100: japella.controlapi.v1.UpdatePendingPostResponse.post:type_name -> japella.controlapi.v1.PostStatus
-	219, // 101: japella.controlapi.v1.GetWebhookResponse.webhook:type_name -> japella.controlapi.v1.Webhook
-	220, // 102: japella.controlapi.v1.GetWebhookResponse.delivery_logs:type_name -> japella.controlapi.v1.WebhookDeliveryLog
-	219, // 103: japella.controlapi.v1.ListWebhooksResponse.webhooks:type_name -> japella.controlapi.v1.Webhook
-	233, // 104: japella.controlapi.v1.ListBotWebhooksResponse.webhooks:type_name -> japella.controlapi.v1.BotWebhook
-	236, // 105: japella.controlapi.v1.ListKeywordWatchesResponse.watches:type_name -> japella.controlapi.v1.KeywordWatch
-	237, // 106: japella.controlapi.v1.ListKeywordWatchesResponse.state:type_name -> japella.controlapi.v1.KeywordWatchState
-	238, // 107: japella.controlapi.v1.ListKeywordWatchesResponse.recent_matches:type_name -> japella.controlapi.v1.KeywordMatch
-	100, // 108: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry.value:type_name -> japella.controlapi.v1.CvarCategory
-	3,   // 109: japella.controlapi.v1.JapellaControlApiService.GetStatus:input_type -> japella.controlapi.v1.GetStatusRequest
-	0,   // 110: japella.controlapi.v1.JapellaControlApiService.SubmitPost:input_type -> japella.controlapi.v1.SubmitPostRequest
-	6,   // 111: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:input_type -> japella.controlapi.v1.GetCannedPostsRequest
-	15,  // 112: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:input_type -> japella.controlapi.v1.GetCannedPostRequest
-	9,   // 113: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:input_type -> japella.controlapi.v1.CreateCannedPostRequest
-	11,  // 114: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:input_type -> japella.controlapi.v1.DeleteCannedPostRequest
-	17,  // 115: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:input_type -> japella.controlapi.v1.GetSocialAccountsRequest
-	31,  // 116: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:input_type -> japella.controlapi.v1.DeleteSocialAccountRequest
-	33,  // 117: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:input_type -> japella.controlapi.v1.RefreshSocialAccountRequest
-	20,  // 118: japella.controlapi.v1.JapellaControlApiService.GetConnectors:input_type -> japella.controlapi.v1.GetConnectorsRequest
-	21,  // 119: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:input_type -> japella.controlapi.v1.RefreshConnectorsRequest
-	23,  // 120: japella.controlapi.v1.JapellaControlApiService.StopService:input_type -> japella.controlapi.v1.StopServiceRequest
-	29,  // 121: japella.controlapi.v1.JapellaControlApiService.StartOAuth:input_type -> japella.controlapi.v1.StartOAuthRequest
-	36,  // 122: japella.controlapi.v1.JapellaControlApiService.GetTimeline:input_type -> japella.controlapi.v1.GetTimelineRequest
-	44,  // 123: japella.controlapi.v1.JapellaControlApiService.GetFeed:input_type -> japella.controlapi.v1.GetFeedRequest
-	38,  // 124: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:input_type -> japella.controlapi.v1.UpdatePostCampaignRequest
-	40,  // 125: japella.controlapi.v1.JapellaControlApiService.ForgetPost:input_type -> japella.controlapi.v1.ForgetPostRequest
-	42,  // 126: japella.controlapi.v1.JapellaControlApiService.RetryPost:input_type -> japella.controlapi.v1.RetryPostRequest
-	47,  // 127: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:input_type -> japella.controlapi.v1.SetSocialAccountActiveRequest
-	53,  // 128: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:input_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
-	55,  // 129: japella.controlapi.v1.JapellaControlApiService.ChangePassword:input_type -> japella.controlapi.v1.ChangePasswordRequest
-	57,  // 130: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:input_type -> japella.controlapi.v1.ResetUserPasswordRequest
-	59,  // 131: japella.controlapi.v1.JapellaControlApiService.Logout:input_type -> japella.controlapi.v1.LogoutRequest
-	61,  // 132: japella.controlapi.v1.JapellaControlApiService.GetUsers:input_type -> japella.controlapi.v1.GetUsersRequest
-	63,  // 133: japella.controlapi.v1.JapellaControlApiService.GetUser:input_type -> japella.controlapi.v1.GetUserRequest
-	66,  // 134: japella.controlapi.v1.JapellaControlApiService.CreateUser:input_type -> japella.controlapi.v1.CreateUserRequest
-	68,  // 135: japella.controlapi.v1.JapellaControlApiService.DeleteUser:input_type -> japella.controlapi.v1.DeleteUserRequest
-	72,  // 136: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:input_type -> japella.controlapi.v1.ListRbacPermissionsRequest
-	74,  // 137: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:input_type -> japella.controlapi.v1.ListRbacRolesRequest
-	76,  // 138: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:input_type -> japella.controlapi.v1.CreateRbacRoleRequest
-	78,  // 139: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:input_type -> japella.controlapi.v1.UpdateRbacRoleRequest
-	80,  // 140: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:input_type -> japella.controlapi.v1.DeleteRbacRoleRequest
-	82,  // 141: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:input_type -> japella.controlapi.v1.GetUserRbacRolesRequest
-	84,  // 142: japella.controlapi.v1.JapellaControlApiService.GetMyPermissionsAudit:input_type -> japella.controlapi.v1.GetMyPermissionsAuditRequest
-	87,  // 143: japella.controlapi.v1.JapellaControlApiService.GetUserGroupRbacRoles:input_type -> japella.controlapi.v1.GetUserGroupRbacRolesRequest
-	89,  // 144: japella.controlapi.v1.JapellaControlApiService.SetUserGroupRbacRoles:input_type -> japella.controlapi.v1.SetUserGroupRbacRolesRequest
-	91,  // 145: japella.controlapi.v1.JapellaControlApiService.GetRbacRoleUsers:input_type -> japella.controlapi.v1.GetRbacRoleUsersRequest
-	93,  // 146: japella.controlapi.v1.JapellaControlApiService.GetRbacRoleGroups:input_type -> japella.controlapi.v1.GetRbacRoleGroupsRequest
-	95,  // 147: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:input_type -> japella.controlapi.v1.GetApiKeysRequest
-	98,  // 148: japella.controlapi.v1.JapellaControlApiService.GetCvars:input_type -> japella.controlapi.v1.GetCvarsRequest
-	104, // 149: japella.controlapi.v1.JapellaControlApiService.GetUserPreferences:input_type -> japella.controlapi.v1.GetUserPreferencesRequest
-	102, // 150: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:input_type -> japella.controlapi.v1.SaveUserPreferencesRequest
-	106, // 151: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:input_type -> japella.controlapi.v1.CreateApiKeyRequest
-	108, // 152: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:input_type -> japella.controlapi.v1.RevokeApiKeyRequest
-	110, // 153: japella.controlapi.v1.JapellaControlApiService.SetCvar:input_type -> japella.controlapi.v1.SetCvarRequest
-	112, // 154: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:input_type -> japella.controlapi.v1.RegisterConnectorRequest
-	114, // 155: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:input_type -> japella.controlapi.v1.CreateCampaignRequest
-	116, // 156: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:input_type -> japella.controlapi.v1.GetCampaignsRequest
-	125, // 157: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:input_type -> japella.controlapi.v1.UpdateCampaignRequest
-	127, // 158: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:input_type -> japella.controlapi.v1.DeleteCampaignRequest
-	13,  // 159: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:input_type -> japella.controlapi.v1.UpdateCannedPostRequest
-	119, // 160: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:input_type -> japella.controlapi.v1.AddSocialAccountToCampaignRequest
-	121, // 161: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:input_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignRequest
-	123, // 162: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:input_type -> japella.controlapi.v1.GetCampaignSocialAccountsRequest
-	49,  // 163: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:input_type -> japella.controlapi.v1.CleanupFeedPostsRequest
-	51,  // 164: japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost:input_type -> japella.controlapi.v1.RefetchFeedPostRequest
-	129, // 165: japella.controlapi.v1.JapellaControlApiService.GetLogs:input_type -> japella.controlapi.v1.GetLogsRequest
-	132, // 166: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:input_type -> japella.controlapi.v1.GetJobsStatusRequest
-	135, // 167: japella.controlapi.v1.JapellaControlApiService.ListMedia:input_type -> japella.controlapi.v1.ListMediaRequest
-	138, // 168: japella.controlapi.v1.JapellaControlApiService.GetMediaPosts:input_type -> japella.controlapi.v1.GetMediaPostsRequest
-	140, // 169: japella.controlapi.v1.JapellaControlApiService.DeleteMedia:input_type -> japella.controlapi.v1.DeleteMediaRequest
-	142, // 170: japella.controlapi.v1.JapellaControlApiService.GetChatBots:input_type -> japella.controlapi.v1.GetChatBotsRequest
-	145, // 171: japella.controlapi.v1.JapellaControlApiService.CreateChatBot:input_type -> japella.controlapi.v1.CreateChatBotRequest
-	147, // 172: japella.controlapi.v1.JapellaControlApiService.UpdateChatBot:input_type -> japella.controlapi.v1.UpdateChatBotRequest
-	149, // 173: japella.controlapi.v1.JapellaControlApiService.DeleteChatBot:input_type -> japella.controlapi.v1.DeleteChatBotRequest
-	151, // 174: japella.controlapi.v1.JapellaControlApiService.StartChatBot:input_type -> japella.controlapi.v1.StartChatBotRequest
-	153, // 175: japella.controlapi.v1.JapellaControlApiService.StopChatBot:input_type -> japella.controlapi.v1.StopChatBotRequest
-	155, // 176: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:input_type -> japella.controlapi.v1.GetBotChannelsRequest
-	159, // 177: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:input_type -> japella.controlapi.v1.GetBotHooksRequest
-	161, // 178: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:input_type -> japella.controlapi.v1.SetBotHooksRequest
-	163, // 179: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:input_type -> japella.controlapi.v1.GetBotConversationsRequest
-	166, // 180: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:input_type -> japella.controlapi.v1.GetBotConversationMessagesRequest
-	169, // 181: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:input_type -> japella.controlapi.v1.SendBotConversationMessageRequest
-	171, // 182: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:input_type -> japella.controlapi.v1.StreamBotConversationUpdatesRequest
-	174, // 183: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:input_type -> japella.controlapi.v1.GetSocialAccountSharesRequest
-	176, // 184: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:input_type -> japella.controlapi.v1.SetSocialAccountSharesRequest
-	178, // 185: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:input_type -> japella.controlapi.v1.ImpersonateUserRequest
-	180, // 186: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:input_type -> japella.controlapi.v1.StopImpersonationRequest
-	183, // 187: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:input_type -> japella.controlapi.v1.ListUserGroupsRequest
-	185, // 188: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:input_type -> japella.controlapi.v1.CreateUserGroupRequest
-	187, // 189: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:input_type -> japella.controlapi.v1.DeleteUserGroupRequest
-	189, // 190: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:input_type -> japella.controlapi.v1.GetUserGroupMembersRequest
-	191, // 191: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:input_type -> japella.controlapi.v1.SetUserGroupMembersRequest
-	194, // 192: japella.controlapi.v1.JapellaControlApiService.GetUserGroupSharedAccounts:input_type -> japella.controlapi.v1.GetUserGroupSharedAccountsRequest
-	198, // 193: japella.controlapi.v1.JapellaControlApiService.ListAccountPolicies:input_type -> japella.controlapi.v1.ListAccountPoliciesRequest
-	200, // 194: japella.controlapi.v1.JapellaControlApiService.GetAccountPolicy:input_type -> japella.controlapi.v1.GetAccountPolicyRequest
-	202, // 195: japella.controlapi.v1.JapellaControlApiService.CreateAccountPolicy:input_type -> japella.controlapi.v1.CreateAccountPolicyRequest
-	204, // 196: japella.controlapi.v1.JapellaControlApiService.UpdateAccountPolicy:input_type -> japella.controlapi.v1.UpdateAccountPolicyRequest
-	206, // 197: japella.controlapi.v1.JapellaControlApiService.DeleteAccountPolicy:input_type -> japella.controlapi.v1.DeleteAccountPolicyRequest
-	208, // 198: japella.controlapi.v1.JapellaControlApiService.ListPendingApprovals:input_type -> japella.controlapi.v1.ListPendingApprovalsRequest
-	211, // 199: japella.controlapi.v1.JapellaControlApiService.ApprovePost:input_type -> japella.controlapi.v1.ApprovePostRequest
-	213, // 200: japella.controlapi.v1.JapellaControlApiService.RejectPost:input_type -> japella.controlapi.v1.RejectPostRequest
-	215, // 201: japella.controlapi.v1.JapellaControlApiService.GetPost:input_type -> japella.controlapi.v1.GetPostRequest
-	217, // 202: japella.controlapi.v1.JapellaControlApiService.UpdatePendingPost:input_type -> japella.controlapi.v1.UpdatePendingPostRequest
-	223, // 203: japella.controlapi.v1.JapellaControlApiService.ListWebhooks:input_type -> japella.controlapi.v1.ListWebhooksRequest
-	221, // 204: japella.controlapi.v1.JapellaControlApiService.GetWebhook:input_type -> japella.controlapi.v1.GetWebhookRequest
-	225, // 205: japella.controlapi.v1.JapellaControlApiService.CreateWebhook:input_type -> japella.controlapi.v1.CreateWebhookRequest
-	227, // 206: japella.controlapi.v1.JapellaControlApiService.UpdateWebhook:input_type -> japella.controlapi.v1.UpdateWebhookRequest
-	229, // 207: japella.controlapi.v1.JapellaControlApiService.DeleteWebhook:input_type -> japella.controlapi.v1.DeleteWebhookRequest
-	231, // 208: japella.controlapi.v1.JapellaControlApiService.TestWebhook:input_type -> japella.controlapi.v1.TestWebhookRequest
-	234, // 209: japella.controlapi.v1.JapellaControlApiService.ListBotWebhooks:input_type -> japella.controlapi.v1.ListBotWebhooksRequest
-	239, // 210: japella.controlapi.v1.JapellaControlApiService.ListKeywordWatches:input_type -> japella.controlapi.v1.ListKeywordWatchesRequest
-	241, // 211: japella.controlapi.v1.JapellaControlApiService.CreateKeywordWatch:input_type -> japella.controlapi.v1.CreateKeywordWatchRequest
-	243, // 212: japella.controlapi.v1.JapellaControlApiService.UpdateKeywordWatch:input_type -> japella.controlapi.v1.UpdateKeywordWatchRequest
-	245, // 213: japella.controlapi.v1.JapellaControlApiService.DeleteKeywordWatch:input_type -> japella.controlapi.v1.DeleteKeywordWatchRequest
-	247, // 214: japella.controlapi.v1.JapellaControlApiService.CreateDummySocialAccount:input_type -> japella.controlapi.v1.CreateDummySocialAccountRequest
-	4,   // 215: japella.controlapi.v1.JapellaControlApiService.GetStatus:output_type -> japella.controlapi.v1.GetStatusResponse
-	1,   // 216: japella.controlapi.v1.JapellaControlApiService.SubmitPost:output_type -> japella.controlapi.v1.SubmitPostResponse
-	7,   // 217: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:output_type -> japella.controlapi.v1.GetCannedPostsResponse
-	16,  // 218: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:output_type -> japella.controlapi.v1.GetCannedPostResponse
-	10,  // 219: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:output_type -> japella.controlapi.v1.CreateCannedPostResponse
-	12,  // 220: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:output_type -> japella.controlapi.v1.DeleteCannedPostResponse
-	18,  // 221: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:output_type -> japella.controlapi.v1.GetSocialAccountsResponse
-	32,  // 222: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:output_type -> japella.controlapi.v1.DeleteSocialAccountResponse
-	34,  // 223: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:output_type -> japella.controlapi.v1.RefreshSocialAccountResponse
-	25,  // 224: japella.controlapi.v1.JapellaControlApiService.GetConnectors:output_type -> japella.controlapi.v1.GetConnectorsResponse
-	22,  // 225: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:output_type -> japella.controlapi.v1.RefreshConnectorsResponse
-	24,  // 226: japella.controlapi.v1.JapellaControlApiService.StopService:output_type -> japella.controlapi.v1.StopServiceResponse
-	30,  // 227: japella.controlapi.v1.JapellaControlApiService.StartOAuth:output_type -> japella.controlapi.v1.StartOAuthResponse
-	37,  // 228: japella.controlapi.v1.JapellaControlApiService.GetTimeline:output_type -> japella.controlapi.v1.GetTimelineResponse
-	45,  // 229: japella.controlapi.v1.JapellaControlApiService.GetFeed:output_type -> japella.controlapi.v1.GetFeedResponse
-	39,  // 230: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:output_type -> japella.controlapi.v1.UpdatePostCampaignResponse
-	41,  // 231: japella.controlapi.v1.JapellaControlApiService.ForgetPost:output_type -> japella.controlapi.v1.ForgetPostResponse
-	43,  // 232: japella.controlapi.v1.JapellaControlApiService.RetryPost:output_type -> japella.controlapi.v1.RetryPostResponse
-	48,  // 233: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:output_type -> japella.controlapi.v1.SetSocialAccountActiveResponse
-	54,  // 234: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:output_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
-	56,  // 235: japella.controlapi.v1.JapellaControlApiService.ChangePassword:output_type -> japella.controlapi.v1.ChangePasswordResponse
-	58,  // 236: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:output_type -> japella.controlapi.v1.ResetUserPasswordResponse
-	60,  // 237: japella.controlapi.v1.JapellaControlApiService.Logout:output_type -> japella.controlapi.v1.LogoutResponse
-	62,  // 238: japella.controlapi.v1.JapellaControlApiService.GetUsers:output_type -> japella.controlapi.v1.GetUsersResponse
-	64,  // 239: japella.controlapi.v1.JapellaControlApiService.GetUser:output_type -> japella.controlapi.v1.GetUserResponse
-	67,  // 240: japella.controlapi.v1.JapellaControlApiService.CreateUser:output_type -> japella.controlapi.v1.CreateUserResponse
-	69,  // 241: japella.controlapi.v1.JapellaControlApiService.DeleteUser:output_type -> japella.controlapi.v1.DeleteUserResponse
-	73,  // 242: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:output_type -> japella.controlapi.v1.ListRbacPermissionsResponse
-	75,  // 243: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:output_type -> japella.controlapi.v1.ListRbacRolesResponse
-	77,  // 244: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:output_type -> japella.controlapi.v1.CreateRbacRoleResponse
-	79,  // 245: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:output_type -> japella.controlapi.v1.UpdateRbacRoleResponse
-	81,  // 246: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:output_type -> japella.controlapi.v1.DeleteRbacRoleResponse
-	83,  // 247: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:output_type -> japella.controlapi.v1.GetUserRbacRolesResponse
-	86,  // 248: japella.controlapi.v1.JapellaControlApiService.GetMyPermissionsAudit:output_type -> japella.controlapi.v1.GetMyPermissionsAuditResponse
-	88,  // 249: japella.controlapi.v1.JapellaControlApiService.GetUserGroupRbacRoles:output_type -> japella.controlapi.v1.GetUserGroupRbacRolesResponse
-	90,  // 250: japella.controlapi.v1.JapellaControlApiService.SetUserGroupRbacRoles:output_type -> japella.controlapi.v1.SetUserGroupRbacRolesResponse
-	92,  // 251: japella.controlapi.v1.JapellaControlApiService.GetRbacRoleUsers:output_type -> japella.controlapi.v1.GetRbacRoleUsersResponse
-	94,  // 252: japella.controlapi.v1.JapellaControlApiService.GetRbacRoleGroups:output_type -> japella.controlapi.v1.GetRbacRoleGroupsResponse
-	96,  // 253: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:output_type -> japella.controlapi.v1.GetApiKeysResponse
-	99,  // 254: japella.controlapi.v1.JapellaControlApiService.GetCvars:output_type -> japella.controlapi.v1.GetCvarsResponse
-	105, // 255: japella.controlapi.v1.JapellaControlApiService.GetUserPreferences:output_type -> japella.controlapi.v1.GetUserPreferencesResponse
-	103, // 256: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:output_type -> japella.controlapi.v1.SaveUserPreferencesResponse
-	107, // 257: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:output_type -> japella.controlapi.v1.CreateApiKeyResponse
-	109, // 258: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:output_type -> japella.controlapi.v1.RevokeApiKeyResponse
-	111, // 259: japella.controlapi.v1.JapellaControlApiService.SetCvar:output_type -> japella.controlapi.v1.SetCvarResponse
-	113, // 260: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:output_type -> japella.controlapi.v1.RegisterConnectorResponse
-	115, // 261: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:output_type -> japella.controlapi.v1.CreateCampaignResponse
-	117, // 262: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:output_type -> japella.controlapi.v1.GetCampaignsResponse
-	126, // 263: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:output_type -> japella.controlapi.v1.UpdateCampaignResponse
-	128, // 264: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:output_type -> japella.controlapi.v1.DeleteCampaignResponse
-	14,  // 265: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:output_type -> japella.controlapi.v1.UpdateCannedPostResponse
-	120, // 266: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:output_type -> japella.controlapi.v1.AddSocialAccountToCampaignResponse
-	122, // 267: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:output_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse
-	124, // 268: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:output_type -> japella.controlapi.v1.GetCampaignSocialAccountsResponse
-	50,  // 269: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:output_type -> japella.controlapi.v1.CleanupFeedPostsResponse
-	52,  // 270: japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost:output_type -> japella.controlapi.v1.RefetchFeedPostResponse
-	130, // 271: japella.controlapi.v1.JapellaControlApiService.GetLogs:output_type -> japella.controlapi.v1.GetLogsResponse
-	133, // 272: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:output_type -> japella.controlapi.v1.GetJobsStatusResponse
-	136, // 273: japella.controlapi.v1.JapellaControlApiService.ListMedia:output_type -> japella.controlapi.v1.ListMediaResponse
-	139, // 274: japella.controlapi.v1.JapellaControlApiService.GetMediaPosts:output_type -> japella.controlapi.v1.GetMediaPostsResponse
-	141, // 275: japella.controlapi.v1.JapellaControlApiService.DeleteMedia:output_type -> japella.controlapi.v1.DeleteMediaResponse
-	143, // 276: japella.controlapi.v1.JapellaControlApiService.GetChatBots:output_type -> japella.controlapi.v1.GetChatBotsResponse
-	146, // 277: japella.controlapi.v1.JapellaControlApiService.CreateChatBot:output_type -> japella.controlapi.v1.CreateChatBotResponse
-	148, // 278: japella.controlapi.v1.JapellaControlApiService.UpdateChatBot:output_type -> japella.controlapi.v1.UpdateChatBotResponse
-	150, // 279: japella.controlapi.v1.JapellaControlApiService.DeleteChatBot:output_type -> japella.controlapi.v1.DeleteChatBotResponse
-	152, // 280: japella.controlapi.v1.JapellaControlApiService.StartChatBot:output_type -> japella.controlapi.v1.StartChatBotResponse
-	154, // 281: japella.controlapi.v1.JapellaControlApiService.StopChatBot:output_type -> japella.controlapi.v1.StopChatBotResponse
-	156, // 282: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:output_type -> japella.controlapi.v1.GetBotChannelsResponse
-	160, // 283: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:output_type -> japella.controlapi.v1.GetBotHooksResponse
-	162, // 284: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:output_type -> japella.controlapi.v1.SetBotHooksResponse
-	165, // 285: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:output_type -> japella.controlapi.v1.GetBotConversationsResponse
-	168, // 286: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:output_type -> japella.controlapi.v1.GetBotConversationMessagesResponse
-	170, // 287: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:output_type -> japella.controlapi.v1.SendBotConversationMessageResponse
-	172, // 288: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:output_type -> japella.controlapi.v1.StreamBotConversationUpdatesResponse
-	175, // 289: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:output_type -> japella.controlapi.v1.GetSocialAccountSharesResponse
-	177, // 290: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:output_type -> japella.controlapi.v1.SetSocialAccountSharesResponse
-	179, // 291: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:output_type -> japella.controlapi.v1.ImpersonateUserResponse
-	181, // 292: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:output_type -> japella.controlapi.v1.StopImpersonationResponse
-	184, // 293: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:output_type -> japella.controlapi.v1.ListUserGroupsResponse
-	186, // 294: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:output_type -> japella.controlapi.v1.CreateUserGroupResponse
-	188, // 295: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:output_type -> japella.controlapi.v1.DeleteUserGroupResponse
-	190, // 296: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:output_type -> japella.controlapi.v1.GetUserGroupMembersResponse
-	192, // 297: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:output_type -> japella.controlapi.v1.SetUserGroupMembersResponse
-	195, // 298: japella.controlapi.v1.JapellaControlApiService.GetUserGroupSharedAccounts:output_type -> japella.controlapi.v1.GetUserGroupSharedAccountsResponse
-	199, // 299: japella.controlapi.v1.JapellaControlApiService.ListAccountPolicies:output_type -> japella.controlapi.v1.ListAccountPoliciesResponse
-	201, // 300: japella.controlapi.v1.JapellaControlApiService.GetAccountPolicy:output_type -> japella.controlapi.v1.GetAccountPolicyResponse
-	203, // 301: japella.controlapi.v1.JapellaControlApiService.CreateAccountPolicy:output_type -> japella.controlapi.v1.CreateAccountPolicyResponse
-	205, // 302: japella.controlapi.v1.JapellaControlApiService.UpdateAccountPolicy:output_type -> japella.controlapi.v1.UpdateAccountPolicyResponse
-	207, // 303: japella.controlapi.v1.JapellaControlApiService.DeleteAccountPolicy:output_type -> japella.controlapi.v1.DeleteAccountPolicyResponse
-	210, // 304: japella.controlapi.v1.JapellaControlApiService.ListPendingApprovals:output_type -> japella.controlapi.v1.ListPendingApprovalsResponse
-	212, // 305: japella.controlapi.v1.JapellaControlApiService.ApprovePost:output_type -> japella.controlapi.v1.ApprovePostResponse
-	214, // 306: japella.controlapi.v1.JapellaControlApiService.RejectPost:output_type -> japella.controlapi.v1.RejectPostResponse
-	216, // 307: japella.controlapi.v1.JapellaControlApiService.GetPost:output_type -> japella.controlapi.v1.GetPostResponse
-	218, // 308: japella.controlapi.v1.JapellaControlApiService.UpdatePendingPost:output_type -> japella.controlapi.v1.UpdatePendingPostResponse
-	224, // 309: japella.controlapi.v1.JapellaControlApiService.ListWebhooks:output_type -> japella.controlapi.v1.ListWebhooksResponse
-	222, // 310: japella.controlapi.v1.JapellaControlApiService.GetWebhook:output_type -> japella.controlapi.v1.GetWebhookResponse
-	226, // 311: japella.controlapi.v1.JapellaControlApiService.CreateWebhook:output_type -> japella.controlapi.v1.CreateWebhookResponse
-	228, // 312: japella.controlapi.v1.JapellaControlApiService.UpdateWebhook:output_type -> japella.controlapi.v1.UpdateWebhookResponse
-	230, // 313: japella.controlapi.v1.JapellaControlApiService.DeleteWebhook:output_type -> japella.controlapi.v1.DeleteWebhookResponse
-	232, // 314: japella.controlapi.v1.JapellaControlApiService.TestWebhook:output_type -> japella.controlapi.v1.TestWebhookResponse
-	235, // 315: japella.controlapi.v1.JapellaControlApiService.ListBotWebhooks:output_type -> japella.controlapi.v1.ListBotWebhooksResponse
-	240, // 316: japella.controlapi.v1.JapellaControlApiService.ListKeywordWatches:output_type -> japella.controlapi.v1.ListKeywordWatchesResponse
-	242, // 317: japella.controlapi.v1.JapellaControlApiService.CreateKeywordWatch:output_type -> japella.controlapi.v1.CreateKeywordWatchResponse
-	244, // 318: japella.controlapi.v1.JapellaControlApiService.UpdateKeywordWatch:output_type -> japella.controlapi.v1.UpdateKeywordWatchResponse
-	246, // 319: japella.controlapi.v1.JapellaControlApiService.DeleteKeywordWatch:output_type -> japella.controlapi.v1.DeleteKeywordWatchResponse
-	248, // 320: japella.controlapi.v1.JapellaControlApiService.CreateDummySocialAccount:output_type -> japella.controlapi.v1.CreateDummySocialAccountResponse
-	215, // [215:321] is the sub-list for method output_type
-	109, // [109:215] is the sub-list for method input_type
-	109, // [109:109] is the sub-list for extension type_name
-	109, // [109:109] is the sub-list for extension extendee
-	0,   // [0:109] is the sub-list for field type_name
+	35,  // 101: japella.controlapi.v1.UpdatePostContentResponse.standard_response:type_name -> japella.controlapi.v1.StandardResponse
+	2,   // 102: japella.controlapi.v1.UpdatePostContentResponse.post:type_name -> japella.controlapi.v1.PostStatus
+	221, // 103: japella.controlapi.v1.ListLlmConnectionsResponse.connections:type_name -> japella.controlapi.v1.LlmConnection
+	221, // 104: japella.controlapi.v1.GetLlmConnectionResponse.connection:type_name -> japella.controlapi.v1.LlmConnection
+	234, // 105: japella.controlapi.v1.ListLlmConnectionPresetsResponse.presets:type_name -> japella.controlapi.v1.LlmConnectionPreset
+	237, // 106: japella.controlapi.v1.ListLlmConnectionModelsResponse.models:type_name -> japella.controlapi.v1.LlmModel
+	240, // 107: japella.controlapi.v1.ListLlmToolsResponse.tools:type_name -> japella.controlapi.v1.LlmTool
+	240, // 108: japella.controlapi.v1.GetLlmToolResponse.tool:type_name -> japella.controlapi.v1.LlmTool
+	251, // 109: japella.controlapi.v1.ListEnabledLlmToolsResponse.tools:type_name -> japella.controlapi.v1.LlmToolSummary
+	254, // 110: japella.controlapi.v1.RunLlmToolResponse.run:type_name -> japella.controlapi.v1.LlmToolRun
+	254, // 111: japella.controlapi.v1.ListLlmToolRunsResponse.runs:type_name -> japella.controlapi.v1.LlmToolRun
+	259, // 112: japella.controlapi.v1.GetWebhookResponse.webhook:type_name -> japella.controlapi.v1.Webhook
+	260, // 113: japella.controlapi.v1.GetWebhookResponse.delivery_logs:type_name -> japella.controlapi.v1.WebhookDeliveryLog
+	259, // 114: japella.controlapi.v1.ListWebhooksResponse.webhooks:type_name -> japella.controlapi.v1.Webhook
+	273, // 115: japella.controlapi.v1.ListBotWebhooksResponse.webhooks:type_name -> japella.controlapi.v1.BotWebhook
+	276, // 116: japella.controlapi.v1.ListKeywordWatchesResponse.watches:type_name -> japella.controlapi.v1.KeywordWatch
+	277, // 117: japella.controlapi.v1.ListKeywordWatchesResponse.state:type_name -> japella.controlapi.v1.KeywordWatchState
+	278, // 118: japella.controlapi.v1.ListKeywordWatchesResponse.recent_matches:type_name -> japella.controlapi.v1.KeywordMatch
+	100, // 119: japella.controlapi.v1.GetCvarsResponse.CvarCategoriesEntry.value:type_name -> japella.controlapi.v1.CvarCategory
+	3,   // 120: japella.controlapi.v1.JapellaControlApiService.GetStatus:input_type -> japella.controlapi.v1.GetStatusRequest
+	0,   // 121: japella.controlapi.v1.JapellaControlApiService.SubmitPost:input_type -> japella.controlapi.v1.SubmitPostRequest
+	6,   // 122: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:input_type -> japella.controlapi.v1.GetCannedPostsRequest
+	15,  // 123: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:input_type -> japella.controlapi.v1.GetCannedPostRequest
+	9,   // 124: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:input_type -> japella.controlapi.v1.CreateCannedPostRequest
+	11,  // 125: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:input_type -> japella.controlapi.v1.DeleteCannedPostRequest
+	17,  // 126: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:input_type -> japella.controlapi.v1.GetSocialAccountsRequest
+	31,  // 127: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:input_type -> japella.controlapi.v1.DeleteSocialAccountRequest
+	33,  // 128: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:input_type -> japella.controlapi.v1.RefreshSocialAccountRequest
+	20,  // 129: japella.controlapi.v1.JapellaControlApiService.GetConnectors:input_type -> japella.controlapi.v1.GetConnectorsRequest
+	21,  // 130: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:input_type -> japella.controlapi.v1.RefreshConnectorsRequest
+	23,  // 131: japella.controlapi.v1.JapellaControlApiService.StopService:input_type -> japella.controlapi.v1.StopServiceRequest
+	29,  // 132: japella.controlapi.v1.JapellaControlApiService.StartOAuth:input_type -> japella.controlapi.v1.StartOAuthRequest
+	36,  // 133: japella.controlapi.v1.JapellaControlApiService.GetTimeline:input_type -> japella.controlapi.v1.GetTimelineRequest
+	44,  // 134: japella.controlapi.v1.JapellaControlApiService.GetFeed:input_type -> japella.controlapi.v1.GetFeedRequest
+	38,  // 135: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:input_type -> japella.controlapi.v1.UpdatePostCampaignRequest
+	40,  // 136: japella.controlapi.v1.JapellaControlApiService.ForgetPost:input_type -> japella.controlapi.v1.ForgetPostRequest
+	42,  // 137: japella.controlapi.v1.JapellaControlApiService.RetryPost:input_type -> japella.controlapi.v1.RetryPostRequest
+	47,  // 138: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:input_type -> japella.controlapi.v1.SetSocialAccountActiveRequest
+	53,  // 139: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:input_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordRequest
+	55,  // 140: japella.controlapi.v1.JapellaControlApiService.ChangePassword:input_type -> japella.controlapi.v1.ChangePasswordRequest
+	57,  // 141: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:input_type -> japella.controlapi.v1.ResetUserPasswordRequest
+	59,  // 142: japella.controlapi.v1.JapellaControlApiService.Logout:input_type -> japella.controlapi.v1.LogoutRequest
+	61,  // 143: japella.controlapi.v1.JapellaControlApiService.GetUsers:input_type -> japella.controlapi.v1.GetUsersRequest
+	63,  // 144: japella.controlapi.v1.JapellaControlApiService.GetUser:input_type -> japella.controlapi.v1.GetUserRequest
+	66,  // 145: japella.controlapi.v1.JapellaControlApiService.CreateUser:input_type -> japella.controlapi.v1.CreateUserRequest
+	68,  // 146: japella.controlapi.v1.JapellaControlApiService.DeleteUser:input_type -> japella.controlapi.v1.DeleteUserRequest
+	72,  // 147: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:input_type -> japella.controlapi.v1.ListRbacPermissionsRequest
+	74,  // 148: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:input_type -> japella.controlapi.v1.ListRbacRolesRequest
+	76,  // 149: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:input_type -> japella.controlapi.v1.CreateRbacRoleRequest
+	78,  // 150: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:input_type -> japella.controlapi.v1.UpdateRbacRoleRequest
+	80,  // 151: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:input_type -> japella.controlapi.v1.DeleteRbacRoleRequest
+	82,  // 152: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:input_type -> japella.controlapi.v1.GetUserRbacRolesRequest
+	84,  // 153: japella.controlapi.v1.JapellaControlApiService.GetMyPermissionsAudit:input_type -> japella.controlapi.v1.GetMyPermissionsAuditRequest
+	87,  // 154: japella.controlapi.v1.JapellaControlApiService.GetUserGroupRbacRoles:input_type -> japella.controlapi.v1.GetUserGroupRbacRolesRequest
+	89,  // 155: japella.controlapi.v1.JapellaControlApiService.SetUserGroupRbacRoles:input_type -> japella.controlapi.v1.SetUserGroupRbacRolesRequest
+	91,  // 156: japella.controlapi.v1.JapellaControlApiService.GetRbacRoleUsers:input_type -> japella.controlapi.v1.GetRbacRoleUsersRequest
+	93,  // 157: japella.controlapi.v1.JapellaControlApiService.GetRbacRoleGroups:input_type -> japella.controlapi.v1.GetRbacRoleGroupsRequest
+	95,  // 158: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:input_type -> japella.controlapi.v1.GetApiKeysRequest
+	98,  // 159: japella.controlapi.v1.JapellaControlApiService.GetCvars:input_type -> japella.controlapi.v1.GetCvarsRequest
+	104, // 160: japella.controlapi.v1.JapellaControlApiService.GetUserPreferences:input_type -> japella.controlapi.v1.GetUserPreferencesRequest
+	102, // 161: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:input_type -> japella.controlapi.v1.SaveUserPreferencesRequest
+	106, // 162: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:input_type -> japella.controlapi.v1.CreateApiKeyRequest
+	108, // 163: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:input_type -> japella.controlapi.v1.RevokeApiKeyRequest
+	110, // 164: japella.controlapi.v1.JapellaControlApiService.SetCvar:input_type -> japella.controlapi.v1.SetCvarRequest
+	112, // 165: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:input_type -> japella.controlapi.v1.RegisterConnectorRequest
+	114, // 166: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:input_type -> japella.controlapi.v1.CreateCampaignRequest
+	116, // 167: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:input_type -> japella.controlapi.v1.GetCampaignsRequest
+	125, // 168: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:input_type -> japella.controlapi.v1.UpdateCampaignRequest
+	127, // 169: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:input_type -> japella.controlapi.v1.DeleteCampaignRequest
+	13,  // 170: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:input_type -> japella.controlapi.v1.UpdateCannedPostRequest
+	119, // 171: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:input_type -> japella.controlapi.v1.AddSocialAccountToCampaignRequest
+	121, // 172: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:input_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignRequest
+	123, // 173: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:input_type -> japella.controlapi.v1.GetCampaignSocialAccountsRequest
+	49,  // 174: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:input_type -> japella.controlapi.v1.CleanupFeedPostsRequest
+	51,  // 175: japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost:input_type -> japella.controlapi.v1.RefetchFeedPostRequest
+	129, // 176: japella.controlapi.v1.JapellaControlApiService.GetLogs:input_type -> japella.controlapi.v1.GetLogsRequest
+	132, // 177: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:input_type -> japella.controlapi.v1.GetJobsStatusRequest
+	135, // 178: japella.controlapi.v1.JapellaControlApiService.ListMedia:input_type -> japella.controlapi.v1.ListMediaRequest
+	138, // 179: japella.controlapi.v1.JapellaControlApiService.GetMediaPosts:input_type -> japella.controlapi.v1.GetMediaPostsRequest
+	140, // 180: japella.controlapi.v1.JapellaControlApiService.DeleteMedia:input_type -> japella.controlapi.v1.DeleteMediaRequest
+	142, // 181: japella.controlapi.v1.JapellaControlApiService.GetChatBots:input_type -> japella.controlapi.v1.GetChatBotsRequest
+	145, // 182: japella.controlapi.v1.JapellaControlApiService.CreateChatBot:input_type -> japella.controlapi.v1.CreateChatBotRequest
+	147, // 183: japella.controlapi.v1.JapellaControlApiService.UpdateChatBot:input_type -> japella.controlapi.v1.UpdateChatBotRequest
+	149, // 184: japella.controlapi.v1.JapellaControlApiService.DeleteChatBot:input_type -> japella.controlapi.v1.DeleteChatBotRequest
+	151, // 185: japella.controlapi.v1.JapellaControlApiService.StartChatBot:input_type -> japella.controlapi.v1.StartChatBotRequest
+	153, // 186: japella.controlapi.v1.JapellaControlApiService.StopChatBot:input_type -> japella.controlapi.v1.StopChatBotRequest
+	155, // 187: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:input_type -> japella.controlapi.v1.GetBotChannelsRequest
+	159, // 188: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:input_type -> japella.controlapi.v1.GetBotHooksRequest
+	161, // 189: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:input_type -> japella.controlapi.v1.SetBotHooksRequest
+	163, // 190: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:input_type -> japella.controlapi.v1.GetBotConversationsRequest
+	166, // 191: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:input_type -> japella.controlapi.v1.GetBotConversationMessagesRequest
+	169, // 192: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:input_type -> japella.controlapi.v1.SendBotConversationMessageRequest
+	171, // 193: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:input_type -> japella.controlapi.v1.StreamBotConversationUpdatesRequest
+	174, // 194: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:input_type -> japella.controlapi.v1.GetSocialAccountSharesRequest
+	176, // 195: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:input_type -> japella.controlapi.v1.SetSocialAccountSharesRequest
+	178, // 196: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:input_type -> japella.controlapi.v1.ImpersonateUserRequest
+	180, // 197: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:input_type -> japella.controlapi.v1.StopImpersonationRequest
+	183, // 198: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:input_type -> japella.controlapi.v1.ListUserGroupsRequest
+	185, // 199: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:input_type -> japella.controlapi.v1.CreateUserGroupRequest
+	187, // 200: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:input_type -> japella.controlapi.v1.DeleteUserGroupRequest
+	189, // 201: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:input_type -> japella.controlapi.v1.GetUserGroupMembersRequest
+	191, // 202: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:input_type -> japella.controlapi.v1.SetUserGroupMembersRequest
+	194, // 203: japella.controlapi.v1.JapellaControlApiService.GetUserGroupSharedAccounts:input_type -> japella.controlapi.v1.GetUserGroupSharedAccountsRequest
+	198, // 204: japella.controlapi.v1.JapellaControlApiService.ListAccountPolicies:input_type -> japella.controlapi.v1.ListAccountPoliciesRequest
+	200, // 205: japella.controlapi.v1.JapellaControlApiService.GetAccountPolicy:input_type -> japella.controlapi.v1.GetAccountPolicyRequest
+	202, // 206: japella.controlapi.v1.JapellaControlApiService.CreateAccountPolicy:input_type -> japella.controlapi.v1.CreateAccountPolicyRequest
+	204, // 207: japella.controlapi.v1.JapellaControlApiService.UpdateAccountPolicy:input_type -> japella.controlapi.v1.UpdateAccountPolicyRequest
+	206, // 208: japella.controlapi.v1.JapellaControlApiService.DeleteAccountPolicy:input_type -> japella.controlapi.v1.DeleteAccountPolicyRequest
+	208, // 209: japella.controlapi.v1.JapellaControlApiService.ListPendingApprovals:input_type -> japella.controlapi.v1.ListPendingApprovalsRequest
+	211, // 210: japella.controlapi.v1.JapellaControlApiService.ApprovePost:input_type -> japella.controlapi.v1.ApprovePostRequest
+	213, // 211: japella.controlapi.v1.JapellaControlApiService.RejectPost:input_type -> japella.controlapi.v1.RejectPostRequest
+	215, // 212: japella.controlapi.v1.JapellaControlApiService.GetPost:input_type -> japella.controlapi.v1.GetPostRequest
+	217, // 213: japella.controlapi.v1.JapellaControlApiService.UpdatePendingPost:input_type -> japella.controlapi.v1.UpdatePendingPostRequest
+	219, // 214: japella.controlapi.v1.JapellaControlApiService.UpdatePostContent:input_type -> japella.controlapi.v1.UpdatePostContentRequest
+	222, // 215: japella.controlapi.v1.JapellaControlApiService.ListLlmConnections:input_type -> japella.controlapi.v1.ListLlmConnectionsRequest
+	224, // 216: japella.controlapi.v1.JapellaControlApiService.GetLlmConnection:input_type -> japella.controlapi.v1.GetLlmConnectionRequest
+	226, // 217: japella.controlapi.v1.JapellaControlApiService.CreateLlmConnection:input_type -> japella.controlapi.v1.CreateLlmConnectionRequest
+	228, // 218: japella.controlapi.v1.JapellaControlApiService.UpdateLlmConnection:input_type -> japella.controlapi.v1.UpdateLlmConnectionRequest
+	230, // 219: japella.controlapi.v1.JapellaControlApiService.DeleteLlmConnection:input_type -> japella.controlapi.v1.DeleteLlmConnectionRequest
+	232, // 220: japella.controlapi.v1.JapellaControlApiService.TestLlmConnection:input_type -> japella.controlapi.v1.TestLlmConnectionRequest
+	235, // 221: japella.controlapi.v1.JapellaControlApiService.ListLlmConnectionPresets:input_type -> japella.controlapi.v1.ListLlmConnectionPresetsRequest
+	238, // 222: japella.controlapi.v1.JapellaControlApiService.ListLlmConnectionModels:input_type -> japella.controlapi.v1.ListLlmConnectionModelsRequest
+	241, // 223: japella.controlapi.v1.JapellaControlApiService.ListLlmTools:input_type -> japella.controlapi.v1.ListLlmToolsRequest
+	243, // 224: japella.controlapi.v1.JapellaControlApiService.GetLlmTool:input_type -> japella.controlapi.v1.GetLlmToolRequest
+	245, // 225: japella.controlapi.v1.JapellaControlApiService.CreateLlmTool:input_type -> japella.controlapi.v1.CreateLlmToolRequest
+	247, // 226: japella.controlapi.v1.JapellaControlApiService.UpdateLlmTool:input_type -> japella.controlapi.v1.UpdateLlmToolRequest
+	249, // 227: japella.controlapi.v1.JapellaControlApiService.DeleteLlmTool:input_type -> japella.controlapi.v1.DeleteLlmToolRequest
+	252, // 228: japella.controlapi.v1.JapellaControlApiService.ListEnabledLlmTools:input_type -> japella.controlapi.v1.ListEnabledLlmToolsRequest
+	255, // 229: japella.controlapi.v1.JapellaControlApiService.RunLlmTool:input_type -> japella.controlapi.v1.RunLlmToolRequest
+	257, // 230: japella.controlapi.v1.JapellaControlApiService.ListLlmToolRuns:input_type -> japella.controlapi.v1.ListLlmToolRunsRequest
+	263, // 231: japella.controlapi.v1.JapellaControlApiService.ListWebhooks:input_type -> japella.controlapi.v1.ListWebhooksRequest
+	261, // 232: japella.controlapi.v1.JapellaControlApiService.GetWebhook:input_type -> japella.controlapi.v1.GetWebhookRequest
+	265, // 233: japella.controlapi.v1.JapellaControlApiService.CreateWebhook:input_type -> japella.controlapi.v1.CreateWebhookRequest
+	267, // 234: japella.controlapi.v1.JapellaControlApiService.UpdateWebhook:input_type -> japella.controlapi.v1.UpdateWebhookRequest
+	269, // 235: japella.controlapi.v1.JapellaControlApiService.DeleteWebhook:input_type -> japella.controlapi.v1.DeleteWebhookRequest
+	271, // 236: japella.controlapi.v1.JapellaControlApiService.TestWebhook:input_type -> japella.controlapi.v1.TestWebhookRequest
+	274, // 237: japella.controlapi.v1.JapellaControlApiService.ListBotWebhooks:input_type -> japella.controlapi.v1.ListBotWebhooksRequest
+	279, // 238: japella.controlapi.v1.JapellaControlApiService.ListKeywordWatches:input_type -> japella.controlapi.v1.ListKeywordWatchesRequest
+	281, // 239: japella.controlapi.v1.JapellaControlApiService.CreateKeywordWatch:input_type -> japella.controlapi.v1.CreateKeywordWatchRequest
+	283, // 240: japella.controlapi.v1.JapellaControlApiService.UpdateKeywordWatch:input_type -> japella.controlapi.v1.UpdateKeywordWatchRequest
+	285, // 241: japella.controlapi.v1.JapellaControlApiService.DeleteKeywordWatch:input_type -> japella.controlapi.v1.DeleteKeywordWatchRequest
+	287, // 242: japella.controlapi.v1.JapellaControlApiService.CreateDummySocialAccount:input_type -> japella.controlapi.v1.CreateDummySocialAccountRequest
+	4,   // 243: japella.controlapi.v1.JapellaControlApiService.GetStatus:output_type -> japella.controlapi.v1.GetStatusResponse
+	1,   // 244: japella.controlapi.v1.JapellaControlApiService.SubmitPost:output_type -> japella.controlapi.v1.SubmitPostResponse
+	7,   // 245: japella.controlapi.v1.JapellaControlApiService.GetCannedPosts:output_type -> japella.controlapi.v1.GetCannedPostsResponse
+	16,  // 246: japella.controlapi.v1.JapellaControlApiService.GetCannedPost:output_type -> japella.controlapi.v1.GetCannedPostResponse
+	10,  // 247: japella.controlapi.v1.JapellaControlApiService.CreateCannedPost:output_type -> japella.controlapi.v1.CreateCannedPostResponse
+	12,  // 248: japella.controlapi.v1.JapellaControlApiService.DeleteCannedPost:output_type -> japella.controlapi.v1.DeleteCannedPostResponse
+	18,  // 249: japella.controlapi.v1.JapellaControlApiService.GetSocialAccounts:output_type -> japella.controlapi.v1.GetSocialAccountsResponse
+	32,  // 250: japella.controlapi.v1.JapellaControlApiService.DeleteSocialAccount:output_type -> japella.controlapi.v1.DeleteSocialAccountResponse
+	34,  // 251: japella.controlapi.v1.JapellaControlApiService.RefreshSocialAccount:output_type -> japella.controlapi.v1.RefreshSocialAccountResponse
+	25,  // 252: japella.controlapi.v1.JapellaControlApiService.GetConnectors:output_type -> japella.controlapi.v1.GetConnectorsResponse
+	22,  // 253: japella.controlapi.v1.JapellaControlApiService.RefreshConnectors:output_type -> japella.controlapi.v1.RefreshConnectorsResponse
+	24,  // 254: japella.controlapi.v1.JapellaControlApiService.StopService:output_type -> japella.controlapi.v1.StopServiceResponse
+	30,  // 255: japella.controlapi.v1.JapellaControlApiService.StartOAuth:output_type -> japella.controlapi.v1.StartOAuthResponse
+	37,  // 256: japella.controlapi.v1.JapellaControlApiService.GetTimeline:output_type -> japella.controlapi.v1.GetTimelineResponse
+	45,  // 257: japella.controlapi.v1.JapellaControlApiService.GetFeed:output_type -> japella.controlapi.v1.GetFeedResponse
+	39,  // 258: japella.controlapi.v1.JapellaControlApiService.UpdatePostCampaign:output_type -> japella.controlapi.v1.UpdatePostCampaignResponse
+	41,  // 259: japella.controlapi.v1.JapellaControlApiService.ForgetPost:output_type -> japella.controlapi.v1.ForgetPostResponse
+	43,  // 260: japella.controlapi.v1.JapellaControlApiService.RetryPost:output_type -> japella.controlapi.v1.RetryPostResponse
+	48,  // 261: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountActive:output_type -> japella.controlapi.v1.SetSocialAccountActiveResponse
+	54,  // 262: japella.controlapi.v1.JapellaControlApiService.LoginWithUsernameAndPassword:output_type -> japella.controlapi.v1.LoginWithUsernameAndPasswordResponse
+	56,  // 263: japella.controlapi.v1.JapellaControlApiService.ChangePassword:output_type -> japella.controlapi.v1.ChangePasswordResponse
+	58,  // 264: japella.controlapi.v1.JapellaControlApiService.ResetUserPassword:output_type -> japella.controlapi.v1.ResetUserPasswordResponse
+	60,  // 265: japella.controlapi.v1.JapellaControlApiService.Logout:output_type -> japella.controlapi.v1.LogoutResponse
+	62,  // 266: japella.controlapi.v1.JapellaControlApiService.GetUsers:output_type -> japella.controlapi.v1.GetUsersResponse
+	64,  // 267: japella.controlapi.v1.JapellaControlApiService.GetUser:output_type -> japella.controlapi.v1.GetUserResponse
+	67,  // 268: japella.controlapi.v1.JapellaControlApiService.CreateUser:output_type -> japella.controlapi.v1.CreateUserResponse
+	69,  // 269: japella.controlapi.v1.JapellaControlApiService.DeleteUser:output_type -> japella.controlapi.v1.DeleteUserResponse
+	73,  // 270: japella.controlapi.v1.JapellaControlApiService.ListRbacPermissions:output_type -> japella.controlapi.v1.ListRbacPermissionsResponse
+	75,  // 271: japella.controlapi.v1.JapellaControlApiService.ListRbacRoles:output_type -> japella.controlapi.v1.ListRbacRolesResponse
+	77,  // 272: japella.controlapi.v1.JapellaControlApiService.CreateRbacRole:output_type -> japella.controlapi.v1.CreateRbacRoleResponse
+	79,  // 273: japella.controlapi.v1.JapellaControlApiService.UpdateRbacRole:output_type -> japella.controlapi.v1.UpdateRbacRoleResponse
+	81,  // 274: japella.controlapi.v1.JapellaControlApiService.DeleteRbacRole:output_type -> japella.controlapi.v1.DeleteRbacRoleResponse
+	83,  // 275: japella.controlapi.v1.JapellaControlApiService.GetUserRbacRoles:output_type -> japella.controlapi.v1.GetUserRbacRolesResponse
+	86,  // 276: japella.controlapi.v1.JapellaControlApiService.GetMyPermissionsAudit:output_type -> japella.controlapi.v1.GetMyPermissionsAuditResponse
+	88,  // 277: japella.controlapi.v1.JapellaControlApiService.GetUserGroupRbacRoles:output_type -> japella.controlapi.v1.GetUserGroupRbacRolesResponse
+	90,  // 278: japella.controlapi.v1.JapellaControlApiService.SetUserGroupRbacRoles:output_type -> japella.controlapi.v1.SetUserGroupRbacRolesResponse
+	92,  // 279: japella.controlapi.v1.JapellaControlApiService.GetRbacRoleUsers:output_type -> japella.controlapi.v1.GetRbacRoleUsersResponse
+	94,  // 280: japella.controlapi.v1.JapellaControlApiService.GetRbacRoleGroups:output_type -> japella.controlapi.v1.GetRbacRoleGroupsResponse
+	96,  // 281: japella.controlapi.v1.JapellaControlApiService.GetApiKeys:output_type -> japella.controlapi.v1.GetApiKeysResponse
+	99,  // 282: japella.controlapi.v1.JapellaControlApiService.GetCvars:output_type -> japella.controlapi.v1.GetCvarsResponse
+	105, // 283: japella.controlapi.v1.JapellaControlApiService.GetUserPreferences:output_type -> japella.controlapi.v1.GetUserPreferencesResponse
+	103, // 284: japella.controlapi.v1.JapellaControlApiService.SaveUserPreferences:output_type -> japella.controlapi.v1.SaveUserPreferencesResponse
+	107, // 285: japella.controlapi.v1.JapellaControlApiService.CreateApiKey:output_type -> japella.controlapi.v1.CreateApiKeyResponse
+	109, // 286: japella.controlapi.v1.JapellaControlApiService.RevokeApiKey:output_type -> japella.controlapi.v1.RevokeApiKeyResponse
+	111, // 287: japella.controlapi.v1.JapellaControlApiService.SetCvar:output_type -> japella.controlapi.v1.SetCvarResponse
+	113, // 288: japella.controlapi.v1.JapellaControlApiService.RegisterConnector:output_type -> japella.controlapi.v1.RegisterConnectorResponse
+	115, // 289: japella.controlapi.v1.JapellaControlApiService.CreateCampaign:output_type -> japella.controlapi.v1.CreateCampaignResponse
+	117, // 290: japella.controlapi.v1.JapellaControlApiService.GetCampaigns:output_type -> japella.controlapi.v1.GetCampaignsResponse
+	126, // 291: japella.controlapi.v1.JapellaControlApiService.UpdateCampaign:output_type -> japella.controlapi.v1.UpdateCampaignResponse
+	128, // 292: japella.controlapi.v1.JapellaControlApiService.DeleteCampaign:output_type -> japella.controlapi.v1.DeleteCampaignResponse
+	14,  // 293: japella.controlapi.v1.JapellaControlApiService.UpdateCannedPost:output_type -> japella.controlapi.v1.UpdateCannedPostResponse
+	120, // 294: japella.controlapi.v1.JapellaControlApiService.AddSocialAccountToCampaign:output_type -> japella.controlapi.v1.AddSocialAccountToCampaignResponse
+	122, // 295: japella.controlapi.v1.JapellaControlApiService.RemoveSocialAccountFromCampaign:output_type -> japella.controlapi.v1.RemoveSocialAccountFromCampaignResponse
+	124, // 296: japella.controlapi.v1.JapellaControlApiService.GetCampaignSocialAccounts:output_type -> japella.controlapi.v1.GetCampaignSocialAccountsResponse
+	50,  // 297: japella.controlapi.v1.JapellaControlApiService.CleanupFeedPosts:output_type -> japella.controlapi.v1.CleanupFeedPostsResponse
+	52,  // 298: japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost:output_type -> japella.controlapi.v1.RefetchFeedPostResponse
+	130, // 299: japella.controlapi.v1.JapellaControlApiService.GetLogs:output_type -> japella.controlapi.v1.GetLogsResponse
+	133, // 300: japella.controlapi.v1.JapellaControlApiService.GetJobsStatus:output_type -> japella.controlapi.v1.GetJobsStatusResponse
+	136, // 301: japella.controlapi.v1.JapellaControlApiService.ListMedia:output_type -> japella.controlapi.v1.ListMediaResponse
+	139, // 302: japella.controlapi.v1.JapellaControlApiService.GetMediaPosts:output_type -> japella.controlapi.v1.GetMediaPostsResponse
+	141, // 303: japella.controlapi.v1.JapellaControlApiService.DeleteMedia:output_type -> japella.controlapi.v1.DeleteMediaResponse
+	143, // 304: japella.controlapi.v1.JapellaControlApiService.GetChatBots:output_type -> japella.controlapi.v1.GetChatBotsResponse
+	146, // 305: japella.controlapi.v1.JapellaControlApiService.CreateChatBot:output_type -> japella.controlapi.v1.CreateChatBotResponse
+	148, // 306: japella.controlapi.v1.JapellaControlApiService.UpdateChatBot:output_type -> japella.controlapi.v1.UpdateChatBotResponse
+	150, // 307: japella.controlapi.v1.JapellaControlApiService.DeleteChatBot:output_type -> japella.controlapi.v1.DeleteChatBotResponse
+	152, // 308: japella.controlapi.v1.JapellaControlApiService.StartChatBot:output_type -> japella.controlapi.v1.StartChatBotResponse
+	154, // 309: japella.controlapi.v1.JapellaControlApiService.StopChatBot:output_type -> japella.controlapi.v1.StopChatBotResponse
+	156, // 310: japella.controlapi.v1.JapellaControlApiService.GetBotChannels:output_type -> japella.controlapi.v1.GetBotChannelsResponse
+	160, // 311: japella.controlapi.v1.JapellaControlApiService.GetBotHooks:output_type -> japella.controlapi.v1.GetBotHooksResponse
+	162, // 312: japella.controlapi.v1.JapellaControlApiService.SetBotHooks:output_type -> japella.controlapi.v1.SetBotHooksResponse
+	165, // 313: japella.controlapi.v1.JapellaControlApiService.GetBotConversations:output_type -> japella.controlapi.v1.GetBotConversationsResponse
+	168, // 314: japella.controlapi.v1.JapellaControlApiService.GetBotConversationMessages:output_type -> japella.controlapi.v1.GetBotConversationMessagesResponse
+	170, // 315: japella.controlapi.v1.JapellaControlApiService.SendBotConversationMessage:output_type -> japella.controlapi.v1.SendBotConversationMessageResponse
+	172, // 316: japella.controlapi.v1.JapellaControlApiService.StreamBotConversationUpdates:output_type -> japella.controlapi.v1.StreamBotConversationUpdatesResponse
+	175, // 317: japella.controlapi.v1.JapellaControlApiService.GetSocialAccountShares:output_type -> japella.controlapi.v1.GetSocialAccountSharesResponse
+	177, // 318: japella.controlapi.v1.JapellaControlApiService.SetSocialAccountShares:output_type -> japella.controlapi.v1.SetSocialAccountSharesResponse
+	179, // 319: japella.controlapi.v1.JapellaControlApiService.ImpersonateUser:output_type -> japella.controlapi.v1.ImpersonateUserResponse
+	181, // 320: japella.controlapi.v1.JapellaControlApiService.StopImpersonation:output_type -> japella.controlapi.v1.StopImpersonationResponse
+	184, // 321: japella.controlapi.v1.JapellaControlApiService.ListUserGroups:output_type -> japella.controlapi.v1.ListUserGroupsResponse
+	186, // 322: japella.controlapi.v1.JapellaControlApiService.CreateUserGroup:output_type -> japella.controlapi.v1.CreateUserGroupResponse
+	188, // 323: japella.controlapi.v1.JapellaControlApiService.DeleteUserGroup:output_type -> japella.controlapi.v1.DeleteUserGroupResponse
+	190, // 324: japella.controlapi.v1.JapellaControlApiService.GetUserGroupMembers:output_type -> japella.controlapi.v1.GetUserGroupMembersResponse
+	192, // 325: japella.controlapi.v1.JapellaControlApiService.SetUserGroupMembers:output_type -> japella.controlapi.v1.SetUserGroupMembersResponse
+	195, // 326: japella.controlapi.v1.JapellaControlApiService.GetUserGroupSharedAccounts:output_type -> japella.controlapi.v1.GetUserGroupSharedAccountsResponse
+	199, // 327: japella.controlapi.v1.JapellaControlApiService.ListAccountPolicies:output_type -> japella.controlapi.v1.ListAccountPoliciesResponse
+	201, // 328: japella.controlapi.v1.JapellaControlApiService.GetAccountPolicy:output_type -> japella.controlapi.v1.GetAccountPolicyResponse
+	203, // 329: japella.controlapi.v1.JapellaControlApiService.CreateAccountPolicy:output_type -> japella.controlapi.v1.CreateAccountPolicyResponse
+	205, // 330: japella.controlapi.v1.JapellaControlApiService.UpdateAccountPolicy:output_type -> japella.controlapi.v1.UpdateAccountPolicyResponse
+	207, // 331: japella.controlapi.v1.JapellaControlApiService.DeleteAccountPolicy:output_type -> japella.controlapi.v1.DeleteAccountPolicyResponse
+	210, // 332: japella.controlapi.v1.JapellaControlApiService.ListPendingApprovals:output_type -> japella.controlapi.v1.ListPendingApprovalsResponse
+	212, // 333: japella.controlapi.v1.JapellaControlApiService.ApprovePost:output_type -> japella.controlapi.v1.ApprovePostResponse
+	214, // 334: japella.controlapi.v1.JapellaControlApiService.RejectPost:output_type -> japella.controlapi.v1.RejectPostResponse
+	216, // 335: japella.controlapi.v1.JapellaControlApiService.GetPost:output_type -> japella.controlapi.v1.GetPostResponse
+	218, // 336: japella.controlapi.v1.JapellaControlApiService.UpdatePendingPost:output_type -> japella.controlapi.v1.UpdatePendingPostResponse
+	220, // 337: japella.controlapi.v1.JapellaControlApiService.UpdatePostContent:output_type -> japella.controlapi.v1.UpdatePostContentResponse
+	223, // 338: japella.controlapi.v1.JapellaControlApiService.ListLlmConnections:output_type -> japella.controlapi.v1.ListLlmConnectionsResponse
+	225, // 339: japella.controlapi.v1.JapellaControlApiService.GetLlmConnection:output_type -> japella.controlapi.v1.GetLlmConnectionResponse
+	227, // 340: japella.controlapi.v1.JapellaControlApiService.CreateLlmConnection:output_type -> japella.controlapi.v1.CreateLlmConnectionResponse
+	229, // 341: japella.controlapi.v1.JapellaControlApiService.UpdateLlmConnection:output_type -> japella.controlapi.v1.UpdateLlmConnectionResponse
+	231, // 342: japella.controlapi.v1.JapellaControlApiService.DeleteLlmConnection:output_type -> japella.controlapi.v1.DeleteLlmConnectionResponse
+	233, // 343: japella.controlapi.v1.JapellaControlApiService.TestLlmConnection:output_type -> japella.controlapi.v1.TestLlmConnectionResponse
+	236, // 344: japella.controlapi.v1.JapellaControlApiService.ListLlmConnectionPresets:output_type -> japella.controlapi.v1.ListLlmConnectionPresetsResponse
+	239, // 345: japella.controlapi.v1.JapellaControlApiService.ListLlmConnectionModels:output_type -> japella.controlapi.v1.ListLlmConnectionModelsResponse
+	242, // 346: japella.controlapi.v1.JapellaControlApiService.ListLlmTools:output_type -> japella.controlapi.v1.ListLlmToolsResponse
+	244, // 347: japella.controlapi.v1.JapellaControlApiService.GetLlmTool:output_type -> japella.controlapi.v1.GetLlmToolResponse
+	246, // 348: japella.controlapi.v1.JapellaControlApiService.CreateLlmTool:output_type -> japella.controlapi.v1.CreateLlmToolResponse
+	248, // 349: japella.controlapi.v1.JapellaControlApiService.UpdateLlmTool:output_type -> japella.controlapi.v1.UpdateLlmToolResponse
+	250, // 350: japella.controlapi.v1.JapellaControlApiService.DeleteLlmTool:output_type -> japella.controlapi.v1.DeleteLlmToolResponse
+	253, // 351: japella.controlapi.v1.JapellaControlApiService.ListEnabledLlmTools:output_type -> japella.controlapi.v1.ListEnabledLlmToolsResponse
+	256, // 352: japella.controlapi.v1.JapellaControlApiService.RunLlmTool:output_type -> japella.controlapi.v1.RunLlmToolResponse
+	258, // 353: japella.controlapi.v1.JapellaControlApiService.ListLlmToolRuns:output_type -> japella.controlapi.v1.ListLlmToolRunsResponse
+	264, // 354: japella.controlapi.v1.JapellaControlApiService.ListWebhooks:output_type -> japella.controlapi.v1.ListWebhooksResponse
+	262, // 355: japella.controlapi.v1.JapellaControlApiService.GetWebhook:output_type -> japella.controlapi.v1.GetWebhookResponse
+	266, // 356: japella.controlapi.v1.JapellaControlApiService.CreateWebhook:output_type -> japella.controlapi.v1.CreateWebhookResponse
+	268, // 357: japella.controlapi.v1.JapellaControlApiService.UpdateWebhook:output_type -> japella.controlapi.v1.UpdateWebhookResponse
+	270, // 358: japella.controlapi.v1.JapellaControlApiService.DeleteWebhook:output_type -> japella.controlapi.v1.DeleteWebhookResponse
+	272, // 359: japella.controlapi.v1.JapellaControlApiService.TestWebhook:output_type -> japella.controlapi.v1.TestWebhookResponse
+	275, // 360: japella.controlapi.v1.JapellaControlApiService.ListBotWebhooks:output_type -> japella.controlapi.v1.ListBotWebhooksResponse
+	280, // 361: japella.controlapi.v1.JapellaControlApiService.ListKeywordWatches:output_type -> japella.controlapi.v1.ListKeywordWatchesResponse
+	282, // 362: japella.controlapi.v1.JapellaControlApiService.CreateKeywordWatch:output_type -> japella.controlapi.v1.CreateKeywordWatchResponse
+	284, // 363: japella.controlapi.v1.JapellaControlApiService.UpdateKeywordWatch:output_type -> japella.controlapi.v1.UpdateKeywordWatchResponse
+	286, // 364: japella.controlapi.v1.JapellaControlApiService.DeleteKeywordWatch:output_type -> japella.controlapi.v1.DeleteKeywordWatchResponse
+	288, // 365: japella.controlapi.v1.JapellaControlApiService.CreateDummySocialAccount:output_type -> japella.controlapi.v1.CreateDummySocialAccountResponse
+	243, // [243:366] is the sub-list for method output_type
+	120, // [120:243] is the sub-list for method input_type
+	120, // [120:120] is the sub-list for extension type_name
+	120, // [120:120] is the sub-list for extension extendee
+	0,   // [0:120] is the sub-list for field type_name
 }
 
 func init() { file_japella_controlapi_v1_control_proto_init() }
@@ -15309,7 +17746,7 @@ func file_japella_controlapi_v1_control_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_japella_controlapi_v1_control_proto_rawDesc), len(file_japella_controlapi_v1_control_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   250,
+			NumMessages:   290,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

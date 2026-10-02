@@ -1,16 +1,11 @@
 <template>
-	<Section
-		title="Post Details"
-		:subtitle="pageSubtitle"
-		classes="post-details"
-		:padding="true"
-	>
-		<template #toolbar>
-			<button @click="goBack" class="neutral">
+	<div class="post-details-page">
+		<div class="post-details-page-toolbar" role="toolbar" aria-label="Post navigation">
+			<button type="button" class="neutral" @click="goBack">
 				<Icon icon="material-symbols:arrow-back" />
 				{{ fromApprovals ? 'Back to Approvals' : 'Back to Timeline' }}
 			</button>
-		</template>
+		</div>
 
 		<div v-if="loading" class="loading-container">
 			<NotificationBlock type="note" message="Loading post details..." />
@@ -22,6 +17,16 @@
 
 		<div v-else-if="post" class="post-details-content">
 			<NotificationBlock v-if="actionMessage" :type="actionMessageType" :message="actionMessage" />
+
+			<section class="small" :data-timeline-post-id="post.id">
+				<PostPreview
+					:post="displayPost"
+					timeline-mode
+					:retrying="retrying"
+					@assign-campaign="updateCampaign"
+					@retry-post="retryPost"
+				/>
+			</section>
 
 			<div v-if="isPendingApproval && canEdit" class="edit-section">
 				<h3>Edit content</h3>
@@ -70,111 +75,136 @@
 					</button>
 				</div>
 			</div>
-			<PostPreview v-else :post="post" />
 
-			<div class="post-metadata">
-				<dl>
-					<dt>Created</dt>
-					<dd>{{ post.created }}</dd>
+			<Section
+				title="Post Details"
+				:subtitle="pageSubtitle"
+				classes="post-details"
+				:padding="true"
+			>
+				<div class="post-metadata">
+					<dl>
+						<dt>Created</dt>
+						<dd>{{ post.created }}</dd>
 
-					<dt v-if="post.campaignId && post.campaignId !== 0">Campaign</dt>
-					<dd v-if="post.campaignId && post.campaignId !== 0" class="campaign-field">
-						<div class="campaign-info">
-							<router-link :to="{ name: 'campaignDetails', params: { id: post.campaignId } }">
-								{{ post.campaignName || 'Unknown Campaign' }}
-							</router-link>
-						</div>
-						<button @click="updateCampaign" class="neutral small campaign-update-btn" title="Update Campaign">
-							<Icon icon="mdi:folder-edit" />
-						</button>
-					</dd>
+						<dt v-if="post.campaignId && post.campaignId !== 0">Campaign</dt>
+						<dd v-if="post.campaignId && post.campaignId !== 0" class="campaign-field">
+							<div class="campaign-info">
+								<router-link :to="{ name: 'campaignDetails', params: { id: post.campaignId } }">
+									{{ post.campaignName || 'Unknown Campaign' }}
+								</router-link>
+							</div>
+							<button @click="updateCampaign" class="neutral small campaign-update-btn" title="Update Campaign">
+								<Icon icon="mdi:folder-edit" />
+							</button>
+						</dd>
 
-					<dt v-if="post.postUrl">Post URL</dt>
-					<dd v-if="post.postUrl">
-						<a :href="post.postUrl" target="_blank" class="post-url">
-							{{ post.postUrl }}
-							<Icon icon="material-symbols:open-in-new" />
-						</a>
-					</dd>
+						<dt v-if="post.postUrl">Post URL</dt>
+						<dd v-if="post.postUrl">
+							<a :href="post.postUrl" target="_blank" class="post-url">
+								{{ post.postUrl }}
+								<Icon icon="material-symbols:open-in-new" />
+							</a>
+						</dd>
 
-					<dt>Post ID</dt>
-					<dd>{{ post.id }}</dd>
+						<dt>Post ID</dt>
+						<dd>{{ post.id }}</dd>
 
-					<dt v-if="post.state">State</dt>
-					<dd v-if="post.state">
-						<span :class="['annotation', statusClass(post)]">{{ statusText(post) }}</span>
-					</dd>
+						<dt v-if="post.state">State</dt>
+						<dd v-if="post.state">
+							<span :class="['annotation', statusClass(post)]">{{ statusText(post) }}</span>
+						</dd>
 
-					<template v-if="isPendingApproval">
-						<dt>Approval stage</dt>
-						<dd>{{ (approvalStage ?? 0) + 1 }}</dd>
-						<dt v-if="accountPolicyName">Policy</dt>
-						<dd v-if="accountPolicyName">{{ accountPolicyName }}</dd>
-						<dt v-if="waitingOn">Waiting on</dt>
-						<dd v-if="waitingOn">{{ waitingOn }}</dd>
-						<dt v-if="submittedByUsername">Submitted by</dt>
-						<dd v-if="submittedByUsername">{{ submittedByUsername }}</dd>
-					</template>
-				</dl>
-			</div>
-
-			<div class="post-actions-section">
-				<h3>Actions</h3>
-				<div role="toolbar" class="action-buttons">
-					<button
-						v-if="isPendingApproval && canApprove"
-						type="button"
-						class="inline-icon good"
-						:disabled="acting"
-						@click="approvePost"
-					>
-						<HugeiconsIcon
-							v-if="acting"
-							:icon="Loading01Icon"
-							width="1em"
-							height="1em"
-							:strokeWidth="iconStrokeWidth"
-							aria-hidden="true"
-						/>
-						<HugeiconsIcon
-							v-else
-							:icon="CheckmarkCircle01Icon"
-							width="1em"
-							height="1em"
-							:strokeWidth="iconStrokeWidth"
-							aria-hidden="true"
-						/>
-						<span>{{ acting ? 'Approving…' : 'Approve' }}</span>
-					</button>
-					<button
-						v-if="isPendingApproval && canReject"
-						type="button"
-						class="inline-icon bad"
-						:disabled="acting"
-						@click="rejectPost"
-					>
-						<HugeiconsIcon
-							:icon="CancelCircleIcon"
-							width="1em"
-							height="1em"
-							:strokeWidth="iconStrokeWidth"
-							aria-hidden="true"
-						/>
-						<span>Reject</span>
-					</button>
-					<button v-if="post.state === 'error'" @click="retryPost" class="good" :disabled="retrying">
-						<Icon v-if="retrying" icon="eos-icons:loading" />
-						<Icon v-else icon="mdi:refresh" />
-						{{ retrying ? 'Retrying...' : 'Retry Post' }}
-					</button>
+						<template v-if="isPendingApproval">
+							<dt>Approval stage</dt>
+							<dd>{{ (approvalStage ?? 0) + 1 }}</dd>
+							<dt v-if="accountPolicyName">Policy</dt>
+							<dd v-if="accountPolicyName">{{ accountPolicyName }}</dd>
+							<dt v-if="waitingOn">Waiting on</dt>
+							<dd v-if="waitingOn">{{ waitingOn }}</dd>
+							<dt v-if="submittedByUsername">Submitted by</dt>
+							<dd v-if="submittedByUsername">{{ submittedByUsername }}</dd>
+						</template>
+					</dl>
 				</div>
-			</div>
+
+				<div class="post-actions-section">
+					<h3>Actions</h3>
+					<div role="toolbar" class="action-buttons">
+						<button
+							v-if="isPendingApproval && canApprove"
+							type="button"
+							class="inline-icon good"
+							:disabled="acting"
+							@click="approvePost"
+						>
+							<HugeiconsIcon
+								v-if="acting"
+								:icon="Loading01Icon"
+								width="1em"
+								height="1em"
+								:strokeWidth="iconStrokeWidth"
+								aria-hidden="true"
+							/>
+							<HugeiconsIcon
+								v-else
+								:icon="CheckmarkCircle01Icon"
+								width="1em"
+								height="1em"
+								:strokeWidth="iconStrokeWidth"
+								aria-hidden="true"
+							/>
+							<span>{{ acting ? 'Approving…' : 'Approve' }}</span>
+						</button>
+						<button
+							v-if="isPendingApproval && canReject"
+							type="button"
+							class="inline-icon bad"
+							:disabled="acting"
+							@click="rejectPost"
+						>
+							<HugeiconsIcon
+								:icon="CancelCircleIcon"
+								width="1em"
+								height="1em"
+								:strokeWidth="iconStrokeWidth"
+								aria-hidden="true"
+							/>
+							<span>Reject</span>
+						</button>
+						<button v-if="post.state === 'error'" @click="retryPost" class="good" :disabled="retrying">
+							<Icon v-if="retrying" icon="eos-icons:loading" />
+							<Icon v-else icon="mdi:refresh" />
+							{{ retrying ? 'Retrying...' : 'Retry Post' }}
+						</button>
+					</div>
+				</div>
+			</Section>
+
+			<Section
+				v-if="llmToolSessions.length || (canEdit && enabledLlmTools.length) || llmToolsLoading || llmToolError"
+				title="LLM tool runs"
+				subtitle="Prior compose-tool results for reviewers. Running a tool does not affect approval."
+				classes="llm-tools-section"
+			>
+				<LlmToolRunsPanel
+					:sessions="llmToolSessions"
+					:tools="enabledLlmTools"
+					:can-run="canEdit && editContent.trim().length > 0"
+					:can-rerun="canEdit && editContent.trim().length > 0"
+					:loading="llmToolsLoading"
+					:error-message="llmToolError"
+					:show-runner="canEdit && enabledLlmTools.length > 0"
+					@run="runLlmTool"
+					@rerun="runLlmTool"
+				/>
+			</Section>
 		</div>
 
 		<div v-else class="no-post-container">
 			<NotificationBlock type="note" message="No post selected or post not found." />
 		</div>
-	</Section>
+	</div>
 
 	<DangerZone
 		v-if="!loading && post"
@@ -230,7 +260,7 @@
 </template>
 
 <script setup>
-	import { ref, onMounted, computed, watch } from 'vue';
+	import { ref, onMounted, onUnmounted, computed, watch } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
@@ -246,6 +276,8 @@
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
 	import PostPreview from './PostPreview.vue';
+	import LlmToolRunsPanel from './LlmToolRunsPanel.vue';
+	import { buildLlmToolSessions, replyFromApiRun } from '../javascript/llmToolSessions.js';
 
 	const iconStrokeWidth = 2.5;
 
@@ -270,6 +302,12 @@
 	const waitingOn = ref('');
 	const submittedByUsername = ref('');
 
+	const llmToolSessions = ref([]);
+	const enabledLlmTools = ref([]);
+	const llmToolsLoading = ref(false);
+	const llmToolError = ref('');
+	let llmElapsedTimer = null;
+
 	const showCampaignDialog = ref(false);
 	const campaigns = ref([]);
 	const selectedCampaignId = ref(0);
@@ -289,6 +327,19 @@
 			return 'Edit and save this held post before approving the current stage.';
 		}
 		return 'Detailed view of the selected post.';
+	});
+
+	const displayPost = computed(() => {
+		if (!post.value) {
+			return null;
+		}
+		if (isPendingApproval.value && canEdit.value) {
+			return {
+				...post.value,
+				content: editContent.value,
+			};
+		}
+		return post.value;
 	});
 
 	function statusClass(p) {
@@ -321,6 +372,187 @@
 		editContent.value = res.post?.content || '';
 	}
 
+	async function loadLlmToolRuns(postId) {
+		llmToolError.value = '';
+		llmToolsLoading.value = true;
+		try {
+			await waitForClient();
+			const [runsRes, toolsRes] = await Promise.all([
+				window.client.listLlmToolRuns({ postId }),
+				canEdit.value
+					? window.client.listEnabledLlmTools({})
+					: Promise.resolve({ tools: [] }),
+			]);
+			const loaded = buildLlmToolSessions(runsRes.runs || []);
+			const pendingByTool = new Map(
+				llmToolSessions.value.filter((s) => s.pending).map((s) => [s.toolId, s]),
+			);
+			const merged = loaded.map((session) => {
+				const pending = pendingByTool.get(session.toolId);
+				if (!pending) {
+					return session;
+				}
+				pendingByTool.delete(session.toolId);
+				return {
+					...session,
+					pending: true,
+					startedAt: pending.startedAt,
+					elapsedMs: pending.elapsedMs,
+					elapsedLabel: pending.elapsedLabel,
+				};
+			});
+			for (const pending of pendingByTool.values()) {
+				merged.unshift(pending);
+			}
+			llmToolSessions.value = merged;
+			enabledLlmTools.value = toolsRes.tools || [];
+		} catch (e) {
+			console.error(e);
+			llmToolError.value = e.message || 'Failed to load LLM tool runs.';
+			llmToolSessions.value = llmToolSessions.value.filter((s) => s.pending);
+		} finally {
+			llmToolsLoading.value = false;
+		}
+	}
+
+	function formatElapsed(ms) {
+		const totalSec = Math.floor(ms / 1000);
+		const min = Math.floor(totalSec / 60);
+		const sec = totalSec % 60;
+		if (min > 0) {
+			return `${min}:${String(sec).padStart(2, '0')}`;
+		}
+		return `${sec}s`;
+	}
+
+	function syncPendingElapsed() {
+		const now = Date.now();
+		let hasPending = false;
+		llmToolSessions.value = llmToolSessions.value.map((session) => {
+			if (!session.pending) {
+				return session;
+			}
+			hasPending = true;
+			const elapsedMs = Math.max(0, now - session.startedAt);
+			return {
+				...session,
+				elapsedMs,
+				elapsedLabel: formatElapsed(elapsedMs),
+			};
+		});
+		if (!hasPending && llmElapsedTimer) {
+			clearInterval(llmElapsedTimer);
+			llmElapsedTimer = null;
+		}
+	}
+
+	function ensureElapsedTimer() {
+		if (llmElapsedTimer) {
+			return;
+		}
+		llmElapsedTimer = setInterval(syncPendingElapsed, 250);
+	}
+
+	function upsertSessionPending(toolId) {
+		const startedAt = Date.now();
+		const toolName = enabledLlmTools.value.find((t) => t.id === toolId)?.name || 'LLM tool';
+		const existingIdx = llmToolSessions.value.findIndex((s) => s.toolId === toolId);
+		if (existingIdx >= 0) {
+			const existing = llmToolSessions.value[existingIdx];
+			const next = {
+				...existing,
+				pending: true,
+				startedAt,
+				elapsedMs: 0,
+				elapsedLabel: '0s',
+			};
+			const copy = [...llmToolSessions.value];
+			copy.splice(existingIdx, 1);
+			llmToolSessions.value = [next, ...copy];
+			return;
+		}
+		llmToolSessions.value = [
+			{
+				toolId,
+				toolName,
+				pending: true,
+				startedAt,
+				elapsedMs: 0,
+				elapsedLabel: '0s',
+				history: [],
+			},
+			...llmToolSessions.value,
+		];
+	}
+
+	function finishSessionReply(toolId, reply) {
+		llmToolSessions.value = llmToolSessions.value.map((session) => {
+			if (session.toolId !== toolId) {
+				return session;
+			}
+			return {
+				...session,
+				pending: false,
+				elapsedLabel: '',
+				history: [reply, ...(session.history || [])],
+			};
+		});
+	}
+
+	async function runLlmTool(toolId) {
+		if (!post.value?.id) return;
+		const content = editContent.value.trim() || (post.value.content || '').trim();
+		if (!content) {
+			llmToolError.value = 'Post content is empty.';
+			return;
+		}
+		const existing = llmToolSessions.value.find((s) => s.toolId === toolId);
+		if (existing?.pending) {
+			return;
+		}
+		llmToolError.value = '';
+		upsertSessionPending(toolId);
+		ensureElapsedTimer();
+		try {
+			await waitForClient();
+			if (content !== (post.value.content || '').trim()) {
+				await window.client.updatePostContent({
+					postId: post.value.id,
+					content,
+				});
+				post.value = { ...post.value, content };
+				editContent.value = content;
+			}
+			const res = await window.client.runLlmTool({
+				postId: post.value.id,
+				toolId,
+			});
+			if (res.run) {
+				finishSessionReply(toolId, replyFromApiRun(res.run));
+			} else {
+				await loadLlmToolRuns(post.value.id);
+			}
+		} catch (e) {
+			console.error(e);
+			const message = e.message || 'Failed to run LLM tool.';
+			const session = llmToolSessions.value.find((s) => s.toolId === toolId);
+			finishSessionReply(toolId, {
+				id: `local-error-${Date.now()}`,
+				status: 'error',
+				outputContent: '',
+				errorMessage: message,
+				connectionName: '',
+				model: '',
+				created: new Date().toISOString(),
+				elapsedLabel: session
+					? formatElapsed(Math.max(0, Date.now() - session.startedAt))
+					: '0s',
+			});
+		} finally {
+			syncPendingElapsed();
+		}
+	}
+
 	async function loadPostDetails() {
 		const postId = parseInt(String(route.params.id), 10);
 		if (!Number.isFinite(postId) || postId <= 0) {
@@ -337,6 +569,7 @@
 			const response = await window.client.getPost({ postId });
 			if (response.post) {
 				applyGetPostResponse(response);
+				await loadLlmToolRuns(postId);
 			} else {
 				errorMessage.value = 'Post not found';
 				post.value = null;
@@ -541,6 +774,13 @@
 		await waitForClient();
 		loadPostDetails();
 	});
+
+	onUnmounted(() => {
+		if (llmElapsedTimer) {
+			clearInterval(llmElapsedTimer);
+			llmElapsedTimer = null;
+		}
+	});
 </script>
 
 <style scoped>
@@ -549,6 +789,26 @@
 		flex-wrap: wrap;
 		gap: 0.5rem;
 	}
+
+.post-details-page {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.post-details-page-toolbar {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	align-items: center;
+}
+
+.post-details-content {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
 .loading-container,
 .error-container,
 .no-post-container {
@@ -590,7 +850,7 @@
 }
 
 .post-metadata {
-	margin-bottom: 2rem;
+	margin-bottom: 1.5rem;
 }
 
 .campaign-field {

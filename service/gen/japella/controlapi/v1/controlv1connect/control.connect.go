@@ -315,6 +315,57 @@ const (
 	// JapellaControlApiServiceUpdatePendingPostProcedure is the fully-qualified name of the
 	// JapellaControlApiService's UpdatePendingPost RPC.
 	JapellaControlApiServiceUpdatePendingPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdatePendingPost"
+	// JapellaControlApiServiceUpdatePostContentProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdatePostContent RPC.
+	JapellaControlApiServiceUpdatePostContentProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdatePostContent"
+	// JapellaControlApiServiceListLlmConnectionsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListLlmConnections RPC.
+	JapellaControlApiServiceListLlmConnectionsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListLlmConnections"
+	// JapellaControlApiServiceGetLlmConnectionProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetLlmConnection RPC.
+	JapellaControlApiServiceGetLlmConnectionProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetLlmConnection"
+	// JapellaControlApiServiceCreateLlmConnectionProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateLlmConnection RPC.
+	JapellaControlApiServiceCreateLlmConnectionProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateLlmConnection"
+	// JapellaControlApiServiceUpdateLlmConnectionProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateLlmConnection RPC.
+	JapellaControlApiServiceUpdateLlmConnectionProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateLlmConnection"
+	// JapellaControlApiServiceDeleteLlmConnectionProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteLlmConnection RPC.
+	JapellaControlApiServiceDeleteLlmConnectionProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteLlmConnection"
+	// JapellaControlApiServiceTestLlmConnectionProcedure is the fully-qualified name of the
+	// JapellaControlApiService's TestLlmConnection RPC.
+	JapellaControlApiServiceTestLlmConnectionProcedure = "/japella.controlapi.v1.JapellaControlApiService/TestLlmConnection"
+	// JapellaControlApiServiceListLlmConnectionPresetsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListLlmConnectionPresets RPC.
+	JapellaControlApiServiceListLlmConnectionPresetsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListLlmConnectionPresets"
+	// JapellaControlApiServiceListLlmConnectionModelsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListLlmConnectionModels RPC.
+	JapellaControlApiServiceListLlmConnectionModelsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListLlmConnectionModels"
+	// JapellaControlApiServiceListLlmToolsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListLlmTools RPC.
+	JapellaControlApiServiceListLlmToolsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListLlmTools"
+	// JapellaControlApiServiceGetLlmToolProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetLlmTool RPC.
+	JapellaControlApiServiceGetLlmToolProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetLlmTool"
+	// JapellaControlApiServiceCreateLlmToolProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateLlmTool RPC.
+	JapellaControlApiServiceCreateLlmToolProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateLlmTool"
+	// JapellaControlApiServiceUpdateLlmToolProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateLlmTool RPC.
+	JapellaControlApiServiceUpdateLlmToolProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateLlmTool"
+	// JapellaControlApiServiceDeleteLlmToolProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteLlmTool RPC.
+	JapellaControlApiServiceDeleteLlmToolProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteLlmTool"
+	// JapellaControlApiServiceListEnabledLlmToolsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListEnabledLlmTools RPC.
+	JapellaControlApiServiceListEnabledLlmToolsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListEnabledLlmTools"
+	// JapellaControlApiServiceRunLlmToolProcedure is the fully-qualified name of the
+	// JapellaControlApiService's RunLlmTool RPC.
+	JapellaControlApiServiceRunLlmToolProcedure = "/japella.controlapi.v1.JapellaControlApiService/RunLlmTool"
+	// JapellaControlApiServiceListLlmToolRunsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListLlmToolRuns RPC.
+	JapellaControlApiServiceListLlmToolRunsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListLlmToolRuns"
 	// JapellaControlApiServiceListWebhooksProcedure is the fully-qualified name of the
 	// JapellaControlApiService's ListWebhooks RPC.
 	JapellaControlApiServiceListWebhooksProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListWebhooks"
@@ -450,6 +501,23 @@ type JapellaControlApiServiceClient interface {
 	RejectPost(context.Context, *connect.Request[v1.RejectPostRequest]) (*connect.Response[v1.RejectPostResponse], error)
 	GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error)
 	UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error)
+	UpdatePostContent(context.Context, *connect.Request[v1.UpdatePostContentRequest]) (*connect.Response[v1.UpdatePostContentResponse], error)
+	ListLlmConnections(context.Context, *connect.Request[v1.ListLlmConnectionsRequest]) (*connect.Response[v1.ListLlmConnectionsResponse], error)
+	GetLlmConnection(context.Context, *connect.Request[v1.GetLlmConnectionRequest]) (*connect.Response[v1.GetLlmConnectionResponse], error)
+	CreateLlmConnection(context.Context, *connect.Request[v1.CreateLlmConnectionRequest]) (*connect.Response[v1.CreateLlmConnectionResponse], error)
+	UpdateLlmConnection(context.Context, *connect.Request[v1.UpdateLlmConnectionRequest]) (*connect.Response[v1.UpdateLlmConnectionResponse], error)
+	DeleteLlmConnection(context.Context, *connect.Request[v1.DeleteLlmConnectionRequest]) (*connect.Response[v1.DeleteLlmConnectionResponse], error)
+	TestLlmConnection(context.Context, *connect.Request[v1.TestLlmConnectionRequest]) (*connect.Response[v1.TestLlmConnectionResponse], error)
+	ListLlmConnectionPresets(context.Context, *connect.Request[v1.ListLlmConnectionPresetsRequest]) (*connect.Response[v1.ListLlmConnectionPresetsResponse], error)
+	ListLlmConnectionModels(context.Context, *connect.Request[v1.ListLlmConnectionModelsRequest]) (*connect.Response[v1.ListLlmConnectionModelsResponse], error)
+	ListLlmTools(context.Context, *connect.Request[v1.ListLlmToolsRequest]) (*connect.Response[v1.ListLlmToolsResponse], error)
+	GetLlmTool(context.Context, *connect.Request[v1.GetLlmToolRequest]) (*connect.Response[v1.GetLlmToolResponse], error)
+	CreateLlmTool(context.Context, *connect.Request[v1.CreateLlmToolRequest]) (*connect.Response[v1.CreateLlmToolResponse], error)
+	UpdateLlmTool(context.Context, *connect.Request[v1.UpdateLlmToolRequest]) (*connect.Response[v1.UpdateLlmToolResponse], error)
+	DeleteLlmTool(context.Context, *connect.Request[v1.DeleteLlmToolRequest]) (*connect.Response[v1.DeleteLlmToolResponse], error)
+	ListEnabledLlmTools(context.Context, *connect.Request[v1.ListEnabledLlmToolsRequest]) (*connect.Response[v1.ListEnabledLlmToolsResponse], error)
+	RunLlmTool(context.Context, *connect.Request[v1.RunLlmToolRequest]) (*connect.Response[v1.RunLlmToolResponse], error)
+	ListLlmToolRuns(context.Context, *connect.Request[v1.ListLlmToolRunsRequest]) (*connect.Response[v1.ListLlmToolRunsResponse], error)
 	ListWebhooks(context.Context, *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error)
 	GetWebhook(context.Context, *connect.Request[v1.GetWebhookRequest]) (*connect.Response[v1.GetWebhookResponse], error)
 	CreateWebhook(context.Context, *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error)
@@ -1040,6 +1108,108 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePendingPost")),
 			connect.WithClientOptions(opts...),
 		),
+		updatePostContent: connect.NewClient[v1.UpdatePostContentRequest, v1.UpdatePostContentResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdatePostContentProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePostContent")),
+			connect.WithClientOptions(opts...),
+		),
+		listLlmConnections: connect.NewClient[v1.ListLlmConnectionsRequest, v1.ListLlmConnectionsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListLlmConnectionsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmConnections")),
+			connect.WithClientOptions(opts...),
+		),
+		getLlmConnection: connect.NewClient[v1.GetLlmConnectionRequest, v1.GetLlmConnectionResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetLlmConnectionProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetLlmConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		createLlmConnection: connect.NewClient[v1.CreateLlmConnectionRequest, v1.CreateLlmConnectionResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateLlmConnectionProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateLlmConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		updateLlmConnection: connect.NewClient[v1.UpdateLlmConnectionRequest, v1.UpdateLlmConnectionResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateLlmConnectionProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateLlmConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteLlmConnection: connect.NewClient[v1.DeleteLlmConnectionRequest, v1.DeleteLlmConnectionResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteLlmConnectionProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteLlmConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		testLlmConnection: connect.NewClient[v1.TestLlmConnectionRequest, v1.TestLlmConnectionResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceTestLlmConnectionProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("TestLlmConnection")),
+			connect.WithClientOptions(opts...),
+		),
+		listLlmConnectionPresets: connect.NewClient[v1.ListLlmConnectionPresetsRequest, v1.ListLlmConnectionPresetsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListLlmConnectionPresetsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmConnectionPresets")),
+			connect.WithClientOptions(opts...),
+		),
+		listLlmConnectionModels: connect.NewClient[v1.ListLlmConnectionModelsRequest, v1.ListLlmConnectionModelsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListLlmConnectionModelsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmConnectionModels")),
+			connect.WithClientOptions(opts...),
+		),
+		listLlmTools: connect.NewClient[v1.ListLlmToolsRequest, v1.ListLlmToolsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListLlmToolsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmTools")),
+			connect.WithClientOptions(opts...),
+		),
+		getLlmTool: connect.NewClient[v1.GetLlmToolRequest, v1.GetLlmToolResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetLlmToolProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetLlmTool")),
+			connect.WithClientOptions(opts...),
+		),
+		createLlmTool: connect.NewClient[v1.CreateLlmToolRequest, v1.CreateLlmToolResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateLlmToolProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateLlmTool")),
+			connect.WithClientOptions(opts...),
+		),
+		updateLlmTool: connect.NewClient[v1.UpdateLlmToolRequest, v1.UpdateLlmToolResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateLlmToolProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateLlmTool")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteLlmTool: connect.NewClient[v1.DeleteLlmToolRequest, v1.DeleteLlmToolResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteLlmToolProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteLlmTool")),
+			connect.WithClientOptions(opts...),
+		),
+		listEnabledLlmTools: connect.NewClient[v1.ListEnabledLlmToolsRequest, v1.ListEnabledLlmToolsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListEnabledLlmToolsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListEnabledLlmTools")),
+			connect.WithClientOptions(opts...),
+		),
+		runLlmTool: connect.NewClient[v1.RunLlmToolRequest, v1.RunLlmToolResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRunLlmToolProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RunLlmTool")),
+			connect.WithClientOptions(opts...),
+		),
+		listLlmToolRuns: connect.NewClient[v1.ListLlmToolRunsRequest, v1.ListLlmToolRunsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListLlmToolRunsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmToolRuns")),
+			connect.WithClientOptions(opts...),
+		),
 		listWebhooks: connect.NewClient[v1.ListWebhooksRequest, v1.ListWebhooksResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceListWebhooksProcedure,
@@ -1211,6 +1381,23 @@ type japellaControlApiServiceClient struct {
 	rejectPost                      *connect.Client[v1.RejectPostRequest, v1.RejectPostResponse]
 	getPost                         *connect.Client[v1.GetPostRequest, v1.GetPostResponse]
 	updatePendingPost               *connect.Client[v1.UpdatePendingPostRequest, v1.UpdatePendingPostResponse]
+	updatePostContent               *connect.Client[v1.UpdatePostContentRequest, v1.UpdatePostContentResponse]
+	listLlmConnections              *connect.Client[v1.ListLlmConnectionsRequest, v1.ListLlmConnectionsResponse]
+	getLlmConnection                *connect.Client[v1.GetLlmConnectionRequest, v1.GetLlmConnectionResponse]
+	createLlmConnection             *connect.Client[v1.CreateLlmConnectionRequest, v1.CreateLlmConnectionResponse]
+	updateLlmConnection             *connect.Client[v1.UpdateLlmConnectionRequest, v1.UpdateLlmConnectionResponse]
+	deleteLlmConnection             *connect.Client[v1.DeleteLlmConnectionRequest, v1.DeleteLlmConnectionResponse]
+	testLlmConnection               *connect.Client[v1.TestLlmConnectionRequest, v1.TestLlmConnectionResponse]
+	listLlmConnectionPresets        *connect.Client[v1.ListLlmConnectionPresetsRequest, v1.ListLlmConnectionPresetsResponse]
+	listLlmConnectionModels         *connect.Client[v1.ListLlmConnectionModelsRequest, v1.ListLlmConnectionModelsResponse]
+	listLlmTools                    *connect.Client[v1.ListLlmToolsRequest, v1.ListLlmToolsResponse]
+	getLlmTool                      *connect.Client[v1.GetLlmToolRequest, v1.GetLlmToolResponse]
+	createLlmTool                   *connect.Client[v1.CreateLlmToolRequest, v1.CreateLlmToolResponse]
+	updateLlmTool                   *connect.Client[v1.UpdateLlmToolRequest, v1.UpdateLlmToolResponse]
+	deleteLlmTool                   *connect.Client[v1.DeleteLlmToolRequest, v1.DeleteLlmToolResponse]
+	listEnabledLlmTools             *connect.Client[v1.ListEnabledLlmToolsRequest, v1.ListEnabledLlmToolsResponse]
+	runLlmTool                      *connect.Client[v1.RunLlmToolRequest, v1.RunLlmToolResponse]
+	listLlmToolRuns                 *connect.Client[v1.ListLlmToolRunsRequest, v1.ListLlmToolRunsResponse]
 	listWebhooks                    *connect.Client[v1.ListWebhooksRequest, v1.ListWebhooksResponse]
 	getWebhook                      *connect.Client[v1.GetWebhookRequest, v1.GetWebhookResponse]
 	createWebhook                   *connect.Client[v1.CreateWebhookRequest, v1.CreateWebhookResponse]
@@ -1706,6 +1893,93 @@ func (c *japellaControlApiServiceClient) UpdatePendingPost(ctx context.Context, 
 	return c.updatePendingPost.CallUnary(ctx, req)
 }
 
+// UpdatePostContent calls japella.controlapi.v1.JapellaControlApiService.UpdatePostContent.
+func (c *japellaControlApiServiceClient) UpdatePostContent(ctx context.Context, req *connect.Request[v1.UpdatePostContentRequest]) (*connect.Response[v1.UpdatePostContentResponse], error) {
+	return c.updatePostContent.CallUnary(ctx, req)
+}
+
+// ListLlmConnections calls japella.controlapi.v1.JapellaControlApiService.ListLlmConnections.
+func (c *japellaControlApiServiceClient) ListLlmConnections(ctx context.Context, req *connect.Request[v1.ListLlmConnectionsRequest]) (*connect.Response[v1.ListLlmConnectionsResponse], error) {
+	return c.listLlmConnections.CallUnary(ctx, req)
+}
+
+// GetLlmConnection calls japella.controlapi.v1.JapellaControlApiService.GetLlmConnection.
+func (c *japellaControlApiServiceClient) GetLlmConnection(ctx context.Context, req *connect.Request[v1.GetLlmConnectionRequest]) (*connect.Response[v1.GetLlmConnectionResponse], error) {
+	return c.getLlmConnection.CallUnary(ctx, req)
+}
+
+// CreateLlmConnection calls japella.controlapi.v1.JapellaControlApiService.CreateLlmConnection.
+func (c *japellaControlApiServiceClient) CreateLlmConnection(ctx context.Context, req *connect.Request[v1.CreateLlmConnectionRequest]) (*connect.Response[v1.CreateLlmConnectionResponse], error) {
+	return c.createLlmConnection.CallUnary(ctx, req)
+}
+
+// UpdateLlmConnection calls japella.controlapi.v1.JapellaControlApiService.UpdateLlmConnection.
+func (c *japellaControlApiServiceClient) UpdateLlmConnection(ctx context.Context, req *connect.Request[v1.UpdateLlmConnectionRequest]) (*connect.Response[v1.UpdateLlmConnectionResponse], error) {
+	return c.updateLlmConnection.CallUnary(ctx, req)
+}
+
+// DeleteLlmConnection calls japella.controlapi.v1.JapellaControlApiService.DeleteLlmConnection.
+func (c *japellaControlApiServiceClient) DeleteLlmConnection(ctx context.Context, req *connect.Request[v1.DeleteLlmConnectionRequest]) (*connect.Response[v1.DeleteLlmConnectionResponse], error) {
+	return c.deleteLlmConnection.CallUnary(ctx, req)
+}
+
+// TestLlmConnection calls japella.controlapi.v1.JapellaControlApiService.TestLlmConnection.
+func (c *japellaControlApiServiceClient) TestLlmConnection(ctx context.Context, req *connect.Request[v1.TestLlmConnectionRequest]) (*connect.Response[v1.TestLlmConnectionResponse], error) {
+	return c.testLlmConnection.CallUnary(ctx, req)
+}
+
+// ListLlmConnectionPresets calls
+// japella.controlapi.v1.JapellaControlApiService.ListLlmConnectionPresets.
+func (c *japellaControlApiServiceClient) ListLlmConnectionPresets(ctx context.Context, req *connect.Request[v1.ListLlmConnectionPresetsRequest]) (*connect.Response[v1.ListLlmConnectionPresetsResponse], error) {
+	return c.listLlmConnectionPresets.CallUnary(ctx, req)
+}
+
+// ListLlmConnectionModels calls
+// japella.controlapi.v1.JapellaControlApiService.ListLlmConnectionModels.
+func (c *japellaControlApiServiceClient) ListLlmConnectionModels(ctx context.Context, req *connect.Request[v1.ListLlmConnectionModelsRequest]) (*connect.Response[v1.ListLlmConnectionModelsResponse], error) {
+	return c.listLlmConnectionModels.CallUnary(ctx, req)
+}
+
+// ListLlmTools calls japella.controlapi.v1.JapellaControlApiService.ListLlmTools.
+func (c *japellaControlApiServiceClient) ListLlmTools(ctx context.Context, req *connect.Request[v1.ListLlmToolsRequest]) (*connect.Response[v1.ListLlmToolsResponse], error) {
+	return c.listLlmTools.CallUnary(ctx, req)
+}
+
+// GetLlmTool calls japella.controlapi.v1.JapellaControlApiService.GetLlmTool.
+func (c *japellaControlApiServiceClient) GetLlmTool(ctx context.Context, req *connect.Request[v1.GetLlmToolRequest]) (*connect.Response[v1.GetLlmToolResponse], error) {
+	return c.getLlmTool.CallUnary(ctx, req)
+}
+
+// CreateLlmTool calls japella.controlapi.v1.JapellaControlApiService.CreateLlmTool.
+func (c *japellaControlApiServiceClient) CreateLlmTool(ctx context.Context, req *connect.Request[v1.CreateLlmToolRequest]) (*connect.Response[v1.CreateLlmToolResponse], error) {
+	return c.createLlmTool.CallUnary(ctx, req)
+}
+
+// UpdateLlmTool calls japella.controlapi.v1.JapellaControlApiService.UpdateLlmTool.
+func (c *japellaControlApiServiceClient) UpdateLlmTool(ctx context.Context, req *connect.Request[v1.UpdateLlmToolRequest]) (*connect.Response[v1.UpdateLlmToolResponse], error) {
+	return c.updateLlmTool.CallUnary(ctx, req)
+}
+
+// DeleteLlmTool calls japella.controlapi.v1.JapellaControlApiService.DeleteLlmTool.
+func (c *japellaControlApiServiceClient) DeleteLlmTool(ctx context.Context, req *connect.Request[v1.DeleteLlmToolRequest]) (*connect.Response[v1.DeleteLlmToolResponse], error) {
+	return c.deleteLlmTool.CallUnary(ctx, req)
+}
+
+// ListEnabledLlmTools calls japella.controlapi.v1.JapellaControlApiService.ListEnabledLlmTools.
+func (c *japellaControlApiServiceClient) ListEnabledLlmTools(ctx context.Context, req *connect.Request[v1.ListEnabledLlmToolsRequest]) (*connect.Response[v1.ListEnabledLlmToolsResponse], error) {
+	return c.listEnabledLlmTools.CallUnary(ctx, req)
+}
+
+// RunLlmTool calls japella.controlapi.v1.JapellaControlApiService.RunLlmTool.
+func (c *japellaControlApiServiceClient) RunLlmTool(ctx context.Context, req *connect.Request[v1.RunLlmToolRequest]) (*connect.Response[v1.RunLlmToolResponse], error) {
+	return c.runLlmTool.CallUnary(ctx, req)
+}
+
+// ListLlmToolRuns calls japella.controlapi.v1.JapellaControlApiService.ListLlmToolRuns.
+func (c *japellaControlApiServiceClient) ListLlmToolRuns(ctx context.Context, req *connect.Request[v1.ListLlmToolRunsRequest]) (*connect.Response[v1.ListLlmToolRunsResponse], error) {
+	return c.listLlmToolRuns.CallUnary(ctx, req)
+}
+
 // ListWebhooks calls japella.controlapi.v1.JapellaControlApiService.ListWebhooks.
 func (c *japellaControlApiServiceClient) ListWebhooks(ctx context.Context, req *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error) {
 	return c.listWebhooks.CallUnary(ctx, req)
@@ -1864,6 +2138,23 @@ type JapellaControlApiServiceHandler interface {
 	RejectPost(context.Context, *connect.Request[v1.RejectPostRequest]) (*connect.Response[v1.RejectPostResponse], error)
 	GetPost(context.Context, *connect.Request[v1.GetPostRequest]) (*connect.Response[v1.GetPostResponse], error)
 	UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error)
+	UpdatePostContent(context.Context, *connect.Request[v1.UpdatePostContentRequest]) (*connect.Response[v1.UpdatePostContentResponse], error)
+	ListLlmConnections(context.Context, *connect.Request[v1.ListLlmConnectionsRequest]) (*connect.Response[v1.ListLlmConnectionsResponse], error)
+	GetLlmConnection(context.Context, *connect.Request[v1.GetLlmConnectionRequest]) (*connect.Response[v1.GetLlmConnectionResponse], error)
+	CreateLlmConnection(context.Context, *connect.Request[v1.CreateLlmConnectionRequest]) (*connect.Response[v1.CreateLlmConnectionResponse], error)
+	UpdateLlmConnection(context.Context, *connect.Request[v1.UpdateLlmConnectionRequest]) (*connect.Response[v1.UpdateLlmConnectionResponse], error)
+	DeleteLlmConnection(context.Context, *connect.Request[v1.DeleteLlmConnectionRequest]) (*connect.Response[v1.DeleteLlmConnectionResponse], error)
+	TestLlmConnection(context.Context, *connect.Request[v1.TestLlmConnectionRequest]) (*connect.Response[v1.TestLlmConnectionResponse], error)
+	ListLlmConnectionPresets(context.Context, *connect.Request[v1.ListLlmConnectionPresetsRequest]) (*connect.Response[v1.ListLlmConnectionPresetsResponse], error)
+	ListLlmConnectionModels(context.Context, *connect.Request[v1.ListLlmConnectionModelsRequest]) (*connect.Response[v1.ListLlmConnectionModelsResponse], error)
+	ListLlmTools(context.Context, *connect.Request[v1.ListLlmToolsRequest]) (*connect.Response[v1.ListLlmToolsResponse], error)
+	GetLlmTool(context.Context, *connect.Request[v1.GetLlmToolRequest]) (*connect.Response[v1.GetLlmToolResponse], error)
+	CreateLlmTool(context.Context, *connect.Request[v1.CreateLlmToolRequest]) (*connect.Response[v1.CreateLlmToolResponse], error)
+	UpdateLlmTool(context.Context, *connect.Request[v1.UpdateLlmToolRequest]) (*connect.Response[v1.UpdateLlmToolResponse], error)
+	DeleteLlmTool(context.Context, *connect.Request[v1.DeleteLlmToolRequest]) (*connect.Response[v1.DeleteLlmToolResponse], error)
+	ListEnabledLlmTools(context.Context, *connect.Request[v1.ListEnabledLlmToolsRequest]) (*connect.Response[v1.ListEnabledLlmToolsResponse], error)
+	RunLlmTool(context.Context, *connect.Request[v1.RunLlmToolRequest]) (*connect.Response[v1.RunLlmToolResponse], error)
+	ListLlmToolRuns(context.Context, *connect.Request[v1.ListLlmToolRunsRequest]) (*connect.Response[v1.ListLlmToolRunsResponse], error)
 	ListWebhooks(context.Context, *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error)
 	GetWebhook(context.Context, *connect.Request[v1.GetWebhookRequest]) (*connect.Response[v1.GetWebhookResponse], error)
 	CreateWebhook(context.Context, *connect.Request[v1.CreateWebhookRequest]) (*connect.Response[v1.CreateWebhookResponse], error)
@@ -2449,6 +2740,108 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePendingPost")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceUpdatePostContentHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdatePostContentProcedure,
+		svc.UpdatePostContent,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdatePostContent")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListLlmConnectionsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListLlmConnectionsProcedure,
+		svc.ListLlmConnections,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmConnections")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetLlmConnectionHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetLlmConnectionProcedure,
+		svc.GetLlmConnection,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetLlmConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateLlmConnectionHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateLlmConnectionProcedure,
+		svc.CreateLlmConnection,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateLlmConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateLlmConnectionHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateLlmConnectionProcedure,
+		svc.UpdateLlmConnection,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateLlmConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteLlmConnectionHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteLlmConnectionProcedure,
+		svc.DeleteLlmConnection,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteLlmConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceTestLlmConnectionHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceTestLlmConnectionProcedure,
+		svc.TestLlmConnection,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("TestLlmConnection")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListLlmConnectionPresetsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListLlmConnectionPresetsProcedure,
+		svc.ListLlmConnectionPresets,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmConnectionPresets")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListLlmConnectionModelsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListLlmConnectionModelsProcedure,
+		svc.ListLlmConnectionModels,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmConnectionModels")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListLlmToolsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListLlmToolsProcedure,
+		svc.ListLlmTools,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmTools")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetLlmToolHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetLlmToolProcedure,
+		svc.GetLlmTool,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetLlmTool")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateLlmToolHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateLlmToolProcedure,
+		svc.CreateLlmTool,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateLlmTool")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateLlmToolHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateLlmToolProcedure,
+		svc.UpdateLlmTool,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateLlmTool")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteLlmToolHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteLlmToolProcedure,
+		svc.DeleteLlmTool,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteLlmTool")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListEnabledLlmToolsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListEnabledLlmToolsProcedure,
+		svc.ListEnabledLlmTools,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListEnabledLlmTools")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceRunLlmToolHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRunLlmToolProcedure,
+		svc.RunLlmTool,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RunLlmTool")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListLlmToolRunsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListLlmToolRunsProcedure,
+		svc.ListLlmToolRuns,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListLlmToolRuns")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceListWebhooksHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceListWebhooksProcedure,
 		svc.ListWebhooks,
@@ -2711,6 +3104,40 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceGetPostHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceUpdatePendingPostProcedure:
 			japellaControlApiServiceUpdatePendingPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdatePostContentProcedure:
+			japellaControlApiServiceUpdatePostContentHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListLlmConnectionsProcedure:
+			japellaControlApiServiceListLlmConnectionsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetLlmConnectionProcedure:
+			japellaControlApiServiceGetLlmConnectionHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateLlmConnectionProcedure:
+			japellaControlApiServiceCreateLlmConnectionHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateLlmConnectionProcedure:
+			japellaControlApiServiceUpdateLlmConnectionHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteLlmConnectionProcedure:
+			japellaControlApiServiceDeleteLlmConnectionHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceTestLlmConnectionProcedure:
+			japellaControlApiServiceTestLlmConnectionHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListLlmConnectionPresetsProcedure:
+			japellaControlApiServiceListLlmConnectionPresetsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListLlmConnectionModelsProcedure:
+			japellaControlApiServiceListLlmConnectionModelsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListLlmToolsProcedure:
+			japellaControlApiServiceListLlmToolsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetLlmToolProcedure:
+			japellaControlApiServiceGetLlmToolHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateLlmToolProcedure:
+			japellaControlApiServiceCreateLlmToolHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateLlmToolProcedure:
+			japellaControlApiServiceUpdateLlmToolHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteLlmToolProcedure:
+			japellaControlApiServiceDeleteLlmToolHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListEnabledLlmToolsProcedure:
+			japellaControlApiServiceListEnabledLlmToolsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRunLlmToolProcedure:
+			japellaControlApiServiceRunLlmToolHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListLlmToolRunsProcedure:
+			japellaControlApiServiceListLlmToolRunsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceListWebhooksProcedure:
 			japellaControlApiServiceListWebhooksHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetWebhookProcedure:
@@ -3118,6 +3545,74 @@ func (UnimplementedJapellaControlApiServiceHandler) GetPost(context.Context, *co
 
 func (UnimplementedJapellaControlApiServiceHandler) UpdatePendingPost(context.Context, *connect.Request[v1.UpdatePendingPostRequest]) (*connect.Response[v1.UpdatePendingPostResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdatePendingPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdatePostContent(context.Context, *connect.Request[v1.UpdatePostContentRequest]) (*connect.Response[v1.UpdatePostContentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdatePostContent is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListLlmConnections(context.Context, *connect.Request[v1.ListLlmConnectionsRequest]) (*connect.Response[v1.ListLlmConnectionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListLlmConnections is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetLlmConnection(context.Context, *connect.Request[v1.GetLlmConnectionRequest]) (*connect.Response[v1.GetLlmConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetLlmConnection is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateLlmConnection(context.Context, *connect.Request[v1.CreateLlmConnectionRequest]) (*connect.Response[v1.CreateLlmConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateLlmConnection is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateLlmConnection(context.Context, *connect.Request[v1.UpdateLlmConnectionRequest]) (*connect.Response[v1.UpdateLlmConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateLlmConnection is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteLlmConnection(context.Context, *connect.Request[v1.DeleteLlmConnectionRequest]) (*connect.Response[v1.DeleteLlmConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteLlmConnection is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) TestLlmConnection(context.Context, *connect.Request[v1.TestLlmConnectionRequest]) (*connect.Response[v1.TestLlmConnectionResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.TestLlmConnection is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListLlmConnectionPresets(context.Context, *connect.Request[v1.ListLlmConnectionPresetsRequest]) (*connect.Response[v1.ListLlmConnectionPresetsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListLlmConnectionPresets is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListLlmConnectionModels(context.Context, *connect.Request[v1.ListLlmConnectionModelsRequest]) (*connect.Response[v1.ListLlmConnectionModelsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListLlmConnectionModels is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListLlmTools(context.Context, *connect.Request[v1.ListLlmToolsRequest]) (*connect.Response[v1.ListLlmToolsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListLlmTools is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetLlmTool(context.Context, *connect.Request[v1.GetLlmToolRequest]) (*connect.Response[v1.GetLlmToolResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetLlmTool is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateLlmTool(context.Context, *connect.Request[v1.CreateLlmToolRequest]) (*connect.Response[v1.CreateLlmToolResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateLlmTool is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateLlmTool(context.Context, *connect.Request[v1.UpdateLlmToolRequest]) (*connect.Response[v1.UpdateLlmToolResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateLlmTool is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteLlmTool(context.Context, *connect.Request[v1.DeleteLlmToolRequest]) (*connect.Response[v1.DeleteLlmToolResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteLlmTool is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListEnabledLlmTools(context.Context, *connect.Request[v1.ListEnabledLlmToolsRequest]) (*connect.Response[v1.ListEnabledLlmToolsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListEnabledLlmTools is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) RunLlmTool(context.Context, *connect.Request[v1.RunLlmToolRequest]) (*connect.Response[v1.RunLlmToolResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RunLlmTool is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListLlmToolRuns(context.Context, *connect.Request[v1.ListLlmToolRunsRequest]) (*connect.Response[v1.ListLlmToolRunsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListLlmToolRuns is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) ListWebhooks(context.Context, *connect.Request[v1.ListWebhooksRequest]) (*connect.Response[v1.ListWebhooksResponse], error) {

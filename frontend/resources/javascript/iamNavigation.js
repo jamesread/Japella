@@ -1,7 +1,6 @@
 import {
 	UserMultiple02Icon,
 	UserGroupIcon,
-	SecurityValidationIcon,
 	WebSecurityIcon,
 	ShieldKeyIcon,
 } from '@hugeicons/core-free-icons'
@@ -14,7 +13,7 @@ function hasPermission(st, permission) {
 }
 
 /**
- * Populate a picocrank Navigation with IAM hub tiles (Users, groups, policies, RBAC).
+ * Populate a picocrank Navigation with IAM hub tiles (Users, groups, RBAC).
  * @param {import('vue').Ref} navRef - Navigation component ref (.value exposes addCallback)
  * @param {(path: string) => void} goToRoute
  * @param {object} st - getStatus() payload
@@ -38,14 +37,6 @@ export function setupIamNavigationGrid(navRef, goToRoute, st) {
 			icon: UserGroupIcon,
 			name: 'iam-user-groups',
 			description: 'Manage user groups and membership',
-		})
-	}
-
-	if (hasPermission(st, 'account-policies.manage')) {
-		nav.addCallback('Account Policies', () => goToRoute('/account-policies'), {
-			icon: SecurityValidationIcon,
-			name: 'iam-account-policies',
-			description: 'Approval workflows for social accounts',
 		})
 	}
 

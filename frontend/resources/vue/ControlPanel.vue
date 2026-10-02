@@ -218,6 +218,9 @@
 		AlertCircleIcon,
 		UserShield01Icon,
 		WebhookIcon,
+		AiBrain01Icon,
+		AiChat02Icon,
+		SecurityValidationIcon,
 	} from '@hugeicons/core-free-icons';
 
 	const clientReady = ref(false);
@@ -363,11 +366,23 @@
 				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('system.logs'));
 			const canDiagnosticsNav = canViewSystemDiagnosticsFromStatus(st);
 
+			const canAccountPolicies =
+				st?.rbacIsSuperuser ||
+				(Array.isArray(st?.rbacPermissions) && st.rbacPermissions.includes('account-policies.manage'));
+
 			if (canAccessIamFromStatus(st)) {
 				localNavigation.value.addCallback('IAM', () => goToRoute('/control-panel/iam'), {
 					icon: UserShield01Icon,
 					name: 'iam',
-					description: 'Users, groups, account policies, and roles',
+					description: 'Users, groups, and roles',
+				});
+			}
+
+			if (canAccountPolicies) {
+				localNavigation.value.addCallback('Account Policies', () => goToRoute('/account-policies'), {
+					icon: SecurityValidationIcon,
+					name: 'account-policies',
+					description: 'Approval workflows for social accounts',
 				});
 			}
 
@@ -389,6 +404,16 @@
 					icon: WebhookIcon,
 					name: 'webhooks',
 					description: 'Configure event webhook endpoints',
+				});
+				localNavigation.value.addCallback('LLM Connections', () => goToRoute('/admin/llm-connections'), {
+					icon: AiBrain01Icon,
+					name: 'llm-connections',
+					description: 'OpenAI-compatible LLM API endpoints',
+				});
+				localNavigation.value.addCallback('LLM Tools', () => goToRoute('/admin/llm-tools'), {
+					icon: AiChat02Icon,
+					name: 'llm-tools',
+					description: 'Compose tools such as sentiment analysis',
 				});
 			}
 

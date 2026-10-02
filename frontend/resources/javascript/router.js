@@ -43,6 +43,8 @@ import SystemArchitecture from '../vue/SystemArchitecture.vue'
 import SystemDiagnostics from '../vue/SystemDiagnostics.vue'
 import WebhooksAdmin from '../vue/WebhooksAdmin.vue'
 import WebhookDetails from '../vue/WebhookDetails.vue'
+import LlmConnectionsAdmin from '../vue/LlmConnectionsAdmin.vue'
+import LlmToolsAdmin from '../vue/LlmToolsAdmin.vue'
 import UserGroups from '../vue/UserGroups.vue'
 import UserGroupDetails from '../vue/UserGroupDetails.vue'
 import AccountPolicies from '../vue/AccountPolicies.vue'
@@ -419,6 +421,26 @@ const routes = [
     meta: {
       title: 'Webhook',
       requiresAuth: true,
+    },
+  },
+  {
+    path: '/admin/llm-connections',
+    name: 'adminLlmConnections',
+    component: LlmConnectionsAdmin,
+    meta: {
+      title: 'LLM Connections',
+      requiresAuth: true,
+      requiresControlPanel: true,
+    },
+  },
+  {
+    path: '/admin/llm-tools',
+    name: 'adminLlmTools',
+    component: LlmToolsAdmin,
+    meta: {
+      title: 'LLM Tools',
+      requiresAuth: true,
+      requiresControlPanel: true,
     },
   },
   {

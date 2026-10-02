@@ -11,6 +11,8 @@ message SubmitPostRequest {
     string scheduled_at = 4; // RFC3339 or 'YYYY-MM-DDTHH:MM' local time
     repeated string media_urls = 5; // URLs to attach (e.g. /media/files/<filename>)
     bool save_as_draft = 6; // Save without posting or scheduling
+    // Optional draft that authored LLM tool runs; copies those runs onto each created post.
+    uint32 from_draft_post_id = 7;
 }
 
 message SubmitPostResponse {
@@ -1175,6 +1177,217 @@ message UpdatePendingPostResponse {
 	PostStatus post = 2;
 }
 
+// UpdatePostContent updates draft or pending_approval post content for callers
+// allowed to edit that post (draft submitter, or pending submitter/assignee).
+message UpdatePostContentRequest {
+	uint32 post_id = 1;
+	string content = 2;
+}
+
+message UpdatePostContentResponse {
+	StandardResponse standard_response = 1;
+	PostStatus post = 2;
+}
+
+message LlmConnection {
+	uint32 id = 1;
+	string name = 2;
+	string base_url = 3;
+	// api_key is never returned in full; Get/List may set api_key_set.
+	bool api_key_set = 4;
+	string model = 5;
+	bool enabled = 6;
+	string created = 7;
+	string updated = 8;
+}
+
+message ListLlmConnectionsRequest {}
+
+message ListLlmConnectionsResponse {
+	repeated LlmConnection connections = 1;
+}
+
+message GetLlmConnectionRequest {
+	uint32 id = 1;
+}
+
+message GetLlmConnectionResponse {
+	LlmConnection connection = 1;
+}
+
+message CreateLlmConnectionRequest {
+	string name = 1;
+	string base_url = 2;
+	string api_key = 3;
+	string model = 4;
+	bool enabled = 5;
+}
+
+message CreateLlmConnectionResponse {
+	uint32 id = 1;
+}
+
+message UpdateLlmConnectionRequest {
+	uint32 id = 1;
+	string name = 2;
+	string base_url = 3;
+	// Leave api_key blank to keep the existing key.
+	string api_key = 4;
+	string model = 5;
+	bool enabled = 6;
+}
+
+message UpdateLlmConnectionResponse {}
+
+message DeleteLlmConnectionRequest {
+	uint32 id = 1;
+}
+
+message DeleteLlmConnectionResponse {}
+
+message TestLlmConnectionRequest {
+	uint32 id = 1;
+}
+
+message TestLlmConnectionResponse {
+	bool success = 1;
+	string message = 2;
+}
+
+message LlmConnectionPreset {
+	string id = 1;
+	string name = 2;
+	string base_url = 3;
+	string suggested_model = 4;
+	string description = 5;
+}
+
+message ListLlmConnectionPresetsRequest {}
+
+message ListLlmConnectionPresetsResponse {
+	repeated LlmConnectionPreset presets = 1;
+}
+
+message LlmModel {
+	string id = 1;
+	string name = 2;
+}
+
+message ListLlmConnectionModelsRequest {
+	// When set, uses the stored connection base URL and API key (unless api_key is provided).
+	uint32 connection_id = 1;
+	// Used when connection_id is unset (create form), or to override base URL.
+	string base_url = 2;
+	// Optional; blank with connection_id keeps the stored key. For create form, pass the form key.
+	string api_key = 3;
+}
+
+message ListLlmConnectionModelsResponse {
+	repeated LlmModel models = 1;
+}
+
+message LlmTool {
+	uint32 id = 1;
+	string name = 2;
+	string description = 3;
+	uint32 llm_connection_id = 4;
+	string connection_name = 5;
+	string prompt = 6;
+	bool enabled = 7;
+	int32 sort_order = 8;
+	string created = 9;
+	string updated = 10;
+}
+
+message ListLlmToolsRequest {}
+
+message ListLlmToolsResponse {
+	repeated LlmTool tools = 1;
+}
+
+message GetLlmToolRequest {
+	uint32 id = 1;
+}
+
+message GetLlmToolResponse {
+	LlmTool tool = 1;
+}
+
+message CreateLlmToolRequest {
+	string name = 1;
+	string description = 2;
+	uint32 llm_connection_id = 3;
+	string prompt = 4;
+	bool enabled = 5;
+	int32 sort_order = 6;
+}
+
+message CreateLlmToolResponse {
+	uint32 id = 1;
+}
+
+message UpdateLlmToolRequest {
+	uint32 id = 1;
+	string name = 2;
+	string description = 3;
+	uint32 llm_connection_id = 4;
+	string prompt = 5;
+	bool enabled = 6;
+	int32 sort_order = 7;
+}
+
+message UpdateLlmToolResponse {}
+
+message DeleteLlmToolRequest {
+	uint32 id = 1;
+}
+
+message DeleteLlmToolResponse {}
+
+message LlmToolSummary {
+	uint32 id = 1;
+	string name = 2;
+	string description = 3;
+}
+
+message ListEnabledLlmToolsRequest {}
+
+message ListEnabledLlmToolsResponse {
+	repeated LlmToolSummary tools = 1;
+}
+
+message LlmToolRun {
+	uint32 id = 1;
+	uint32 post_id = 2;
+	uint32 llm_tool_id = 3;
+	string tool_name = 4;
+	string connection_name = 5;
+	string input_content = 6;
+	string output_content = 7;
+	string status = 8;
+	string error_message = 9;
+	uint32 created_by_user_id = 10;
+	string created = 11;
+	string model = 12;
+}
+
+message RunLlmToolRequest {
+	uint32 post_id = 1;
+	uint32 tool_id = 2;
+}
+
+message RunLlmToolResponse {
+	LlmToolRun run = 1;
+}
+
+message ListLlmToolRunsRequest {
+	uint32 post_id = 1;
+}
+
+message ListLlmToolRunsResponse {
+	repeated LlmToolRun runs = 1;
+}
+
 message Webhook {
 	uint32 id = 1;
 	string url = 2;
@@ -1500,6 +1713,26 @@ service JapellaControlApiService {
     rpc RejectPost(RejectPostRequest) returns (RejectPostResponse) {}
     rpc GetPost(GetPostRequest) returns (GetPostResponse) {}
     rpc UpdatePendingPost(UpdatePendingPostRequest) returns (UpdatePendingPostResponse) {}
+    rpc UpdatePostContent(UpdatePostContentRequest) returns (UpdatePostContentResponse) {}
+
+    rpc ListLlmConnections(ListLlmConnectionsRequest) returns (ListLlmConnectionsResponse) {}
+    rpc GetLlmConnection(GetLlmConnectionRequest) returns (GetLlmConnectionResponse) {}
+    rpc CreateLlmConnection(CreateLlmConnectionRequest) returns (CreateLlmConnectionResponse) {}
+    rpc UpdateLlmConnection(UpdateLlmConnectionRequest) returns (UpdateLlmConnectionResponse) {}
+    rpc DeleteLlmConnection(DeleteLlmConnectionRequest) returns (DeleteLlmConnectionResponse) {}
+    rpc TestLlmConnection(TestLlmConnectionRequest) returns (TestLlmConnectionResponse) {}
+    rpc ListLlmConnectionPresets(ListLlmConnectionPresetsRequest) returns (ListLlmConnectionPresetsResponse) {}
+    rpc ListLlmConnectionModels(ListLlmConnectionModelsRequest) returns (ListLlmConnectionModelsResponse) {}
+
+    rpc ListLlmTools(ListLlmToolsRequest) returns (ListLlmToolsResponse) {}
+    rpc GetLlmTool(GetLlmToolRequest) returns (GetLlmToolResponse) {}
+    rpc CreateLlmTool(CreateLlmToolRequest) returns (CreateLlmToolResponse) {}
+    rpc UpdateLlmTool(UpdateLlmToolRequest) returns (UpdateLlmToolResponse) {}
+    rpc DeleteLlmTool(DeleteLlmToolRequest) returns (DeleteLlmToolResponse) {}
+
+    rpc ListEnabledLlmTools(ListEnabledLlmToolsRequest) returns (ListEnabledLlmToolsResponse) {}
+    rpc RunLlmTool(RunLlmToolRequest) returns (RunLlmToolResponse) {}
+    rpc ListLlmToolRuns(ListLlmToolRunsRequest) returns (ListLlmToolRunsResponse) {}
 
     rpc ListWebhooks(ListWebhooksRequest) returns (ListWebhooksResponse) {}
     rpc GetWebhook(GetWebhookRequest) returns (GetWebhookResponse) {}
