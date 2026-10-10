@@ -16,3 +16,5 @@ dist/
 .cache
 /service/media
 **/*.log
+gen
+/japella
