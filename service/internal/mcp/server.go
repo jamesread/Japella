@@ -13,6 +13,7 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
+	"github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/layers/api"
 	"github.com/jamesread/japella/internal/layers/authentication"
@@ -24,7 +25,7 @@ import (
 func NewHandler(srv *api.ControlApi) http.Handler {
 	mcpServer := server.NewMCPServer(
 		"Japella",
-		"1.0.0",
+		buildinfo.Version,
 		server.WithToolCapabilities(false),
 		server.WithRecovery(),
 	)
