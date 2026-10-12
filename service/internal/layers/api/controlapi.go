@@ -185,7 +185,7 @@ func (s *ControlApi) IsReady() bool {
 	if s == nil || s.DB == nil {
 		return false
 	}
-	if s.DB.GetErrorMessage() != "" {
+	if !s.DB.Ready() {
 		return false
 	}
 	if s.cc == nil {
@@ -226,9 +226,11 @@ func (s *ControlApi) ReadinessClientMessage() string {
 }
 
 func (s *ControlApi) initConnectorControllerWhenReady() {
-	for !s.DB.ConnEstablished() {
-		time.Sleep(50 * time.Millisecond)
+	log.Infof("Waiting for database to become ready before starting connectors and bots")
+	for !s.DB.Ready() {
+		time.Sleep(200 * time.Millisecond)
 	}
+	log.Infof("Database ready; starting connectors and bots")
 	s.cc = connectorcontroller.New(s.DB)
 	s.keywordWatch = keywordwatch.NewService(s.DB, s.cc, webhook.NewDispatcher(s.DB))
 	s.keywordWatch.StartNativeAll(context.Background())
@@ -567,40 +569,63 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		}
 	}
 
-	dbConnected := s.DB != nil && s.DB.ConnEstablished() && s.DB.GetErrorMessage() == ""
+	dbConnected := s.DB != nil && s.DB.Ready()
 	amqpEn, amqpConn := amqp.ConnectionStatus()
+
+	status := "OK!"
+	statusMessages := append([]*controlv1.StatusMessage(nil), s.statusMessages...)
+	if !dbConnected {
+		status = "ERROR"
+		msg := s.ReadinessClientMessage()
+		if msg == "" {
+			msg = "Cannot connect to database"
+		}
+		statusMessages = append(statusMessages, &controlv1.StatusMessage{
+			Type:    "error",
+			Message: msg,
+		})
+	} else if s.cc == nil {
+		status = "STARTING"
+		statusMessages = append(statusMessages, &controlv1.StatusMessage{
+			Type:    "warning",
+			Message: "Service is starting",
+		})
+	}
 
 	availableThemes := themes.AvailableThemeNames()
 
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
-		Status:                          "OK!",
-		Nanoservices:                    nanoservice.GetNanoservices(),
-		Version:                         buildinfo.Version,
-		Username:                        username,
-		IsLoggedIn:                      authenticatedUser != nil,
-		StatusMessages:                  s.statusMessages,
-		UsesSecureCookies:               os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
-		DatabaseHost:                    s.DB.GetDatabaseHost(),
-		DatabaseName:                    s.DB.GetDatabaseName(),
-		ListenAddress:                   listenAddress,
-		DatabaseSchemaVersion:           s.DB.GetCurrentSchemaVersion(),
-		DatabaseSchemaDirty:             s.DB.GetCurrentSchemaDirty(),
-		RbacPermissions:                 rbacPermNames,
-		RbacIsSuperuser:                 rbacSuper,
-		IsImpersonating:                 isImpersonating,
-		ImpersonatorUsername:            impersonatorUsername,
-		ConfigFileAbsolutePath:          runtimeconfig.ConfigYAMLAbsolutePath(),
-		DatabaseConnected:               dbConnected,
-		AmqpEnabled:                     amqpEn,
-		AmqpConnected:                   amqpConn,
-		WebhookEvents:                   append([]string(nil), webhook.SupportedEvents...),
-		ThemeColorSchemeSwitcherEnabled: s.DB.ThemeColorSchemeSwitcherEnabled(),
-		ThemeName:                       s.DB.ThemeName(),
-		ThemeControl:                    s.DB.ThemeControl(),
-		AvailableThemes:                 availableThemes,
+		Status:                status,
+		Nanoservices:          nanoservice.GetNanoservices(),
+		Version:               buildinfo.Version,
+		Username:              username,
+		IsLoggedIn:            authenticatedUser != nil,
+		StatusMessages:        statusMessages,
+		UsesSecureCookies:     os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
+		DatabaseHost:          s.DB.GetDatabaseHost(),
+		DatabaseName:          s.DB.GetDatabaseName(),
+		ListenAddress:         listenAddress,
+		DatabaseSchemaVersion: s.DB.GetCurrentSchemaVersion(),
+		DatabaseSchemaDirty:   s.DB.GetCurrentSchemaDirty(),
+		RbacPermissions:       rbacPermNames,
+		RbacIsSuperuser:       rbacSuper,
+		IsImpersonating:       isImpersonating,
+		ImpersonatorUsername:  impersonatorUsername,
+		ConfigFileAbsolutePath: runtimeconfig.ConfigYAMLAbsolutePath(),
+		DatabaseConnected:     dbConnected,
+		AmqpEnabled:           amqpEn,
+		AmqpConnected:         amqpConn,
+		WebhookEvents:         append([]string(nil), webhook.SupportedEvents...),
+		AvailableThemes:       availableThemes,
 	})
 
-	if authenticatedUser != nil {
+	if dbConnected {
+		res.Msg.ThemeColorSchemeSwitcherEnabled = s.DB.ThemeColorSchemeSwitcherEnabled()
+		res.Msg.ThemeName = s.DB.ThemeName()
+		res.Msg.ThemeControl = s.DB.ThemeControl()
+	}
+
+	if dbConnected && authenticatedUser != nil {
 		if account := s.DB.GetUserByID(authenticatedUser.User.ID); account != nil {
 			if !account.CreatedAt.IsZero() {
 				res.Msg.CreatedAt = account.CreatedAt.UTC().Format(time.RFC3339)
@@ -1416,7 +1441,7 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 
 	if state == nil {
 		msg := fmt.Sprintf("OAuth2 callback: state not found: %v", stateKey)
-		log.Errorf(msg)
+		log.Error(msg)
 		_ = s.DB.InsertTableLog(msg, "error", nil)
 		redirect(baseUrl, w, fmt.Sprintf("state not found: %v", stateKey), "bad")
 		return
@@ -1433,7 +1458,7 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 
 	if err != nil {
 		msg := fmt.Sprintf("Error registering account (%s): %v", state.connector.GetProtocol(), err)
-		log.Errorf(msg)
+		log.Error(msg)
 		_ = s.DB.InsertTableLog(msg, "error", nil)
 		redirect(baseUrl, w, fmt.Sprintf("Error registering account: %v", err), "bad")
 	} else {

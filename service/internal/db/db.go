@@ -95,6 +95,12 @@ func (db *DB) ConnEstablished() bool {
 	return db.connx != nil
 }
 
+// Ready reports whether the database completed the full connection chain
+// (connect, version check, migrate, bootstrap) without an error.
+func (db *DB) Ready() bool {
+	return db.ConnEstablished() && db.GetErrorMessage() == ""
+}
+
 func (db *DB) findMigrationsDirectory() (string, error) {
 	toSearch := []string{
 		"../var/app-skel/db-migrations/",
@@ -232,6 +238,12 @@ func (db *DB) reconnectDatabase() error {
 
 		if chain.err != nil {
 			db.Logger().Errorf("Database connection check failed: %v", chain.err)
+			// Drop a half-open handle so the next reconnect retries the full chain
+			// (version check, migrate, bootstrap) instead of skipping via ping.
+			if db.connx != nil {
+				_ = db.connx.Close()
+				db.connx = nil
+			}
 			return chain.err
 		}
 

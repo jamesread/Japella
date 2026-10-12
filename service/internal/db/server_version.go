@@ -12,7 +12,8 @@ const (
 	minMariaDBMinor = 5
 )
 
-var mariaDBVersionSuffix = regexp.MustCompile(`(\d+)\.(\d+)\.(\d+)-[Mm]aria[Dd][Bb]$`)
+// Matches N.N.N-MariaDB, optionally followed by a packaging suffix (e.g. -ubu2404).
+var mariaDBVersionSuffix = regexp.MustCompile(`(\d+)\.(\d+)\.(\d+)-[Mm]aria[Dd][Bb]`)
 
 // ValidateSupportedDBServerVersion ensures the server is MariaDB 10.5+ (required by SQL migrations).
 func ValidateSupportedDBServerVersion(version string) error {

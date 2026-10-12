@@ -180,9 +180,10 @@ async function checkServerReady(force = false): Promise<GetStatusResponse> {
 	}
 
 	if (!isServerUsable(status)) {
+		const fromStatus = status.statusMessages?.find((m) => m.type === 'error')?.message;
 		throw new StartupFailure(
 			'database',
-			'The Japella server is running but the database is not connected.',
+			fromStatus || 'The Japella server is running but the database is not connected.',
 		);
 	}
 
@@ -251,9 +252,12 @@ function handleStartupFailure(error: unknown): void {
 
 	if (error instanceof StartupFailure) {
 		if (error.kind === 'database') {
+			const detail = error.message && !error.message.startsWith('The Japella server is running')
+				? error.message
+				: 'The server responded but the database is not connected. This usually means the database is unreachable or the application has not finished starting.';
 			showStartupFailure(
 				'Japella is not ready.',
-				'The server responded but the database is not connected. This usually means the database is unreachable or the application has not finished starting.',
+				detail,
 				[
 					{
 						href: DOCS_TROUBLESHOOT_DATABASE,
