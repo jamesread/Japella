@@ -7,7 +7,7 @@ require (
 	connectrpc.com/connect v1.21.1
 	connectrpc.com/cors v0.1.0
 	github.com/alexedwards/argon2id v1.0.0
-	github.com/bufbuild/buf v1.73.0
+	github.com/bufbuild/buf v1.74.0
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/fzipp/gocyclo v0.6.0
 	github.com/go-critic/go-critic v0.15.0
@@ -27,13 +27,13 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/prometheus/client_golang v1.24.1
 	github.com/prometheus/common v0.72.1
-	github.com/rabbitmq/amqp091-go v1.15.0
+	github.com/rabbitmq/amqp091-go v1.16.0
 	github.com/rs/cors v1.11.1
 	github.com/sirupsen/logrus v1.10.2
 	github.com/spf13/cobra v1.10.2
 	github.com/stretchr/testify v1.12.1
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
-	go.mau.fi/whatsmeow v0.0.0-20261014094007-f16f9ca30d6a
+	go.mau.fi/whatsmeow v0.0.0-20261017175727-b2b1e71d45e2
 	golang.org/x/net v0.61.0
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2
@@ -44,10 +44,10 @@ require (
 	buf.build/gen/go/bufbuild/bufplugin/protocolbuffers/go v1.36.12-20261002170247-538130002972.2 // indirect
 	buf.build/gen/go/bufbuild/protodescriptor/protocolbuffers/go v1.36.12-20261012172039-ff528c23443f.2 // indirect
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.12-20260825204119-511051f7f437.2 // indirect
-	buf.build/gen/go/bufbuild/registry/connectrpc/go v1.20.0-20260831211851-b4432e12a6e7.1 // indirect
-	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261012202254-0d982fa084c7.2 // indirect
+	buf.build/gen/go/bufbuild/registry/connectrpc/go/v2 v2.0.1-20261021182822-0b1ad74125ef.1 // indirect
+	buf.build/gen/go/bufbuild/registry/protocolbuffers/go v1.36.12-20261021182822-0b1ad74125ef.2 // indirect
 	buf.build/gen/go/pluginrpc/pluginrpc/protocolbuffers/go v1.36.12-20241007202033-cf42259fcbfc.2 // indirect
-	buf.build/go/app v0.2.1-0.20260928213032-9a091f2dc726 // indirect
+	buf.build/go/app v0.3.0 // indirect
 	buf.build/go/bufplugin v0.11.1 // indirect
 	buf.build/go/bufprivateusage v0.1.0 // indirect
 	buf.build/go/interrupt v1.1.0 // indirect
@@ -82,8 +82,8 @@ require (
 	github.com/cpuguy83/go-md2man/v2 v2.0.7 // indirect
 	github.com/cristalhq/acmd v0.12.0 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/cli v29.9.1+incompatible // indirect
-	github.com/docker/docker-credential-helpers v0.9.10 // indirect
+	github.com/docker/cli v29.9.2+incompatible // indirect
+	github.com/docker/docker-credential-helpers v0.9.12 // indirect
 	github.com/docker/go-connections v0.8.2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/elliotchance/orderedmap/v3 v3.1.1 // indirect
@@ -115,7 +115,7 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.20.3 // indirect
-	github.com/klauspost/pgzip v1.2.7 // indirect
+	github.com/klauspost/pgzip v1.3.0 // indirect
 	github.com/mattn/go-colorable v0.1.16 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/moby/api v1.56.1 // indirect
@@ -136,7 +136,7 @@ require (
 	github.com/quasilyte/regex/syntax v0.0.0-20210819130434-b3f0c404a727 // indirect
 	github.com/quasilyte/stdinfo v0.0.0-20220114132959-f7386bf02567 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
-	github.com/quic-go/quic-go v0.63.0 // indirect
+	github.com/quic-go/quic-go v0.64.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
@@ -154,7 +154,7 @@ require (
 	go.lsp.dev/protocol v1.0.1 // indirect
 	go.lsp.dev/uri v1.0.1 // indirect
 	go.mau.fi/libsignal v0.2.2 // indirect
-	go.mau.fi/util v0.10.1 // indirect
+	go.mau.fi/util v0.11.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0 // indirect
 	go.opentelemetry.io/otel v1.47.0 // indirect
@@ -175,10 +175,9 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20261012220534-4341edf3f941 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261012220534-4341edf3f941 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20261019180522-ce908d29299b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
 	google.golang.org/grpc v1.84.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	mvdan.cc/xurls/v2 v2.6.0 // indirect
 	pluginrpc.com/pluginrpc v0.6.0 // indirect
 )
