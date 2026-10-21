@@ -2,6 +2,7 @@
 	<Section
 		title="Settings"
 		subtitle="System configuration variables (cvars)."
+		:icon="SettingsIcon"
 		classes="settings"
 	>
 		<div v-if="!loaded">
@@ -23,6 +24,7 @@
 		v-for="category in nonThemeCategoryList"
 		:key="category.name"
 		:title="category.name"
+		:icon="categoryIcon(category.name)"
 		classes="settings-category"
 	>
 		<FormLayout @submit.prevent>
@@ -78,6 +80,7 @@
 		v-if="canAccess && themeSectionReady"
 		title="Theme"
 		subtitle="Appearance and theme policy"
+		:icon="PaintBoardIcon"
 		classes="settings-category settings-theme"
 	>
 		<FormLayout @submit.prevent="saveThemeSection">
@@ -143,11 +146,34 @@
 		ThemeControlUser,
 	} from '../javascript/applyAppTheming.js';
 	import { useCustomTheme } from '../javascript/theme.js';
+	import {
+		Bug01Icon,
+		Key01Icon,
+		PaintBoardIcon,
+		Plug01Icon,
+		SearchList01Icon,
+		Settings01Icon,
+		SettingsIcon,
+	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import RadioGroup from 'picocrank/vue/components/RadioGroup.vue';
+
+	const categoryIcons = {
+		General: Settings01Icon,
+		OAuth2: Key01Icon,
+		Debug: Bug01Icon,
+		'Keyword Watch': SearchList01Icon,
+		X: Plug01Icon,
+		Mastodon: Plug01Icon,
+		Bluesky: Plug01Icon,
+	};
+
+	function categoryIcon(name) {
+		return categoryIcons[name] || Settings01Icon;
+	}
 
 	const route = useRoute();
 	const { themeLabels, availableThemes, discoverThemes } = useCustomTheme();

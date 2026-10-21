@@ -2,6 +2,7 @@
 	<Section
 		title="Campaigns"
 		subtitle="Manage your campaigns here. You can create, edit, and delete campaigns."
+		:icon="VolumeUpIcon"
 		classes="campaigns"
 		:padding="false"
 	>
@@ -114,7 +115,7 @@
 	import { waitForClient } from '../javascript/util.js'
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { EditIcon, UserMultiple02Icon } from '@hugeicons/core-free-icons';
+	import { EditIcon, UserMultiple02Icon, VolumeUpIcon } from '@hugeicons/core-free-icons';
 	import { ref, onMounted } from 'vue';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Table from 'picocrank/vue/components/Table.vue';

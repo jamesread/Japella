@@ -2,6 +2,7 @@
 	<Section
 		title="Change Password"
 		subtitle="Update your account password"
+		:icon="LockPasswordIcon"
 	>
 		<template #toolbar>
 			<router-link :to="{ name: 'userControlPanel' }" class="button inline-icon neutral">
@@ -74,7 +75,7 @@
 	import { ref, computed } from 'vue';
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, LockPasswordIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';

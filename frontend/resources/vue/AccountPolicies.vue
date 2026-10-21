@@ -1,15 +1,11 @@
 <template>
 	<Section
+		title="Account Policies"
 		subtitle="Configure ordered approval stages for groups of social accounts. Policies can apply to MCP submissions, UI submissions, or both."
+		:icon="SecurityValidationIcon"
 		classes="account-policies settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="SecurityValidationIcon" width="22" height="22" aria-hidden="true" />
-				Account Policies
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -170,12 +166,6 @@ onMounted(loadAll);
 </script>
 
 <style scoped>
-.section-title-with-icon {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.45em;
-	vertical-align: middle;
-}
 
 
 .policies-table-wrap {

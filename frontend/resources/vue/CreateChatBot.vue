@@ -2,6 +2,7 @@
 	<Section
 		title="Add chat bot"
 		subtitle="Create a Telegram or Discord bot instance. The bot ID cannot be changed later."
+		:icon="Robot01Icon"
 		classes="create-chat-bot"
 	>
 		<template #toolbar>
@@ -107,6 +108,7 @@
 	import { ref, computed } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
+	import { Robot01Icon } from '@hugeicons/core-free-icons';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';

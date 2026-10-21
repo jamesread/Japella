@@ -79,6 +79,7 @@
 			<Section
 				title="Post Details"
 				:subtitle="pageSubtitle"
+				:icon="File01Icon"
 				classes="post-details"
 				:padding="true"
 			>
@@ -185,6 +186,7 @@
 				v-if="llmToolSessions.length || (canEdit && enabledLlmTools.length) || llmToolsLoading || llmToolError"
 				title="LLM tool runs"
 				subtitle="Prior compose-tool results for reviewers. Running a tool does not affect approval."
+				:icon="AiChat02Icon"
 				classes="llm-tools-section"
 			>
 				<LlmToolRunsPanel
@@ -266,9 +268,11 @@
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import {
+		AiChat02Icon,
 		CancelCircleIcon,
 		CheckmarkCircle01Icon,
 		Delete02Icon,
+		File01Icon,
 		Loading01Icon,
 		SaveIcon,
 	} from '@hugeicons/core-free-icons';

@@ -108,16 +108,12 @@
 	</dialog>
 
 	<Section
+		title="LLM tools"
 		subtitle="Named prompts that authors can run against draft posts while composing."
+		:icon="AiChat02Icon"
 		classes="llm-tools-admin settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="AiChat02Icon" width="22" height="22" aria-hidden="true" />
-				LLM tools
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -391,11 +387,6 @@
 </script>
 
 <style scoped>
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
 
 	.llm-table-wrap {
 		overflow-x: auto;

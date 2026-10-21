@@ -29,7 +29,7 @@
 
 	<Navigation ref="navigation">
 		<div id="layout">
-			<Sidebar ref="sidebar" />
+			<Sidebar v-if="isLoggedIn && sidebarPreferenceEnabled" ref="sidebar" />
 
 			<div id="loading" v-if="!clientReady" class="icon-and-text" style="margin: auto; margin-top: 5em;">
 				<Icon icon="eos-icons:loading" width="48" height="48" />
@@ -126,7 +126,7 @@
         themeFeaturesFromStatus,
     } from '../javascript/applyAppTheming.js'
     import { useCustomTheme } from '../javascript/theme.js'
-    import { ref, onMounted, provide, watch } from 'vue';
+    import { ref, onMounted, provide, watch, nextTick } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { Icon } from '@iconify/vue';
     import { useI18n } from 'vue-i18n';
@@ -172,17 +172,17 @@
 	});
 	provide('appThemeFeatures', appThemeFeatures);
 
-	function applySidebarPreference(enabled) {
+	async function applySidebarPreference(enabled) {
 		sidebarPreferenceEnabled.value = enabled;
+		if (!enabled) {
+			return;
+		}
+		await nextTick();
 		if (!sidebar.value) {
 			return;
 		}
-		if (enabled) {
-			sidebar.value.open();
-			sidebar.value.stick();
-		} else {
-			sidebar.value.close();
-		}
+		sidebar.value.open();
+		sidebar.value.stick();
 	}
 
 	function toggleSidebar() {

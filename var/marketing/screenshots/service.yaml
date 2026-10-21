@@ -1,0 +1,16 @@
+# Config for the throwaway marketing-screenshot backend. Only used by
+# `make` in this directory; credentials exist only in the temporary container.
+configVersion: 2
+
+logLevel: info
+
+listenAddress: 127.0.0.1:18380
+
+database:
+  host: 127.0.0.1
+  port: 13307
+  user: japella
+  pass: japella-demo
+  name: japella
+
+auth: {}

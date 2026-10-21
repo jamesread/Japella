@@ -2,6 +2,7 @@
 	<Section
 		title="System architecture"
 		subtitle="High-level view of Japella components, persistence, and asynchronous messaging"
+		:icon="Flowchart01Icon"
 		classes="system-architecture"
 	>
 		<template #toolbar>
@@ -32,6 +33,7 @@
 <script setup>
 	import { ref, onMounted, nextTick } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import { Flowchart01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';

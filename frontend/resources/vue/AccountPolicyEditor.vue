@@ -2,6 +2,7 @@
 	<Section
 		:title="isEdit ? 'Edit account policy' : 'Create account policy'"
 		subtitle="Configure ordered approval stages and attach social accounts. Policies can apply to MCP submissions, UI submissions, or both."
+		:icon="SecurityValidationIcon"
 		classes="account-policy-editor settings-users"
 	>
 		<template #toolbar>
@@ -107,7 +108,7 @@
 import { computed, onMounted, reactive, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { HugeiconsIcon } from '@hugeicons/vue';
-import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+import { ArrowLeft01Icon, SecurityValidationIcon } from '@hugeicons/core-free-icons';
 import Section from 'picocrank/vue/components/Section.vue';
 import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 import FormLayout from 'picocrank/vue/components/FormLayout.vue';

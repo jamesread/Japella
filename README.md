@@ -12,6 +12,59 @@
 
 Japella's architecture splits out the connections to different protocols (eg Telegram, Discord) into "adaptor" services, and all bot functionality is implemented in a separate service, meaning that the chatbot functionality can easily work with new protocols, by just creating a new adaptor, or, can relay chat messages across protocols, for example.
 
+## Screenshots
+
+### Compose once, post everywhere
+
+![Compose once, post everywhere](var/marketing/screenshots/compose.png)
+
+Write a post, pick the Mastodon, Bluesky, X, Facebook and Instagram accounts it should go to, and publish now, schedule it or save a draft.
+
+### Timeline
+
+![Timeline](var/marketing/screenshots/timeline.png)
+
+Every post you have published, scheduled or drafted, across all of your accounts, with its campaign and a link to the live post.
+
+### Content calendar
+
+![Content calendar](var/marketing/screenshots/calendar.png)
+
+See what went out and what is coming up at a glance, so gaps and clashes in your posting schedule are easy to spot.
+
+### Approvals
+
+![Approvals](var/marketing/screenshots/approvals.png)
+
+Account policies can hold posts for review. Approvers see what is waiting for them and approve or reject it before anything is published.
+
+### Campaigns
+
+![Campaigns](var/marketing/screenshots/campaigns.png)
+
+Group related posts and accounts into campaigns, such as a product launch, and track how much has gone out for each one.
+
+### Social accounts
+
+![Social accounts](var/marketing/screenshots/social-accounts.png)
+
+All of the accounts Japella can post to in one list, including who owns them, so teams can share accounts without sharing passwords.
+
+### Feed
+
+![Feed](var/marketing/screenshots/feed.png)
+
+Read recent posts from the accounts you follow without leaving Japella, filtered by account, post type or author.
+
+### Dark mode
+
+![Dark mode](var/marketing/screenshots/timeline-dark.png)
+
+Japella follows your light or dark preference, shown here on the timeline.
+
+Screenshots use fictional test data and are regenerated with `make screenshots`
+(see [`var/marketing/screenshots`](var/marketing/screenshots/README.md)).
+
 ## Quickstart
 
 Japella is only distributed as a x86_64 Linux container, and requires a RabbitMQ server as the message queue.

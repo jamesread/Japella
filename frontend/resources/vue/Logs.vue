@@ -2,6 +2,7 @@
 	<Section
 		title="Logs"
 		subtitle="Application logs and events."
+		:icon="ActivityIcon"
 		classes="logs"
 		:padding="false"
 	>
@@ -61,6 +62,7 @@
 	import { ref, computed, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
 	import { Icon } from '@iconify/vue';
+	import { ActivityIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import SocialAccountChip from './SocialAccountChip.vue';

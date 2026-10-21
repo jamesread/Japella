@@ -1,4 +1,5 @@
 * xref:index.adoc[Home]
+* xref:screenshots.adoc[Screenshots]
 * xref:installation/index.adoc[Installation]
 ** Linux Container
 *** xref:installation/docker-compose.adoc[Docker Compose]

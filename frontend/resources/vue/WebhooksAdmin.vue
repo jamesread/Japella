@@ -126,16 +126,12 @@
 	</dialog>
 
 	<Section
+		title="Event webhooks"
 		subtitle="Configure HTTP endpoints that receive signed JSON when app events occur."
+		:icon="WebhookIcon"
 		classes="webhooks-admin settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="WebhookIcon" width="22" height="22" aria-hidden="true" />
-				Event webhooks
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -237,16 +233,12 @@
 	</Section>
 
 	<Section
+		title="Bot webhooks"
 		subtitle="Incoming message webhooks configured per chat bot. Use Manage to edit hooks on a bot's details page."
+		:icon="Robot01Icon"
 		classes="webhooks-admin settings-users"
 		:padding="botWebhooks.length === 0"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="Robot01Icon" width="22" height="22" aria-hidden="true" />
-				Bot webhooks
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -594,12 +586,6 @@
 </script>
 
 <style scoped>
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 
 	.webhooks-table-wrap {

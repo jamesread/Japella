@@ -2679,25 +2679,28 @@ func (x *GetFeedResponse) GetPosts() []*FeedPost {
 }
 
 type FeedPost struct {
-	state                  protoimpl.MessageState `protogen:"open.v1"`
-	Id                     uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
-	SocialAccountId        uint32                 `protobuf:"varint,2,opt,name=social_account_id,json=socialAccountId,proto3" json:"social_account_id,omitempty"`
-	SocialAccountIcon      string                 `protobuf:"bytes,3,opt,name=social_account_icon,json=socialAccountIcon,proto3" json:"social_account_icon,omitempty"`
-	SocialAccountIdentity  string                 `protobuf:"bytes,4,opt,name=social_account_identity,json=socialAccountIdentity,proto3" json:"social_account_identity,omitempty"`
-	Content                string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
-	PostedDate             string                 `protobuf:"bytes,6,opt,name=posted_date,json=postedDate,proto3" json:"posted_date,omitempty"`
-	AuthorId               string                 `protobuf:"bytes,7,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
-	AuthorName             string                 `protobuf:"bytes,8,opt,name=author_name,json=authorName,proto3" json:"author_name,omitempty"`
-	AuthorAvatarUrl        string                 `protobuf:"bytes,15,opt,name=author_avatar_url,json=authorAvatarUrl,proto3" json:"author_avatar_url,omitempty"`
-	RemoteUrl              string                 `protobuf:"bytes,9,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
-	RemoteId               string                 `protobuf:"bytes,10,opt,name=remote_id,json=remoteId,proto3" json:"remote_id,omitempty"`
-	PreviewUrl             string                 `protobuf:"bytes,11,opt,name=preview_url,json=previewUrl,proto3" json:"preview_url,omitempty"`
-	PreviewTitle           string                 `protobuf:"bytes,12,opt,name=preview_title,json=previewTitle,proto3" json:"preview_title,omitempty"`
-	PreviewDescription     string                 `protobuf:"bytes,13,opt,name=preview_description,json=previewDescription,proto3" json:"preview_description,omitempty"`
-	PreviewImageUrl        string                 `protobuf:"bytes,14,opt,name=preview_image_url,json=previewImageUrl,proto3" json:"preview_image_url,omitempty"`
-	SocialAccountConnector string                 `protobuf:"bytes,16,opt,name=social_account_connector,json=socialAccountConnector,proto3" json:"social_account_connector,omitempty"`
-	unknownFields          protoimpl.UnknownFields
-	sizeCache              protoimpl.SizeCache
+	state                   protoimpl.MessageState `protogen:"open.v1"`
+	Id                      uint32                 `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	SocialAccountId         uint32                 `protobuf:"varint,2,opt,name=social_account_id,json=socialAccountId,proto3" json:"social_account_id,omitempty"`
+	SocialAccountIcon       string                 `protobuf:"bytes,3,opt,name=social_account_icon,json=socialAccountIcon,proto3" json:"social_account_icon,omitempty"`
+	SocialAccountIdentity   string                 `protobuf:"bytes,4,opt,name=social_account_identity,json=socialAccountIdentity,proto3" json:"social_account_identity,omitempty"`
+	Content                 string                 `protobuf:"bytes,5,opt,name=content,proto3" json:"content,omitempty"`
+	PostedDate              string                 `protobuf:"bytes,6,opt,name=posted_date,json=postedDate,proto3" json:"posted_date,omitempty"`
+	AuthorId                string                 `protobuf:"bytes,7,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
+	AuthorName              string                 `protobuf:"bytes,8,opt,name=author_name,json=authorName,proto3" json:"author_name,omitempty"`
+	AuthorAvatarUrl         string                 `protobuf:"bytes,15,opt,name=author_avatar_url,json=authorAvatarUrl,proto3" json:"author_avatar_url,omitempty"`
+	RemoteUrl               string                 `protobuf:"bytes,9,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
+	RemoteId                string                 `protobuf:"bytes,10,opt,name=remote_id,json=remoteId,proto3" json:"remote_id,omitempty"`
+	PreviewUrl              string                 `protobuf:"bytes,11,opt,name=preview_url,json=previewUrl,proto3" json:"preview_url,omitempty"`
+	PreviewTitle            string                 `protobuf:"bytes,12,opt,name=preview_title,json=previewTitle,proto3" json:"preview_title,omitempty"`
+	PreviewDescription      string                 `protobuf:"bytes,13,opt,name=preview_description,json=previewDescription,proto3" json:"preview_description,omitempty"`
+	PreviewImageUrl         string                 `protobuf:"bytes,14,opt,name=preview_image_url,json=previewImageUrl,proto3" json:"preview_image_url,omitempty"`
+	SocialAccountConnector  string                 `protobuf:"bytes,16,opt,name=social_account_connector,json=socialAccountConnector,proto3" json:"social_account_connector,omitempty"`
+	OriginalAuthorId        string                 `protobuf:"bytes,17,opt,name=original_author_id,json=originalAuthorId,proto3" json:"original_author_id,omitempty"`
+	OriginalAuthorName      string                 `protobuf:"bytes,18,opt,name=original_author_name,json=originalAuthorName,proto3" json:"original_author_name,omitempty"`
+	OriginalAuthorAvatarUrl string                 `protobuf:"bytes,19,opt,name=original_author_avatar_url,json=originalAuthorAvatarUrl,proto3" json:"original_author_avatar_url,omitempty"`
+	unknownFields           protoimpl.UnknownFields
+	sizeCache               protoimpl.SizeCache
 }
 
 func (x *FeedPost) Reset() {
@@ -2838,6 +2841,27 @@ func (x *FeedPost) GetPreviewImageUrl() string {
 func (x *FeedPost) GetSocialAccountConnector() string {
 	if x != nil {
 		return x.SocialAccountConnector
+	}
+	return ""
+}
+
+func (x *FeedPost) GetOriginalAuthorId() string {
+	if x != nil {
+		return x.OriginalAuthorId
+	}
+	return ""
+}
+
+func (x *FeedPost) GetOriginalAuthorName() string {
+	if x != nil {
+		return x.OriginalAuthorName
+	}
+	return ""
+}
+
+func (x *FeedPost) GetOriginalAuthorAvatarUrl() string {
+	if x != nil {
+		return x.OriginalAuthorAvatarUrl
 	}
 	return ""
 }
@@ -16060,7 +16084,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"postStatus\"\x10\n" +
 	"\x0eGetFeedRequest\"H\n" +
 	"\x0fGetFeedResponse\x125\n" +
-	"\x05posts\x18\x01 \x03(\v2\x1f.japella.controlapi.v1.FeedPostR\x05posts\"\xec\x04\n" +
+	"\x05posts\x18\x01 \x03(\v2\x1f.japella.controlapi.v1.FeedPostR\x05posts\"\x89\x06\n" +
 	"\bFeedPost\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12*\n" +
 	"\x11social_account_id\x18\x02 \x01(\rR\x0fsocialAccountId\x12.\n" +
@@ -16082,7 +16106,10 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\rpreview_title\x18\f \x01(\tR\fpreviewTitle\x12/\n" +
 	"\x13preview_description\x18\r \x01(\tR\x12previewDescription\x12*\n" +
 	"\x11preview_image_url\x18\x0e \x01(\tR\x0fpreviewImageUrl\x128\n" +
-	"\x18social_account_connector\x18\x10 \x01(\tR\x16socialAccountConnector\"G\n" +
+	"\x18social_account_connector\x18\x10 \x01(\tR\x16socialAccountConnector\x12,\n" +
+	"\x12original_author_id\x18\x11 \x01(\tR\x10originalAuthorId\x120\n" +
+	"\x14original_author_name\x18\x12 \x01(\tR\x12originalAuthorName\x12;\n" +
+	"\x1aoriginal_author_avatar_url\x18\x13 \x01(\tR\x17originalAuthorAvatarUrl\"G\n" +
 	"\x1dSetSocialAccountActiveRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x16\n" +
 	"\x06active\x18\x02 \x01(\bR\x06active\"v\n" +

@@ -2,6 +2,7 @@
 	<Section
 		title="Social Accounts"
 		subtitle="This page shows a list of social accounts that you have configured."
+		:icon="UserMultiple03Icon"
 		classes="social-accounts"
 		:padding="false"
 	>
@@ -150,6 +151,7 @@
 		Loading01Icon,
 		RefreshIcon,
 		TableIcon,
+		UserMultiple03Icon,
 	} from '@hugeicons/core-free-icons';
 	import { ref, computed, onMounted, inject, onActivated, watch, nextTick } from 'vue';
 	import { useRouter } from 'vue-router';

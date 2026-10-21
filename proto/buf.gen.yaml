@@ -4,7 +4,8 @@ plugins:
     out: ../service/gen/
     opt: paths=source_relative
 
-  - remote: buf.build/connectrpc/go
+  # Pin to connect-go v1 API; unpinned remote now emits connectrpc.com/connect/v2.
+  - remote: buf.build/connectrpc/go:v1.18.1
     out: ../service/gen/
     opt: paths=source_relative
 

@@ -2,6 +2,7 @@
 	<Section
 		title="Media Upload"
 		subtitle="Upload images and videos to your media library. You can also paste images from your clipboard (Ctrl+V)."
+		:icon="Upload01Icon"
 		classes="media-upload"
 	>
 		<form id="media-upload-form" @submit.prevent="submitForm">
@@ -64,6 +65,7 @@
 <script setup>
 	import { ref, onMounted, onUnmounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
+	import { Upload01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 

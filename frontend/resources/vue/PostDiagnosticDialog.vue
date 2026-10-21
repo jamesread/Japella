@@ -1,78 +1,113 @@
 <template>
-	<div v-if="open" class="modal-overlay" @click.self="close">
-		<div class="modal">
-			<h3>Diagnostic Info</h3>
-			<dl>
-				<template v-if="post.state">
-					<dt>Status</dt>
-					<dd>
-						<span :class="['annotation', postStatusClass]">{{ postStatusText }}</span>
-					</dd>
-				</template>
-				<template v-if="post.id">
-					<dt>ID</dt>
-					<dd><span class="id-value">{{ post.id }}</span></dd>
-				</template>
-				<template v-if="post.remoteId">
-					<dt>Remote ID</dt>
-					<dd><span class="id-value remote-id">{{ post.remoteId }}</span></dd>
-				</template>
-			</dl>
-			<p v-if="refetchMessage" class="refetch-message" :class="refetchMessageType">
-				{{ refetchMessage }}
-			</p>
-			<div class="dialog-actions">
+	<dialog
+		ref="dlg"
+		@close="onDialogClose"
+		@click="onBackdropClick"
+	>
+		<h2>Diagnostic Info</h2>
+
+		<dl>
+			<template v-if="post.socialAccountId">
+				<dt>Social account</dt>
+				<dd>
+					<FieldValue>
+						<SocialAccountChip
+							:social-account-id="post.socialAccountId"
+							:identity="post.socialAccountIdentity || `Account #${post.socialAccountId}`"
+							:icon="post.socialAccountIcon"
+						/>
+					</FieldValue>
+				</dd>
+			</template>
+			<template v-if="post.state">
+				<dt>Status</dt>
+				<dd>
+					<FieldValue>
+						<span class="tag" :class="postStatusClass">{{ postStatusText }}</span>
+					</FieldValue>
+				</dd>
+			</template>
+			<template v-if="post.id">
+				<dt>ID</dt>
+				<dd>
+					<FieldValue>
+						<code>{{ post.id }}</code>
+					</FieldValue>
+				</dd>
+			</template>
+			<template v-if="post.remoteId">
+				<dt>Remote ID</dt>
+				<dd>
+					<FieldValue>
+						<code>{{ post.remoteId }}</code>
+					</FieldValue>
+				</dd>
+			</template>
+		</dl>
+
+		<NotificationBlock
+			v-if="refetchMessage"
+			:type="refetchMessageType"
+			:message="refetchMessage"
+		/>
+
+		<FormLayout @submit.prevent>
+			<template #actions>
 				<button
 					v-if="canRepost"
 					type="button"
-					class="neutral"
+					class="inline-icon neutral"
 					@click="repost"
 				>
 					<Icon icon="mdi:content-copy" />
-					Repost
+					<span>Repost</span>
 				</button>
 				<button
 					v-if="showViewDetails && post.id"
 					type="button"
-					class="neutral"
+					class="inline-icon neutral"
 					@click="viewDetails"
 				>
 					<Icon icon="mdi:eye" />
-					View Post Details
+					<span>View Post Details</span>
 				</button>
 				<button
 					v-if="canRetry"
 					type="button"
-					class="good"
+					class="inline-icon good"
 					:disabled="retrying"
 					@click="retryPost"
 				>
 					<Icon v-if="retrying" icon="eos-icons:loading" />
 					<Icon v-else icon="mdi:refresh" />
-					{{ retrying ? 'Retrying…' : 'Retry Post' }}
+					<span>{{ retrying ? 'Retrying…' : 'Retry Post' }}</span>
 				</button>
 				<button
 					v-if="canRefetch"
 					type="button"
-					class="good"
+					class="inline-icon good"
 					:disabled="refetching"
 					@click="refetchPost"
 				>
 					<Icon v-if="refetching" icon="eos-icons:loading" />
 					<Icon v-else icon="mdi:refresh" />
-					{{ refetching ? 'Refetching…' : 'Refetch' }}
+					<span>{{ refetching ? 'Refetching…' : 'Refetch' }}</span>
 				</button>
 				<button type="button" class="neutral" @click="close">Close</button>
-			</div>
-		</div>
-	</div>
+			</template>
+		</FormLayout>
+	</dialog>
 </template>
 
 <script setup>
-	import { ref, computed } from 'vue';
+	import { ref, computed, watch, nextTick } from 'vue';
 	import { useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
+	import FieldValue from 'picocrank/vue/components/FieldValue.vue';
+	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
+	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { stashComposePrefill } from '../javascript/composePrefill.js';
+	import SocialAccountChip from './SocialAccountChip.vue';
 
 	const props = defineProps({
 		open: {
@@ -104,9 +139,11 @@
 	const emit = defineEmits(['close', 'post-refetched', 'view-details', 'retry-post']);
 	const router = useRouter();
 
+	const dlg = ref(null);
 	const refetching = ref(false);
 	const refetchMessage = ref('');
 	const refetchMessageType = ref('note');
+	const closingFromParent = ref(false);
 
 	const canRefetch = computed(() => props.refetchable && Boolean(props.post.id));
 	const canRetry = computed(() => props.retryable && props.post.state === 'error');
@@ -124,15 +161,49 @@
 
 	const postStatusClass = computed(() => {
 		const text = postStatusText.value;
-		if (text === 'Error') return 'bad';
+		if (text === 'Error' || text === 'Rejected') return 'bad';
 		if (text === 'Completed') return 'good';
-		if (text === 'Unknown') return 'warn';
-		if (text === 'Scheduled' || text === 'Draft') return 'note';
+		if (text === 'Unknown') return 'warning';
+		if (text === 'Scheduled' || text === 'Draft' || text === 'Pending approval') return 'note';
 		return '';
 	});
 
+	watch(
+		() => props.open,
+		async (isOpen) => {
+			await nextTick();
+			if (isOpen) {
+				refetchMessage.value = '';
+				refetchMessageType.value = 'note';
+				if (dlg.value && !dlg.value.open) {
+					dlg.value.showModal();
+				}
+				return;
+			}
+			if (dlg.value?.open) {
+				closingFromParent.value = true;
+				dlg.value.close();
+			}
+		},
+	);
+
 	function close() {
+		dlg.value?.close();
+	}
+
+	function onDialogClose() {
+		refetchMessage.value = '';
+		if (closingFromParent.value) {
+			closingFromParent.value = false;
+			return;
+		}
 		emit('close');
+	}
+
+	function onBackdropClick(event) {
+		if (event.target === dlg.value) {
+			close();
+		}
 	}
 
 	function viewDetails() {
@@ -198,138 +269,3 @@
 		}
 	}
 </script>
-
-<style scoped>
-.id-value {
-	font-family: monospace;
-	background-color: var(--bg-secondary, #f5f5f5);
-	padding: 0.125rem 0.375rem;
-	border-radius: 0.25rem;
-	word-break: break-all;
-	overflow-wrap: break-word;
-}
-
-.remote-id {
-	font-size: 0.75rem;
-}
-
-.refetch-message {
-	margin: 1rem 0 0;
-	font-size: 0.875rem;
-}
-
-.refetch-message.good {
-	color: var(--good-color, #2e7d32);
-}
-
-.refetch-message.error {
-	color: var(--error-color, #c62828);
-}
-
-.refetch-message.note {
-	color: var(--text-secondary, #666);
-}
-
-.annotation {
-	display: inline-block;
-	padding: 0.25rem 0.5rem;
-	border-radius: 0.25rem;
-	font-size: 0.875rem;
-	font-weight: 500;
-	text-align: center;
-	min-width: 60px;
-}
-
-.annotation.warn {
-	background-color: #fff3cd;
-	color: #856404;
-	border: 1px solid #ffeaa7;
-}
-
-.annotation.bad {
-	background-color: #f8d7da;
-	color: #721c24;
-	border: 1px solid #f5c6cb;
-}
-
-.annotation.good {
-	background-color: #d4edda;
-	color: #155724;
-	border: 1px solid #c3e6cb;
-}
-
-.annotation.note {
-	background-color: #fff3cd;
-	color: #856404;
-	border: 1px solid #ffeaa7;
-}
-
-.modal-overlay {
-	position: fixed;
-	top: 0;
-	left: 0;
-	width: 100%;
-	height: 100%;
-	background-color: rgba(0, 0, 0, 0.5);
-	display: flex;
-	justify-content: center;
-	align-items: center;
-	z-index: 1000;
-}
-
-.modal {
-	background: white;
-	padding: 2rem;
-	border-radius: 0.5rem;
-	box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-	min-width: 400px;
-	max-width: 500px;
-}
-
-.modal h3 {
-	margin: 0 0 1rem 0;
-	color: #333;
-}
-
-.dialog-actions {
-	display: flex;
-	gap: 0.5rem;
-	justify-content: flex-end;
-	margin-top: 1.5rem;
-}
-
-.dialog-actions button {
-	padding: 0.5rem 1rem;
-	border-radius: 0.25rem;
-	border: none;
-	cursor: pointer;
-	font-size: 0.9rem;
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	transition: all 0.2s ease;
-}
-
-.dialog-actions button:disabled {
-	opacity: 0.6;
-	cursor: not-allowed;
-}
-
-.dialog-actions button.neutral {
-	background-color: #f0f0f0;
-	color: #333;
-}
-
-.dialog-actions button.neutral:hover:not(:disabled) {
-	background-color: #e0e0e0;
-}
-
-.dialog-actions button.good {
-	background-color: #4caf50;
-	color: white;
-}
-
-.dialog-actions button.good:hover:not(:disabled) {
-	background-color: #43a047;
-}
-</style>

@@ -2,12 +2,23 @@
 	<Section
 		title="Chat Bots"
 		subtitle="Configured chat bots and their connection status."
+		:icon="Robot01Icon"
 		classes="chat-bots"
 	>
 		<template #toolbar>
-			<router-link :to="{ name: 'createChatBot' }" class="button good">
-				<Icon icon="mdi:plus" />
-				Add chat bot
+			<router-link
+				:to="{ name: 'createChatBot' }"
+				class="button inline-icon good"
+				title="Add chat bot"
+			>
+				<HugeiconsIcon
+					:icon="Add01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Add chat bot</span>
 			</router-link>
 		</template>
 
@@ -31,15 +42,17 @@
 <script setup>
 	import { ref, onMounted, nextTick, watch } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
 	import { useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
-	import { Robot01Icon, TelegramIcon, DiscordIcon } from '@hugeicons/core-free-icons';
+	import { Add01Icon, DiscordIcon, Robot01Icon, TelegramIcon } from '@hugeicons/core-free-icons';
 
 	const router = useRouter();
+	const iconStrokeWidth = 2.5;
 	const bots = ref([]);
 	const loading = ref(true);
 	const localNavigation = ref(null);

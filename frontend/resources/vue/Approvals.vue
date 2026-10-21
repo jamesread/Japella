@@ -2,6 +2,7 @@
 	<Section
 		title="Approvals"
 		subtitle="Review posts waiting for approval. Open a post to edit content before approving; approve only when you are the current-stage assignee (and not the submitter)."
+		:icon="SecurityValidationIcon"
 		classes="approvals"
 		:padding="false"
 	>
@@ -213,6 +214,7 @@ import {
 	CheckmarkCircle01Icon,
 	EditIcon,
 	Loading01Icon,
+	SecurityValidationIcon,
 } from '@hugeicons/core-free-icons';
 import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';

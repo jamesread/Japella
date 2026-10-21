@@ -2,6 +2,7 @@
 	<Section
 		title="Browser Diagnostics"
 		subtitle="Browser and client environment information for troubleshooting"
+		:icon="BrowserIcon"
 		classes="browser-diagnostics"
 	>
 		<template #toolbar>
@@ -28,6 +29,7 @@
 <script setup>
 	import { ref, onMounted, nextTick } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import { BrowserIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ReadOnlyTextArea from 'picocrank/vue/components/ReadOnlyTextArea.vue';

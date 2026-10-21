@@ -2,6 +2,7 @@
 	<Section
 		title="Timeline"
 		subtitle="This shows the latest posts from your social accounts."
+		:icon="ClockIcon"
 		classes="timeline"
 		:padding="false"
 	>
@@ -150,6 +151,7 @@
 	import { waitForClient } from '../javascript/util';
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import {
+		ClockIcon,
 		FilterRemoveIcon,
 		Loading01Icon,
 		RefreshIcon,

@@ -2,6 +2,7 @@
 	<Section
 		title="Canned Posts"
 		subtitle="Manage your canned posts here. You can create, edit, and delete canned posts."
+		:icon="PackageIcon"
 		classes="canned-posts"
 		:padding="false"
 	>
@@ -108,6 +109,7 @@
 
 <script setup>
 	import { Icon } from '@iconify/vue';
+	import { PackageIcon } from '@hugeicons/core-free-icons';
 	import { ref, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';

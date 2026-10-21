@@ -57,6 +57,7 @@ func TestTimelineStatusToFeedPostReblog(t *testing.T) {
 			Account: TimelineAccount{
 				ID:       "999",
 				Username: "neil",
+				Avatar:   "https://other.social/neil.jpg",
 			},
 		},
 	}
@@ -74,6 +75,15 @@ func TestTimelineStatusToFeedPostReblog(t *testing.T) {
 	}
 	if post.Content != "<p>Original post</p>" {
 		t.Fatalf("content = %q", post.Content)
+	}
+	if post.OriginalAuthorID != "999" {
+		t.Fatalf("original author id = %q", post.OriginalAuthorID)
+	}
+	if post.OriginalAuthorName != "neil" {
+		t.Fatalf("original author name = %q", post.OriginalAuthorName)
+	}
+	if post.OriginalAuthorAvatarURL != "https://other.social/neil.jpg" {
+		t.Fatalf("original author avatar = %q", post.OriginalAuthorAvatarURL)
 	}
 
 	var parsed map[string]string

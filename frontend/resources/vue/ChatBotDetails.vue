@@ -2,33 +2,52 @@
 	<Section
 		:title="bot?.name || 'Chat Bot'"
 		:subtitle="bot ? `${bot.connector} · ${bot.botId}` : 'Loading bot details'"
+		:icon="Robot01Icon"
 		classes="chat-bot-details"
 	>
 		<template #toolbar>
+			<router-link :to="{ name: 'chatBots' }" class="button inline-icon neutral">
+				<HugeiconsIcon
+					:icon="ArrowLeft01Icon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>All chat bots</span>
+			</router-link>
 			<button
 				v-if="bot && !bot.isRunning"
 				type="button"
-				class="button good"
+				class="inline-icon good"
 				:disabled="actionLoading"
 				@click="startBot"
 			>
-				<Icon icon="mdi:play" />
-				Start bot
+				<HugeiconsIcon
+					:icon="PlayIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Start bot</span>
 			</button>
 			<button
 				v-if="bot && bot.isRunning"
 				type="button"
-				class="button warning"
+				class="inline-icon warning"
 				:disabled="actionLoading"
 				@click="stopBot"
 			>
-				<Icon icon="mdi:stop" />
-				Stop bot
+				<HugeiconsIcon
+					:icon="StopIcon"
+					width="1em"
+					height="1em"
+					:strokeWidth="iconStrokeWidth"
+					aria-hidden="true"
+				/>
+				<span>Stop bot</span>
 			</button>
-			<router-link :to="{ name: 'chatBots' }" class="button neutral">
-				<Icon icon="mdi:robot-outline" />
-				All chat bots
-			</router-link>
 		</template>
 
 		<div v-if="!clientReady || loading">
@@ -173,18 +192,24 @@
 	import { ref, computed, onMounted, watch, nextTick } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
+	import { HugeiconsIcon } from '@hugeicons/vue';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
 	import {
+		ArrowLeft01Icon,
 		MessageMultiple01Icon,
+		PlayIcon,
+		Robot01Icon,
+		StopIcon,
 		WebhookIcon,
 	} from '@hugeicons/core-free-icons';
 
 	const route = useRoute();
 	const router = useRouter();
+	const iconStrokeWidth = 2.5;
 
 	const clientReady = ref(false)
 	const loading = ref(true)

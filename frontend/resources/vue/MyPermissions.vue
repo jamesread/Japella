@@ -2,6 +2,7 @@
 	<Section
 		title="My Permissions"
 		subtitle="Review your group membership and effective permissions"
+		:icon="WebSecurityIcon"
 		classes="my-permissions"
 	>
 		<template #toolbar>
@@ -86,7 +87,7 @@
 	import { ref, computed, onMounted } from 'vue';
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, RefreshIcon, WebSecurityIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';

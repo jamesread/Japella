@@ -403,6 +403,12 @@ func timelineStatusToFeedPost(status TimelineStatus) (*connector.FeedPost, bool)
 		RemoteID:        remoteID,
 	}
 
+	if status.Reblog != nil {
+		feedPost.OriginalAuthorID = status.Reblog.Account.ID
+		feedPost.OriginalAuthorName = status.Reblog.Account.Username
+		feedPost.OriginalAuthorAvatarURL = status.Reblog.Account.Avatar
+	}
+
 	if card != nil {
 		feedPost.PreviewURL = card.URL
 		feedPost.PreviewTitle = card.Title

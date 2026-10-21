@@ -2,6 +2,7 @@
 	<Section
 		:title="pageTitle"
 		subtitle="Assign groups to control this user's access. Roles and permissions are inherited from group membership."
+		:icon="WebSecurityIcon"
 		classes="user-details-roles"
 	>
 		<template #toolbar>
@@ -128,7 +129,7 @@
 	import { useRoute } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon, RefreshIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, RefreshIcon, UserGroupIcon, WebSecurityIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';

@@ -27,6 +27,7 @@
 			:key="session.toolId"
 			:title="session.toolName || 'LLM tool run'"
 			:subtitle="sessionSubtitle(session)"
+			:icon="AiChat02Icon"
 			:classes="flush ? 'llm-tool-run' : 'llm-tool-run small'"
 		>
 			<template #toolbar>
@@ -92,6 +93,7 @@
 <script setup>
 	import { ref, watch, onMounted, reactive } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import { AiChat02Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 

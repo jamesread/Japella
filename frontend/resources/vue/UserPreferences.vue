@@ -2,6 +2,7 @@
 	<Section
 		title="User Preferences"
 		subtitle="Personal settings for your account"
+		:icon="Settings01Icon"
 		classes="user-preferences"
 	>
 		<template #toolbar>
@@ -103,7 +104,7 @@
 				Theme name is set by the administrator ({{ adminThemeName }}).
 			</p>
 
-			<NotificationBlock v-if="saveMessage" :type="saveMessageType" :message="saveMessage" />
+			<NotificationBlock v-if="saveError" type="error" :message="saveError" />
 
 			<template #actions>
 				<button type="submit" class="good" :disabled="saving || !dirty">
@@ -118,13 +119,14 @@
 	import { ref, computed, onMounted, inject } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, RefreshIcon, Settings01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import FormField from 'picocrank/vue/components/FormField.vue';
 	import RadioGroup from 'picocrank/vue/components/RadioGroup.vue';
 	import { waitForClient } from '../javascript/util';
+	import { showNotification } from '../javascript/notifications.js';
 	import { applyUserLanguage, applyUserSidebar } from '../javascript/userPreferences.js';
 	import { themeControlFromFeatures, ThemeControlUser } from '../javascript/applyAppTheming.js';
 	import { useTheme, useCustomTheme } from '../javascript/theme.js';
@@ -138,8 +140,7 @@
 	const loading = ref(true);
 	const saving = ref(false);
 	const errorMessage = ref('');
-	const saveMessage = ref('');
-	const saveMessageType = ref('');
+	const saveError = ref('');
 	const language = ref('');
 	const savedLanguage = ref('');
 	const sidebarEnabled = ref(true);
@@ -192,7 +193,7 @@
 	async function load() {
 		loading.value = true;
 		errorMessage.value = '';
-		saveMessage.value = '';
+		saveError.value = '';
 		try {
 			await waitForClient();
 			const res = await window.client.getUserPreferences({});
@@ -214,7 +215,7 @@
 			return;
 		}
 		saving.value = true;
-		saveMessage.value = '';
+		saveError.value = '';
 		try {
 			await waitForClient();
 			const res = await window.client.saveUserPreferences({
@@ -228,12 +229,14 @@
 			savedSidebarEnabled.value = sidebarEnabled.value;
 			applyUserLanguage(locale, fallbackLocale.value, language.value);
 			applyUserSidebar(sidebarEnabled.value);
-			saveMessageType.value = 'note';
-			saveMessage.value = res.standardResponse.message || 'Preferences saved.';
+			showNotification(
+				'success',
+				'Preferences saved',
+				res.standardResponse.message || 'Preferences saved successfully.',
+			);
 		} catch (e) {
 			console.error(e);
-			saveMessageType.value = 'error';
-			saveMessage.value = e.message || 'Failed to save preferences.';
+			saveError.value = e.message || 'Failed to save preferences.';
 		} finally {
 			saving.value = false;
 		}

@@ -1,14 +1,10 @@
 <template>
 	<Section
+		:title="group?.name || 'User group'"
 		subtitle="Group overview."
+		:icon="UserGroupIcon"
 		classes="user-group-details"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="UserGroupIcon" width="22" height="22" aria-hidden="true" />
-				{{ group?.name || 'User group' }}
-			</span>
-		</template>
 		<template #toolbar>
 			<router-link :to="{ name: 'userGroups' }" class="button inline-icon neutral">
 				<HugeiconsIcon
@@ -61,16 +57,12 @@
 
 	<Section
 		v-if="!loading && group && canViewRoles"
+		title="RBAC roles"
 		subtitle="Members of this group inherit these roles and their permissions."
+		:icon="WebSecurityIcon"
 		classes="user-group-details-roles settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="WebSecurityIcon" width="22" height="22" aria-hidden="true" />
-				RBAC roles
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -162,15 +154,11 @@
 
 	<Section
 		v-if="!loading && group"
+		title="Shared social accounts"
 		subtitle="Social accounts shared with this group. Members inherit the listed permissions."
+		:icon="LinkSquare01Icon"
 		classes="user-group-details-shared-accounts"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="LinkSquare01Icon" width="22" height="22" aria-hidden="true" />
-				Shared social accounts
-			</span>
-		</template>
 		<NotificationBlock
 			v-if="!sharedAccounts.length"
 			type="note"
@@ -231,16 +219,12 @@
 
 	<Section
 		v-if="!loading && group"
+		title="Members"
 		subtitle="Users who belong to this group."
+		:icon="UserMultiple02Icon"
 		classes="user-group-details-members settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="UserMultiple02Icon" width="22" height="22" aria-hidden="true" />
-				Members
-			</span>
-		</template>
 		<template #toolbar>
 			<button
 				type="button"
@@ -712,12 +696,6 @@
 		margin: 0;
 	}
 
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 	.members-table-wrap,
 	.roles-table-wrap {

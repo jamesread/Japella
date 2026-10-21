@@ -2,6 +2,7 @@
 	<Section
 		:title="user?.username || 'User'"
 		subtitle="Account details for this user"
+		:icon="UserIcon"
 		classes="user-details"
 	>
 		<template #toolbar>
@@ -82,16 +83,12 @@
 
 	<Section
 		v-if="canViewGroups && !loading && user"
+		:title="`User group membership for ${user.username}`"
 		subtitle="Groups this user belongs to. Group membership controls inherited roles and permissions."
+		:icon="UserGroupIcon"
 		classes="user-details-groups settings-users"
 		:padding="memberGroups.length === 0"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="UserGroupIcon" width="22" height="22" aria-hidden="true" />
-				User group membership for {{ user.username }}
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -195,6 +192,7 @@
 		LoginSquare01Icon,
 		RefreshIcon,
 		UserGroupIcon,
+		UserIcon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
@@ -550,12 +548,6 @@
 		font-weight: 600;
 	}
 
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 	.list-banner-pad {
 		padding-left: 1em;

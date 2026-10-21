@@ -1323,7 +1323,7 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) (inserted bool, err error) {
 		return false, nil
 	}
 
-	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, author_avatar_url, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :author_avatar_url, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, NOW(), NOW())`, feedEntry)
+	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, author_avatar_url, original_author_id, original_author_name, original_author_avatar_url, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :author_avatar_url, :original_author_id, :original_author_name, :original_author_avatar_url, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, NOW(), NOW())`, feedEntry)
 
 	if err != nil {
 		// MySQL error code 1062 is ER_DUP_ENTRY
@@ -1339,7 +1339,7 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) (inserted bool, err error) {
 
 func (db *DB) SelectFeedEntries() ([]*Feed, error) {
 	ret := make([]*Feed, 0)
-	err := db.ResilientSelect(&ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
+	err := db.ResilientSelect(&ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.original_author_id, f.original_author_name, f.original_author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select feed entries: %v", err)
 		return nil, err
@@ -1349,7 +1349,7 @@ func (db *DB) SelectFeedEntries() ([]*Feed, error) {
 
 func (db *DB) GetFeedEntryByID(id uint32) (*Feed, error) {
 	ret := &Feed{}
-	err := db.ResilientGet(ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id WHERE f.id = ?", id)
+	err := db.ResilientGet(ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.original_author_id, f.original_author_name, f.original_author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id WHERE f.id = ?", id)
 	if err != nil {
 		db.Logger().Errorf("Failed to get feed entry %d: %v", id, err)
 		return nil, err
@@ -1361,7 +1361,7 @@ func (db *DB) GetFeedEntryByID(id uint32) (*Feed, error) {
 }
 
 func (db *DB) UpdateFeedEntry(entry *Feed) error {
-	_, err := db.ResilientNamedExec(`UPDATE feed SET content = :content, posted_date = :posted_date, author_id = :author_id, author_name = :author_name, author_avatar_url = :author_avatar_url, remote_url = :remote_url, remote_id = :remote_id, preview_url = :preview_url, preview_title = :preview_title, preview_description = :preview_description, preview_image_url = :preview_image_url, updated_at = NOW() WHERE id = :id`, entry)
+	_, err := db.ResilientNamedExec(`UPDATE feed SET content = :content, posted_date = :posted_date, author_id = :author_id, author_name = :author_name, author_avatar_url = :author_avatar_url, original_author_id = :original_author_id, original_author_name = :original_author_name, original_author_avatar_url = :original_author_avatar_url, remote_url = :remote_url, remote_id = :remote_id, preview_url = :preview_url, preview_title = :preview_title, preview_description = :preview_description, preview_image_url = :preview_image_url, updated_at = NOW() WHERE id = :id`, entry)
 	if err != nil {
 		db.Logger().Errorf("Failed to update feed entry %d: %v", entry.ID, err)
 		return err

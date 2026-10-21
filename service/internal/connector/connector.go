@@ -104,17 +104,20 @@ type UnregisteredConnector struct {
 }
 
 type FeedPost struct {
-	Content            string
-	PostedDate         time.Time
-	AuthorID           string
-	AuthorName         string
-	AuthorAvatarURL    string
-	RemoteURL          string
-	RemoteID           string
-	PreviewURL         string
-	PreviewTitle       string
-	PreviewDescription string
-	PreviewImageURL    string
+	Content                 string
+	PostedDate              time.Time
+	AuthorID                string
+	AuthorName              string
+	AuthorAvatarURL         string
+	OriginalAuthorID        string
+	OriginalAuthorName      string
+	OriginalAuthorAvatarURL string
+	RemoteURL               string
+	RemoteID                string
+	PreviewURL              string
+	PreviewTitle            string
+	PreviewDescription      string
+	PreviewImageURL         string
 }
 
 type SocialAccount struct {

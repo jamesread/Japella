@@ -291,6 +291,9 @@ message FeedPost {
 	string preview_description = 13;
 	string preview_image_url = 14;
 	string social_account_connector = 16;
+	string original_author_id = 17;
+	string original_author_name = 18;
+	string original_author_avatar_url = 19;
 }
 
 message SetSocialAccountActiveRequest {

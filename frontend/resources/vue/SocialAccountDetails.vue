@@ -2,6 +2,7 @@
 	<Section
 		:title="account?.identity || 'Social Account'"
 		:subtitle="account ? account.connector : 'Loading account details'"
+		:icon="UserMultiple03Icon"
 		classes="social-account-details"
 		:padding="false"
 	>
@@ -77,6 +78,7 @@
 		v-if="!loading && account && account.canManage"
 		title="Account Actions"
 		subtitle="Manage this social account"
+		:icon="Settings01Icon"
 	>
 		<div class="action-item">
 			<div class="action-description">
@@ -129,6 +131,7 @@
 		v-if="!loading && account && account.canManage"
 		title="Keyword Watch"
 		subtitle="Monitor the network for keywords using this account's access. Matches emit the keyword.matched webhook. Posts older than the watch creation time are recorded without notifying."
+		:icon="SearchList01Icon"
 		classes="keyword-watches"
 	>
 		<dl v-if="watchCapabilities" class="watch-capabilities">
@@ -242,6 +245,7 @@
 		v-if="!loading && account"
 		title="Recent logs"
 		subtitle="The 5 most recent application events for this social account"
+		:icon="ActivityIcon"
 		classes="social-account-logs"
 		:padding="false"
 	>
@@ -291,16 +295,12 @@
 
 	<Section
 		v-if="!loading && account && canManageSharing"
+		title="Sharing"
 		subtitle="Grant read, post, or manage access to user groups; members of those groups inherit the permissions"
+		:icon="UserGroupIcon"
 		classes="social-account-sharing"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="UserGroupIcon" width="22" height="22" aria-hidden="true" />
-				Sharing
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -434,14 +434,18 @@
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
 	import {
+		ActivityIcon,
 		Add01Icon,
 		Delete02Icon,
 		LinkSquare01Icon,
 		RefreshIcon,
 		SaveIcon,
+		SearchList01Icon,
+		Settings01Icon,
 		ToggleOffIcon,
 		ToggleOnIcon,
 		UserGroupIcon,
+		UserMultiple03Icon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
@@ -1006,12 +1010,6 @@ async function toggleActive() {
 		text-align: center;
 	}
 
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 	.shares-table-wrap {
 		margin-top: 0.5rem;

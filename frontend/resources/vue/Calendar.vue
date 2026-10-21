@@ -2,6 +2,7 @@
 	<Section
 		title="Calendar"
 		subtitle="This page shows a calendar for the current month."
+		:icon="CalendarIcon"
 		classes="calendar"
 		:padding="false"
 	>
@@ -43,7 +44,7 @@
     import { ref, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { RefreshIcon } from '@hugeicons/core-free-icons';
+	import { CalendarIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Calendar from 'picocrank/vue/components/Calendar.vue';

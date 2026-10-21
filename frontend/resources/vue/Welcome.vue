@@ -4,6 +4,7 @@
 			<Section
 				title="Welcome"
 				:subtitle="t('welcome.tagline')"
+				:icon="HomeIcon"
 				classes="welcome-hero"
 				id="welcome-hero"
 			>
@@ -26,6 +27,7 @@
 				:key="section.name"
 				:title="sectionTitle(section.name)"
 				:subtitle="sectionSubtitle(section.name)"
+				:icon="sectionIcon(section.name)"
 				classes="welcome-nav-section"
 			>
 				<NavigationGrid :filter="sectionFilters[section.name]" />
@@ -39,7 +41,12 @@
 	import { useRouter } from 'vue-router';
 	import { useI18n } from 'vue-i18n';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { EditIcon } from '@hugeicons/core-free-icons';
+	import {
+		BookOpen01Icon,
+		EditIcon,
+		HomeIcon,
+		Settings01Icon,
+	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';
 	import NavigationGrid from 'picocrank/vue/components/NavigationGrid.vue';
@@ -58,6 +65,12 @@
 	const iconStrokeWidth = 2.5;
 	const welcomeNav = ref(null);
 	const navSections = SIDEBAR_NAV_SECTIONS;
+
+	const sectionIcons = {
+		'nav-write': EditIcon,
+		'nav-read': BookOpen01Icon,
+		'nav-settings': Settings01Icon,
+	};
 
 	const sectionFilters = Object.fromEntries(
 		SIDEBAR_NAV_SECTIONS.map((section) => [section.name, createSectionLinkFilter(section)]),
@@ -94,6 +107,10 @@
 			'nav-settings': t('welcome.section.settings.subtitle'),
 		};
 		return subtitles[sectionName] || '';
+	}
+
+	function sectionIcon(sectionName) {
+		return sectionIcons[sectionName] || null;
 	}
 
 	function goToPost() {

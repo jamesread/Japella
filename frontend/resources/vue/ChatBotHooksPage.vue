@@ -2,6 +2,7 @@
 	<Section
 		title="Incoming message hooks"
 		:subtitle="bot ? `${bot.name} · ${bot.connector} · ${bot.botId}` : 'Webhook URLs for this bot'"
+		:icon="WebhookIcon"
 		classes="chat-bot-hooks-page"
 	>
 		<template #toolbar>
@@ -83,6 +84,7 @@
 	import { computed, ref, onMounted } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { Icon } from '@iconify/vue';
+	import { WebhookIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';

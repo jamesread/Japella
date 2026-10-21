@@ -2,6 +2,7 @@
 	<Section
 		:title="connector?.name || 'Connector'"
 		:subtitle="connector ? connector.protocol : 'Loading connector…'"
+		:icon="Plug01Icon"
 		classes="social-account-pre-add"
 	>
 		<template #toolbar>
@@ -92,6 +93,7 @@
 		v-if="connector && !loading"
 		title="Connect Account"
 		subtitle="Sign in to link this connector to Japella."
+		:icon="LoginSquare01Icon"
 	>
 		<NotificationBlock
 			v-if="isUnregistered"
@@ -188,7 +190,7 @@
 	import { ref, computed, onMounted } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon, Book01Icon, Loading01Icon, Login01Icon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, Book01Icon, Loading01Icon, Login01Icon, LoginSquare01Icon, Plug01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ConnectorConfigurationIssues from './ConnectorConfigurationIssues.vue';

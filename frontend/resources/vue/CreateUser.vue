@@ -2,6 +2,7 @@
 	<Section
 		title="Create user"
 		subtitle="Create a new user account. Password is optional; without one the user cannot log in interactively."
+		:icon="UserAdd01Icon"
 		classes="create-user"
 	>
 		<template #toolbar>

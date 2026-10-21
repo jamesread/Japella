@@ -2,6 +2,7 @@
 	<Section
 		title="Connectors"
 		subtitle="Connectors currently started by the server."
+		:icon="Plug01Icon"
 		classes="connectors"
 	>
 		<template #toolbar>
@@ -47,6 +48,7 @@
 <script setup>
 	import { ref, computed, onMounted } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import { Plug01Icon } from '@hugeicons/core-free-icons';
 	import { waitForClient, normalizeConnectorIssues } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';

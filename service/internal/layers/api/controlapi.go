@@ -340,18 +340,21 @@ func (s *ControlApi) processFeedFetching() {
 				// Insert posts into feed table
 				for _, post := range posts {
 					feedEntry := &db.Feed{
-						SocialAccountID:    sa.ID,
-						Content:            post.Content,
-						PostedDate:         post.PostedDate,
-						AuthorID:           post.AuthorID,
-						AuthorName:         post.AuthorName,
-						AuthorAvatarURL:    post.AuthorAvatarURL,
-						RemoteURL:          post.RemoteURL,
-						RemoteID:           post.RemoteID,
-						PreviewURL:         post.PreviewURL,
-						PreviewTitle:       post.PreviewTitle,
-						PreviewDescription: post.PreviewDescription,
-						PreviewImageURL:    post.PreviewImageURL,
+						SocialAccountID:         sa.ID,
+						Content:                 post.Content,
+						PostedDate:              post.PostedDate,
+						AuthorID:                post.AuthorID,
+						AuthorName:              post.AuthorName,
+						AuthorAvatarURL:         post.AuthorAvatarURL,
+						OriginalAuthorID:        post.OriginalAuthorID,
+						OriginalAuthorName:      post.OriginalAuthorName,
+						OriginalAuthorAvatarURL: post.OriginalAuthorAvatarURL,
+						RemoteURL:               post.RemoteURL,
+						RemoteID:                post.RemoteID,
+						PreviewURL:              post.PreviewURL,
+						PreviewTitle:            post.PreviewTitle,
+						PreviewDescription:      post.PreviewDescription,
+						PreviewImageURL:         post.PreviewImageURL,
 					}
 
 					inserted, err := s.DB.InsertFeedEntry(feedEntry)
@@ -1708,22 +1711,25 @@ func (s *ControlApi) feedEntryToProto(entry *db.Feed) *controlv1.FeedPost {
 	}
 
 	return &controlv1.FeedPost{
-		Id:                    entry.ID,
-		SocialAccountId:       entry.SocialAccountID,
-		SocialAccountIcon:     socialAccountIcon,
-		SocialAccountIdentity: socialAccountIdentity,
-		SocialAccountConnector: entry.SocialAccountConnector,
-		Content:               entry.Content,
-		PostedDate:            entry.PostedDate.Format("2006-01-02 15:04:05"),
-		AuthorId:              entry.AuthorID,
-		AuthorName:            entry.AuthorName,
-		AuthorAvatarUrl:       entry.AuthorAvatarURL,
-		RemoteUrl:             entry.RemoteURL,
-		RemoteId:              entry.RemoteID,
-		PreviewUrl:            entry.PreviewURL,
-		PreviewTitle:          entry.PreviewTitle,
-		PreviewDescription:    entry.PreviewDescription,
-		PreviewImageUrl:       entry.PreviewImageURL,
+		Id:                      entry.ID,
+		SocialAccountId:         entry.SocialAccountID,
+		SocialAccountIcon:       socialAccountIcon,
+		SocialAccountIdentity:   socialAccountIdentity,
+		SocialAccountConnector:  entry.SocialAccountConnector,
+		Content:                 entry.Content,
+		PostedDate:              entry.PostedDate.Format("2006-01-02 15:04:05"),
+		AuthorId:                entry.AuthorID,
+		AuthorName:              entry.AuthorName,
+		AuthorAvatarUrl:         entry.AuthorAvatarURL,
+		OriginalAuthorId:        entry.OriginalAuthorID,
+		OriginalAuthorName:      entry.OriginalAuthorName,
+		OriginalAuthorAvatarUrl: entry.OriginalAuthorAvatarURL,
+		RemoteUrl:               entry.RemoteURL,
+		RemoteId:                entry.RemoteID,
+		PreviewUrl:              entry.PreviewURL,
+		PreviewTitle:            entry.PreviewTitle,
+		PreviewDescription:      entry.PreviewDescription,
+		PreviewImageUrl:         entry.PreviewImageURL,
 	}
 }
 
@@ -1782,6 +1788,9 @@ func (s *ControlApi) RefetchFeedPost(ctx context.Context, req *connect.Request[c
 	entry.AuthorID = fetched.AuthorID
 	entry.AuthorName = fetched.AuthorName
 	entry.AuthorAvatarURL = fetched.AuthorAvatarURL
+	entry.OriginalAuthorID = fetched.OriginalAuthorID
+	entry.OriginalAuthorName = fetched.OriginalAuthorName
+	entry.OriginalAuthorAvatarURL = fetched.OriginalAuthorAvatarURL
 	entry.RemoteURL = fetched.RemoteURL
 	entry.RemoteID = fetched.RemoteID
 	entry.PreviewURL = fetched.PreviewURL

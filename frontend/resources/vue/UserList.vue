@@ -1,15 +1,11 @@
 <template>
 	<Section
+		title="Users"
 		subtitle="View users, create new accounts, or remove users you no longer need. You cannot delete your own account while signed in."
+		:icon="UserMultiple02Icon"
 		classes="user-list settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="UserMultiple02Icon" width="22" height="22" aria-hidden="true" />
-				Users
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -201,12 +197,6 @@
 </script>
 
 <style scoped>
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 
 	.user-table-wrap {

@@ -2,6 +2,7 @@
 	<Section
 		title="Conversations"
 		:subtitle="bot ? `${bot.name} · ${bot.connector} · ${bot.botId}` : 'Chat bot messages'"
+		:icon="MessageMultiple01Icon"
 		classes="chat-bot-conversations-page"
 	>
 		<template #toolbar>
@@ -38,6 +39,7 @@
 	import { computed, ref, onMounted } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { Icon } from '@iconify/vue';
+	import { MessageMultiple01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ChatBotConversations from './ChatBotConversations.vue';

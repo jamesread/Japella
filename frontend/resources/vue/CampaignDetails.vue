@@ -1,39 +1,24 @@
 <template>
 	<Section
 		subtitle="View and manage a single campaign"
+		:icon="VolumeUpIcon"
 		classes="campaign-details"
 	>
 		<template #title>
-			<span v-if="!editingCampaign" class="section-title-with-icon">
-				<HugeiconsIcon
-					:icon="VolumeUpIcon"
-					width="22"
-					height="22"
-					:strokeWidth="iconStrokeWidth"
-					aria-hidden="true"
-				/>
-				<span class="campaign-title">
-					{{ campaignTitle }}
-					<button
-						v-if="campaign"
-						type="button"
-						@click="startEditingCampaign"
-						class="neutral small"
-						title="Edit campaign name"
-					>
-						<Icon icon="mdi:pencil" />
-						Edit
-					</button>
-				</span>
+			<span v-if="!editingCampaign" class="campaign-title">
+				{{ campaignTitle }}
+				<button
+					v-if="campaign"
+					type="button"
+					@click="startEditingCampaign"
+					class="neutral small"
+					title="Edit campaign name"
+				>
+					<Icon icon="mdi:pencil" />
+					Edit
+				</button>
 			</span>
-			<span v-else class="section-title-with-icon campaign-edit">
-				<HugeiconsIcon
-					:icon="VolumeUpIcon"
-					width="22"
-					height="22"
-					:strokeWidth="iconStrokeWidth"
-					aria-hidden="true"
-				/>
+			<span v-else class="campaign-edit">
 				<input
 					v-model="editingName"
 					class="campaign-name-input"
@@ -351,12 +336,6 @@
 }
 
 /* Campaign title in section header */
-.section-title-with-icon {
-	display: inline-flex;
-	align-items: center;
-	gap: 0.45em;
-	vertical-align: middle;
-}
 
 .campaign-title {
 	display: inline-flex;

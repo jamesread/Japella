@@ -28,16 +28,12 @@
 	</dialog>
 
 	<Section
+		title="User Groups"
 		subtitle="Manage user groups and their membership. Groups let you organise users for easier administration."
+		:icon="UserGroupIcon"
 		classes="user-groups settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="UserGroupIcon" width="22" height="22" aria-hidden="true" />
-				User Groups
-			</span>
-		</template>
 		<template #toolbar>
 			<button
 				type="button"
@@ -270,12 +266,6 @@
 </script>
 
 <style scoped>
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 
 	.user-table-wrap {

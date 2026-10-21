@@ -26,7 +26,7 @@ func (a WaLogAdaptor) Infof(msg string, args ...any) {
 }
 
 func (a WaLogAdaptor) Sub(module string) walog.Logger {
-	a.Logger.Infof("sub: " + module)
+	a.Logger.Infof("sub: %s", module)
 
 	return a
 }

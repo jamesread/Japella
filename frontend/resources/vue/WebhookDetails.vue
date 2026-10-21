@@ -57,13 +57,12 @@
 	</dialog>
 
 	<Section
+		:title="pageTitle"
 		subtitle="Outbound event webhook destination and delivery history"
+		:icon="WebhookIcon"
 		classes="webhook-details"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">{{ pageTitle }}</span>
-		</template>
 		<template #toolbar>
 			<router-link :to="{ name: 'adminWebhooks' }" class="button inline-icon neutral">
 				<HugeiconsIcon
@@ -139,6 +138,7 @@
 		v-if="webhook"
 		title="Delivery logs"
 		subtitle="Recent outbound delivery attempts for this webhook"
+		:icon="ActivityIcon"
 		classes="webhook-delivery-logs"
 		:padding="false"
 	>
@@ -199,7 +199,7 @@
 	import { useRoute, useRouter } from 'vue-router';
 	import { waitForClient } from '../javascript/util';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+	import { ActivityIcon, ArrowLeft01Icon, RefreshIcon, WebhookIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import DangerZone from 'picocrank/vue/components/DangerZone.vue';

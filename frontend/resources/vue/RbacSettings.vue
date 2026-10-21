@@ -2,16 +2,12 @@
 	<CreateRbacRole ref="createRoleDialog" :permissions="permissions" @created="onRoleCreated" />
 
 	<Section
+		title="Roles & Permissions"
 		subtitle="Manage RBAC roles, link them to permissions, and assign roles to user groups. Superuser has all permissions."
+		:icon="WebSecurityIcon"
 		classes="rbac-settings settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="WebSecurityIcon" width="22" height="22" aria-hidden="true" />
-				Roles &amp; Permissions
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -256,12 +252,6 @@
 </script>
 
 <style scoped>
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 
 	.roles-table-wrap {

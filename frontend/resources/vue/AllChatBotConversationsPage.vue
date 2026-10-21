@@ -2,6 +2,7 @@
 	<Section
 		title="Conversations"
 		subtitle="Message threads across all configured chat bots"
+		:icon="MessageMultiple01Icon"
 		classes="all-chat-bot-conversations-page"
 	>
 		<div v-if="!clientReady || loading">
@@ -19,6 +20,7 @@
 
 <script setup>
 	import { ref, onMounted } from 'vue';
+	import { MessageMultiple01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { waitForClient } from '../javascript/util';

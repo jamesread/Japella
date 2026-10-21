@@ -2,6 +2,7 @@
 	<Section
 		:title="role?.name || 'Role'"
 		subtitle="View and edit permissions granted by this role."
+		:icon="WebSecurityIcon"
 		classes="role-details"
 	>
 		<template #toolbar>
@@ -140,16 +141,12 @@
 
 	<Section
 		v-if="!loading && role"
+		title="Groups with this role"
 		subtitle="User groups that assign this role. Add groups here or manage assignments on group detail pages."
+		:icon="UserGroupIcon"
 		classes="role-details-groups settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="UserGroupIcon" width="22" height="22" aria-hidden="true" />
-				Groups with this role
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -220,16 +217,12 @@
 
 	<Section
 		v-if="!loading && role"
+		title="Users via groups"
 		subtitle="Users who inherit this role through group membership."
+		:icon="UserMultiple02Icon"
 		classes="role-details-users settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="UserMultiple02Icon" width="22" height="22" aria-hidden="true" />
-				Users via groups
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -297,7 +290,7 @@
 	import { useRoute, useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon, Add01Icon, Delete02Icon, RefreshIcon, UserGroupIcon, UserMultiple02Icon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, Add01Icon, Delete02Icon, RefreshIcon, UserGroupIcon, UserMultiple02Icon, WebSecurityIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
@@ -613,12 +606,6 @@
 		opacity: 0.5;
 	}
 
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 	.groups-table-wrap,
 	.users-table-wrap {

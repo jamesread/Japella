@@ -2,6 +2,7 @@
 	<Section
 		title="System Diagnostics"
 		subtitle="System status and diagnostic information"
+		:icon="HardDriveIcon"
 		classes="system-diagnostics"
 	>
 		<template #toolbar>
@@ -50,7 +51,7 @@
 	import { ref, computed, onMounted, nextTick } from 'vue';
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { RefreshIcon } from '@hugeicons/core-free-icons';
+	import { HardDriveIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import ReadOnlyTextArea from 'picocrank/vue/components/ReadOnlyTextArea.vue';

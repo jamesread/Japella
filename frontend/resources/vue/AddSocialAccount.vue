@@ -2,6 +2,7 @@
 	<Section
 		title="Add Social Account"
 		subtitle="Connect a new social account by choosing a connector below."
+		:icon="UserAdd01Icon"
 		classes="add-social-account"
 	>
 		<template #toolbar>
@@ -51,7 +52,7 @@
 <script setup>
 	import { ref, onMounted } from 'vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, RefreshIcon, UserAdd01Icon } from '@hugeicons/core-free-icons';
 	import { waitForClient, normalizeConnectorIssues, connectorUsesOauth } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';

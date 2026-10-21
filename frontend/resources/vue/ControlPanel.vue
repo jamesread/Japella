@@ -3,6 +3,7 @@
 		v-if="canAccessControlPanel"
 		title="Control Panel"
 		subtitle="System administration and monitoring dashboard for Japella"
+		:icon="GridViewIcon"
 		classes="control-panel"
 	>
 		<template #toolbar>
@@ -44,6 +45,7 @@
 		v-if="canViewSystemDiagnostics"
 		title="System Diagnostics"
 		subtitle="System status and diagnostic information"
+		:icon="HardDriveIcon"
 		classes="system-diagnostics"
 	>
 		<div class="status-overview">
@@ -145,6 +147,7 @@
 		v-if="canLogs"
 		title="Background Jobs"
 		subtitle="Status and last run times for background jobs"
+		:icon="Time02Icon"
 		classes="background-jobs"
 		:padding="false"
 	>
@@ -221,6 +224,7 @@
 		AiBrain01Icon,
 		AiChat02Icon,
 		SecurityValidationIcon,
+		Time02Icon,
 	} from '@hugeicons/core-free-icons';
 
 	const clientReady = ref(false);

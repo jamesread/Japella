@@ -2,6 +2,7 @@
 	<Section
 		title="User Control Panel"
 		subtitle="Manage your account settings and preferences"
+		:icon="UserIcon"
 		classes="user-control-panel"
 	>
 		<template #toolbar>
@@ -60,6 +61,7 @@
 		v-if="!loading && userData"
 		title="Quick Actions"
 		subtitle="Quick navigation to common tasks"
+		:icon="FlashIcon"
 	>
 		<Navigation ref="localNavigation">
 			<NavigationGrid />
@@ -70,6 +72,7 @@
 		v-if="!loading && userData"
 		title="Session Management"
 		subtitle="Manage your current session"
+		:icon="Logout01Icon"
 	>
 		<div class="icon-and-text" style="align-items: center; justify-content: space-between;">
 			<div class="icon-and-text">
@@ -123,6 +126,8 @@
 		ActivityIcon,
 		WebSecurityIcon,
 		Settings01Icon,
+		UserIcon,
+		FlashIcon,
 	} from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';

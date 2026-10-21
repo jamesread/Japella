@@ -217,20 +217,23 @@ type Campaign struct {
 type Feed struct {
 	Model
 
-	SocialAccountID        uint32    `db:"social_account_id"`
-	Content                string    `db:"content"`
-	PostedDate             time.Time `db:"posted_date"`
-	AuthorID               string    `db:"author_id"`
-	AuthorName             string    `db:"author_name"`
-	AuthorAvatarURL        string    `db:"author_avatar_url"`
-	RemoteURL              string    `db:"remote_url"`
-	RemoteID               string    `db:"remote_id"`
-	PreviewURL             string    `db:"preview_url"`
-	PreviewTitle           string    `db:"preview_title"`
-	PreviewDescription     string    `db:"preview_description"`
-	PreviewImageURL        string    `db:"preview_image_url"`
-	SocialAccountIdentity  string    `db:"social_account_identity"`
-	SocialAccountConnector string    `db:"social_account_connector"`
+	SocialAccountID         uint32    `db:"social_account_id"`
+	Content                 string    `db:"content"`
+	PostedDate              time.Time `db:"posted_date"`
+	AuthorID                string    `db:"author_id"`
+	AuthorName              string    `db:"author_name"`
+	AuthorAvatarURL         string    `db:"author_avatar_url"`
+	OriginalAuthorID        string    `db:"original_author_id"`
+	OriginalAuthorName      string    `db:"original_author_name"`
+	OriginalAuthorAvatarURL string    `db:"original_author_avatar_url"`
+	RemoteURL               string    `db:"remote_url"`
+	RemoteID                string    `db:"remote_id"`
+	PreviewURL              string    `db:"preview_url"`
+	PreviewTitle            string    `db:"preview_title"`
+	PreviewDescription      string    `db:"preview_description"`
+	PreviewImageURL         string    `db:"preview_image_url"`
+	SocialAccountIdentity   string    `db:"social_account_identity"`
+	SocialAccountConnector  string    `db:"social_account_connector"`
 }
 
 type TableLog struct {

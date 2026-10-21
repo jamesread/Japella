@@ -1,15 +1,11 @@
 <template>
 	<Section
+		title="Permissions"
 		subtitle="All RBAC permissions defined in the system. Permissions are granted to users through roles assigned to their groups."
+		:icon="ShieldKeyIcon"
 		classes="rbac-permissions settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="ShieldKeyIcon" width="22" height="22" aria-hidden="true" />
-				Permissions
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -156,12 +152,6 @@
 </script>
 
 <style scoped>
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 
 	.permissions-table-wrap {

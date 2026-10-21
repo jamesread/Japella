@@ -2,6 +2,7 @@
 	<Section
 		title="Feed"
 		subtitle="Recent posts from your connected social accounts."
+		:icon="ActivityIcon"
 		classes="feed"
 		:padding="false"
 	>
@@ -125,7 +126,7 @@
 	import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
 	import { waitForClient } from '../javascript/util';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { FilterRemoveIcon, RefreshIcon } from '@hugeicons/core-free-icons';
+	import { ActivityIcon, FilterRemoveIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Loading from './Loading.vue';

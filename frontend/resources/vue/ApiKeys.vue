@@ -55,16 +55,12 @@
 	</dialog>
 
 	<Section
+		:title="pageTitle"
 		:subtitle="sectionSubtitle"
+		:icon="KeyIcon"
 		:padding="false"
 		classes="api-keys settings-users"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="KeyIcon" width="22" height="22" aria-hidden="true" />
-				{{ pageTitle }}
-			</span>
-		</template>
 
 		<template #toolbar>
 			<router-link
@@ -384,12 +380,6 @@
 </script>
 
 <style scoped>
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.45em;
-		vertical-align: middle;
-	}
 
 
 	.api-keys-table-wrap {

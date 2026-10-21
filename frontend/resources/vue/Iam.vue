@@ -3,6 +3,7 @@
 		v-if="!loaded"
 		title="IAM"
 		subtitle="Identity and Access Management — users, groups, and roles."
+		:icon="UserShield01Icon"
 		classes="iam"
 	>
 		<p class="muted">Loading…</p>
@@ -12,6 +13,7 @@
 		v-else-if="canAccessIam"
 		title="IAM"
 		subtitle="Identity and Access Management — users, groups, and roles."
+		:icon="UserShield01Icon"
 		classes="iam"
 	>
 		<template #toolbar>
@@ -32,7 +34,7 @@
 		</Navigation>
 	</Section>
 
-	<Section v-else title="IAM" subtitle="Identity and Access Management">
+	<Section v-else title="IAM" subtitle="Identity and Access Management" :icon="UserShield01Icon">
 		<NotificationBlock type="error" message="You do not have permission to view IAM settings." />
 	</Section>
 </template>
@@ -43,7 +45,7 @@
 	import { canAccessIamFromStatus } from '../javascript/rbacAccess.js';
 	import { setupIamNavigationGrid } from '../javascript/iamNavigation.js';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, UserShield01Icon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Navigation from 'picocrank/vue/components/Navigation.vue';

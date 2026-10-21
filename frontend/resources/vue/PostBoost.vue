@@ -58,20 +58,85 @@
 		</div>
 
 		<div class="boosted-content">
-			<div v-if="boostedObjectUrl" class="boosted-object-link">
-				<a :href="boostedObjectUrl" target="_blank" rel="noopener noreferrer" class="boosted-link">
+			<div v-if="originalAuthorName" class="boosted-author">
+				<FeedAuthorAvatar
+					:avatar-url="post.originalAuthorAvatarUrl"
+					fallback-icon="mdi:account"
+					:alt-text="originalAuthorName"
+				/>
+				<span class="boosted-author-name">{{ originalAuthorName }}</span>
+			</div>
+
+			<div
+				v-if="post.content"
+				class="boosted-post-message"
+				v-html="post.content"
+			/>
+
+			<div v-if="post.previewUrl || post.previewImageUrl" class="preview-card">
+				<a
+					v-if="post.previewUrl"
+					:href="post.previewUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="preview-card-link"
+				>
+					<div v-if="post.previewImageUrl" class="preview-image">
+						<img :src="post.previewImageUrl" :alt="post.previewTitle || 'Preview image'" />
+					</div>
+					<div class="preview-content">
+						<div v-if="post.previewTitle" class="preview-title">{{ post.previewTitle }}</div>
+						<div v-if="post.previewDescription" class="preview-description">{{ post.previewDescription }}</div>
+						<div v-if="post.previewUrl" class="preview-url">{{ getDomainFromUrl(post.previewUrl) }}</div>
+					</div>
+				</a>
+				<div v-else class="preview-card-static">
+					<div v-if="post.previewImageUrl" class="preview-image">
+						<img :src="post.previewImageUrl" :alt="post.previewTitle || 'Preview image'" />
+					</div>
+					<div class="preview-content">
+						<div v-if="post.previewTitle" class="preview-title">{{ post.previewTitle }}</div>
+						<div v-if="post.previewDescription" class="preview-description">{{ post.previewDescription }}</div>
+					</div>
+				</div>
+			</div>
+
+			<div v-if="!post.content && !post.previewUrl && !post.previewImageUrl" class="boosted-fallback">
+				<a
+					v-if="boostedObjectUrl"
+					:href="boostedObjectUrl"
+					target="_blank"
+					rel="noopener noreferrer"
+					class="boosted-link"
+				>
 					<Icon icon="mdi:open-in-new" width="16" height="16" />
 					<span>View Boosted Post</span>
 				</a>
-			</div>
-			<div v-else class="boosted-object-info">
-				<span class="boosted-object-label">Boosted Object:</span>
-				<span class="boosted-object-value">{{ boostedObjectUrl || 'Unknown' }}</span>
+				<div v-else class="boosted-object-info">
+					<span class="boosted-object-label">Boosted Object:</span>
+					<span class="boosted-object-value">Unknown</span>
+				</div>
 			</div>
 		</div>
 
-		<div v-if="post.remoteUrl" class="post-actions">
-			<a :href="post.remoteUrl" target="_blank" rel="noopener noreferrer" class="original-post-link">
+		<div v-if="boostedObjectUrl || post.remoteUrl" class="post-actions">
+			<a
+				v-if="boostedObjectUrl"
+				:href="boostedObjectUrl"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="original-post-link"
+			>
+				<Icon icon="mdi:open-in-new" width="16" height="16" />
+				<span>View original post</span>
+			</a>
+			<a
+				v-else-if="post.remoteUrl"
+				:href="post.remoteUrl"
+				target="_blank"
+				rel="noopener noreferrer"
+				class="original-post-link"
+			>
 				<Icon icon="mdi:open-in-new" width="16" height="16" />
 				<span>View Boost Activity</span>
 			</a>
@@ -172,11 +237,6 @@
 		return null;
 	});
 
-	// Check if this is a boost (Announce type)
-	const isBoost = computed(() => {
-		return activityStreams.value && activityStreams.value.type === 'Announce';
-	});
-
 	// Extract boost actor (who boosted)
 	const boostActor = computed(() => {
 		// First try to get from ActivityStreams JSON
@@ -203,6 +263,10 @@
 
 	const displayAuthorName = computed(() => boostActor.value);
 
+	const originalAuthorName = computed(() => {
+		return props.post.originalAuthorName || '';
+	});
+
 	function filterByAuthor() {
 		if (props.post.authorId) {
 			emit('filter-author', props.post.authorId);
@@ -211,6 +275,18 @@
 
 	function onPostRefetched(updatedPost) {
 		emit('post-refetched', updatedPost);
+	}
+
+	function getDomainFromUrl(url) {
+		if (!url) {
+			return '';
+		}
+		try {
+			const urlObj = new URL(url);
+			return urlObj.hostname.replace('www.', '');
+		} catch (e) {
+			return url;
+		}
 	}
 
 	// Extract boosted object URL
@@ -233,25 +309,6 @@
 		return null;
 	});
 
-	// Display remote ID (shortened if it's a URL)
-	const displayRemoteId = computed(() => {
-		if (!props.post.remoteId) {
-			return '';
-		}
-
-		// If it's JSON, show a shortened version
-		if (activityStreams.value) {
-			return `${activityStreams.value.type} activity`;
-		}
-
-		// If it's a URL, show just the last part
-		if (props.post.remoteId.startsWith('http')) {
-			const parts = props.post.remoteId.split('/');
-			return parts[parts.length - 1] || props.post.remoteId;
-		}
-
-		return props.post.remoteId;
-	});
 </script>
 
 <style scoped>
@@ -346,8 +403,105 @@
 	border: 1px solid var(--border-color, #e5e7eb);
 }
 
-.boosted-object-link {
-	margin-bottom: 0.5rem;
+.boosted-author {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-bottom: 0.75rem;
+}
+
+.boosted-author-name {
+	font-weight: bold;
+	color: var(--text-primary, #333);
+}
+
+.boosted-post-message {
+	font-weight: 500;
+	word-wrap: break-word;
+}
+
+.boosted-post-message :deep(a) {
+	color: var(--link-color, #007bff);
+	text-decoration: underline;
+}
+
+.boosted-post-message :deep(a:hover) {
+	color: var(--link-hover-color, #0056b3);
+}
+
+.boosted-post-message :deep(p) {
+	margin: 0.5em 0;
+}
+
+.boosted-post-message :deep(p:first-child) {
+	margin-top: 0;
+}
+
+.boosted-post-message :deep(p:last-child) {
+	margin-bottom: 0;
+}
+
+.preview-card {
+	margin: 1rem 0 0;
+	border: 1px solid var(--border-color, #e5e7eb);
+	border-radius: 0.5rem;
+	overflow: hidden;
+	background-color: var(--bg-secondary, #f9fafb);
+}
+
+.preview-card-link {
+	display: flex;
+	text-decoration: none;
+	color: inherit;
+	transition: opacity 0.2s ease;
+}
+
+.preview-card-link:hover {
+	opacity: 0.8;
+}
+
+.preview-card-static {
+	display: flex;
+}
+
+.preview-image {
+	flex-shrink: 0;
+	width: 200px;
+	height: 150px;
+	overflow: hidden;
+	background-color: var(--bg-secondary, #f5f5f5);
+}
+
+.preview-image img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.preview-content {
+	flex: 1;
+	padding: 1rem;
+	min-width: 0;
+}
+
+.preview-title {
+	font-weight: 600;
+	margin-bottom: 0.25rem;
+}
+
+.preview-description {
+	font-size: 0.9rem;
+	color: var(--text-secondary, #666);
+	margin-bottom: 0.25rem;
+}
+
+.preview-url {
+	font-size: 0.8rem;
+	color: var(--text-secondary, #888);
+}
+
+.boosted-fallback {
+	margin-bottom: 0.25rem;
 }
 
 .boosted-link {

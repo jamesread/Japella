@@ -6,3 +6,7 @@ This is the documentation for Japella, chatbot which is multi-protocol and is hi
 
 * Connect two chat protocols together, for example to mirror messages between Discord and Telegram.
 * Write bot utilities that work across multiple chat protocols.
+
+image::marketing/compose.png[Composing a post for several social accounts at once]
+
+See xref:screenshots.adoc[Screenshots] for a tour of the web interface.

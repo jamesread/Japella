@@ -1,0 +1,53 @@
+= Screenshots
+
+A quick tour of Japella's web interface.
+
+== Compose once, post everywhere
+
+Write a post, pick the Mastodon, Bluesky, X, Facebook and Instagram accounts it should go to, and publish now, schedule it or save a draft.
+
+image::marketing/compose.png[Compose once, post everywhere]
+
+== Timeline
+
+Every post you have published, scheduled or drafted, across all of your accounts, with its campaign and a link to the live post.
+
+image::marketing/timeline.png[Timeline]
+
+== Content calendar
+
+See what went out and what is coming up at a glance, so gaps and clashes in your posting schedule are easy to spot.
+
+image::marketing/calendar.png[Content calendar]
+
+== Approvals
+
+Account policies can hold posts for review. Approvers see what is waiting for them and approve or reject it before anything is published.
+
+image::marketing/approvals.png[Approvals]
+
+== Campaigns
+
+Group related posts and accounts into campaigns, such as a product launch, and track how much has gone out for each one.
+
+image::marketing/campaigns.png[Campaigns]
+
+== Social accounts
+
+All of the accounts Japella can post to in one list, including who owns them, so teams can share accounts without sharing passwords.
+
+image::marketing/social-accounts.png[Social accounts]
+
+== Feed
+
+Read recent posts from the accounts you follow without leaving Japella, filtered by account, post type or author.
+
+image::marketing/feed.png[Feed]
+
+== Dark mode
+
+Japella follows your light or dark preference, shown here on the timeline.
+
+image::marketing/timeline-dark.png[Dark mode]
+
+These screenshots use fictional test data and are regenerated with `make screenshots`.

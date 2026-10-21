@@ -2,6 +2,7 @@
 	<Section
 		title="Media Gallery"
 		subtitle="Browse uploaded images and videos in your media library."
+		:icon="ImageIcon"
 		classes="media-gallery"
 	>
 		<template #toolbar>
@@ -55,6 +56,7 @@
 <script setup>
 	import { ref, onMounted, onUnmounted } from 'vue';
 	import { Icon } from '@iconify/vue';
+	import { ImageIcon } from '@hugeicons/core-free-icons';
 	import { waitForClient } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';

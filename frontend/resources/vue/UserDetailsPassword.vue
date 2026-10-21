@@ -2,6 +2,7 @@
 	<Section
 		:title="pageTitle"
 		subtitle="Set a new password for this user account"
+		:icon="LockPasswordIcon"
 		classes="user-details-password"
 	>
 		<template #toolbar>
@@ -77,7 +78,7 @@
 	import { ref, computed, watch } from 'vue';
 	import { useRoute } from 'vue-router';
 	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ArrowLeft01Icon, UserGroupIcon } from '@hugeicons/core-free-icons';
+	import { ArrowLeft01Icon, LockPasswordIcon, UserGroupIcon } from '@hugeicons/core-free-icons';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';

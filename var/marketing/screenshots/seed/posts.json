@@ -1,0 +1,15 @@
+{
+  "scheduled": [
+    {"days": 1, "time": "09:00", "accounts": [1, 2, 3], "campaign": 1, "content": "Autumn Blend launch day! Find it in all three cafes and online from 9am."},
+    {"days": 3, "time": "12:00", "accounts": [4, 5], "campaign": 1, "content": "Pumpkin spice is fine, but have you tried the Autumn Blend with oat milk?"},
+    {"days": 5, "time": "18:30", "accounts": [1, 2], "campaign": 3, "content": "Next barista workshop: milk texturing for beginners. 12 places, book now."},
+    {"days": 8, "time": "10:00", "accounts": [1, 2, 5], "campaign": 2, "content": "Holiday gift boxes are here. Three coffees, one mug, zero wrapping required."}
+  ],
+  "drafts": [
+    {"accounts": [1, 2], "content": "Draft: should we do a loyalty card giveaway for the cafe's 5th birthday?"}
+  ],
+  "pending": [
+    {"days": 2, "time": "08:00", "accounts": [3], "campaign": 1, "content": "Last chance to pre-order the Autumn Blend with a free tasting card. Ends tonight!"},
+    {"days": 4, "time": "13:00", "accounts": [1, 2], "campaign": 2, "content": "We're hiring weekend baristas at our Harbour Street cafe. Coffee experience helps, a good attitude helps more."}
+  ]
+}

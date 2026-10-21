@@ -166,16 +166,12 @@
 	</dialog>
 
 	<Section
+		title="LLM connections"
 		subtitle="OpenAI-compatible endpoints used by LLM compose tools."
+		:icon="AiBrain01Icon"
 		classes="llm-connections-admin settings-users"
 		:padding="false"
 	>
-		<template #title>
-			<span class="section-title-with-icon">
-				<HugeiconsIcon :icon="AiBrain01Icon" width="22" height="22" aria-hidden="true" />
-				LLM connections
-			</span>
-		</template>
 
 		<template #toolbar>
 			<button
@@ -539,11 +535,6 @@
 </script>
 
 <style scoped>
-	.section-title-with-icon {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
 
 	.llm-table-wrap {
 		overflow-x: auto;
