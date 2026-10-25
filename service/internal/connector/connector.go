@@ -2,6 +2,9 @@ package connector
 
 import (
 	"context"
+	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jamesread/japella/internal/db"
@@ -35,6 +38,23 @@ type ConnectorWithWall interface {
 // ConnectorWithFeedPostRefetch can reload a single feed post from the remote platform.
 type ConnectorWithFeedPostRefetch interface {
 	FetchFeedPost(sa *SocialAccount, remoteID string, remoteURL string) (*FeedPost, error)
+}
+
+// PostEngagement is a point-in-time snapshot of public engagement counters
+// for a post Japella published. Platforms that lack a counter leave it at 0.
+type PostEngagement struct {
+	Likes       uint32
+	Reposts     uint32
+	Replies     uint32
+	Quotes      uint32
+	Impressions uint32
+}
+
+// ConnectorWithPostEngagement can fetch engagement counters (likes, reposts,
+// replies, ...) for a post previously published through PostToWall.
+// postURL is the URL returned in PostResult; remoteID may be empty.
+type ConnectorWithPostEngagement interface {
+	FetchPostEngagement(sa *SocialAccount, remoteID string, postURL string) (*PostEngagement, error)
 }
 
 // ChatBot represents a chatbot instance from a connector
@@ -206,4 +226,17 @@ func AsRateLimited(err error) *RateLimitedError {
 		return rl
 	}
 	return nil
+}
+
+// RateLimitedFromResponse returns a *RateLimitedError when res is an HTTP 429,
+// honouring a numeric Retry-After header when present. It returns nil otherwise.
+func RateLimitedFromResponse(res *http.Response) *RateLimitedError {
+	if res == nil || res.StatusCode != http.StatusTooManyRequests {
+		return nil
+	}
+	retryAfter := time.Minute
+	if secs, err := strconv.Atoi(strings.TrimSpace(res.Header.Get("Retry-After"))); err == nil && secs > 0 {
+		retryAfter = time.Duration(secs) * time.Second
+	}
+	return &RateLimitedError{RetryAfter: retryAfter, Message: "rate limited by platform"}
 }

@@ -23,6 +23,9 @@ var CvarKeys = struct {
 	KeywordWatchMaxMatchesPerPoll      string
 	KeywordWatchMaxEmitsPerHour        string
 	KeywordWatchMatchRetention         string
+	PostEngagementIntervalSeconds      string
+	PostEngagementMaxAgeDays           string
+	PostEngagementMaxPostsPerRun       string
 }{
 	BaseUrl:                            "base_url",
 	OAuth2RedirectURL:                  "oauth2_redirect_url",
@@ -39,6 +42,9 @@ var CvarKeys = struct {
 	KeywordWatchMaxMatchesPerPoll:      "keyword_watch_max_matches_per_poll",
 	KeywordWatchMaxEmitsPerHour:        "keyword_watch_max_emits_per_hour",
 	KeywordWatchMatchRetention:         "keyword_watch_match_retention",
+	PostEngagementIntervalSeconds:      "post_engagement_interval_seconds",
+	PostEngagementMaxAgeDays:           "post_engagement_max_age_days",
+	PostEngagementMaxPostsPerRun:       "post_engagement_max_posts_per_run",
 }
 
 var CvarList = []Cvar{
@@ -57,6 +63,9 @@ var CvarList = []Cvar{
 	{KeyName: CvarKeys.KeywordWatchMaxMatchesPerPoll, Title: "Keyword watch max matches per poll", ValueInt: 50, Category: "Keyword Watch", Description: "Circuit breaker: max matches processed per account per search poll.", Type: "int", DefaultValue: "50"},
 	{KeyName: CvarKeys.KeywordWatchMaxEmitsPerHour, Title: "Keyword watch max webhook emits per hour", ValueInt: 100, Category: "Keyword Watch", Description: "Per social account cap on keyword.matched webhook emissions per hour.", Type: "int", DefaultValue: "100"},
 	{KeyName: CvarKeys.KeywordWatchMatchRetention, Title: "Keyword watch match retention", ValueInt: 200, Category: "Keyword Watch", Description: "How many recent matches to keep per keyword watch.", Type: "int", DefaultValue: "200"},
+	{KeyName: CvarKeys.PostEngagementIntervalSeconds, Title: "Post engagement fetch interval (seconds)", ValueInt: 900, Category: "Post Engagement", Description: "How often Japella fetches likes, reposts and replies for recently published posts. Each post costs one API call per run on the platform.", Type: "int", DefaultValue: "900"},
+	{KeyName: CvarKeys.PostEngagementMaxAgeDays, Title: "Post engagement max post age (days)", ValueInt: 7, Category: "Post Engagement", Description: "Only posts published within this many days are refreshed. Set to 0 to disable engagement fetching.", Type: "int", DefaultValue: "7"},
+	{KeyName: CvarKeys.PostEngagementMaxPostsPerRun, Title: "Post engagement max posts per run", ValueInt: 100, Category: "Post Engagement", Description: "Upper bound on posts refreshed per run; the least recently refreshed posts go first.", Type: "int", DefaultValue: "100"},
 }
 
 func (db *DB) ThemeColorSchemeSwitcherEnabled() bool {

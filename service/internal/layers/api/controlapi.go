@@ -179,6 +179,8 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 			s.processKeywordWatchCleanup()
 		}
 	}()
+	// Fetch likes/reposts/replies for recently published posts (interval from cvar)
+	go s.startPostEngagementJob(recordJobRun)
 }
 
 func (s *ControlApi) IsReady() bool {
@@ -2088,6 +2090,12 @@ func (s *ControlApi) GetJobsStatus(ctx context.Context, req *connect.Request[con
 			DisplayName: "Keyword Watch Cleanup",
 			Schedule:    "Every 1 hour",
 			LastRun:     s.getJobLastRun("keyword_watch_cleanup"),
+		},
+		{
+			Name:        postEngagementJobName,
+			DisplayName: "Post Engagement",
+			Schedule:    s.postEngagementSchedule(),
+			LastRun:     s.getJobLastRun(postEngagementJobName),
 		},
 	}
 
