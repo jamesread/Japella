@@ -10,11 +10,16 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/postengagement"
+	"github.com/jamesread/japella/internal/postreplies"
 	"github.com/jamesread/japella/internal/webhook"
 	log "github.com/sirupsen/logrus"
 )
 
 const postEngagementJobName = "post_engagement"
+
+// postEngagementEventRetention is how long detected engagement increases are
+// kept for the recent interactions view.
+const postEngagementEventRetention = 90 * 24 * time.Hour
 
 func postEngagementLog(sa *db.SocialAccount) *log.Entry {
 	fields := log.Fields{"component": "PostEngagement"}
@@ -91,6 +96,8 @@ func (s *ControlApi) processPostEngagement() {
 		return
 	}
 
+	_ = s.DB.DeletePostEngagementEventsBefore(time.Now().UTC().Add(-postEngagementEventRetention))
+
 	posts, err := s.DB.SelectPostsForEngagementFetch(maxAge, s.postEngagementMaxPosts())
 	if err != nil || len(posts) == 0 {
 		return
@@ -98,7 +105,7 @@ func (s *ControlApi) processPostEngagement() {
 
 	accounts := map[uint32]*db.SocialAccount{}
 	rateLimited := map[uint32]bool{}
-	fetched, notified, failed := 0, 0, 0
+	fetched, notified, failed, threads := 0, 0, 0, 0
 
 	for _, post := range posts {
 		saID := post.SocialAccountIDUint()
@@ -141,12 +148,52 @@ func (s *ControlApi) processPostEngagement() {
 		}
 
 		fetched++
-		if s.recordPostEngagement(post, sa, result) {
+		stored, dispatched := s.recordPostEngagement(post, sa, result)
+		if dispatched {
 			notified++
+		}
+
+		synced, repliesErr := s.syncPostReplies(sa, post, stored, result.Replies)
+		if rl := connector.AsRateLimited(repliesErr); rl != nil {
+			postEngagementLog(sa).Warnf("rate limited fetching replies, skipping remaining posts this run (retry after %s)", rl.RetryAfter)
+			rateLimited[saID] = true
+			continue
+		}
+		if repliesErr != nil {
+			postEngagementLog(sa).WithField("post_id", post.ID).Warnf("failed to fetch replies: %v", repliesErr)
+		}
+		if synced {
+			threads++
 		}
 	}
 
-	log.WithField("component", "PostEngagement").Infof("run complete: fetched %d, notified %d, failed %d", fetched, notified, failed)
+	log.WithField("component", "PostEngagement").Infof("run complete: fetched %d, notified %d, failed %d, reply threads updated %d", fetched, notified, failed, threads)
+}
+
+// syncPostReplies refreshes the stored reply thread when the replies counter
+// says it is out of date. stored is the engagement row from before this run.
+// It returns true when replies were fetched and stored.
+func (s *ControlApi) syncPostReplies(sa *db.SocialAccount, post *db.Post, stored *db.PostEngagement, replyCount uint32) (synced bool, err error) {
+	rc, ok := s.cc.Get(sa.Connector).(connector.ConnectorWithPostReplies)
+	if !ok || !postreplies.ShouldFetch(stored, replyCount) {
+		return false, nil
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			synced, err = false, fmt.Errorf("panic while fetching replies: %v", r)
+		}
+	}()
+
+	fetched, err := rc.FetchPostReplies(toConnectorSA(sa), post.RemoteID.String, post.PostURL.String)
+	if err != nil {
+		return false, err
+	}
+
+	if err := s.DB.ReplacePostReplies(post.ID, postreplies.ToDB(post.ID, fetched), replyCount); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func (s *ControlApi) postEngagementConnector(sa *db.SocialAccount) (connector.ConnectorWithPostEngagement, connector.BaseConnector) {
@@ -171,24 +218,34 @@ func (s *ControlApi) fetchPostEngagement(ec connector.ConnectorWithPostEngagemen
 }
 
 // recordPostEngagement stores the snapshot and dispatches a webhook when there
-// is new activity. It returns true when a notification was dispatched.
-func (s *ControlApi) recordPostEngagement(post *db.Post, sa *db.SocialAccount, result *connector.PostEngagement) bool {
+// is new activity. It returns the row as it was before this snapshot (nil if
+// none) and whether a notification was dispatched.
+func (s *ControlApi) recordPostEngagement(post *db.Post, sa *db.SocialAccount, result *connector.PostEngagement) (*db.PostEngagement, bool) {
 	stored, err := s.DB.GetPostEngagement(post.ID)
 	if err != nil {
-		return false
+		return nil, false
 	}
 
 	cmp := postengagement.Compare(stored, postengagement.FromConnector(result))
 	if err := s.DB.UpsertPostEngagement(postengagement.ToDB(post.ID, cmp.Current), cmp.Changed); err != nil {
-		return false
+		return stored, false
 	}
 
 	if !cmp.HasNewActivity() {
-		return false
+		return stored, false
 	}
 
+	_ = s.DB.InsertPostEngagementEvent(&db.PostEngagementEvent{
+		PostID:          post.ID,
+		SocialAccountID: post.SocialAccountIDUint(),
+		Likes:           cmp.Delta.Likes,
+		Reposts:         cmp.Delta.Reposts,
+		Replies:         cmp.Delta.Replies,
+		Quotes:          cmp.Delta.Quotes,
+	})
+
 	s.webhookDispatcher().Dispatch(context.Background(), webhook.EventPostEngagement, s.buildPostEngagementWebhookPayload(post, sa, cmp))
-	return true
+	return stored, true
 }
 
 func (s *ControlApi) buildPostEngagementWebhookPayload(post *db.Post, sa *db.SocialAccount, cmp postengagement.Comparison) map[string]any {

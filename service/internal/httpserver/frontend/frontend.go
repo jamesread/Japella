@@ -38,12 +38,12 @@ func spaHandler(webuiDir string) http.Handler {
 		if _, err := os.Stat(path); os.IsNotExist(err) {
 			// Check if this is an API route or other non-SPA route
 			if r.URL.Path == "/api" ||
-			   r.URL.Path == "/oauth2callback" ||
-			   r.URL.Path == "/lang" ||
-			   r.URL.Path == "/upload" ||
-			   r.URL.Path == "/readyz" ||
-			   r.URL.Path == "/healthz" ||
-			   r.URL.Path == "/metrics" {
+				r.URL.Path == "/oauth2callback" ||
+				r.URL.Path == "/lang" ||
+				r.URL.Path == "/upload" ||
+				r.URL.Path == "/readyz" ||
+				r.URL.Path == "/healthz" ||
+				r.URL.Path == "/metrics" {
 				// Let the main server handle these routes
 				http.NotFound(w, r)
 				return

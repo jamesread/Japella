@@ -1,15 +1,35 @@
 <template>
-	<Section
-		title="Feed"
-		subtitle="Recent posts from your connected social accounts."
-		:icon="ActivityIcon"
-		classes="feed"
-		:padding="false"
-	>
-		<template #toolbar>
-			<div class="toolbar-controls">
-				<div class="filters">
+	<NotificationBlock v-if="columnsError" type="error" :message="columnsError" class="feed-empty" />
+
+	<div class="feed-layout">
+		<FeedColumnFrame ref="mainColumn" title="Feed" icon="mdi:rss" class="feed-main" label="Feed" width-key="feed">
+			<template #actions>
+				<button
+					type="button"
+					class="neutral small"
+					title="Add a column for a hashtag, search or tag"
+					aria-label="Add column"
+					:disabled="!clientReady || columns.length >= MAX_COLUMNS"
+					@click="openColumnDialog()"
+				>
+					<Icon icon="mdi:table-column-plus-after" />
+				</button>
+				<button
+					type="button"
+					class="neutral small"
+					title="Refresh"
+					aria-label="Refresh feed"
+					:disabled="!clientReady || feedRefreshing"
+					@click="refreshFeed()"
+				>
+					<Icon icon="mdi:refresh" />
+				</button>
+			</template>
+
+			<template #meta>
+				<div class="filters" role="group" aria-label="Feed filters">
 					<FilterSelect
+						compact
 						v-model="selectedSocialAccountId"
 						clear-title="Clear social account filter"
 					>
@@ -19,6 +39,7 @@
 						</option>
 					</FilterSelect>
 					<FilterSelect
+						compact
 						v-model="selectedPostType"
 						clear-title="Clear post type filter"
 					>
@@ -27,6 +48,7 @@
 						<option value="boost">Boost</option>
 					</FilterSelect>
 					<FilterSelect
+						compact
 						v-model="selectedAuthorId"
 						clear-title="Clear author filter"
 					>
@@ -38,105 +60,221 @@
 					<button
 						v-if="hasActiveFilters"
 						type="button"
-						class="inline-icon neutral small"
-						title="Clear Filters"
+						class="neutral small filters-clear"
+						title="Clear all filters"
+						aria-label="Clear all filters"
 						@click="clearFilters"
 					>
-						<HugeiconsIcon
-							:icon="FilterRemoveIcon"
-							width="1em"
-							height="1em"
-							:strokeWidth="iconStrokeWidth"
-							aria-hidden="true"
-						/>
-						<span>Clear</span>
+						<Icon icon="mdi:filter-remove-outline" />
 					</button>
 				</div>
-				<button
-					type="button"
-					class="inline-icon neutral"
-					aria-label="Refresh"
-					:disabled="!clientReady || feedRefreshing"
-					@click="refreshFeed()"
-				>
-					<HugeiconsIcon
-						:icon="RefreshIcon"
-						width="1em"
-						height="1em"
-						:strokeWidth="iconStrokeWidth"
-						aria-hidden="true"
-					/>
-				</button>
-			</div>
-		</template>
+			</template>
 
-		<Loading v-if="feedLoading && feed.length === 0" message="Loading feed..." :centered="true" />
-	</Section>
+			<p v-if="feedRefreshing" class="subtle feed-refresh-notice" role="status" aria-live="polite">
+				Checking for new posts…
+			</p>
 
-	<Transition name="feed-refresh-fade">
-		<p
-			v-if="feedRefreshing"
-			class="feed-refresh-notice"
-			role="status"
-			aria-live="polite"
+			<Loading v-if="feedLoading && feed.length === 0" message="Loading feed..." :centered="true" />
+
+			<NotificationBlock
+				v-if="!feedLoading && feed.length > 0 && filteredFeed.length === 0"
+				type="note"
+				message="No posts match the current filters."
+			/>
+
+			<article v-for="post in visibleFeed" :key="post.id" class="feed-column-post" :data-feed-post-id="post.id">
+				<PostBoost
+					v-if="isBoost(post)"
+					:post="post"
+					filled
+					interactive
+					author-filterable
+					:transparent-social-account-chip="true"
+					@filter-author="setAuthorFilter"
+					@post-refetched="onPostRefetched"
+					@post-hidden="onPostHidden"
+				/>
+				<PostPreview
+					v-else
+					:post="post"
+					filled
+					interactive
+					author-filterable
+					:transparent-social-account-chip="true"
+					@filter-author="setAuthorFilter"
+					@post-refetched="onPostRefetched"
+					@post-hidden="onPostHidden"
+				/>
+			</article>
+
+			<div
+				v-if="!feedLoading && hasMore"
+				ref="loadMoreSentinel"
+				class="feed-load-sentinel"
+				aria-hidden="true"
+			/>
+
+			<p v-if="!feedLoading && filteredFeed.length > 0 && !hasMore" class="feed-end muted">
+				End of feed
+			</p>
+		</FeedColumnFrame>
+
+		<FeedColumn
+			v-for="(column, index) in columns"
+			:key="column.id"
+			:column="column"
+			:first="index === 0"
+			:last="index === columns.length - 1"
+			@edit="openColumnDialog"
+			@move="moveColumn"
+			@remove="removeColumn"
+		/>
+
+		<button
+			v-if="clientReady && columns.length < MAX_COLUMNS"
+			type="button"
+			class="feed-add-column"
+			title="Add a column for a hashtag, search or tag"
+			:style="{ width: `${DEFAULT_COLUMN_WIDTH}px` }"
+			@click="openColumnDialog()"
 		>
-			Checking for new posts…
-		</p>
-	</Transition>
+			<Icon icon="mdi:plus" width="20" height="20" aria-hidden="true" />
+			<span>Add column</span>
+		</button>
+	</div>
 
-	<NotificationBlock
-		v-if="!feedLoading && feed.length > 0 && filteredFeed.length === 0"
-		type="note"
-		message="No posts match the current filters."
-		class="feed-empty"
-	/>
-
-	<section class="small" v-for="post in visibleFeed" :key="post.id" :data-feed-post-id="post.id">
-		<PostBoost
-			v-if="isBoost(post)"
-			:post="post"
-			author-filterable
-			:transparent-social-account-chip="true"
-			@filter-author="setAuthorFilter"
-			@post-refetched="onPostRefetched"
-		/>
-		<PostPreview
-			v-else
-			:post="post"
-			author-filterable
-			:transparent-social-account-chip="true"
-			@filter-author="setAuthorFilter"
-			@post-refetched="onPostRefetched"
-		/>
-	</section>
-
-	<div
-		v-if="!feedLoading && hasMore"
-		ref="loadMoreSentinel"
-		class="feed-load-sentinel"
-		aria-hidden="true"
-	/>
-
-	<p v-if="!feedLoading && filteredFeed.length > 0 && !hasMore" class="feed-end muted">
-		End of feed
-	</p>
+	<FeedColumnDialog ref="columnDialog" :accounts="socialAccounts" @saved="onColumnSaved" />
 </template>
 
 <script setup>
-	import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue';
+	import { ref, onMounted, onUnmounted, computed, watch, nextTick, provide } from 'vue';
 	import { waitForClient } from '../javascript/util';
-	import { HugeiconsIcon } from '@hugeicons/vue';
-	import { ActivityIcon, FilterRemoveIcon, RefreshIcon } from '@hugeicons/core-free-icons';
-	import Section from 'picocrank/vue/components/Section.vue';
+	import { DEFAULT_COLUMN_WIDTH, forgetColumnWidth } from '../javascript/feedColumnWidths';
+	import { Icon } from '@iconify/vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Loading from './Loading.vue';
 	import PostPreview from './PostPreview.vue';
 	import PostBoost from './PostBoost.vue';
 	import FilterSelect from './FilterSelect.vue';
+	import FeedColumn from './FeedColumn.vue';
+	import FeedColumnFrame from './FeedColumnFrame.vue';
+	import FeedColumnDialog from './FeedColumnDialog.vue';
+	import { TAG_QUERY_PREFIX } from '../javascript/postTags.js';
 
-	const iconStrokeWidth = 2.5;
 
 	const PAGE_SIZE = 10;
+	// Matches the server's per-user limit.
+	const MAX_COLUMNS = 10;
+
+	const columns = ref([]);
+	const columnsError = ref('');
+	const columnDialog = ref(null);
+
+	async function loadColumns() {
+		try {
+			const res = await window.client.listFeedColumns({});
+			columns.value = res.columns || [];
+			columnsError.value = '';
+		} catch (e) {
+			columnsError.value = `Failed to load feed columns: ${e.rawMessage || e.message || e}`;
+		}
+	}
+
+	function openColumnDialog(column = null) {
+		const defaults = selectedSocialAccountId.value ? [Number(selectedSocialAccountId.value)] : [];
+		columnDialog.value?.open(column, defaults);
+	}
+
+	function onColumnSaved(column, updated) {
+		if (updated) {
+			columns.value = columns.value.map((c) => (c.id === column.id ? column : c));
+		} else {
+			columns.value = [...columns.value, column];
+		}
+		scrollToColumn(column.id);
+	}
+
+	function scrollToColumn(id) {
+		nextTick(() => {
+			document.querySelector(`[data-feed-column-id="${id}"]`)
+				?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+		});
+	}
+
+	// Shows the column for an internal tag, adding it if there isn't one yet.
+	async function openTagColumn(tag) {
+		const existing = columns.value.find((c) => c.tag === tag);
+		if (existing) {
+			scrollToColumn(existing.id);
+			return;
+		}
+		if (columns.value.length >= MAX_COLUMNS) {
+			window.alert(`You already have ${MAX_COLUMNS} columns. Remove one to add the ${tag} tag column.`);
+			return;
+		}
+		try {
+			const res = await window.client.createFeedColumn({ query: `${TAG_QUERY_PREFIX}${tag}`, title: '', socialAccountIds: [] });
+			columns.value = [...columns.value, res.column];
+			columnsError.value = '';
+			scrollToColumn(res.column.id);
+		} catch (e) {
+			columnsError.value = `Failed to add the ${tag} tag column: ${e.rawMessage || e.message || e}`;
+		}
+	}
+
+	provide('openTagColumn', openTagColumn);
+
+	// Adds a search column for a hashtag, searched with the given account.
+	async function openHashtagColumn(tag, socialAccountId) {
+		if (columns.value.length >= MAX_COLUMNS) {
+			window.alert(`You already have ${MAX_COLUMNS} columns. Remove one to add a column for #${tag}.`);
+			return;
+		}
+		try {
+			const res = await window.client.createFeedColumn({ query: `#${tag}`, title: '', socialAccountIds: [socialAccountId] });
+			columns.value = [...columns.value, res.column];
+			columnsError.value = '';
+			scrollToColumn(res.column.id);
+		} catch (e) {
+			columnsError.value = `Failed to add a column for #${tag}: ${e.rawMessage || e.message || e}`;
+		}
+	}
+
+	provide('openHashtagColumn', openHashtagColumn);
+	provide('feedColumns', columns);
+
+	async function moveColumn(column, direction) {
+		const from = columns.value.findIndex((c) => c.id === column.id);
+		const to = from + direction;
+		if (from < 0 || to < 0 || to >= columns.value.length) {
+			return;
+		}
+		const previous = columns.value;
+		const next = [...previous];
+		[next[from], next[to]] = [next[to], next[from]];
+		columns.value = next;
+		try {
+			await window.client.reorderFeedColumns({ ids: next.map((c) => c.id) });
+			columnsError.value = '';
+		} catch (e) {
+			columns.value = previous;
+			columnsError.value = `Failed to move column: ${e.rawMessage || e.message || e}`;
+		}
+	}
+
+	async function removeColumn(column) {
+		if (!window.confirm(`Remove the "${column.title}" column?`)) {
+			return;
+		}
+		try {
+			await window.client.deleteFeedColumn({ id: column.id });
+			columns.value = columns.value.filter((c) => c.id !== column.id);
+			forgetColumnWidth(`column-${column.id}`);
+			columnsError.value = '';
+		} catch (e) {
+			columnsError.value = `Failed to remove column: ${e.rawMessage || e.message || e}`;
+		}
+	}
 	const AUTO_REFRESH_MS = 30_000;
 	const SCROLL_TOP_THRESHOLD = 50;
 	const FILTER_STORAGE_KEY = 'feed.filters';
@@ -190,6 +328,12 @@
 	const feedLoading = ref(true);
 	const feedRefreshing = ref(false);
 	const loadMoreSentinel = ref(null);
+	const mainColumn = ref(null);
+
+	// The main feed scrolls inside its column rather than the page.
+	function feedScroller() {
+		return mainColumn.value?.body || null;
+	}
 
 	let loadMoreObserver = null;
 	let autoRefreshTimer = null;
@@ -276,7 +420,7 @@
 		}
 
 		selectedAuthorId.value = authorId;
-		window.scrollTo({ top: 0, behavior: 'smooth' });
+		feedScroller()?.scrollTo({ top: 0, behavior: 'smooth' });
 	}
 
 	function onPostRefetched(updatedPost) {
@@ -286,6 +430,10 @@
 		}
 
 		feed.value[index] = { ...feed.value[index], ...updatedPost };
+	}
+
+	function onPostHidden(hidden) {
+		feed.value = feed.value.filter((post) => post.id !== hidden.id);
 	}
 
 	function validateSavedSocialAccountFilter() {
@@ -346,23 +494,30 @@
 					loadMore();
 				}
 			},
-			{ rootMargin: '240px' },
+			{ root: feedScroller(), rootMargin: '240px' },
 		);
 		loadMoreObserver.observe(loadMoreSentinel.value);
 	}
 
 	function isNearTop() {
-		return window.scrollY < SCROLL_TOP_THRESHOLD;
+		const scroller = feedScroller();
+		return !scroller || scroller.scrollTop < SCROLL_TOP_THRESHOLD;
 	}
 
+	// Anchors are measured relative to the column, so a background refresh that
+	// adds posts above keeps the reader's place.
 	function getScrollAnchor() {
-		const sections = document.querySelectorAll('section.small[data-feed-post-id]');
-		for (const element of sections) {
+		const scroller = feedScroller();
+		if (!scroller) {
+			return null;
+		}
+		const top = scroller.getBoundingClientRect().top;
+		for (const element of scroller.querySelectorAll('[data-feed-post-id]')) {
 			const rect = element.getBoundingClientRect();
-			if (rect.bottom > 0) {
+			if (rect.bottom > top) {
 				return {
 					id: element.dataset.feedPostId,
-					top: rect.top,
+					top: rect.top - top,
 				};
 			}
 		}
@@ -370,19 +525,20 @@
 	}
 
 	async function restoreScrollAnchor(anchor) {
-		if (!anchor) {
+		const scroller = feedScroller();
+		if (!anchor || !scroller) {
 			return;
 		}
 
 		await nextTick();
-		const element = document.querySelector(`[data-feed-post-id="${anchor.id}"]`);
+		const element = scroller.querySelector(`[data-feed-post-id="${anchor.id}"]`);
 		if (!element) {
 			return;
 		}
 
-		const delta = element.getBoundingClientRect().top - anchor.top;
+		const delta = element.getBoundingClientRect().top - scroller.getBoundingClientRect().top - anchor.top;
 		if (delta !== 0) {
-			window.scrollBy(0, delta);
+			scroller.scrollBy(0, delta);
 		}
 	}
 
@@ -500,6 +656,7 @@
 		await loadFilterData();
 		refreshFeed({ background: false });
 		startAutoRefresh();
+		loadColumns();
 	});
 
 	onUnmounted(() => {
@@ -509,24 +666,64 @@
 </script>
 
 <style scoped>
-	.toolbar-controls {
+	/* Columns keep their own widths and sit in one row; the row scrolls sideways
+	   when they don't all fit. */
+	.feed-layout {
 		display: flex;
-		align-items: center;
+		align-items: stretch;
 		gap: 1rem;
-		width: 100%;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		padding-bottom: 0.5rem;
 	}
 
+	.feed-layout > :deep(.feed-column),
+	.feed-add-column {
+		height: calc(100vh - var(--picocrank-fixed-header-offset, 0px) - 3.5rem);
+	}
+
+	/* A quiet full-height placeholder after the last column, at the default column width. */
+	.feed-add-column {
+		flex: 0 0 auto;
+		max-width: calc(100vw - 2rem);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.4rem;
+		padding: 0;
+		font-size: 0.95rem;
+		margin: 0;
+		border: 1px dashed var(--border-color, rgba(127, 127, 127, 0.35));
+		border-radius: .4em;
+		background: transparent;
+		color: var(--text-secondary, #888);
+		box-shadow: none;
+		opacity: 0.6;
+		cursor: pointer;
+		transition: opacity 0.15s ease, border-color 0.15s ease;
+	}
+
+	.feed-add-column:hover,
+	.feed-add-column:focus-visible {
+		opacity: 1;
+		border-color: var(--link-color, #007bff);
+		color: var(--link-color, #007bff);
+	}
+
+	/* The filters share the column's single detail line equally. */
 	.filters {
 		display: flex;
 		align-items: center;
-		gap: 0.5rem;
+		gap: 0.35rem;
 		flex: 1;
-		flex-wrap: wrap;
+		min-width: 0;
+		height: 100%;
 	}
 
-	section {
-		margin-bottom: 1rem;
-		padding: 0;
+	.filters-clear {
+		height: 100%;
+		padding: 0 0.25rem;
+		flex-shrink: 0;
 	}
 
 	.feed-empty {
@@ -534,31 +731,9 @@
 	}
 
 	.feed-refresh-notice {
-		position: fixed;
-		top: 0.75rem;
-		left: 50%;
-		transform: translateX(-50%);
-		z-index: 100;
-		margin: 0;
-		padding: 0.4rem 0.85rem;
-		border-radius: 999px;
+		margin: 0 0 0.5rem;
 		font-size: 0.85rem;
-		color: var(--text-secondary, #555);
-		background: rgba(255, 255, 255, 0.92);
-		border: 1px solid rgba(0, 0, 0, 0.08);
-		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-		pointer-events: none;
-	}
-
-	.feed-refresh-fade-enter-active,
-	.feed-refresh-fade-leave-active {
-		transition: opacity 0.2s ease, transform 0.2s ease;
-	}
-
-	.feed-refresh-fade-enter-from,
-	.feed-refresh-fade-leave-to {
-		opacity: 0;
-		transform: translateX(-50%) translateY(-0.35rem);
+		text-align: center;
 	}
 
 	.feed-load-sentinel {

@@ -45,6 +45,24 @@
 			</template>
 		</dl>
 
+		<fieldset v-if="canMarkRead" class="external-poster-options">
+			<legend>External poster options</legend>
+			<p class="subtle">
+				This post is by someone else. Marking it as read hides it from your feed;
+				their other posts still show.
+			</p>
+			<button
+				type="button"
+				class="inline-icon neutral"
+				:disabled="markingRead"
+				@click="markRead"
+			>
+				<Icon v-if="markingRead" icon="eos-icons:loading" />
+				<Icon v-else icon="mdi:eye-off-outline" />
+				<span>{{ markingRead ? 'Marking…' : 'Mark as read' }}</span>
+			</button>
+		</fieldset>
+
 		<NotificationBlock
 			v-if="refetchMessage"
 			:type="refetchMessageType"
@@ -107,6 +125,7 @@
 	import FormLayout from 'picocrank/vue/components/FormLayout.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import { stashComposePrefill } from '../javascript/composePrefill.js';
+	import { canMarkPostRead, markPostRead } from '../javascript/postActions.js';
 	import SocialAccountChip from './SocialAccountChip.vue';
 
 	const props = defineProps({
@@ -136,7 +155,7 @@
 		},
 	});
 
-	const emit = defineEmits(['close', 'post-refetched', 'view-details', 'retry-post']);
+	const emit = defineEmits(['close', 'post-refetched', 'view-details', 'retry-post', 'post-hidden']);
 	const router = useRouter();
 
 	const dlg = ref(null);
@@ -148,6 +167,26 @@
 	const canRefetch = computed(() => props.refetchable && Boolean(props.post.id));
 	const canRetry = computed(() => props.retryable && props.post.state === 'error');
 	const canRepost = computed(() => Boolean((props.post.content || '').trim()));
+	// Feed and feed column posts (not published timeline posts), and only
+	// someone else's: there is no point hiding your own account's posts.
+	// Column posts aren't stored, so they are identified by remote URL / id.
+	const canMarkRead = computed(() => canMarkPostRead(props.post, { feedContext: props.refetchable }));
+	const markingRead = ref(false);
+
+	async function markRead() {
+		markingRead.value = true;
+		refetchMessage.value = '';
+		try {
+			await markPostRead(props.post);
+			emit('post-hidden', props.post);
+			close();
+		} catch (e) {
+			refetchMessageType.value = 'error';
+			refetchMessage.value = `Failed to mark as read: ${e.rawMessage || e.message || e}`;
+		} finally {
+			markingRead.value = false;
+		}
+	}
 
 	const postStatusText = computed(() => {
 		if (props.post.state === 'error') return 'Error';
@@ -269,3 +308,22 @@
 		}
 	}
 </script>
+
+<style scoped>
+	.external-poster-options {
+		margin: 0 0 1rem;
+		padding: 0.75rem 1rem;
+		border: 1px solid var(--border-color, rgba(127, 127, 127, 0.3));
+		border-radius: .4em;
+	}
+
+	.external-poster-options legend {
+		padding: 0 0.35rem;
+		font-weight: 600;
+	}
+
+	.external-poster-options p {
+		margin: 0 0 0.6rem;
+		font-size: 0.9em;
+	}
+</style>

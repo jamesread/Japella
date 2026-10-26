@@ -139,17 +139,29 @@ export function connectorDisplayName(protocol) {
   return CONNECTOR_DISPLAY_NAMES[key] || key.charAt(0).toUpperCase() + key.slice(1);
 }
 
+/** A byte count as "512 bytes", "1.5 KB", "2.3 MB" or "1.1 GB". */
+export function formatFileSize(bytes) {
+  const n = Number(bytes) || 0;
+  if (n < 1e3) {
+    return `${n} ${n === 1 ? 'byte' : 'bytes'}`;
+  }
+  if (n < 1e6) {
+    return `${(n / 1e3).toFixed(1)} KB`;
+  }
+  if (n < 1e9) {
+    return `${(n / 1e6).toFixed(1)} MB`;
+  }
+  return `${(n / 1e9).toFixed(1)} GB`;
+}
+
+/** The connector protocol a post came through, e.g. 'mastodon', or ''. */
+export function connectorFromPost(post) {
+  const protocol = post?.socialAccountConnector || post?.connector || CONNECTOR_ICON_TO_PROTOCOL[post?.socialAccountIcon] || '';
+  return String(protocol).toLowerCase();
+}
+
 export function socialProviderNameFromPost(post) {
-  if (post?.socialAccountConnector) {
-    return connectorDisplayName(post.socialAccountConnector);
-  }
-
-  if (post?.connector) {
-    return connectorDisplayName(post.connector);
-  }
-
-  const protocol = CONNECTOR_ICON_TO_PROTOCOL[post?.socialAccountIcon];
-  return connectorDisplayName(protocol);
+  return connectorDisplayName(connectorFromPost(post));
 }
 
 function parseDateString(dateString) {
@@ -281,4 +293,40 @@ export function decodeHtmlEntities(text) {
 		current = next;
 	}
 	return current;
+}
+
+/**
+ * Works out an author's profile page from the URL of one of their posts, for
+ * posts stored before profile links were recorded. Returns '' when the URL
+ * doesn't follow a known pattern.
+ *
+ *   https://host/@alice/123                       -> https://host/@alice
+ *   https://host/users/alice/statuses/123[/...]   -> https://host/users/alice
+ *   https://bsky.app/profile/alice/post/abc       -> https://bsky.app/profile/alice
+ *   https://x.com/alice/status/123                -> https://x.com/alice
+ */
+export function profileUrlFromPostUrl(postUrl) {
+	let url;
+	try {
+		url = new URL(postUrl);
+	} catch {
+		return '';
+	}
+	if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+		return '';
+	}
+
+	const patterns = [
+		/^(\/profile\/[^/]+)\/post\//,
+		/^(\/users\/[^/]+)\/statuses\//,
+		/^(\/@[^/]+)\/\d+/,
+		/^(\/[^/]+)\/status\/\d+/,
+	];
+	for (const pattern of patterns) {
+		const match = url.pathname.match(pattern);
+		if (match) {
+			return `${url.origin}${match[1]}`;
+		}
+	}
+	return '';
 }

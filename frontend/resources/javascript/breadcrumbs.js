@@ -17,6 +17,7 @@ export function currentPage(route, title) {
 
 export const crumb = {
 	controlPanel: { name: 'Control Panel', href: '/control-panel' },
+	health: { name: 'Health', href: '/admin/health' },
 	iam: { name: 'IAM', href: '/control-panel/iam' },
 	users: { name: 'Users', href: '/users' },
 	userGroups: { name: 'User Groups', href: '/user-groups' },
@@ -58,6 +59,7 @@ function userCrumb(route, name = 'User') {
  */
 export const breadcrumbsByRouteName = {
 	controlPanel: () => trail(crumb.controlPanel),
+	adminHealth: () => controlPanelTrail(crumb.health),
 	iam: () => iamTrail(),
 	connectors: () => controlPanelTrail(crumb.connectors),
 	settings: () => controlPanelTrail(crumb.systemSettings),

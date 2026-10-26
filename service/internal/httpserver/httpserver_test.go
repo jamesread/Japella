@@ -70,10 +70,10 @@ func TestCreateServer_RouteRegistration(t *testing.T) {
 	// Route registration / readiness policy. Some gated routes return 200 when the
 	// local test environment has a working DB (CreateServer starts ControlApi reconnect).
 	testCases := []struct {
-		name             string
-		path             string
-		allowedStatuses  []int
-		expectedBody     string
+		name            string
+		path            string
+		allowedStatuses []int
+		expectedBody    string
 	}{
 		{
 			name:            "healthz endpoint",

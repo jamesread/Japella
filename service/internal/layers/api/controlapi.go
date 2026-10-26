@@ -22,9 +22,10 @@ import (
 
 	"encoding/json"
 
-	"github.com/jamesread/golure/pkg/redact"
+	armhealth "github.com/jamesread/armature-health"
 	"github.com/jamesread/armature-iam/password"
 	"github.com/jamesread/armature-iam/store"
+	"github.com/jamesread/golure/pkg/redact"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
 	"github.com/jamesread/japella/internal/amqp"
@@ -34,18 +35,20 @@ import (
 	"github.com/jamesread/japella/internal/connectorcontroller"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/debuglog"
+	"github.com/jamesread/japella/internal/feedauthor"
+	"github.com/jamesread/japella/internal/httpserver/i18n"
 	"github.com/jamesread/japella/internal/iam"
 	"github.com/jamesread/japella/internal/keywordwatch"
-	"github.com/jamesread/japella/internal/shutdown"
+	"github.com/jamesread/japella/internal/languages"
 	"github.com/jamesread/japella/internal/layers/authentication"
-	"github.com/jamesread/japella/internal/httpserver/i18n"
 	"github.com/jamesread/japella/internal/media"
-	"github.com/jamesread/japella/internal/rbac"
-	"github.com/jamesread/japella/internal/webhook"
 	"github.com/jamesread/japella/internal/nanoservice"
+	"github.com/jamesread/japella/internal/rbac"
 	"github.com/jamesread/japella/internal/runtimeconfig"
+	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/jamesread/japella/internal/themes"
 	"github.com/jamesread/japella/internal/utils"
+	"github.com/jamesread/japella/internal/webhook"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/google/uuid"
@@ -63,6 +66,7 @@ type ControlApi struct {
 	cc *connectorcontroller.ConnectionController
 
 	keywordWatch *keywordwatch.Service
+	health       *armhealth.Service
 
 	// Job tracking
 	lastJobRunTimes map[string]time.Time
@@ -234,6 +238,12 @@ func (s *ControlApi) initConnectorControllerWhenReady() {
 	}
 	log.Infof("Database ready; starting connectors and bots")
 	s.cc = connectorcontroller.New(s.DB)
+	s.initHealthService()
+	s.startHealthChecksLoop(func(jobName string) {
+		s.jobRunMutex.Lock()
+		defer s.jobRunMutex.Unlock()
+		s.lastJobRunTimes[jobName] = time.Now()
+	})
 	s.keywordWatch = keywordwatch.NewService(s.DB, s.cc, webhook.NewDispatcher(s.DB))
 	s.keywordWatch.StartNativeAll(context.Background())
 }
@@ -357,6 +367,17 @@ func (s *ControlApi) processFeedFetching() {
 						PreviewTitle:            post.PreviewTitle,
 						PreviewDescription:      post.PreviewDescription,
 						PreviewImageURL:         post.PreviewImageURL,
+						Language:                post.Language,
+
+						AuthorHandle:             post.AuthorHandle,
+						AuthorProfileURL:         post.AuthorProfileURL,
+						OriginalAuthorHandle:     post.OriginalAuthorHandle,
+						OriginalAuthorProfileURL: post.OriginalAuthorProfileURL,
+
+						InteractionRemoteID: post.InteractionRemoteID,
+						Liked:               post.Liked,
+						LikeCount:           post.LikeCount,
+						ReplyCount:          post.ReplyCount,
 					}
 
 					inserted, err := s.DB.InsertFeedEntry(feedEntry)
@@ -600,28 +621,28 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 	availableThemes := themes.AvailableThemeNames()
 
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
-		Status:                status,
-		Nanoservices:          nanoservice.GetNanoservices(),
-		Version:               buildinfo.Version,
-		Username:              username,
-		IsLoggedIn:            authenticatedUser != nil,
-		StatusMessages:        statusMessages,
-		UsesSecureCookies:     os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
-		DatabaseHost:          s.DB.GetDatabaseHost(),
-		DatabaseName:          s.DB.GetDatabaseName(),
-		ListenAddress:         listenAddress,
-		DatabaseSchemaVersion: s.DB.GetCurrentSchemaVersion(),
-		DatabaseSchemaDirty:   s.DB.GetCurrentSchemaDirty(),
-		RbacPermissions:       rbacPermNames,
-		RbacIsSuperuser:       rbacSuper,
-		IsImpersonating:       isImpersonating,
-		ImpersonatorUsername:  impersonatorUsername,
+		Status:                 status,
+		Nanoservices:           nanoservice.GetNanoservices(),
+		Version:                buildinfo.Version,
+		Username:               username,
+		IsLoggedIn:             authenticatedUser != nil,
+		StatusMessages:         statusMessages,
+		UsesSecureCookies:      os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
+		DatabaseHost:           s.DB.GetDatabaseHost(),
+		DatabaseName:           s.DB.GetDatabaseName(),
+		ListenAddress:          listenAddress,
+		DatabaseSchemaVersion:  s.DB.GetCurrentSchemaVersion(),
+		DatabaseSchemaDirty:    s.DB.GetCurrentSchemaDirty(),
+		RbacPermissions:        rbacPermNames,
+		RbacIsSuperuser:        rbacSuper,
+		IsImpersonating:        isImpersonating,
+		ImpersonatorUsername:   impersonatorUsername,
 		ConfigFileAbsolutePath: runtimeconfig.ConfigYAMLAbsolutePath(),
-		DatabaseConnected:     dbConnected,
-		AmqpEnabled:           amqpEn,
-		AmqpConnected:         amqpConn,
-		WebhookEvents:         append([]string(nil), webhook.SupportedEvents...),
-		AvailableThemes:       availableThemes,
+		DatabaseConnected:      dbConnected,
+		AmqpEnabled:            amqpEn,
+		AmqpConnected:          amqpConn,
+		WebhookEvents:          append([]string(nil), webhook.SupportedEvents...),
+		AvailableThemes:        availableThemes,
 	})
 
 	if dbConnected {
@@ -714,6 +735,8 @@ func (s *ControlApi) marshalSocialAccountsForUser(au *authentication.Authenticat
 			OwnerUsername: ownerUsername,
 			CanPost:       canPost,
 			CanManage:     canManage,
+
+			PreferredLanguages: languages.Split(socialAccount.PreferredLanguages),
 		})
 	}
 
@@ -1271,7 +1294,7 @@ func (s *ControlApi) GetConnectors(ctx context.Context, req *connect.Request[con
 	}
 
 	res := connect.NewResponse(&controlv1.GetConnectorsResponse{
-		Connectors:           connectors,
+		Connectors:             connectors,
 		UnregisteredConnectors: unregisteredProto,
 	})
 
@@ -1345,14 +1368,14 @@ func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOau
 		_, supportsClientRegistration := svc.(connector.OAuth2ConnectorWithClientRegistration)
 
 		srv := &controlv1.Connector{
-			Name:                  displayName,
-			Protocol:              protocolName,
-			Icon:                  svc.GetIcon(),
-			HasOauth:              isOAuth,
-			IsRegistered:          isOAuthRegistered(svc),
-			UsesYamlConfig:        usesYamlConfig,
-			SupportsSocialAccounts: supportsSocialAccounts,
-			SupportsChatbot:        supportsChatBot,
+			Name:                       displayName,
+			Protocol:                   protocolName,
+			Icon:                       svc.GetIcon(),
+			HasOauth:                   isOAuth,
+			IsRegistered:               isOAuthRegistered(svc),
+			UsesYamlConfig:             usesYamlConfig,
+			SupportsSocialAccounts:     supportsSocialAccounts,
+			SupportsChatbot:            supportsChatBot,
 			SupportsClientRegistration: supportsClientRegistration,
 		}
 
@@ -1698,10 +1721,56 @@ func (s *ControlApi) GetFeed(ctx context.Context, req *connect.Request[controlv1
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve feed entries: %w", err))
 	}
 
+	read := map[uint32]bool{}
+	readRemote := map[string]bool{}
+	if authenticatedUser.User != nil {
+		if read, err = s.DB.SelectReadFeedPostIDs(authenticatedUser.User.ID); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve read feed posts"))
+		}
+		// Posts marked read in a feed column are hidden here too.
+		if readRemote, err = s.DB.SelectReadRemotePostHashes(authenticatedUser.User.ID); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve read feed posts"))
+		}
+	}
+
+	accountIDs := make([]uint32, 0)
+	seenAccount := map[uint32]bool{}
+	for _, entry := range feedEntries {
+		if !seenAccount[entry.SocialAccountID] {
+			seenAccount[entry.SocialAccountID] = true
+			accountIDs = append(accountIDs, entry.SocialAccountID)
+		}
+	}
+	commented, _ := s.DB.SelectCommentedPostHashes(accountIDs)
+	tagsByHash := s.userPostTags(authenticatedUser)
+
 	feed := make([]*controlv1.FeedPost, 0, len(feedEntries))
+	filters := map[uint32]languages.Filter{}
 
 	for _, entry := range feedEntries {
-		feed = append(feed, s.feedEntryToProto(entry))
+		if read[entry.ID] {
+			continue
+		}
+		if key := feedauthor.PostKey(entry.RemoteURL, entry.RemoteID); key != "" && readRemote[feedauthor.KeyHash(key)] {
+			continue
+		}
+
+		// Hide posts outside the account's preferred languages; read-time
+		// filtering means a preference change applies to stored posts too.
+		filter, ok := filters[entry.SocialAccountID]
+		if !ok {
+			filter = languages.NewFilter(entry.SocialAccountPreferredLanguages)
+			filters[entry.SocialAccountID] = filter
+		}
+		if !filter.Allows(entry.Language) {
+			continue
+		}
+		post := s.feedEntryToProto(entry)
+		if key := feedauthor.PostKey(entry.RemoteURL, entry.RemoteID); key != "" {
+			post.Commented = commented[entry.SocialAccountID][feedauthor.KeyHash(key)]
+			post.Tags = tagsByHash[feedauthor.KeyHash(key)]
+		}
+		feed = append(feed, post)
 	}
 
 	res := connect.NewResponse(&controlv1.GetFeedResponse{
@@ -1742,7 +1811,92 @@ func (s *ControlApi) feedEntryToProto(entry *db.Feed) *controlv1.FeedPost {
 		PreviewTitle:            entry.PreviewTitle,
 		PreviewDescription:      entry.PreviewDescription,
 		PreviewImageUrl:         entry.PreviewImageURL,
+		Language:                entry.Language,
+
+		AuthorHandle:             entry.AuthorHandle,
+		AuthorProfileUrl:         entry.AuthorProfileURL,
+		OriginalAuthorHandle:     entry.OriginalAuthorHandle,
+		OriginalAuthorProfileUrl: entry.OriginalAuthorProfileURL,
+
+		FromExternalAuthor: !feedauthor.IsOwnPost(entry.SocialAccountIdentity, entry.AuthorHandle, entry.AuthorName),
+
+		InteractionRemoteId: entry.InteractionRemoteID,
+		Liked:               entry.Liked,
+		LikeCount:           entry.LikeCount,
+		ReplyCount:          entry.ReplyCount,
+		CanLike:             s.connectorSupportsLikes(entry.SocialAccountConnector),
+		CanViewComments:     s.connectorSupportsReplies(entry.SocialAccountConnector),
+		CanComment:          s.connectorSupportsReplying(entry.SocialAccountConnector),
+		CanRefresh:          s.connectorSupportsRefetch(entry.SocialAccountConnector),
 	}
+}
+
+// MarkFeedPostRead hides a feed post from the caller's feed.
+func (s *ControlApi) MarkFeedPostRead(ctx context.Context, req *connect.Request[controlv1.MarkFeedPostReadRequest]) (*connect.Response[controlv1.MarkFeedPostReadResponse], error) {
+	au := s.getAuthenticatedUser(ctx)
+	if au == nil || au.User == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+	remoteURL, remoteID := req.Msg.GetRemoteUrl(), req.Msg.GetRemoteId()
+
+	if id := req.Msg.GetId(); id != 0 {
+		entry, err := s.DB.GetFeedEntryByID(id)
+		if err != nil || entry == nil {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("feed post not found"))
+		}
+		if err := s.DB.MarkFeedPostRead(au.User.ID, entry.ID); err != nil {
+			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark feed post read"))
+		}
+		// Also remember it by platform identity, so feed columns hide it too.
+		remoteURL, remoteID = entry.RemoteURL, entry.RemoteID
+	}
+
+	key := feedauthor.PostKey(remoteURL, remoteID)
+	if key == "" {
+		if req.Msg.GetId() != 0 {
+			return connect.NewResponse(&controlv1.MarkFeedPostReadResponse{}), nil
+		}
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("id, remote_url or remote_id is required"))
+	}
+	if err := s.DB.MarkRemotePostRead(au.User.ID, feedauthor.KeyHash(key), key); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark post read"))
+	}
+	return connect.NewResponse(&controlv1.MarkFeedPostReadResponse{}), nil
+}
+
+// refetchFeedEntry reloads a stored feed post from its platform into entry;
+// the caller saves it.
+func (s *ControlApi) refetchFeedEntry(rc connector.ConnectorWithFeedPostRefetch, sa *db.SocialAccount, entry *db.Feed) error {
+	fetched, err := rc.FetchFeedPost(toConnectorSA(sa), entry.RemoteID, entry.RemoteURL)
+	if err != nil {
+		return err
+	}
+
+	entry.Content = fetched.Content
+	entry.PostedDate = fetched.PostedDate
+	entry.AuthorID = fetched.AuthorID
+	entry.AuthorName = fetched.AuthorName
+	entry.AuthorAvatarURL = fetched.AuthorAvatarURL
+	entry.OriginalAuthorID = fetched.OriginalAuthorID
+	entry.OriginalAuthorName = fetched.OriginalAuthorName
+	entry.OriginalAuthorAvatarURL = fetched.OriginalAuthorAvatarURL
+	entry.RemoteURL = fetched.RemoteURL
+	entry.RemoteID = fetched.RemoteID
+	entry.Language = fetched.Language
+	entry.AuthorHandle = fetched.AuthorHandle
+	entry.AuthorProfileURL = fetched.AuthorProfileURL
+	entry.OriginalAuthorHandle = fetched.OriginalAuthorHandle
+	entry.OriginalAuthorProfileURL = fetched.OriginalAuthorProfileURL
+	entry.InteractionRemoteID = fetched.InteractionRemoteID
+	entry.Liked = fetched.Liked
+	entry.LikeCount = fetched.LikeCount
+	entry.ReplyCount = fetched.ReplyCount
+	entry.PreviewURL = fetched.PreviewURL
+	entry.PreviewTitle = fetched.PreviewTitle
+	entry.PreviewDescription = fetched.PreviewDescription
+	entry.PreviewImageURL = fetched.PreviewImageURL
+
+	return nil
 }
 
 func (s *ControlApi) RefetchFeedPost(ctx context.Context, req *connect.Request[controlv1.RefetchFeedPostRequest]) (*connect.Response[controlv1.RefetchFeedPostResponse], error) {
@@ -1780,35 +1934,10 @@ func (s *ControlApi) RefetchFeedPost(ctx context.Context, req *connect.Request[c
 		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("connector %s does not support refetching feed posts", sa.Connector))
 	}
 
-	connectorSA := &connector.SocialAccount{
-		Id:         sa.ID,
-		Connector:  sa.Connector,
-		Identity:   sa.Identity,
-		Did:        sa.Did,
-		OAuthToken: sa.OAuth2Token,
-		Homeserver: sa.Homeserver,
-	}
-
-	fetched, err := refetchConnector.FetchFeedPost(connectorSA, entry.RemoteID, entry.RemoteURL)
-	if err != nil {
+	if err := s.refetchFeedEntry(refetchConnector, sa, entry); err != nil {
 		log.Errorf("RefetchFeedPost: failed to refetch feed entry %d from %s: %v", entry.ID, sa.Connector, err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch post from %s: %w", sa.Connector, err))
 	}
-
-	entry.Content = fetched.Content
-	entry.PostedDate = fetched.PostedDate
-	entry.AuthorID = fetched.AuthorID
-	entry.AuthorName = fetched.AuthorName
-	entry.AuthorAvatarURL = fetched.AuthorAvatarURL
-	entry.OriginalAuthorID = fetched.OriginalAuthorID
-	entry.OriginalAuthorName = fetched.OriginalAuthorName
-	entry.OriginalAuthorAvatarURL = fetched.OriginalAuthorAvatarURL
-	entry.RemoteURL = fetched.RemoteURL
-	entry.RemoteID = fetched.RemoteID
-	entry.PreviewURL = fetched.PreviewURL
-	entry.PreviewTitle = fetched.PreviewTitle
-	entry.PreviewDescription = fetched.PreviewDescription
-	entry.PreviewImageURL = fetched.PreviewImageURL
 
 	if err := s.DB.UpdateFeedEntry(entry); err != nil {
 		log.Errorf("RefetchFeedPost: failed to update feed entry %d: %v", entry.ID, err)
@@ -2107,6 +2236,12 @@ func (s *ControlApi) GetJobsStatus(ctx context.Context, req *connect.Request[con
 			Schedule:    s.postEngagementSchedule(),
 			LastRun:     s.getJobLastRun(postEngagementJobName),
 		},
+		{
+			Name:        "health_checks",
+			DisplayName: "Health Checks",
+			Schedule:    "Every 15 minutes",
+			LastRun:     s.getJobLastRun("health_checks"),
+		},
 	}
 
 	if s.keywordWatch != nil {
@@ -2142,9 +2277,27 @@ func (s *ControlApi) ListMedia(ctx context.Context, req *connect.Request[control
 		log.Errorf("ListMedia: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to list media: %w", err))
 	}
+	networks := []mediaNetwork{}
+	if authenticatedUser.User != nil {
+		networks = s.userMediaNetworks(authenticatedUser)
+	}
 	items := make([]*controlv1.MediaItem, 0, len(list))
 	for _, it := range list {
-		items = append(items, &controlv1.MediaItem{Filename: it.Filename, Url: it.URL})
+		item := &controlv1.MediaItem{
+			Filename:         it.Filename,
+			Url:              it.URL,
+			SizeBytes:        uint64(it.SizeBytes),
+			OptimisedOf:      it.OptimisedOf,
+			OptimisedKind:    it.OptimisedKind,
+			OptimisedVersion: it.OptimisedVersion,
+			PostingVersion:   it.PostingVersion,
+		}
+		// Only image headers are read, so this stays cheap for a whole library.
+		if info, err := media.Inspect(it.Filename); err == nil {
+			item.Width, item.Height = uint32(info.Width), uint32(info.Height)
+			item.Suitability = s.mediaSuitability(networks, info)
+		}
+		items = append(items, item)
 	}
 	return connect.NewResponse(&controlv1.ListMediaResponse{Items: items}), nil
 }
@@ -2231,6 +2384,36 @@ func (s *ControlApi) SetSocialAccountActive(ctx context.Context, req *connect.Re
 	})
 
 	return res, nil
+}
+
+// SetSocialAccountPreferredLanguages sets which languages feed posts fetched
+// through this account may be in. It needs manage access to the account.
+func (s *ControlApi) SetSocialAccountPreferredLanguages(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountPreferredLanguagesRequest]) (*connect.Response[controlv1.SetSocialAccountPreferredLanguagesResponse], error) {
+	au := s.getAuthenticatedUser(ctx)
+	if au == nil || au.User == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	id := req.Msg.GetSocialAccountId()
+	if id == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id is required"))
+	}
+
+	canViewAll := au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser)
+	if !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, id, "manage") {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", id))
+	}
+
+	codes, err := languages.ParsePreferred(req.Msg.GetLanguages())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if err := s.DB.SetSocialAccountPreferredLanguages(id, languages.Join(codes)); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to save preferred languages"))
+	}
+
+	return connect.NewResponse(&controlv1.SetSocialAccountPreferredLanguagesResponse{Languages: codes}), nil
 }
 
 func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *connect.Request[controlv1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[controlv1.LoginWithUsernameAndPasswordResponse], error) {
@@ -3234,4 +3417,3 @@ func (s *ControlApi) UpdateCannedPost(ctx context.Context, req *connect.Request[
 
 	return res, nil
 }
-

@@ -1,9 +1,33 @@
 <template>
-	<div class="post-boost">
+	<div class="post-boost" :class="{ filled }" @contextmenu="contextMenu.onContextMenu">
 		<div class="boost-header">
 			<div class="boost-info">
 				<Icon icon="mdi:repeat" class="boost-icon" />
-				<template v-if="post.socialAccountId">
+				<template v-if="post.socialAccountId && post.authorId">
+					<!-- The booster opens the author options dialog. -->
+					<button
+						type="button"
+						class="author-avatar-button avatar-link"
+						:title="'Author options for ' + displayAuthorName"
+						:aria-label="'Author options for ' + displayAuthorName"
+						@click="authorOptionsFor = 'booster'"
+					>
+						<FeedAuthorAvatar
+							:avatar-url="post.authorAvatarUrl"
+							:fallback-icon="post.socialAccountIcon || 'mdi:account'"
+							:alt-text="displayAuthorName || 'Author'"
+						/>
+					</button>
+					<button
+						type="button"
+						class="author-filter-button account-name"
+						:title="'Author options for ' + displayAuthorName"
+						@click="authorOptionsFor = 'booster'"
+					>
+						{{ displayAuthorName }}
+					</button>
+				</template>
+				<template v-else-if="post.socialAccountId">
 					<router-link
 						:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
 						class="social-account-link avatar-link"
@@ -15,17 +39,7 @@
 							:alt-text="displayAuthorName || 'Author'"
 						/>
 					</router-link>
-					<button
-						v-if="authorFilterable && post.authorId"
-						type="button"
-						class="author-filter-button account-name"
-						:title="'Show posts by ' + displayAuthorName"
-						@click="filterByAuthor"
-					>
-						{{ displayAuthorName }}
-					</button>
 					<router-link
-						v-else
 						:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
 						class="social-account-link"
 					>
@@ -58,20 +72,30 @@
 		</div>
 
 		<div class="boosted-content">
-			<div v-if="originalAuthorName" class="boosted-author">
+			<button
+				v-if="originalAuthorName"
+				type="button"
+				class="boosted-author"
+				:title="'Author options for ' + originalAuthorName"
+				@click="authorOptionsFor = 'original'"
+			>
 				<FeedAuthorAvatar
 					:avatar-url="post.originalAuthorAvatarUrl"
 					fallback-icon="mdi:account"
 					:alt-text="originalAuthorName"
 				/>
 				<span class="boosted-author-name">{{ originalAuthorName }}</span>
-			</div>
+			</button>
 
 			<div
 				v-if="post.content"
 				class="boosted-post-message"
-				v-html="post.content"
+				@click="hashtags.onContentClick"
+				v-html="hashtags.contentHtml.value"
 			/>
+
+			<PostInteractionBar v-if="interactive" :post="post" />
+			<PostTags v-if="interactive" ref="postTags" :post="post" />
 
 			<div v-if="post.previewUrl || post.previewImageUrl" class="preview-card">
 				<a
@@ -147,12 +171,37 @@
 		</div>
 	</div>
 
+	<TagOptionsDialog
+		v-if="hashtags.tagOptions.value"
+		:tag="hashtags.tagOptions.value.tag"
+		:url="hashtags.tagOptions.value.url"
+		:post="post"
+		@close="hashtags.tagOptions.value = null"
+	/>
+
+	<TableRowContextMenu
+		v-model:open="contextMenu.open.value"
+		:items="contextMenu.items.value"
+		:client-x="contextMenu.x.value"
+		:client-y="contextMenu.y.value"
+		@select="contextMenu.onSelect"
+	/>
+
+	<AuthorOptionsDialog
+		v-if="authorOptionsFor"
+		:author="authorOptionsAuthor"
+		:filterable="authorFilterable"
+		@filter-author="filterByAuthor"
+		@close="authorOptionsFor = null"
+	/>
+
 	<!-- Diagnostic Info Dialog -->
 	<PostDiagnosticDialog
 		:open="showDiagnosticDialog"
 		:post="post"
 		@close="closeDiagnosticDialog"
 		@post-refetched="onPostRefetched"
+		@post-hidden="emit('post-hidden', $event)"
 	/>
 </template>
 
@@ -161,6 +210,13 @@
 	import { Icon } from '@iconify/vue';
 	import { formatHumanDateTime } from '../javascript/util';
 	import FeedAuthorAvatar from './FeedAuthorAvatar.vue';
+	import AuthorOptionsDialog from './AuthorOptionsDialog.vue';
+	import PostInteractionBar from './PostInteractionBar.vue';
+	import PostTags from './PostTags.vue';
+	import TagOptionsDialog from './TagOptionsDialog.vue';
+	import { useHashtagOptions } from '../javascript/hashtags.js';
+	import TableRowContextMenu from 'picocrank/vue/components/TableRowContextMenu.vue';
+	import { usePostContextMenu } from '../javascript/postActions.js';
 	import PostDiagnosticDialog from './PostDiagnosticDialog.vue';
 	import SocialAccountChip from './SocialAccountChip.vue';
 
@@ -168,6 +224,16 @@
 		post: {
 			type: Object,
 			required: true
+		},
+		interactive: {
+			// Show like and comments buttons (feed and feed columns).
+			type: Boolean,
+			default: false,
+		},
+		filled: {
+			// Draw the card background itself, for lists not wrapped in a section.
+			type: Boolean,
+			default: false,
 		},
 		authorFilterable: {
 			type: Boolean,
@@ -179,7 +245,7 @@
 		},
 	});
 
-	const emit = defineEmits(['filter-author', 'post-refetched']);
+	const emit = defineEmits(['filter-author', 'post-refetched', 'post-hidden']);
 
 	// Diagnostic dialog state
 	const showDiagnosticDialog = ref(false);
@@ -267,9 +333,52 @@
 		return props.post.originalAuthorName || '';
 	});
 
+	// Boosts only appear in feeds.
+	const postTags = ref(null);
+	const hashtags = useHashtagOptions(() => props.post);
+	const contextMenu = usePostContextMenu(() => props.post, () => true, emit, {
+		onEditTags: props.interactive ? () => postTags.value?.openEditor() : null,
+	});
+
+	// Which author's options are open: 'booster', 'original' or null.
+	const authorOptionsFor = ref(null);
+
+	const authorOptionsAuthor = computed(() => {
+		const p = props.post;
+		const via = {
+			socialAccountId: p.socialAccountId,
+			socialAccountIdentity: p.socialAccountIdentity,
+			socialAccountIcon: p.socialAccountIcon,
+		};
+		if (authorOptionsFor.value === 'original') {
+			return {
+				...via,
+				id: p.originalAuthorId,
+				name: p.originalAuthorName,
+				handle: p.originalAuthorHandle,
+				avatarUrl: p.originalAuthorAvatarUrl,
+				profileUrl: p.originalAuthorProfileUrl,
+				external: true,
+			};
+		}
+		return {
+			...via,
+			id: p.authorId,
+			name: displayAuthorName.value,
+			handle: p.authorHandle,
+			avatarUrl: p.authorAvatarUrl,
+			profileUrl: p.authorProfileUrl,
+			// The boost's URL is the booster's activity, so it locates the booster.
+			postUrl: p.remoteUrl,
+			fallbackIcon: p.socialAccountIcon,
+			external: Boolean(p.fromExternalAuthor),
+		};
+	});
+
 	function filterByAuthor() {
-		if (props.post.authorId) {
-			emit('filter-author', props.post.authorId);
+		const id = authorOptionsAuthor.value.id;
+		if (id) {
+			emit('filter-author', id);
 		}
 	}
 
@@ -320,6 +429,13 @@
 	border-left: 3px solid var(--boost-color, #6366f1);
 	background-color: var(--bg-secondary, #f9fafb);
 	position: relative;
+}
+
+/* Matches femtocrank's section.small card; the left border still marks a boost. */
+.post-boost.filled {
+	background-color: var(--section-bg-color);
+	border-radius: .8em;
+	box-shadow: 0 0 .5em var(--shadow-color);
 }
 
 .boost-header {
@@ -408,6 +524,28 @@
 	align-items: center;
 	gap: 0.5rem;
 	margin-bottom: 0.75rem;
+	padding: 0;
+	border: none;
+	background: none;
+	box-shadow: none;
+	font: inherit;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.boosted-author:hover .boosted-author-name {
+	text-decoration: underline;
+}
+
+.author-avatar-button {
+	display: inline-flex;
+	padding: 0;
+	border: none;
+	background: none;
+	box-shadow: none;
+	cursor: pointer;
+	border-radius: 50%;
 }
 
 .boosted-author-name {

@@ -19,6 +19,16 @@
 					Exit
 				</button>
 			</div>
+			<button
+				v-if="isLoggedIn && route.name !== 'postBox'"
+				type="button"
+				class="header-post-button"
+				title="Write a new post"
+				@click="showPostDialog = true"
+			>
+				<Icon icon="mdi:pencil-plus-outline" width="18" height="18" aria-hidden="true" />
+				<span>Post</span>
+			</button>
 			<QuickSearch
 				v-if="isLoggedIn"
 				placeholder="Search pages..."
@@ -26,6 +36,8 @@
 			/>
 		</template>
 	</Header>
+
+	<PostBoxDialog v-if="showPostDialog" @close="showPostDialog = false" />
 
 	<Navigation ref="navigation">
 		<div id="layout">
@@ -58,7 +70,7 @@
 					<ErrorDialog ref="errorDialogRef" />
 					<PWAInstallPrompt />
 				</main>
-				<footer>
+				<footer v-if="!route.meta.hideFooter">
 					<small>
 						<span><a href="https://github.com/jamesread/Japella">Japella on GitHub</a></span>
 						<span><a href="https://jamesread.github.io/Japella/">Documentation</a></span>
@@ -90,6 +102,14 @@
         white-space: nowrap;
         align-self: center;
         margin-right: 0.25rem;
+    }
+
+    .header-post-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        align-self: center;
+        white-space: nowrap;
     }
 
     /* Beat Header header-actions :deep(button) chrome styles */
@@ -126,7 +146,7 @@
         themeFeaturesFromStatus,
     } from '../javascript/applyAppTheming.js'
     import { useCustomTheme } from '../javascript/theme.js'
-    import { ref, onMounted, provide, watch, nextTick } from 'vue';
+    import { ref, onMounted, onUnmounted, provide, watch, nextTick } from 'vue';
     import { useRoute, useRouter } from 'vue-router';
     import { Icon } from '@iconify/vue';
     import { useI18n } from 'vue-i18n';
@@ -134,6 +154,7 @@
 	import ErrorDialog from './ErrorDialog.vue';
 	import PWAInstallPrompt from './PWAInstallPrompt.vue';
     import Header from 'picocrank/vue/components/Header.vue';
+    import PostBoxDialog from './PostBoxDialog.vue';
     import Navigation from 'picocrank/vue/components/Navigation.vue';
     import Sidebar from 'picocrank/vue/components/Sidebar.vue';
     import QuickSearch from 'picocrank/vue/components/QuickSearch.vue';
@@ -144,10 +165,14 @@
 		setupSidebarNavigation,
 		showControlPanelInSidebar,
 	} from '../javascript/sidebarNavigation.js';
+	import { HEALTH_CHANGED_EVENT, fetchHealthSummaryCount } from '../javascript/health.js';
 
     const { t, locale, fallbackLocale } = useI18n();
     const route = useRoute();
     const router = useRouter();
+
+    // The compose page, opened over whatever page is showing.
+    const showPostDialog = ref(false);
 
     const clientReady = ref(false);
     const isLoggedIn = ref(false);
@@ -202,10 +227,14 @@
 	async function setupNavigation() {
 		if (!navigation.value) return;
 
-		const approvalsCount = await fetchApprovalsCount();
+		const [approvalsCount, healthCount] = await Promise.all([
+			fetchApprovalsCount(),
+			fetchHealthSummaryCount(),
+		]);
 
 		setupSidebarNavigation(navigation.value, {
 			approvalsCount,
+			healthCount,
 			showControlPanel: showControlPanelInSidebar({
 				rbacIsSuperuser: window.userRbacIsSuperuser,
 				rbacPermissions: window.userRbacPermissions,
@@ -222,6 +251,17 @@
 		if (!navigation.value || !isLoggedIn.value) return;
 		const approvalsCount = knownCount != null ? knownCount : await fetchApprovalsCount();
 		navigation.value.addRouterLink('approvals', null, { count: approvalsCount });
+	}
+
+	async function refreshHealthNavCount() {
+		if (!navigation.value || !isLoggedIn.value) return;
+		const showControlPanel = showControlPanelInSidebar({
+			rbacIsSuperuser: window.userRbacIsSuperuser,
+			rbacPermissions: window.userRbacPermissions,
+		});
+		if (!showControlPanel) return;
+		const healthCount = await fetchHealthSummaryCount();
+		navigation.value.addRouterLink('controlPanel', null, healthCount > 0 ? { count: healthCount } : {});
 	}
 
 	provide('refreshApprovalsNavCount', refreshApprovalsNavCount);
@@ -313,6 +353,7 @@
     const { discoverThemes } = useCustomTheme();
 
     onMounted(async () => {
+        window.addEventListener(HEALTH_CHANGED_EVENT, refreshHealthNavCount);
         registerSidebarApplier(applySidebarPreference);
 
         setTimeout(() => {
@@ -323,6 +364,10 @@
         await discoverThemes();
         clientReady.value = true;
         await loadStatus();
+    });
+
+    onUnmounted(() => {
+        window.removeEventListener(HEALTH_CHANGED_EVENT, refreshHealthNavCount);
     });
 
     watch(clientReady, (ready) => {

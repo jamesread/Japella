@@ -8,3 +8,8 @@ prod:
 
 dev:
 	npx vite preview
+
+lint:
+	npm run lint
+
+.PHONY: default deps prod dev lint

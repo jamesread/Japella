@@ -244,9 +244,9 @@ func (x *XConnector) resolveUserID(accessToken string, cachedUserID string, acco
 // v1-style: { "media_id": 123 } or { "media_id_string": "123" }
 // v2-style: { "data": { "media_key": "..." } } or { "data": { "media_id": "..." } }
 type mediaUploadResponse struct {
-	MediaID       interface{}       `json:"media_id"`
-	MediaIDString string            `json:"media_id_string"`
-	Data          *mediaUploadData  `json:"data"`
+	MediaID       interface{}      `json:"media_id"`
+	MediaIDString string           `json:"media_id_string"`
+	Data          *mediaUploadData `json:"data"`
 }
 
 type mediaUploadData struct {

@@ -1,7 +1,7 @@
 <template>
     <div class="post-compose-stack small">
-    <section class = "post-box">
-        <h2>{{ t('section.postbox.title') }}</h2>
+    <section class = "post-box" :class="{ transparent: embedded, embedded }">
+        <h2 v-if="!embedded">{{ t('section.postbox.title') }}</h2>
         <p>{{ t('section.postbox.intro') }}</p>
 
         <form @submit.prevent="submitPost" id = "submit-post">
@@ -129,14 +129,56 @@
                             <img v-if="isImageFile(m.filename)" :src="m.url" :alt="m.filename" class="selected-media-thumb" />
                             <span v-else class="selected-media-placeholder">{{ m.filename }}</span>
                             <button type="button" class="remove-media" @click="removeMedia(idx)" title="Remove">×</button>
+                            <span
+                                v-if="mediaVerdict(m) !== 'ok'"
+                                class="tag media-verdict"
+                                :class="VERDICT_KARMA[mediaVerdict(m)]"
+                                :title="mediaVerdictTitle(m)"
+                            >
+                                <Icon :icon="VERDICT_ICONS[mediaVerdict(m)]" aria-hidden="true" />
+                            </span>
                         </div>
                     </div>
+                    <ul v-if="optimisedSwaps.length" class="media-swaps" aria-label="Optimised copies available">
+                        <li v-for="swap in optimisedSwaps" :key="swap.index">
+                            <Icon icon="mdi:image-auto-adjust" aria-hidden="true" />
+                            <span>
+                                <strong>{{ swap.original.filename }}</strong> has
+                                {{ swap.optimised.optimisedKind === 'posting' ? 'a copy prepared for posting' : 'a lossless copy that looks identical' }}
+                                ({{ formatFileSize(swap.optimised.sizeBytes) }} instead of {{ formatFileSize(swap.original.sizeBytes) }}).
+                            </span>
+                            <button type="button" class="neutral small" @click="useOptimised(swap)">Use it</button>
+                        </li>
+                    </ul>
+                    <ul v-if="mediaProblems.length" class="media-problems" aria-label="Media suitability for the chosen accounts">
+                        <li v-for="p in mediaProblems" :key="`${p.filename}-${p.network.protocol}`">
+                            <span class="tag media-problem-verdict" :class="VERDICT_KARMA[p.network.verdict]">
+                                <Icon :icon="p.network.icon" aria-hidden="true" />
+                                <Icon :icon="VERDICT_ICONS[p.network.verdict]" aria-hidden="true" />
+                            </span>
+                            <span><strong>{{ p.filename }}</strong> on {{ describeNetwork(p.network) }}</span>
+                        </li>
+                    </ul>
                     <div v-if="showMediaPicker" class="media-picker">
                         <p v-if="!mediaLibrary.length">No media in library. <router-link to="/media">Upload some</router-link> first.</p>
                         <div v-else class="media-picker-grid">
-                            <button type="button" v-for="item in mediaLibrary" :key="item.url" class="media-picker-item" @click="addMedia(item)">
+                            <button
+                                type="button"
+                                v-for="item in mediaLibrary"
+                                :key="item.url"
+                                class="media-picker-item"
+                                :title="mediaVerdictTitle(item) || item.filename"
+                                @click="addMedia(item)"
+                            >
                                 <img v-if="isImageFile(item.filename)" :src="item.url" :alt="item.filename" />
                                 <span v-else>{{ item.filename }}</span>
+                                <span
+                                    v-if="mediaVerdict(item) !== 'ok'"
+                                    class="tag media-verdict"
+                                    :class="VERDICT_KARMA[mediaVerdict(item)]"
+                                >
+                                    <Icon :icon="VERDICT_ICONS[mediaVerdict(item)]" aria-hidden="true" />
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -180,6 +222,14 @@
 </template>
 
 <script setup>
+	defineProps({
+		// Shown inside a dialog: the dialog supplies the title and chrome, so the
+		// section drops its own card styling and heading.
+		embedded: {
+			type: Boolean,
+			default: false,
+		},
+	});
     import { useI18n } from 'vue-i18n'
     const { t } = useI18n()
 
@@ -189,9 +239,10 @@ import { ref, onMounted, onActivated, onUnmounted, computed, nextTick, watch } f
     import EmojiPickerPopover from './EmojiPickerPopover.vue';
     import SocialAccountsSelector from './SocialAccountsSelector.vue';
     import LlmToolRunsPanel from './LlmToolRunsPanel.vue';
-    import { insertAtCursor, formatHumanDateTime } from '../javascript/util.js';
+    import { insertAtCursor, formatHumanDateTime, formatFileSize } from '../javascript/util.js';
     import { buildLlmToolSessions, replyFromApiRun } from '../javascript/llmToolSessions.js';
     import { takeComposePrefill } from '../javascript/composePrefill.js';
+    import { VERDICT_ICONS, VERDICT_KARMA, worstVerdict, describeNetwork } from '../javascript/mediaSuitability.js';
 
     const clientReady = ref(false);
     const items = ref([]);
@@ -252,6 +303,92 @@ const contentLength = ref(0);
 	function addMedia(item) {
 		selectedMedia.value = [...selectedMedia.value, item];
 	}
+
+	// Suitability checks per media URL, from the library listing or, for media
+	// added by link (e.g. "Use in new post"), fetched one at a time.
+	const mediaSuitability = ref({});
+
+	watch(mediaLibrary, (library) => {
+		const next = { ...mediaSuitability.value };
+		for (const item of library) {
+			next[item.url] = item.suitability || [];
+		}
+		mediaSuitability.value = next;
+	});
+
+	watch(selectedMedia, async (media) => {
+		for (const m of media) {
+			if (mediaSuitability.value[m.url] || !m.filename) {
+				continue;
+			}
+			mediaSuitability.value = { ...mediaSuitability.value, [m.url]: [] };
+			try {
+				await waitForClient();
+				const res = await window.client.getMediaSuitability({ filename: m.filename });
+				mediaSuitability.value = { ...mediaSuitability.value, [m.url]: res.networks || [] };
+			} catch {
+				// No indicator rather than a misleading one.
+			}
+		}
+	});
+
+	// Networks of the accounts chosen for this post; all networks before any are chosen.
+	const selectedProtocols = computed(() => {
+		const chosen = items.value.filter((a) => selectedAccountIds.value.includes(a.id)).map((a) => a.connector);
+		return chosen.length ? [...new Set(chosen)] : null;
+	});
+
+	function relevantNetworks(media) {
+		const networks = mediaSuitability.value[media.url] || [];
+		const protocols = selectedProtocols.value;
+		return protocols ? networks.filter((n) => protocols.includes(n.protocol)) : networks;
+	}
+
+	function mediaVerdict(media) {
+		return worstVerdict(relevantNetworks(media).map((n) => n.verdict));
+	}
+
+	function mediaVerdictTitle(media) {
+		return relevantNetworks(media).filter((n) => n.verdict !== 'ok').map(describeNetwork).join('\n');
+	}
+
+	// Library items by URL, for finding an attachment's optimised copy.
+	const libraryByUrl = computed(() => new Map(mediaLibrary.value.map((item) => [item.url, item])));
+	const libraryByName = computed(() => new Map(mediaLibrary.value.map((item) => [item.filename, item])));
+
+	watch(selectedMedia, (media) => {
+		if (media.length && mediaLibrary.value.length === 0) {
+			loadMediaLibrary();
+		}
+	});
+
+	// Attachments with an optimised copy that isn't attached yet; a copy made
+	// for posting is preferred, as it fits every network.
+	const optimisedSwaps = computed(() => selectedMedia.value.flatMap((m, index) => {
+		const original = libraryByUrl.value.get(m.url);
+		const copyName = original?.postingVersion || original?.optimisedVersion;
+		const optimised = copyName && libraryByName.value.get(copyName);
+		if (!optimised || selectedMedia.value.some((s) => s.url === optimised.url)) {
+			return [];
+		}
+		return [{ index, original, optimised }];
+	}));
+
+	function useOptimised(swap) {
+		const next = [...selectedMedia.value];
+		next[swap.index] = swap.optimised;
+		selectedMedia.value = next;
+	}
+
+	// Only judged against chosen accounts, so warnings match where the post goes.
+	const mediaProblems = computed(() => {
+		if (!selectedProtocols.value) {
+			return [];
+		}
+		return selectedMedia.value.flatMap((m) => relevantNetworks(m)
+			.filter((n) => n.verdict !== 'ok')
+			.map((network) => ({ filename: m.filename, network })));
+	});
 	function applyMediaFromQuery() {
 		const mediaUrl = route.query.mediaUrl;
 		if (!mediaUrl || typeof mediaUrl !== 'string') {
@@ -953,6 +1090,11 @@ const submitButtonLabel = computed(() => {
 </script>
 
 <style scoped>
+    section.post-box.embedded {
+		padding: 0;
+		margin: 0;
+	}
+
     .post-compose-stack {
 		width: 100%;
 		display: flex;
@@ -1159,6 +1301,59 @@ const submitButtonLabel = computed(() => {
 		cursor: pointer;
 		font-size: 1.1em;
 		line-height: 1;
+	}
+	.media-verdict {
+		position: absolute;
+		left: 2px;
+		bottom: 2px;
+		display: inline-flex;
+		padding: 2px;
+		font-size: 0.9em;
+	}
+	.media-problem-verdict {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.1em;
+		padding: 0.05em 0.35em;
+		flex-shrink: 0;
+	}
+	.media-swaps {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		font-size: 0.85em;
+		display: flex;
+		flex-direction: column;
+		gap: 0.3em;
+	}
+	.media-swaps li {
+		display: flex;
+		align-items: center;
+		gap: 0.4em;
+	}
+	.media-swaps span {
+		flex: 1;
+	}
+	.media-problems {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		font-size: 0.85em;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2em;
+	}
+	.media-problems li {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.3em;
+	}
+	.media-problems svg {
+		flex-shrink: 0;
+		margin-top: 0.15em;
+	}
+	.media-picker-item {
+		position: relative;
 	}
 	.media-picker {
 		padding: 0.75em;

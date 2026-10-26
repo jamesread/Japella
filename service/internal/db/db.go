@@ -10,8 +10,8 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/jamesread/golure/pkg/dirs"
 	"github.com/jamesread/armature-iam/store"
+	"github.com/jamesread/golure/pkg/dirs"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	"github.com/jmoiron/sqlx"
@@ -93,6 +93,23 @@ func (db *DB) ConnEstablished() bool {
 	db.connectionMutex.Lock()
 	defer db.connectionMutex.Unlock()
 	return db.connx != nil
+}
+
+// SQLDB returns the underlying *sql.DB handle when connected, or nil.
+func (db *DB) SQLDB() *sql.DB {
+	db.connectionMutex.Lock()
+	defer db.connectionMutex.Unlock()
+	if db.connx == nil {
+		return nil
+	}
+	return db.connx.DB
+}
+
+// SetSQLxDB sets the underlying *sqlx.DB handle directly (for unit tests).
+func (db *DB) SetSQLxDB(connx *sqlx.DB) {
+	db.connectionMutex.Lock()
+	defer db.connectionMutex.Unlock()
+	db.connx = connx
 }
 
 // Ready reports whether the database completed the full connection chain
@@ -480,15 +497,15 @@ func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
 			active = :active,
 			updated_at = NOW()
 			WHERE id = :id`, map[string]interface{}{
-			"id":                  existingAccount.ID,
-			"identity":            socialAccount.Identity,
-			"did":                 socialAccount.Did,
-			"homeserver":          homeserver,
-			"oauth2_token":        socialAccount.OAuth2Token,
-			"oauth2_token_expiry": socialAccount.OAuth2TokenExpiry,
+			"id":                   existingAccount.ID,
+			"identity":             socialAccount.Identity,
+			"did":                  socialAccount.Did,
+			"homeserver":           homeserver,
+			"oauth2_token":         socialAccount.OAuth2Token,
+			"oauth2_token_expiry":  socialAccount.OAuth2TokenExpiry,
 			"oauth2_refresh_token": socialAccount.OAuth2RefreshToken,
-			"dpop_key":            socialAccount.DpopKey,
-			"active":             socialAccount.Active,
+			"dpop_key":             socialAccount.DpopKey,
+			"active":               socialAccount.Active,
 		})
 		if err != nil {
 			db.Logger().Errorf("Failed to update existing social account: %v", err)
@@ -544,18 +561,18 @@ func (db *DB) CreatePost(post *Post) error {
 		NOW(), NOW(), :campaign_id, :submission_source, :submitted_by_user_id,
 		:account_policy_id, :approval_stage
 	)`, map[string]any{
-		"social_account_id":     socialAccountID,
-		"status":                  post.Status,
-		"state":                   post.State,
-		"content":                 post.Content,
-		"post_url":                post.PostURL,
-		"remote_id":               post.RemoteID,
-		"scheduled_at":            post.ScheduledAt,
-		"campaign_id":             post.CampaignID,
-		"submission_source":       post.SubmissionSource,
-		"submitted_by_user_id":    post.SubmittedByUserID,
-		"account_policy_id":       post.AccountPolicyID,
-		"approval_stage":          post.ApprovalStage,
+		"social_account_id":    socialAccountID,
+		"status":               post.Status,
+		"state":                post.State,
+		"content":              post.Content,
+		"post_url":             post.PostURL,
+		"remote_id":            post.RemoteID,
+		"scheduled_at":         post.ScheduledAt,
+		"campaign_id":          post.CampaignID,
+		"submission_source":    post.SubmissionSource,
+		"submitted_by_user_id": post.SubmittedByUserID,
+		"account_policy_id":    post.AccountPolicyID,
+		"approval_stage":       post.ApprovalStage,
 	})
 	if err != nil {
 		db.Logger().Errorf("Failed to create post: %v", err)
@@ -767,6 +784,16 @@ func (db *DB) SetSocialAccountActive(id uint32, active bool) error {
 		return err
 	}
 	return nil
+}
+
+// SetSocialAccountPreferredLanguages stores the account's preferred
+// languages as a comma-separated list of ISO 639 base codes.
+func (db *DB) SetSocialAccountPreferredLanguages(id uint32, languages string) error {
+	_, err := db.ResilientExec("UPDATE social_accounts SET preferred_languages = ?, updated_at = NOW() WHERE id = ?", languages, id)
+	if err != nil {
+		db.Logger().Errorf("Failed to set preferred languages for social account %d: %v", id, err)
+	}
+	return err
 }
 
 func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
@@ -1323,7 +1350,7 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) (inserted bool, err error) {
 		return false, nil
 	}
 
-	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, author_avatar_url, original_author_id, original_author_name, original_author_avatar_url, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :author_avatar_url, :original_author_id, :original_author_name, :original_author_avatar_url, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, NOW(), NOW())`, feedEntry)
+	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, author_avatar_url, original_author_id, original_author_name, original_author_avatar_url, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, language, author_handle, author_profile_url, original_author_handle, original_author_profile_url, interaction_remote_id, liked, like_count, reply_count, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :author_avatar_url, :original_author_id, :original_author_name, :original_author_avatar_url, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, :language, :author_handle, :author_profile_url, :original_author_handle, :original_author_profile_url, :interaction_remote_id, :liked, :like_count, :reply_count, NOW(), NOW())`, feedEntry)
 
 	if err != nil {
 		// MySQL error code 1062 is ER_DUP_ENTRY
@@ -1339,7 +1366,7 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) (inserted bool, err error) {
 
 func (db *DB) SelectFeedEntries() ([]*Feed, error) {
 	ret := make([]*Feed, 0)
-	err := db.ResilientSelect(&ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.original_author_id, f.original_author_name, f.original_author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
+	err := db.ResilientSelect(&ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.original_author_id, f.original_author_name, f.original_author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, f.language, f.author_handle, f.author_profile_url, f.original_author_handle, f.original_author_profile_url, f.interaction_remote_id, f.liked, f.like_count, f.reply_count, sa.identity as social_account_identity, sa.connector as social_account_connector, COALESCE(sa.preferred_languages, '') as social_account_preferred_languages FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id ORDER BY f.posted_date DESC")
 	if err != nil {
 		db.Logger().Errorf("Failed to select feed entries: %v", err)
 		return nil, err
@@ -1349,7 +1376,7 @@ func (db *DB) SelectFeedEntries() ([]*Feed, error) {
 
 func (db *DB) GetFeedEntryByID(id uint32) (*Feed, error) {
 	ret := &Feed{}
-	err := db.ResilientGet(ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.original_author_id, f.original_author_name, f.original_author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, sa.identity as social_account_identity, sa.connector as social_account_connector FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id WHERE f.id = ?", id)
+	err := db.ResilientGet(ret, "SELECT f.id, f.created_at, f.updated_at, f.social_account_id, f.content, f.posted_date, f.author_id, f.author_name, f.author_avatar_url, f.original_author_id, f.original_author_name, f.original_author_avatar_url, f.remote_url, f.remote_id, f.preview_url, f.preview_title, f.preview_description, f.preview_image_url, f.language, f.author_handle, f.author_profile_url, f.original_author_handle, f.original_author_profile_url, f.interaction_remote_id, f.liked, f.like_count, f.reply_count, sa.identity as social_account_identity, sa.connector as social_account_connector, COALESCE(sa.preferred_languages, '') as social_account_preferred_languages FROM feed f LEFT JOIN social_accounts sa ON f.social_account_id = sa.id WHERE f.id = ?", id)
 	if err != nil {
 		db.Logger().Errorf("Failed to get feed entry %d: %v", id, err)
 		return nil, err
@@ -1361,12 +1388,21 @@ func (db *DB) GetFeedEntryByID(id uint32) (*Feed, error) {
 }
 
 func (db *DB) UpdateFeedEntry(entry *Feed) error {
-	_, err := db.ResilientNamedExec(`UPDATE feed SET content = :content, posted_date = :posted_date, author_id = :author_id, author_name = :author_name, author_avatar_url = :author_avatar_url, original_author_id = :original_author_id, original_author_name = :original_author_name, original_author_avatar_url = :original_author_avatar_url, remote_url = :remote_url, remote_id = :remote_id, preview_url = :preview_url, preview_title = :preview_title, preview_description = :preview_description, preview_image_url = :preview_image_url, updated_at = NOW() WHERE id = :id`, entry)
+	_, err := db.ResilientNamedExec(`UPDATE feed SET content = :content, posted_date = :posted_date, author_id = :author_id, author_name = :author_name, author_avatar_url = :author_avatar_url, original_author_id = :original_author_id, original_author_name = :original_author_name, original_author_avatar_url = :original_author_avatar_url, remote_url = :remote_url, remote_id = :remote_id, preview_url = :preview_url, preview_title = :preview_title, preview_description = :preview_description, preview_image_url = :preview_image_url, language = :language, author_handle = :author_handle, author_profile_url = :author_profile_url, original_author_handle = :original_author_handle, original_author_profile_url = :original_author_profile_url, interaction_remote_id = :interaction_remote_id, liked = :liked, like_count = :like_count, reply_count = :reply_count, updated_at = NOW() WHERE id = :id`, entry)
 	if err != nil {
 		db.Logger().Errorf("Failed to update feed entry %d: %v", entry.ID, err)
 		return err
 	}
 	return nil
+}
+
+// SetFeedEntryLiked records a like made through Japella on a stored feed post.
+func (db *DB) SetFeedEntryLiked(id uint32, liked bool, likeCount uint32) error {
+	_, err := db.ResilientExec(`UPDATE feed SET liked = ?, like_count = ?, updated_at = NOW() WHERE id = ?`, liked, likeCount, id)
+	if err != nil {
+		db.Logger().Errorf("Failed to record like on feed entry %d: %v", id, err)
+	}
+	return err
 }
 
 func (db *DB) CleanupOldFeedPosts(keepCount int) error {

@@ -19,6 +19,14 @@ codestyle:
 	gocyclo -over 5 internal
 	gocritic check
 
+lint:
+	go vet ./...
+	@unformatted=$$(gofmt -l $$(find . -name '*.go' -not -path './gen/*')); \
+	if [ -n "$$unformatted" ]; then echo "gofmt needed (run make fmt):"; echo "$$unformatted"; exit 1; fi
+
+fmt:
+	gofmt -w $$(find . -name '*.go' -not -path './gen/*')
+
 go-tools:
 	go install "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway"
 	go install "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2"
@@ -39,4 +47,4 @@ cert-server:
 	openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 365 -sha256
 	cat ca.crt >> server.crt
 
-.PHONY: default test tests dev codestyle go-tools certs cert-ca cert-server
+.PHONY: default test tests dev codestyle lint fmt go-tools certs cert-ca cert-server

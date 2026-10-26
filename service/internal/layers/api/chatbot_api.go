@@ -224,7 +224,7 @@ func (s *ControlApi) CreateChatBot(ctx context.Context, req *connect.Request[con
 	ctrl, _ := s.getChatBotControl(protocol, botID)
 	res := connect.NewResponse(&controlv1.CreateChatBotResponse{
 		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Chat bot created"},
-		Bot:            marshalChatBot(ctrl.GetChatBot()),
+		Bot:              marshalChatBot(ctrl.GetChatBot()),
 	})
 	return res, nil
 }
@@ -257,7 +257,7 @@ func (s *ControlApi) UpdateChatBot(ctx context.Context, req *connect.Request[con
 	ctrl, _ := s.getChatBotControl(protocol, botID)
 	return connect.NewResponse(&controlv1.UpdateChatBotResponse{
 		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Chat bot updated"},
-		Bot:            marshalChatBot(ctrl.GetChatBot()),
+		Bot:              marshalChatBot(ctrl.GetChatBot()),
 	}), nil
 }
 

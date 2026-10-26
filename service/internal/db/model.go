@@ -36,6 +36,9 @@ type SocialAccount struct {
 	Active             bool           `db:"active"`
 	State              string         `db:"state"`
 	OwnerUserID        sql.NullInt32  `db:"owner_user_id"`
+	// PreferredLanguages is a comma-separated list of ISO 639 base codes;
+	// empty means no language filtering.
+	PreferredLanguages string `db:"preferred_languages"`
 }
 
 type SocialAccountShare struct {
@@ -58,20 +61,20 @@ type CannedPost struct {
 type Post struct {
 	Model
 
-	SocialAccountID    sql.NullInt32 `db:"social_account_id"`
-	SocialAccount      *SocialAccount
-	Status             bool           `db:"status"`
-	State              string         `db:"state"`
-	Content            string         `db:"content"`
-	PostURL            sql.NullString `db:"post_url"`
-	RemoteID           sql.NullString `db:"remote_id"`
-	ScheduledAt        sql.NullTime   `db:"scheduled_at"`
-	CampaignID         sql.NullInt32  `db:"campaign_id"`
-	CampaignName       sql.NullString `db:"campaign_name"`
-	SubmissionSource   string         `db:"submission_source"`
-	SubmittedByUserID  sql.NullInt32  `db:"submitted_by_user_id"`
-	AccountPolicyID    sql.NullInt32  `db:"account_policy_id"`
-	ApprovalStage      uint32         `db:"approval_stage"`
+	SocialAccountID   sql.NullInt32 `db:"social_account_id"`
+	SocialAccount     *SocialAccount
+	Status            bool           `db:"status"`
+	State             string         `db:"state"`
+	Content           string         `db:"content"`
+	PostURL           sql.NullString `db:"post_url"`
+	RemoteID          sql.NullString `db:"remote_id"`
+	ScheduledAt       sql.NullTime   `db:"scheduled_at"`
+	CampaignID        sql.NullInt32  `db:"campaign_id"`
+	CampaignName      sql.NullString `db:"campaign_name"`
+	SubmissionSource  string         `db:"submission_source"`
+	SubmittedByUserID sql.NullInt32  `db:"submitted_by_user_id"`
+	AccountPolicyID   sql.NullInt32  `db:"account_policy_id"`
+	ApprovalStage     uint32         `db:"approval_stage"`
 }
 
 func NullSocialAccountID(id uint32) sql.NullInt32 {
@@ -172,7 +175,7 @@ type ApiKey struct {
 type Session struct {
 	Model
 
-	UserAccountID      uint32        `db:"user_account_id"`
+	UserAccountID      uint32 `db:"user_account_id"`
 	UserAccount        *UserAccount
 	SID                string        `db:"sid"` // Session ID
 	ImpersonatorUserID sql.NullInt32 `db:"impersonator_user_id"`
@@ -217,23 +220,35 @@ type Campaign struct {
 type Feed struct {
 	Model
 
-	SocialAccountID         uint32    `db:"social_account_id"`
-	Content                 string    `db:"content"`
-	PostedDate              time.Time `db:"posted_date"`
-	AuthorID                string    `db:"author_id"`
-	AuthorName              string    `db:"author_name"`
-	AuthorAvatarURL         string    `db:"author_avatar_url"`
-	OriginalAuthorID        string    `db:"original_author_id"`
-	OriginalAuthorName      string    `db:"original_author_name"`
-	OriginalAuthorAvatarURL string    `db:"original_author_avatar_url"`
-	RemoteURL               string    `db:"remote_url"`
-	RemoteID                string    `db:"remote_id"`
-	PreviewURL              string    `db:"preview_url"`
-	PreviewTitle            string    `db:"preview_title"`
-	PreviewDescription      string    `db:"preview_description"`
-	PreviewImageURL         string    `db:"preview_image_url"`
-	SocialAccountIdentity   string    `db:"social_account_identity"`
-	SocialAccountConnector  string    `db:"social_account_connector"`
+	SocialAccountID          uint32    `db:"social_account_id"`
+	Content                  string    `db:"content"`
+	PostedDate               time.Time `db:"posted_date"`
+	AuthorID                 string    `db:"author_id"`
+	AuthorName               string    `db:"author_name"`
+	AuthorAvatarURL          string    `db:"author_avatar_url"`
+	OriginalAuthorID         string    `db:"original_author_id"`
+	OriginalAuthorName       string    `db:"original_author_name"`
+	OriginalAuthorAvatarURL  string    `db:"original_author_avatar_url"`
+	AuthorHandle             string    `db:"author_handle"`
+	AuthorProfileURL         string    `db:"author_profile_url"`
+	OriginalAuthorHandle     string    `db:"original_author_handle"`
+	OriginalAuthorProfileURL string    `db:"original_author_profile_url"`
+	// Like and thread state as the social account sees the post.
+	InteractionRemoteID string `db:"interaction_remote_id"`
+	Liked               bool   `db:"liked"`
+	LikeCount           uint32 `db:"like_count"`
+	ReplyCount          uint32 `db:"reply_count"`
+	RemoteURL           string `db:"remote_url"`
+	RemoteID            string `db:"remote_id"`
+	PreviewURL          string `db:"preview_url"`
+	PreviewTitle        string `db:"preview_title"`
+	PreviewDescription  string `db:"preview_description"`
+	PreviewImageURL     string `db:"preview_image_url"`
+	// Language is the platform's language tag for the post, if it reports one.
+	Language                        string `db:"language"`
+	SocialAccountIdentity           string `db:"social_account_identity"`
+	SocialAccountConnector          string `db:"social_account_connector"`
+	SocialAccountPreferredLanguages string `db:"social_account_preferred_languages"`
 }
 
 type TableLog struct {

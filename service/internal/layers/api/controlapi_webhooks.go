@@ -95,8 +95,8 @@ func (s *ControlApi) GetWebhook(ctx context.Context, req *connect.Request[contro
 		outLogs = append(outLogs, webhookDeliveryLogToProto(l))
 	}
 	return connect.NewResponse(&controlv1.GetWebhookResponse{
-		Webhook:       webhookTargetToProto(existing),
-		DeliveryLogs:  outLogs,
+		Webhook:      webhookTargetToProto(existing),
+		DeliveryLogs: outLogs,
 	}), nil
 }
 

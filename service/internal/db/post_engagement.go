@@ -19,6 +19,11 @@ type PostEngagement struct {
 	LastError     string       `db:"last_error"`
 	CreatedAt     sql.NullTime `db:"created_at"`
 	UpdatedAt     sql.NullTime `db:"updated_at"`
+
+	// RepliesFetchedAt is when the reply thread was last stored, and
+	// RepliesFetchedCount the replies counter at that time.
+	RepliesFetchedAt    sql.NullTime `db:"replies_fetched_at"`
+	RepliesFetchedCount uint32       `db:"replies_fetched_count"`
 }
 
 // SelectPostsForEngagementFetch returns completed posts with a URL, published

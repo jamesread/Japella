@@ -57,16 +57,50 @@ type ConnectorWithPostEngagement interface {
 	FetchPostEngagement(sa *SocialAccount, remoteID string, postURL string) (*PostEngagement, error)
 }
 
+// PostReply is one reply in the conversation under a post Japella published.
+// ParentRemoteID is the remote id of the post it replies to: either the
+// published post itself (RootRemoteID) or another reply.
+type PostReply struct {
+	RemoteID        string
+	ParentRemoteID  string
+	RemoteURL       string
+	AuthorName      string
+	AuthorHandle    string
+	AuthorAvatarURL string
+	// Content is plain text; connectors strip any platform HTML.
+	Content    string
+	PostedDate time.Time
+}
+
+// PostReplies is the reply tree under a published post, flattened.
+type PostReplies struct {
+	// RootRemoteID is the platform id of the published post, as replies
+	// reference it in ParentRemoteID.
+	RootRemoteID string
+	Replies      []*PostReply
+}
+
+// ConnectorWithPostReplying can publish a reply to a post as the account.
+type ConnectorWithPostReplying interface {
+	ReplyToPost(sa *SocialAccount, remoteID string, remoteURL string, content string) (*PostReply, error)
+}
+
+// ConnectorWithPostReplies can fetch the replies (including nested replies)
+// to a post previously published through PostToWall.
+type ConnectorWithPostReplies interface {
+	FetchPostReplies(sa *SocialAccount, remoteID string, postURL string) (*PostReplies, error)
+}
+
 // ChatBot represents a chatbot instance from a connector
 type ChatBot struct {
 	BotID               string // Immutable instance id (e.g. botA)
-	Connector          string // The connector protocol (e.g., "telegram", "discord")
-	Name               string // Display name of the bot
-	Identity           string // Bot identity/username on the platform (after connect)
-	Icon               string // Icon identifier
-	IsRunning          bool   // Whether the bot is currently running
-	StatusMessage      string // Diagnostic message explaining why the bot is stopped or its current status
-	ErrorMessage       string // Error message if the bot failed to start
+	Connector           string // The connector protocol (e.g., "telegram", "discord")
+	Name                string // Display name of the bot
+	Identity            string // Bot identity/username on the platform (after connect)
+	Icon                string // Icon identifier
+	IsRunning           bool   // Whether the bot is currently running
+	StatusMessage       string // Diagnostic message explaining why the bot is stopped or its current status
+	ErrorMessage        string // Error message if the bot failed to start
 	ProtocolDisplayName string // Protocol-specific display name (e.g., Telegram bot's FirstName)
 }
 
@@ -132,12 +166,58 @@ type FeedPost struct {
 	OriginalAuthorID        string
 	OriginalAuthorName      string
 	OriginalAuthorAvatarURL string
-	RemoteURL               string
-	RemoteID                string
-	PreviewURL              string
-	PreviewTitle            string
-	PreviewDescription      string
-	PreviewImageURL         string
+	// Handles are the full platform handle (e.g. "@alice@example.social");
+	// profile URLs open the author's page on their platform.
+	AuthorHandle             string
+	AuthorProfileURL         string
+	OriginalAuthorHandle     string
+	OriginalAuthorProfileURL string
+	RemoteURL                string
+	RemoteID                 string
+	PreviewURL               string
+	PreviewTitle             string
+	PreviewDescription       string
+	PreviewImageURL          string
+	// Language is the platform's language tag (e.g. "en"), if it reports one.
+	Language string
+
+	PostInteraction
+}
+
+// PostInteraction is what's needed to like or open the thread of a post,
+// and its state as the fetching account sees it.
+type PostInteraction struct {
+	// InteractionRemoteID is the id to like or fetch the thread of, when it
+	// differs from RemoteID (a boost's original status).
+	InteractionRemoteID string
+	Liked               bool
+	LikeCount           uint32
+	ReplyCount          uint32
+}
+
+// LikeResult is a post's like state after liking or unliking it.
+type LikeResult struct {
+	Liked     bool
+	LikeCount uint32
+}
+
+// ConnectorWithPostLikes can like and unlike posts as the social account.
+type ConnectorWithPostLikes interface {
+	SetPostLiked(sa *SocialAccount, remoteID string, remoteURL string, liked bool) (*LikeResult, error)
+}
+
+// FollowState is whether the social account follows an author.
+type FollowState struct {
+	Following bool
+	// Requested is set while a follow awaits the author's approval.
+	Requested bool
+}
+
+// ConnectorWithAuthorFollow can follow and unfollow authors as the social
+// account. authorID is the author id the connector put on feed posts.
+type ConnectorWithAuthorFollow interface {
+	GetFollowState(sa *SocialAccount, authorID string) (*FollowState, error)
+	SetFollowing(sa *SocialAccount, authorID string, follow bool) (*FollowState, error)
 }
 
 type SocialAccount struct {
@@ -174,6 +254,19 @@ type RemotePost struct {
 	AuthorHandle string
 	Content      string
 	PostedAt     time.Time
+
+	// Optional display details, used when showing posts in feed columns.
+	AuthorName       string
+	AuthorAvatarURL  string
+	AuthorProfileURL string
+
+	// ContentIsHTML is true when Content is platform HTML rather than plain text.
+	ContentIsHTML bool
+
+	// Language is the platform's language tag (e.g. "en"), if it reports one.
+	Language string
+
+	PostInteraction
 }
 
 // MatchSink receives posts that matched one or more keywords.
@@ -202,6 +295,13 @@ type ConnectorWithKeywordWatch interface {
 // ConnectorWithKeywordSearch can poll recent posts by keyword.
 type ConnectorWithKeywordSearch interface {
 	SearchRecentByKeyword(ctx context.Context, sa *SocialAccount, keyword string, since time.Time, limit int) ([]*RemotePost, error)
+}
+
+// ConnectorWithHashtagTimeline can list recent posts carrying a hashtag
+// directly, which some platforms do more reliably than keyword search.
+// tag has no leading '#'.
+type ConnectorWithHashtagTimeline interface {
+	FetchHashtagTimeline(ctx context.Context, sa *SocialAccount, tag string, limit int) ([]*RemotePost, error)
 }
 
 // RateLimitedError signals that the platform asked the client to back off.

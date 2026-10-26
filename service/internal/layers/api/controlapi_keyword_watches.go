@@ -124,12 +124,12 @@ func (s *ControlApi) ListKeywordWatches(ctx context.Context, req *connect.Reques
 	supportsSearch, supportsNative, fidelity := s.keywordWatchCapabilities(sa, watches)
 
 	return connect.NewResponse(&controlv1.ListKeywordWatchesResponse{
-		Watches:         outWatches,
-		State:           keywordWatchStateToProto(st),
-		RecentMatches:   outMatches,
-		SupportsSearch:  supportsSearch,
-		SupportsNative:  supportsNative,
-		NativeFidelity:  fidelity,
+		Watches:        outWatches,
+		State:          keywordWatchStateToProto(st),
+		RecentMatches:  outMatches,
+		SupportsSearch: supportsSearch,
+		SupportsNative: supportsNative,
+		NativeFidelity: fidelity,
 	}), nil
 }
 

@@ -166,12 +166,12 @@ func (c *Connector) FetchRecentPosts(sa *connector.SocialAccount) ([]*connector.
 	for i := len(posts) - 1; i >= 0 && len(out) < 40; i-- {
 		p := posts[i]
 		out = append(out, &connector.FeedPost{
-			Content:     p.Content,
-			PostedDate:  p.PostedAt,
-			AuthorID:    p.AuthorID,
-			AuthorName:  p.AuthorHandle,
-			RemoteURL:   p.RemoteURL,
-			RemoteID:    p.RemoteID,
+			Content:    p.Content,
+			PostedDate: p.PostedAt,
+			AuthorID:   p.AuthorID,
+			AuthorName: p.AuthorHandle,
+			RemoteURL:  p.RemoteURL,
+			RemoteID:   p.RemoteID,
 		})
 	}
 	return out, nil

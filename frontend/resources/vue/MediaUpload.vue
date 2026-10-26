@@ -27,7 +27,7 @@
 							</div>
 						</div>
 						<p class="upload-name"><small>{{ item.name }}</small></p>
-						<p><small>{{ returnFileSize(item.size) }}</small></p>
+						<p><small>{{ formatFileSize(item.size) }}</small></p>
 						<progress
 							v-if="item.status === 'uploading'"
 							class="upload-progress"
@@ -40,6 +40,19 @@
 							{{ item.error }}
 						</p>
 					</div>
+				</div>
+				<div
+					class="paste-area"
+					:class="{ 'paste-area--pasted': justPasted }"
+					tabindex="0"
+					role="group"
+					aria-label="Paste area: focus here and paste an image from your clipboard"
+				>
+					<Icon icon="mdi:clipboard-arrow-down-outline" width="22" height="22" aria-hidden="true" />
+					<span>Click here and press <kbd>Ctrl</kbd>+<kbd>V</kbd> to paste an image</span>
+					<button type="button" class="neutral small" :disabled="uploading" @click="pasteFromClipboard">
+						Paste from clipboard
+					</button>
 				</div>
 				<label for="media-file" class="drag-drop">
 					{{ t('section.media.upload.label') }}:
@@ -66,6 +79,8 @@
 	import { ref, onMounted, onUnmounted } from 'vue';
 	import { useI18n } from 'vue-i18n';
 	import { Upload01Icon } from '@hugeicons/core-free-icons';
+	import { Icon } from '@iconify/vue';
+	import { formatFileSize } from '../javascript/util';
 	import Section from 'picocrank/vue/components/Section.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 
@@ -78,6 +93,8 @@
 	const formMessage = ref('');
 	const formMessageType = ref('');
 	let nextItemId = 0;
+	const justPasted = ref(false);
+	let justPastedTimer = null;
 
 	const fileTypes = [
 		'image/apng',
@@ -94,16 +111,6 @@
 
 	function validFileType(file) {
 		return fileTypes.includes(file.type);
-	}
-
-	function returnFileSize(number) {
-		if (number < 1e3) {
-			return `${number} bytes`;
-		}
-		if (number >= 1e3 && number < 1e6) {
-			return `${(number / 1e3).toFixed(1)} KB`;
-		}
-		return `${(number / 1e6).toFixed(1)} MB`;
 	}
 
 	function revokeItemUrl(item) {
@@ -177,6 +184,64 @@
 			xhr.withCredentials = true;
 			xhr.send(formData);
 		});
+	}
+
+	// Clipboard images are all called "image.png"; give each a distinct name.
+	function namePastedFile(blob, index) {
+		const ext = (blob.type.split('/')[1] || 'png').replace('jpeg', 'jpg').replace('svg+xml', 'svg').replace('x-icon', 'ico');
+		const stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+		const suffix = index > 0 ? `-${index + 1}` : '';
+		return new File([blob], `pasted-${stamp}${suffix}.${ext}`, { type: blob.type });
+	}
+
+	// Adds pasted images to those already chosen.
+	function addPastedImages(blobs) {
+		const fileInput = fileupload.value;
+		if (!fileInput || !blobs.length) {
+			return;
+		}
+		const dt = new DataTransfer();
+		for (const f of fileInput.files) {
+			dt.items.add(f);
+		}
+		blobs.forEach((blob, i) => dt.items.add(namePastedFile(blob, i)));
+		fileInput.files = dt.files;
+		updateImageDisplay();
+
+		justPasted.value = true;
+		window.clearTimeout(justPastedTimer);
+		justPastedTimer = window.setTimeout(() => {
+			justPasted.value = false;
+		}, 800);
+	}
+
+	// The button reads the clipboard directly; browsers ask permission first,
+	// and some only allow it from a real paste (Ctrl+V).
+	async function pasteFromClipboard() {
+		if (!navigator.clipboard?.read) {
+			formMessage.value = 'This browser can\'t read the clipboard from a button. Click the paste area and press Ctrl+V instead.';
+			formMessageType.value = 'note';
+			return;
+		}
+		try {
+			const blobs = [];
+			for (const item of await navigator.clipboard.read()) {
+				const type = item.types.find((t) => t.startsWith('image/'));
+				if (type) {
+					blobs.push(await item.getType(type));
+				}
+			}
+			if (!blobs.length) {
+				formMessage.value = 'There\'s no image on the clipboard.';
+				formMessageType.value = 'note';
+				return;
+			}
+			formMessage.value = '';
+			addPastedImages(blobs);
+		} catch (error) {
+			formMessage.value = `Couldn't read the clipboard (${error.message || error}). Click the paste area and press Ctrl+V instead.`;
+			formMessageType.value = 'note';
+		}
 	}
 
 	async function submitForm() {
@@ -294,15 +359,7 @@
 			}
 
 			event.preventDefault();
-			const dt = new DataTransfer();
-			for (const f of fileInput.files) {
-				dt.items.add(f);
-			}
-			for (const f of pastedImages) {
-				dt.items.add(f);
-			}
-			fileInput.files = dt.files;
-			updateImageDisplay();
+			addPastedImages(pastedImages);
 		};
 
 		document.addEventListener('paste', handlePaste);
@@ -315,6 +372,7 @@
 			document.removeEventListener('paste', fileInput._pasteHandler);
 		}
 
+		window.clearTimeout(justPastedTimer);
 		clearUploadItems();
 	});
 </script>
@@ -332,6 +390,34 @@
 		display: inline-flex;
 		align-content: center;
 		cursor: pointer;
+	}
+
+	.paste-area {
+		display: flex;
+		align-items: center;
+		flex-wrap: wrap;
+		gap: 0.6em;
+		padding: 1em 1.5em;
+		border: 1px dashed #ccc;
+		border-radius: 1em;
+		cursor: text;
+		transition: border-color 0.15s ease, background-color 0.15s ease;
+	}
+
+	.paste-area span {
+		flex: 1;
+	}
+
+	.paste-area:focus-visible,
+	.paste-area:focus {
+		outline: none;
+		border-style: solid;
+		border-color: var(--link-color, #5a9fd4);
+	}
+
+	.paste-area--pasted {
+		background-color: rgba(58, 143, 58, 0.25);
+		border-color: #3a8f3a;
 	}
 
 	.drag-drop:hover {

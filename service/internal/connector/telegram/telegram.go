@@ -38,10 +38,10 @@ type TelegramConnector struct {
 	botToken            string
 	runCancel           context.CancelFunc
 	botMu               sync.Mutex
-	channels            map[int64]*TelegramChannel // Track known channels/chats
-	botInstance         *tgbotapi.Bot              // Store bot instance for API calls
+	channels            map[int64]*TelegramChannel          // Track known channels/chats
+	botInstance         *tgbotapi.Bot                       // Store bot instance for API calls
 	hooks               []runtimeconfig.IncomingMessageHook // Webhooks to call when messages are received
-	db                  *db.DB                     // Database reference for loading hooks
+	db                  *db.DB                              // Database reference for loading hooks
 	utils.LogComponent
 
 	connector.BaseConnector
@@ -86,13 +86,13 @@ func (c *TelegramConnector) GetChatBot() *connector.ChatBot {
 
 	return &connector.ChatBot{
 		BotID:               c.botID,
-		Connector:          c.GetProtocol(),
-		Name:               name,
-		Identity:           c.nickname,
-		Icon:               c.GetIcon(),
-		IsRunning:          c.isRunning,
-		StatusMessage:      statusMsg,
-		ErrorMessage:       c.errorMessage,
+		Connector:           c.GetProtocol(),
+		Name:                name,
+		Identity:            c.nickname,
+		Icon:                c.GetIcon(),
+		IsRunning:           c.isRunning,
+		StatusMessage:       statusMsg,
+		ErrorMessage:        c.errorMessage,
 		ProtocolDisplayName: c.protocolDisplayName,
 	}
 }

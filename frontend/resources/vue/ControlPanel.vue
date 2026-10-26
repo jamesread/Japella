@@ -191,6 +191,7 @@
 <script setup>
 	import { ref, computed, onMounted } from 'vue';
 	import { waitForClient } from '../javascript/util';
+	import { fetchHealthSummaryCount } from '../javascript/health.js';
 	import {
 		canAccessControlPanelFromStatus,
 		canViewSystemDiagnosticsFromStatus,
@@ -399,6 +400,13 @@
 			}
 
 			if (canSettings) {
+				const healthCount = await fetchHealthSummaryCount(st);
+				localNavigation.value.addCallback('Health', () => goToRoute('/admin/health'), {
+					icon: ActivityIcon,
+					name: 'health',
+					description: 'Problems found by background health checks',
+					count: healthCount,
+				});
 				localNavigation.value.addCallback('System Settings', () => goToRoute('/settings'), {
 					icon: Settings01Icon,
 					name: 'system-settings',

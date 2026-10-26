@@ -10,13 +10,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/jamesread/armature-health/errorlog"
 	"github.com/mattn/go-isatty"
 	log "github.com/sirupsen/logrus"
 )
 
 const DefaultLogFile = "japella.log"
 
-var logBaseTime = time.Now()
+var (
+	logBaseTime = time.Now()
+	errLog      = errorlog.New()
+)
+
+// ErrorLog returns the process-wide error log buffer for the logs.recent_errors health check.
+func ErrorLog() *errorlog.ErrorLog {
+	return errLog
+}
 
 // BracketFormatter emits plain logrus TTY-style lines (INFO[0306] message fields)
 // without ANSI color codes, for log file output.
@@ -113,6 +122,7 @@ func ConfigureLogger(l *log.Logger) {
 func SetupLogging() {
 	configureConsoleFormatter()
 	log.SetOutput(os.Stdout)
+	log.AddHook(errLog)
 
 	logPath := os.Getenv("JAPELLA_LOG_FILE")
 	if logPath == "" {

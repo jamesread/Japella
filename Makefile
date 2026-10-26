@@ -9,6 +9,12 @@ service:
 service-unittests:
 	$(MAKE) -wC service test
 
+test: service-unittests
+
+lint:
+	$(MAKE) -wC service lint
+	$(MAKE) -wC frontend lint
+
 frontend:
 	$(MAKE) -wC frontend
 
@@ -28,4 +34,4 @@ buildah:
 	podman push ${REGISTRY_HOSTNAME}:5000/japella-dev
 
 
-.PHONY: default proto service service-unittests frontend integration-tests docs screenshots
+.PHONY: default proto service service-unittests test lint frontend integration-tests docs screenshots

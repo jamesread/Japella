@@ -21,12 +21,15 @@ type bskySearchPostsResponse struct {
 type bskySearchPost struct {
 	URI    string `json:"uri"`
 	Author struct {
-		Did    string `json:"did"`
-		Handle string `json:"handle"`
+		Did         string `json:"did"`
+		Handle      string `json:"handle"`
+		DisplayName string `json:"displayName"`
+		Avatar      string `json:"avatar"`
 	} `json:"author"`
 	Record struct {
 		Text      string    `json:"text"`
 		CreatedAt time.Time `json:"createdAt"`
+		Langs     []string  `json:"langs"`
 	} `json:"record"`
 }
 
@@ -99,9 +102,34 @@ func (c *BlueskyConnector) SearchRecentByKeyword(ctx context.Context, sa *connec
 			AuthorHandle: p.Author.Handle,
 			Content:      p.Record.Text,
 			PostedAt:     p.Record.CreatedAt,
+
+			AuthorName:       p.Author.DisplayName,
+			AuthorAvatarURL:  p.Author.Avatar,
+			AuthorProfileURL: blueskyProfileURL(p.Author.Handle, p.Author.Did),
+			Language:         firstOrEmpty(p.Record.Langs),
 		})
 	}
 	return out, nil
+}
+
+// firstOrEmpty returns the first language a post declares; Bluesky lists the
+// author's choice first.
+func firstOrEmpty(langs []string) string {
+	if len(langs) == 0 {
+		return ""
+	}
+	return langs[0]
+}
+
+func blueskyProfileURL(handle, did string) string {
+	id := handle
+	if id == "" {
+		id = did
+	}
+	if id == "" {
+		return ""
+	}
+	return "https://bsky.app/profile/" + url.PathEscape(id)
 }
 
 func blueskyWebURL(atURI, handle string) string {

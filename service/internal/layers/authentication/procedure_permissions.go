@@ -1,8 +1,8 @@
 package authentication
 
 import (
-	"github.com/jamesread/japella/internal/rbac"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
+	"github.com/jamesread/japella/internal/rbac"
 )
 
 // RequiredPermission returns the permission needed for an authenticated Connect procedure.
@@ -57,7 +57,11 @@ func RequiredPermission(procedureName string) string {
 		controlv1.JapellaControlApiServiceGetLlmToolProcedure,
 		controlv1.JapellaControlApiServiceCreateLlmToolProcedure,
 		controlv1.JapellaControlApiServiceUpdateLlmToolProcedure,
-		controlv1.JapellaControlApiServiceDeleteLlmToolProcedure:
+		controlv1.JapellaControlApiServiceDeleteLlmToolProcedure,
+		controlv1.JapellaControlApiServiceListHealthIssuesProcedure,
+		controlv1.JapellaControlApiServiceGetHealthSummaryProcedure,
+		controlv1.JapellaControlApiServiceRunHealthChecksProcedure,
+		controlv1.JapellaControlApiServiceAcknowledgeHealthIssueProcedure:
 		return rbac.PermissionSystemSettings
 
 	case controlv1.JapellaControlApiServiceGetConnectorsProcedure,

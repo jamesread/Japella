@@ -22,6 +22,11 @@ type bskyPostView struct {
 	RepostCount uint32 `json:"repostCount"`
 	ReplyCount  uint32 `json:"replyCount"`
 	QuoteCount  uint32 `json:"quoteCount"`
+
+	CID    string `json:"cid"`
+	Record struct {
+		Reply *BlueskyReplyRef `json:"reply"`
+	} `json:"record"`
 }
 
 func (p bskyPostView) toPostEngagement() *connector.PostEngagement {
@@ -59,8 +64,10 @@ func parseBlueskyPostRef(ref string) (repo string, rkey string, err error) {
 	return "", "", fmt.Errorf("cannot determine bluesky post from %q", ref)
 }
 
-// FetchPostEngagement loads like/repost/reply/quote counts for a post this account published.
-func (b *BlueskyConnector) FetchPostEngagement(socialAccount *connector.SocialAccount, remoteID string, postURL string) (*connector.PostEngagement, error) {
+// publishedPostATURI resolves the at:// URI of a post from either its remote
+// id or its URL. It was written for posts this account published, but also
+// serves other people's posts (feed comment threads).
+func (b *BlueskyConnector) publishedPostATURI(socialAccount *connector.SocialAccount, remoteID string, postURL string) (string, error) {
 	ref := remoteID
 	if ref == "" {
 		ref = postURL
@@ -68,24 +75,33 @@ func (b *BlueskyConnector) FetchPostEngagement(socialAccount *connector.SocialAc
 
 	repo, rkey, err := parseBlueskyPostRef(ref)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	did := repo
 	if !strings.HasPrefix(did, "did:") {
-		// Post URLs are built from the account's handle; prefer the stored DID
-		// so a later handle change doesn't break lookups.
-		if socialAccount != nil && strings.HasPrefix(socialAccount.Did, "did:") {
+		// Our own post URLs are built from the account's handle; prefer the
+		// stored DID so a later handle change doesn't break lookups. Anyone
+		// else's handle must be resolved.
+		if socialAccount != nil && strings.HasPrefix(socialAccount.Did, "did:") && strings.EqualFold(strings.TrimPrefix(repo, "@"), strings.TrimPrefix(socialAccount.Identity, "@")) {
 			did = socialAccount.Did
 		} else {
 			did, err = b.resolveHandleToDID(repo)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 		}
 	}
 
-	atURI := "at://" + did + "/app.bsky.feed.post/" + rkey
+	return "at://" + did + "/app.bsky.feed.post/" + rkey, nil
+}
+
+// FetchPostEngagement loads like/repost/reply/quote counts for a post this account published.
+func (b *BlueskyConnector) FetchPostEngagement(socialAccount *connector.SocialAccount, remoteID string, postURL string) (*connector.PostEngagement, error) {
+	atURI, err := b.publishedPostATURI(socialAccount, remoteID, postURL)
+	if err != nil {
+		return nil, err
+	}
 
 	q := url.Values{}
 	q.Set("uris", atURI)

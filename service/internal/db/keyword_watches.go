@@ -8,10 +8,10 @@ import (
 )
 
 const (
-	WatchModeEvaluating   = "evaluating"
-	WatchModeNative       = "native"
-	WatchModeSearch       = "search"
-	WatchModeDegraded     = "degraded"
+	WatchModeEvaluating = "evaluating"
+	WatchModeNative     = "native"
+	WatchModeSearch     = "search"
+	WatchModeDegraded   = "degraded"
 
 	WatchFidelityExactRule    = "exact_rule"
 	WatchFidelityClientFilter = "client_filter"
@@ -22,43 +22,43 @@ const (
 // KeywordWatch is a keyword subscription bound to a social account.
 type KeywordWatch struct {
 	Model
-	SocialAccountID    uint32 `db:"social_account_id"`
-	Keyword            string `db:"keyword"`
-	KeywordNormalized  string `db:"keyword_normalized"`
-	Enabled            bool   `db:"enabled"`
+	SocialAccountID   uint32 `db:"social_account_id"`
+	Keyword           string `db:"keyword"`
+	KeywordNormalized string `db:"keyword_normalized"`
+	Enabled           bool   `db:"enabled"`
 }
 
 // KeywordWatchState is runtime acquisition state for an account's watches.
 type KeywordWatchState struct {
-	SocialAccountID  uint32         `db:"social_account_id"`
-	AcquisitionMode  string         `db:"acquisition_mode"`
-	NativeFidelity   string         `db:"native_fidelity"`
-	BackoffUntil     sql.NullTime   `db:"backoff_until"`
-	LastSuccessAt    sql.NullTime   `db:"last_success_at"`
-	LastErrorAt      sql.NullTime   `db:"last_error_at"`
-	LastError        string         `db:"last_error"`
-	LastPollAt       sql.NullTime   `db:"last_poll_at"`
-	EmitsThisHour    int            `db:"emits_this_hour"`
-	EmitsHourBucket  sql.NullTime   `db:"emits_hour_bucket"`
-	UpdatedAt        time.Time      `db:"updated_at"`
+	SocialAccountID uint32       `db:"social_account_id"`
+	AcquisitionMode string       `db:"acquisition_mode"`
+	NativeFidelity  string       `db:"native_fidelity"`
+	BackoffUntil    sql.NullTime `db:"backoff_until"`
+	LastSuccessAt   sql.NullTime `db:"last_success_at"`
+	LastErrorAt     sql.NullTime `db:"last_error_at"`
+	LastError       string       `db:"last_error"`
+	LastPollAt      sql.NullTime `db:"last_poll_at"`
+	EmitsThisHour   int          `db:"emits_this_hour"`
+	EmitsHourBucket sql.NullTime `db:"emits_hour_bucket"`
+	UpdatedAt       time.Time    `db:"updated_at"`
 }
 
 // KeywordMatch is a deduped observation of a remote post matching a watch.
 type KeywordMatch struct {
-	ID                   uint32       `db:"id"`
-	SocialAccountID      uint32       `db:"social_account_id"`
-	KeywordWatchID       uint32       `db:"keyword_watch_id"`
-	Connector            string       `db:"connector"`
-	RemoteID             string       `db:"remote_id"`
-	RemoteURL            string       `db:"remote_url"`
-	AuthorID             string       `db:"author_id"`
-	AuthorHandle         string       `db:"author_handle"`
-	ContentSnippet       string       `db:"content_snippet"`
-	MatchedAt            time.Time    `db:"matched_at"`
-	PostedAt             sql.NullTime `db:"posted_at"`
-	AcquisitionMode      string       `db:"acquisition_mode"`
-	WebhookDispatchedAt  sql.NullTime `db:"webhook_dispatched_at"`
-	CreatedAt            time.Time    `db:"created_at"`
+	ID                  uint32       `db:"id"`
+	SocialAccountID     uint32       `db:"social_account_id"`
+	KeywordWatchID      uint32       `db:"keyword_watch_id"`
+	Connector           string       `db:"connector"`
+	RemoteID            string       `db:"remote_id"`
+	RemoteURL           string       `db:"remote_url"`
+	AuthorID            string       `db:"author_id"`
+	AuthorHandle        string       `db:"author_handle"`
+	ContentSnippet      string       `db:"content_snippet"`
+	MatchedAt           time.Time    `db:"matched_at"`
+	PostedAt            sql.NullTime `db:"posted_at"`
+	AcquisitionMode     string       `db:"acquisition_mode"`
+	WebhookDispatchedAt sql.NullTime `db:"webhook_dispatched_at"`
+	CreatedAt           time.Time    `db:"created_at"`
 }
 
 func (db *DB) ListKeywordWatches(socialAccountID uint32) ([]*KeywordWatch, error) {

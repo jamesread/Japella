@@ -94,6 +94,20 @@ type BlueskyPostRecord struct {
 	CreatedAt string         `json:"createdAt"`
 	Facets    []BlueskyFacet `json:"facets,omitempty"`
 	Embed     interface{}    `json:"embed,omitempty"`
+	// Reply makes the post a reply; Root is the thread's first post.
+	Reply *BlueskyReplyRef `json:"reply,omitempty"`
+}
+
+// BlueskyStrongRef points at an exact version of a record.
+type BlueskyStrongRef struct {
+	URI string `json:"uri"`
+	CID string `json:"cid"`
+}
+
+// BlueskyReplyRef is app.bsky.feed.post#replyRef.
+type BlueskyReplyRef struct {
+	Root   BlueskyStrongRef `json:"root"`
+	Parent BlueskyStrongRef `json:"parent"`
 }
 
 // BlueskyEmbedImages is app.bsky.embed.images for image posts
@@ -104,8 +118,8 @@ type BlueskyEmbedImages struct {
 
 // BlueskyEmbedExternal is app.bsky.embed.external for rich link cards
 type BlueskyEmbedExternal struct {
-	Type     string           `json:"$type"`
-	External BlueskyExternal  `json:"external"`
+	Type     string          `json:"$type"`
+	External BlueskyExternal `json:"external"`
 }
 
 // BlueskyExternal is app.bsky.embed.external#external (uri, title, description, optional thumb)
@@ -117,16 +131,16 @@ type BlueskyExternal struct {
 }
 
 type BlueskyEmbedImageItem struct {
-	Image       BlueskyBlobRef   `json:"image"`
-	Alt         string           `json:"alt"`
+	Image       BlueskyBlobRef      `json:"image"`
+	Alt         string              `json:"alt"`
 	AspectRatio *BlueskyAspectRatio `json:"aspectRatio,omitempty"`
 }
 
 type BlueskyBlobRef struct {
 	Type     string          `json:"$type"`
 	Ref      BlueskyBlobLink `json:"ref"`
-	MimeType string         `json:"mimeType"`
-	Size     int64          `json:"size"`
+	MimeType string          `json:"mimeType"`
+	Size     int64           `json:"size"`
 }
 
 type BlueskyBlobLink struct {
@@ -243,8 +257,8 @@ func (b *BlueskyConnector) uploadBlob(pdsURL, path string, client *utils.Chainin
 }
 
 const (
-	thumbMaxSize  = 1000000 // 1MB Bluesky limit for external thumb
-	thumbTimeout  = 15 * time.Second
+	thumbMaxSize = 1000000 // 1MB Bluesky limit for external thumb
+	thumbTimeout = 15 * time.Second
 )
 
 // downloadAndUploadThumb fetches an image from imageURL, saves to a temp file, uploads as blob to PDS, and returns the blob ref.
@@ -355,8 +369,8 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 			}
 			aw, ah := imageAspectRatio(p)
 			images = append(images, BlueskyEmbedImageItem{
-				Image: *blob,
-				Alt:   "",
+				Image:       *blob,
+				Alt:         "",
 				AspectRatio: &BlueskyAspectRatio{Width: aw, Height: ah},
 			})
 		}

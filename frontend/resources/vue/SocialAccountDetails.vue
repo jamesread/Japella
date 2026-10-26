@@ -64,6 +64,45 @@
 			</dd>
 			<dt>Active</dt>
 			<dd>{{ account.active ? 'Yes' : 'No' }}</dd>
+			<dt>Preferred languages</dt>
+			<dd class="preferred-languages">
+				<template v-if="!editingLanguages">
+					<span v-if="preferredLanguages.length" :title="preferredLanguages.join(', ')">
+						{{ preferredLanguages.map(languageName).join(', ') }}
+					</span>
+					<span v-else class="subtle">Any language</span>
+					<button
+						v-if="account.canManage"
+						type="button"
+						class="neutral small"
+						title="Edit preferred languages"
+						aria-label="Edit preferred languages"
+						@click="startEditLanguages"
+					>
+						<Icon icon="mdi:pencil-outline" />
+					</button>
+				</template>
+				<form v-else class="languages-edit" @submit.prevent="saveLanguages">
+					<input
+						ref="languagesInput"
+						v-model="languagesDraft"
+						type="text"
+						placeholder="e.g. en, de"
+						aria-label="Preferred language codes, comma separated"
+						:disabled="savingLanguages"
+					/>
+					<button type="submit" class="good small" :disabled="savingLanguages">
+						{{ savingLanguages ? 'Saving…' : 'Save' }}
+					</button>
+					<button type="button" class="neutral small" :disabled="savingLanguages" @click="editingLanguages = false">
+						Cancel
+					</button>
+					<p class="subtle languages-hint">
+						ISO 639 codes, comma separated. Feed posts in other languages are hidden; posts whose language is unknown are always shown. Leave empty for no filtering.
+					</p>
+					<p v-if="languagesError" class="languages-error">{{ languagesError }}</p>
+				</form>
+			</dd>
 			<dt>Last Posted</dt>
 			<dd>{{ lastPosted || 'Never' }}</dd>
 			<dt>Token Expiry</dt>
@@ -73,6 +112,11 @@
 			</dd>
 		</dl>
 	</Section>
+
+	<SocialAccountRecentInteractions
+		v-if="!loading && account"
+		:social-account-id="account.id"
+	/>
 
 	<SocialAccountPostPerformance
 		v-if="!loading && account"
@@ -434,7 +478,7 @@
 </template>
 
 <script setup>
-	import { ref, computed, onMounted } from 'vue';
+	import { ref, computed, onMounted, nextTick } from 'vue';
 	import { useRoute, useRouter } from 'vue-router';
 	import { Icon } from '@iconify/vue';
 	import { HugeiconsIcon } from '@hugeicons/vue';
@@ -458,6 +502,7 @@
 	import Table from 'picocrank/vue/components/Table.vue';
 	import UserGroupLookupDialog from './UserGroupLookupDialog.vue';
 	import SocialAccountPostPerformance from './SocialAccountPostPerformance.vue';
+	import SocialAccountRecentInteractions from './SocialAccountRecentInteractions.vue';
 
 	const route = useRoute();
 	const router = useRouter();
@@ -790,6 +835,54 @@
 		}
 	}
 
+const preferredLanguages = computed(() => account.value?.preferredLanguages || [])
+const editingLanguages = ref(false)
+const languagesDraft = ref('')
+const languagesError = ref('')
+const savingLanguages = ref(false)
+const languagesInput = ref(null)
+
+let languageNames = null
+try {
+	languageNames = new Intl.DisplayNames([navigator.language || 'en'], { type: 'language' })
+} catch {
+	languageNames = null
+}
+
+function languageName(code) {
+	try {
+		const name = languageNames?.of(code)
+		return name && name !== code ? `${name} (${code})` : code
+	} catch {
+		return code
+	}
+}
+
+async function startEditLanguages() {
+	languagesDraft.value = preferredLanguages.value.join(', ')
+	languagesError.value = ''
+	editingLanguages.value = true
+	await nextTick()
+	languagesInput.value?.focus()
+}
+
+async function saveLanguages() {
+	savingLanguages.value = true
+	languagesError.value = ''
+	try {
+		const languages = languagesDraft.value.split(/[\s,]+/).filter(Boolean)
+		const res = await window.client.setSocialAccountPreferredLanguages({ socialAccountId: accountId.value, languages })
+		if (account.value) {
+			account.value = { ...account.value, preferredLanguages: res.languages || [] }
+		}
+		editingLanguages.value = false
+	} catch (e) {
+		languagesError.value = e.rawMessage || e.message || String(e)
+	} finally {
+		savingLanguages.value = false
+	}
+}
+
 async function toggleActive() {
 	try {
 		const next = !(account.value?.active)
@@ -969,6 +1062,38 @@ async function toggleActive() {
 </script>
 
 <style scoped>
+.preferred-languages {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.languages-edit {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.35rem;
+	width: 100%;
+}
+
+.languages-edit input {
+	flex: 1 1 10rem;
+	min-width: 0;
+	padding: 0.35em 0.5em;
+}
+
+.languages-hint,
+.languages-error {
+	flex-basis: 100%;
+	margin: 0;
+	font-size: 0.85em;
+}
+
+.languages-error {
+	color: var(--karma-bad-fg, #b00020);
+}
+
 	.action-item {
 		display: flex;
 		align-items: center;

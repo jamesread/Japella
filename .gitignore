@@ -18,3 +18,4 @@ dist/
 **/*.log
 gen
 /japella
+/.renovate

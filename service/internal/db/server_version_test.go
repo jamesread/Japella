@@ -37,10 +37,10 @@ func TestValidateSupportedDBServerVersion(t *testing.T) {
 
 func TestParseMariaDBVersion(t *testing.T) {
 	tests := []struct {
-		version      string
-		wantMajor    int
-		wantMinor    int
-		wantOK       bool
+		version   string
+		wantMajor int
+		wantMinor int
+		wantOK    bool
 	}{
 		{"5.5.5-10.11.6-MariaDB", 10, 11, true},
 		{"11.8.9-MariaDB-ubu2404", 11, 8, true},

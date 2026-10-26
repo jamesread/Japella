@@ -14,9 +14,10 @@ const EventPostCompleted = "post.completed"
 const EventPostError = "post.error"
 const EventKeywordMatched = "keyword.matched"
 const EventPostEngagement = "post.engagement"
+const EventHealthIssueRaised = "health.issue_raised"
 const EventWebhookTest = "webhook.test"
 
-var SupportedEvents = []string{EventApprovalRequested, EventPostCompleted, EventPostError, EventKeywordMatched, EventPostEngagement, EventWebhookTest}
+var SupportedEvents = []string{EventApprovalRequested, EventPostCompleted, EventPostError, EventKeywordMatched, EventPostEngagement, EventHealthIssueRaised, EventWebhookTest}
 
 func NormalizeEvent(event string) (string, error) {
 	event = strings.TrimSpace(event)

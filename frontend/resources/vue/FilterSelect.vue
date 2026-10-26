@@ -1,5 +1,5 @@
 <template>
-	<div class="filter-field">
+	<div class="filter-field" :class="{ compact }">
 		<select v-model="value" class="filter-select">
 			<slot />
 		</select>
@@ -42,6 +42,11 @@
 			type: String,
 			default: 'Clear filter',
 		},
+		// One short line, sized to fit a feed column's detail row.
+		compact: {
+			type: Boolean,
+			default: false,
+		},
 	});
 
 	const emit = defineEmits(['update:modelValue']);
@@ -78,6 +83,28 @@
 		outline: none;
 		border-color: #4CAF50;
 		box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+	}
+
+	.filter-field.compact {
+		flex: 1 1 0;
+		min-width: 0;
+		gap: 0.15rem;
+	}
+
+	.filter-field.compact .filter-select {
+		flex: 1 1 auto;
+		min-width: 0;
+		width: 100%;
+		height: var(--feed-column-meta-height, 1.5rem);
+		padding: 0 0.25rem;
+		font-size: inherit;
+		line-height: 1;
+	}
+
+	.filter-field.compact button {
+		height: var(--feed-column-meta-height, 1.5rem);
+		padding: 0 0.25rem;
+		flex-shrink: 0;
 	}
 
 	@media (max-width: 768px) {

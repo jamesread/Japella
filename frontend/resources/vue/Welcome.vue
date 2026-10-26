@@ -59,6 +59,7 @@
 		setupSidebarNavigation,
 		showControlPanelInSidebar,
 	} from '../javascript/sidebarNavigation.js';
+	import { fetchHealthSummaryCount } from '../javascript/health.js';
 
 	const { t } = useI18n();
 	const router = useRouter();
@@ -126,8 +127,10 @@
 			fetchAppStatus().catch(() => null),
 			fetchApprovalsCount(),
 		]);
+		const healthCount = await fetchHealthSummaryCount(status);
 		setupSidebarNavigation(welcomeNav.value, {
 			approvalsCount,
+			healthCount,
 			showControlPanel: showControlPanelInSidebar(status),
 			descriptions: navDescriptions.value,
 			excludeRoutes: ['postBox'],

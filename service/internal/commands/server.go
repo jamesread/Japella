@@ -5,8 +5,8 @@ import (
 	"github.com/jamesread/japella/internal/buildinfo"
 	"github.com/jamesread/japella/internal/httpserver"
 	"github.com/jamesread/japella/internal/nanoservice"
-	"github.com/spf13/cobra"
 	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 )
 
 var serviceRegistry = map[string]nanoservice.Nanoservice{

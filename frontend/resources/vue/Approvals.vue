@@ -1,22 +1,17 @@
 <template>
-	<Section
-		title="Approvals"
-		subtitle="Review posts waiting for approval. Open a post to edit content before approving; approve only when you are the current-stage assignee (and not the submitter)."
-		:icon="SecurityValidationIcon"
-		classes="approvals"
-		:padding="false"
-	>
-		<template #toolbar>
-			<button type="button" class="neutral" title="Refresh" :disabled="loading" @click="loadPending">
-				<Icon icon="material-symbols:refresh" />
-			</button>
-		</template>
+	<PageToolbar label="Approvals actions">
+		<span class="subtle approvals-hint">
+			Open a post to edit content before approving; approve only when you are the current-stage assignee (and not the submitter).
+		</span>
+		<button type="button" class="neutral" title="Refresh" aria-label="Refresh" :disabled="loading" @click="loadPending">
+			<Icon icon="material-symbols:refresh" />
+		</button>
+	</PageToolbar>
 
-		<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
-		<NotificationBlock v-if="successMessage" type="good" :message="successMessage" />
+	<NotificationBlock v-if="errorMessage" type="error" :message="errorMessage" />
+	<NotificationBlock v-if="successMessage" type="good" :message="successMessage" />
 
-		<Loading v-if="loading" message="Loading pending approvals…" :centered="true" />
-	</Section>
+	<Loading v-if="loading" message="Loading pending approvals…" :centered="true" />
 
 	<NotificationBlock
 		v-if="!loading && !pending.length"
@@ -214,9 +209,8 @@ import {
 	CheckmarkCircle01Icon,
 	EditIcon,
 	Loading01Icon,
-	SecurityValidationIcon,
 } from '@hugeicons/core-free-icons';
-import Section from 'picocrank/vue/components/Section.vue';
+import PageToolbar from 'picocrank/vue/components/PageToolbar.vue';
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 import Loading from './Loading.vue';
 import PostPreview from './PostPreview.vue';
@@ -321,6 +315,12 @@ onMounted(loadPending);
 
 .approvals-empty {
 	margin: 0 0 1rem;
+}
+
+.approvals-hint {
+	flex: 1;
+	min-width: 12rem;
+	font-size: 0.9em;
 }
 
 section.approval-entry {

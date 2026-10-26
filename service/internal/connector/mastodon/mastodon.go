@@ -54,8 +54,29 @@ type Status struct {
 type TimelineAccount struct {
 	ID       string `json:"id"`
 	Username string `json:"username"`
+	Acct     string `json:"acct"`
 	Avatar   string `json:"avatar"`
 	URI      string `json:"uri"`
+	// URL is the account's web profile page.
+	URL string `json:"url"`
+}
+
+// handle is the account's full handle; acct omits the domain for local accounts.
+func (a TimelineAccount) handle() string {
+	if a.Acct != "" {
+		return "@" + a.Acct
+	}
+	if a.Username != "" {
+		return "@" + a.Username
+	}
+	return ""
+}
+
+func (a TimelineAccount) profileURL() string {
+	if a.URL != "" {
+		return a.URL
+	}
+	return a.URI
 }
 
 type TimelineStatus struct {
@@ -66,6 +87,13 @@ type TimelineStatus struct {
 	Account   TimelineAccount `json:"account"`
 	Card      *PreviewCard    `json:"card"`
 	Reblog    *TimelineStatus `json:"reblog"`
+	// Language is an ISO 639 code, or null when unknown.
+	Language *string `json:"language"`
+
+	// Relative to the authenticated account; null when unauthenticated.
+	Favourited      *bool  `json:"favourited"`
+	FavouritesCount uint32 `json:"favourites_count"`
+	RepliesCount    uint32 `json:"replies_count"`
 }
 
 type PreviewCard struct {
@@ -401,12 +429,26 @@ func timelineStatusToFeedPost(status TimelineStatus) (*connector.FeedPost, bool)
 		AuthorAvatarURL: status.Account.Avatar,
 		RemoteURL:       status.URI,
 		RemoteID:        remoteID,
+
+		AuthorHandle:     status.Account.handle(),
+		AuthorProfileURL: status.Account.profileURL(),
 	}
+
+	// For a boost, the language, likes and thread that matter are the boosted post's.
+	if contentStatus.Language != nil {
+		feedPost.Language = *contentStatus.Language
+	}
+	feedPost.InteractionRemoteID = contentStatus.ID
+	feedPost.Liked = contentStatus.Favourited != nil && *contentStatus.Favourited
+	feedPost.LikeCount = contentStatus.FavouritesCount
+	feedPost.ReplyCount = contentStatus.RepliesCount
 
 	if status.Reblog != nil {
 		feedPost.OriginalAuthorID = status.Reblog.Account.ID
 		feedPost.OriginalAuthorName = status.Reblog.Account.Username
 		feedPost.OriginalAuthorAvatarURL = status.Reblog.Account.Avatar
+		feedPost.OriginalAuthorHandle = status.Reblog.Account.handle()
+		feedPost.OriginalAuthorProfileURL = status.Reblog.Account.profileURL()
 	}
 
 	if card != nil {

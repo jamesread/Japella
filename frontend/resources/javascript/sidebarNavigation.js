@@ -30,11 +30,12 @@ export async function fetchApprovalsCount() {
 
 /**
  * @param {import('vue').Ref | { clearNavigationLinks: Function, addSection: Function, addRouterLink: Function }} navigation
- * @param {{ approvalsCount?: number, showControlPanel?: boolean, descriptions?: Record<string, string>, excludeRoutes?: string[] }} [options]
+ * @param {{ approvalsCount?: number, healthCount?: number, showControlPanel?: boolean, descriptions?: Record<string, string>, excludeRoutes?: string[] }} [options]
  */
 export function setupSidebarNavigation(navigation, options = {}) {
 	const {
 		approvalsCount = 0,
+		healthCount = 0,
 		showControlPanel = false,
 		descriptions = {},
 		excludeRoutes = [],
@@ -56,6 +57,9 @@ export function setupSidebarNavigation(navigation, options = {}) {
 			const linkOptions = {};
 			if (routeName === 'approvals') {
 				linkOptions.count = approvalsCount;
+			}
+			if (routeName === 'controlPanel' && healthCount > 0) {
+				linkOptions.count = healthCount;
 			}
 			if (descriptions[routeName]) {
 				linkOptions.description = descriptions[routeName];

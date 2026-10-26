@@ -16,28 +16,28 @@ type LlmConnection struct {
 
 type LlmTool struct {
 	Model
-	Name             string `db:"name"`
-	Description      string `db:"description"`
-	LlmConnectionID  uint32 `db:"llm_connection_id"`
-	Prompt           string `db:"prompt"`
-	Enabled          bool   `db:"enabled"`
-	SortOrder        int32  `db:"sort_order"`
-	ConnectionName   string `db:"connection_name"`
+	Name            string `db:"name"`
+	Description     string `db:"description"`
+	LlmConnectionID uint32 `db:"llm_connection_id"`
+	Prompt          string `db:"prompt"`
+	Enabled         bool   `db:"enabled"`
+	SortOrder       int32  `db:"sort_order"`
+	ConnectionName  string `db:"connection_name"`
 }
 
 type LlmToolRun struct {
-	ID               uint32         `db:"id"`
-	PostID           uint32         `db:"post_id"`
-	LlmToolID        sql.NullInt32  `db:"llm_tool_id"`
-	ToolName         string         `db:"tool_name"`
-	ConnectionName   string         `db:"connection_name"`
-	ModelName        string         `db:"model"`
-	InputContent     string         `db:"input_content"`
-	OutputContent    string         `db:"output_content"`
-	Status           string         `db:"status"`
-	ErrorMessage     string         `db:"error_message"`
-	CreatedByUserID  sql.NullInt32  `db:"created_by_user_id"`
-	CreatedAt        sql.NullTime   `db:"created_at"`
+	ID              uint32        `db:"id"`
+	PostID          uint32        `db:"post_id"`
+	LlmToolID       sql.NullInt32 `db:"llm_tool_id"`
+	ToolName        string        `db:"tool_name"`
+	ConnectionName  string        `db:"connection_name"`
+	ModelName       string        `db:"model"`
+	InputContent    string        `db:"input_content"`
+	OutputContent   string        `db:"output_content"`
+	Status          string        `db:"status"`
+	ErrorMessage    string        `db:"error_message"`
+	CreatedByUserID sql.NullInt32 `db:"created_by_user_id"`
+	CreatedAt       sql.NullTime  `db:"created_at"`
 }
 
 const (

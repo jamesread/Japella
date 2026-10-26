@@ -1,8 +1,32 @@
 <template>
-	<div class="post-preview">
+	<div class="post-preview" :class="{ filled }" @contextmenu="contextMenu.onContextMenu">
 		<div class="post-header">
 			<div class="social-account-info">
-				<template v-if="post.socialAccountId">
+				<template v-if="post.socialAccountId && post.authorId">
+					<!-- Someone else's post: the author opens the author options dialog. -->
+					<button
+						type="button"
+						class="author-avatar-button avatar-link"
+						:title="'Author options for ' + displayAuthorName"
+						:aria-label="'Author options for ' + displayAuthorName"
+						@click="showAuthorOptions = true"
+					>
+						<FeedAuthorAvatar
+							:avatar-url="post.authorAvatarUrl"
+							:fallback-icon="post.socialAccountIcon || 'mdi:account'"
+							:alt-text="post.authorName || post.socialAccountIdentity || 'Author'"
+						/>
+					</button>
+					<button
+						type="button"
+						class="author-filter-button account-name"
+						:title="'Author options for ' + displayAuthorName"
+						@click="showAuthorOptions = true"
+					>
+						{{ displayAuthorName }}
+					</button>
+				</template>
+				<template v-else-if="post.socialAccountId">
 					<router-link
 						:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
 						class="social-account-link avatar-link"
@@ -14,17 +38,7 @@
 							:alt-text="post.authorName || post.socialAccountIdentity || 'Author'"
 						/>
 					</router-link>
-					<button
-						v-if="authorFilterable && post.authorId"
-						type="button"
-						class="author-filter-button account-name"
-						:title="'Show posts by ' + displayAuthorName"
-						@click="filterByAuthor"
-					>
-						{{ displayAuthorName }}
-					</button>
 					<router-link
-						v-else
 						:to="{ name: 'socialAccountDetails', params: { id: post.socialAccountId } }"
 						class="social-account-link"
 					>
@@ -57,8 +71,11 @@
 		</div>
 
 		<div class="post-content-section">
-			<div class="post-message" v-html="post.content"></div>
+			<div class="post-message" @click="hashtags.onContentClick" v-html="hashtags.contentHtml.value"></div>
 		</div>
+
+		<PostInteractionBar v-if="interactive" :post="post" />
+		<PostTags v-if="interactive" ref="postTags" :post="post" />
 
 		<div v-if="post.previewUrl || post.previewImageUrl" class="preview-card">
 			<a
@@ -131,6 +148,30 @@
 
 	</div>
 
+	<TableRowContextMenu
+		v-model:open="contextMenu.open.value"
+		:items="contextMenu.items.value"
+		:client-x="contextMenu.x.value"
+		:client-y="contextMenu.y.value"
+		@select="contextMenu.onSelect"
+	/>
+
+	<TagOptionsDialog
+		v-if="hashtags.tagOptions.value"
+		:tag="hashtags.tagOptions.value.tag"
+		:url="hashtags.tagOptions.value.url"
+		:post="post"
+		@close="hashtags.tagOptions.value = null"
+	/>
+
+	<AuthorOptionsDialog
+		v-if="showAuthorOptions"
+		:author="authorOptionsAuthor"
+		:filterable="authorFilterable"
+		@filter-author="filterByAuthor"
+		@close="showAuthorOptions = false"
+	/>
+
 	<!-- Diagnostic Info Dialog -->
 	<PostDiagnosticDialog
 		:open="showDiagnosticDialog"
@@ -141,6 +182,7 @@
 		:retrying="retrying"
 		@close="closeDiagnosticDialog"
 		@post-refetched="onPostRefetched"
+		@post-hidden="emit('post-hidden', $event)"
 		@view-details="emit('view-details')"
 		@retry-post="emit('retry-post')"
 	/>
@@ -151,6 +193,13 @@
 	import { Icon } from '@iconify/vue';
 	import { socialProviderNameFromPost, formatHumanDateTime } from '../javascript/util';
 	import FeedAuthorAvatar from './FeedAuthorAvatar.vue';
+	import AuthorOptionsDialog from './AuthorOptionsDialog.vue';
+	import PostInteractionBar from './PostInteractionBar.vue';
+	import PostTags from './PostTags.vue';
+	import TagOptionsDialog from './TagOptionsDialog.vue';
+	import { useHashtagOptions } from '../javascript/hashtags.js';
+	import TableRowContextMenu from 'picocrank/vue/components/TableRowContextMenu.vue';
+	import { usePostContextMenu } from '../javascript/postActions.js';
 	import PostDiagnosticDialog from './PostDiagnosticDialog.vue';
 	import SocialAccountChip from './SocialAccountChip.vue';
 	import PostEngagementBar from './PostEngagementBar.vue';
@@ -159,6 +208,16 @@
 		post: {
 			type: Object,
 			required: true
+		},
+		interactive: {
+			// Show like and comments buttons (feed and feed columns).
+			type: Boolean,
+			default: false,
+		},
+		filled: {
+			// Draw the card background itself, for lists not wrapped in a section.
+			type: Boolean,
+			default: false,
 		},
 		authorFilterable: {
 			type: Boolean,
@@ -181,6 +240,7 @@
 	const emit = defineEmits([
 		'filter-author',
 		'post-refetched',
+		'post-hidden',
 		'assign-campaign',
 		'view-details',
 		'retry-post',
@@ -222,6 +282,29 @@
 		}
 		return `Diagnostic Info — ${statusText(props.post)}`;
 	});
+
+	const showAuthorOptions = ref(false);
+
+	// Published timeline posts aren't feed posts, so feed-only actions don't apply.
+	const postTags = ref(null);
+	const hashtags = useHashtagOptions(() => props.post);
+	const contextMenu = usePostContextMenu(() => props.post, () => !props.timelineMode, emit, {
+		onEditTags: props.interactive ? () => postTags.value?.openEditor() : null,
+	});
+
+	const authorOptionsAuthor = computed(() => ({
+		id: props.post.authorId,
+		name: props.post.authorName,
+		handle: props.post.authorHandle,
+		avatarUrl: props.post.authorAvatarUrl,
+		profileUrl: props.post.authorProfileUrl,
+		postUrl: props.post.remoteUrl,
+		fallbackIcon: props.post.socialAccountIcon,
+		socialAccountId: props.post.socialAccountId,
+		external: Boolean(props.post.fromExternalAuthor),
+		socialAccountIdentity: props.post.socialAccountIdentity,
+		socialAccountIcon: props.post.socialAccountIcon,
+	}));
 
 	function filterByAuthor() {
 		if (props.post.authorId) {
@@ -281,6 +364,13 @@
 	padding: 1rem;
 	border-radius: 0.5rem;
     line-height: 2;
+}
+
+/* Matches femtocrank's section.small card. */
+.post-preview.filled {
+	background-color: var(--section-bg-color);
+	border-radius: .8em;
+	box-shadow: 0 0 .5em var(--shadow-color);
 }
 
 .post-header {
@@ -421,6 +511,16 @@
 
 .avatar-link:hover {
 	text-decoration: none;
+}
+
+.author-avatar-button {
+	display: inline-flex;
+	padding: 0;
+	border: none;
+	background: none;
+	box-shadow: none;
+	cursor: pointer;
+	border-radius: 50%;
 }
 
 .post-message {

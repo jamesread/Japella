@@ -145,6 +145,8 @@ message SocialAccount {
 	string owner_username = 11;
 	bool can_post = 12; // Computed: true if the requesting user can post through this account
 	bool can_manage = 13; // Computed: true if the requesting user can manage (delete, toggle, share) this account
+	// ISO 639 base codes; feed posts in other known languages are hidden. Empty means no filtering.
+	repeated string preferred_languages = 14;
 }
 
 message GetConnectorsRequest {
@@ -296,6 +298,33 @@ message FeedPost {
 	string original_author_id = 17;
 	string original_author_name = 18;
 	string original_author_avatar_url = 19;
+	// The platform's language tag for the post (e.g. "en"); empty if unknown.
+	string language = 20;
+	// Full handles (e.g. "@alice@example.social") and web profile links,
+	// for the author options dialog. Empty when the platform didn't say.
+	string author_handle = 21;
+	string author_profile_url = 22;
+	string original_author_handle = 23;
+	string original_author_profile_url = 24;
+	// True when the post was written by someone other than the social account
+	// it was fetched through.
+	bool from_external_author = 25;
+	// Like and comment state, as the social account sees the post. Counts are
+	// as of the last fetch.
+	string interaction_remote_id = 26;
+	bool liked = 27;
+	uint32 like_count = 28;
+	uint32 reply_count = 29;
+	// Whether the post's network supports liking / reading its thread here.
+	bool can_like = 30;
+	bool can_view_comments = 31;
+	// Whether the social account can comment here, and already has.
+	bool can_comment = 32;
+	bool commented = 33;
+	// The caller's internal Japella tags on this post (lowercase, no '#').
+	repeated string tags = 34;
+	// Whether the post can be reloaded from its network (RefreshPost).
+	bool can_refresh = 35;
 }
 
 message SetSocialAccountActiveRequest {
@@ -739,6 +768,20 @@ message ListMediaResponse {
 message MediaItem {
 	string filename = 1;
 	string url = 2; // URL path to fetch the file (e.g. /media/files/<filename>)
+	uint64 size_bytes = 3;
+	// 0 when not an image Japella can read.
+	uint32 width = 4;
+	uint32 height = 5;
+	// One per network the caller has an active account on (see GetMediaSuitability).
+	repeated MediaSuitability suitability = 6;
+	// Set on an optimised copy: the original's filename.
+	string optimised_of = 7;
+	// Set on an original that has a lossless copy: the copy's filename.
+	string optimised_version = 8;
+	// Set on an optimised copy: "optimised" (lossless) or "posting".
+	string optimised_kind = 9;
+	// Set on an original that has a posting copy: the copy's filename.
+	string posting_version = 10;
 }
 
 message GetMediaPostsRequest {
@@ -1563,6 +1606,66 @@ message CreateDummySocialAccountResponse {
 	string identity = 2;
 }
 
+// Health checks (see service/internal/health). Admins only (system.settings).
+message HealthIssue {
+	int64 id = 1;
+	string check_id = 2;
+	string check_title = 3;
+	string issue_key = 4;
+	string severity = 5; // "info", "warning" or "error"
+	string title = 6;
+	string detail = 7;
+	string link = 8; // Frontend path where the problem can be fixed; empty when none
+	int64 first_seen_unix = 9;
+	int64 last_seen_unix = 10;
+	int32 occurrences = 11;
+	int64 resolved_at_unix = 12; // 0 while open
+	int64 acknowledged_at_unix = 13; // 0 when not acknowledged
+}
+
+message HealthCheckStatus {
+	string check_id = 1;
+	string title = 2;
+	int64 last_run_unix = 3; // 0 when the check has not run yet
+	int64 duration_ms = 4;
+	string status = 5; // "ok", "failed" or "pending"
+	string error = 6;
+}
+
+message ListHealthIssuesRequest {
+	bool include_resolved = 1;
+	bool include_acknowledged = 2;
+}
+
+message ListHealthIssuesResponse {
+	repeated HealthIssue issues = 1;
+	repeated HealthCheckStatus checks = 2;
+}
+
+// Counts of open, unacknowledged issues (for the sidebar badge).
+message GetHealthSummaryRequest {}
+
+message GetHealthSummaryResponse {
+	int32 errors = 1;
+	int32 warnings = 2;
+	int32 infos = 3;
+}
+
+message RunHealthChecksRequest {
+	string check_id = 1; // Empty runs every check
+}
+
+message RunHealthChecksResponse {
+	repeated HealthCheckStatus checks = 1;
+}
+
+message AcknowledgeHealthIssueRequest {
+	int64 id = 1;
+	bool acknowledged = 2; // false un-acknowledges
+}
+
+message AcknowledgeHealthIssueResponse {}
+
 service JapellaControlApiService {
 	rpc GetStatus(GetStatusRequest) returns (GetStatusResponse) {}
 
@@ -1673,12 +1776,26 @@ service JapellaControlApiService {
     rpc CleanupFeedPosts(CleanupFeedPostsRequest) returns (CleanupFeedPostsResponse) {}
 
     rpc RefetchFeedPost(RefetchFeedPostRequest) returns (RefetchFeedPostResponse) {}
+    // Hides one feed post from the caller's feed. Other users, and the
+    // author's other posts, are unaffected.
+    rpc MarkFeedPostRead(MarkFeedPostReadRequest) returns (MarkFeedPostReadResponse) {}
+    // Likes or unlikes a feed or feed column post as its social account.
+    rpc SetPostLiked(SetPostLikedRequest) returns (SetPostLikedResponse) {}
+    // Fetches the live reply thread under any feed or feed column post.
+    rpc GetPostThread(GetPostThreadRequest) returns (GetPostThreadResponse) {}
+    // Publishes a comment (reply) on a feed or feed column post as its social account.
+    rpc PostComment(PostCommentRequest) returns (PostCommentResponse) {}
 
     rpc GetLogs(GetLogsRequest) returns (GetLogsResponse) {}
 
     rpc GetJobsStatus(GetJobsStatusRequest) returns (GetJobsStatusResponse) {}
 
     rpc ListMedia(ListMediaRequest) returns (ListMediaResponse) {}
+    // How well a media file suits each network the caller has accounts on.
+    rpc GetMediaSuitability(GetMediaSuitabilityRequest) returns (GetMediaSuitabilityResponse) {}
+    // Saves a smaller copy of an image as a new media item (see
+    // OptimiseMediaRequest.mode); the original is kept.
+    rpc OptimiseMedia(OptimiseMediaRequest) returns (OptimiseMediaResponse) {}
     rpc GetMediaPosts(GetMediaPostsRequest) returns (GetMediaPostsResponse) {}
     rpc DeleteMedia(DeleteMediaRequest) returns (DeleteMediaResponse) {}
     rpc GetChatBots(GetChatBotsRequest) returns (GetChatBotsResponse) {}
@@ -1754,6 +1871,34 @@ service JapellaControlApiService {
     rpc CreateDummySocialAccount(CreateDummySocialAccountRequest) returns (CreateDummySocialAccountResponse) {}
 
     rpc GetSocialAccountPostPerformance(GetSocialAccountPostPerformanceRequest) returns (GetSocialAccountPostPerformanceResponse) {}
+    rpc GetPostReplies(GetPostRepliesRequest) returns (GetPostRepliesResponse) {}
+    rpc SetSocialAccountPreferredLanguages(SetSocialAccountPreferredLanguagesRequest) returns (SetSocialAccountPreferredLanguagesResponse) {}
+    rpc GetSocialAccountRecentInteractions(GetSocialAccountRecentInteractionsRequest) returns (GetSocialAccountRecentInteractionsResponse) {}
+
+    // Extra feed columns (per user): recent posts for a hashtag or search query.
+    rpc ListFeedColumns(ListFeedColumnsRequest) returns (ListFeedColumnsResponse) {}
+    rpc CreateFeedColumn(CreateFeedColumnRequest) returns (CreateFeedColumnResponse) {}
+    rpc UpdateFeedColumn(UpdateFeedColumnRequest) returns (UpdateFeedColumnResponse) {}
+    rpc DeleteFeedColumn(DeleteFeedColumnRequest) returns (DeleteFeedColumnResponse) {}
+    rpc ReorderFeedColumns(ReorderFeedColumnsRequest) returns (ReorderFeedColumnsResponse) {}
+    rpc GetFeedColumnPosts(GetFeedColumnPostsRequest) returns (GetFeedColumnPostsResponse) {}
+
+    // Internal tags on posts; private to Japella, never posted.
+    rpc SetPostTags(SetPostTagsRequest) returns (SetPostTagsResponse) {}
+    rpc ListPostTags(ListPostTagsRequest) returns (ListPostTagsResponse) {}
+
+    // Reloads a feed or feed column post, with its likes and comment counts.
+    rpc RefreshPost(RefreshPostRequest) returns (RefreshPostResponse) {}
+
+    // Following a post's author as a social account.
+    rpc GetAuthorFollow(GetAuthorFollowRequest) returns (GetAuthorFollowResponse) {}
+    rpc SetAuthorFollow(SetAuthorFollowRequest) returns (SetAuthorFollowResponse) {}
+
+    // Health checks (admins only: system.settings)
+    rpc ListHealthIssues(ListHealthIssuesRequest) returns (ListHealthIssuesResponse) {}
+    rpc GetHealthSummary(GetHealthSummaryRequest) returns (GetHealthSummaryResponse) {}
+    rpc RunHealthChecks(RunHealthChecksRequest) returns (RunHealthChecksResponse) {}
+    rpc AcknowledgeHealthIssue(AcknowledgeHealthIssueRequest) returns (AcknowledgeHealthIssueResponse) {}
 }
 
 message GetSocialAccountPostPerformanceRequest {
@@ -1799,4 +1944,326 @@ message PostEngagement {
     string last_error = 7;
     // True once at least one fetch has succeeded, so the counters are meaningful.
     bool has_data = 8;
+}
+
+message GetPostRepliesRequest {
+    uint32 post_id = 1;
+}
+
+// A reply in the conversation under a published post, with its own replies.
+message PostReply {
+    string remote_id = 1;
+    string remote_url = 2;
+    string author_name = 3;
+    string author_handle = 4;
+    string author_avatar_url = 5;
+    // Plain text.
+    string content = 6;
+    // RFC3339; empty if the platform did not report it.
+    string posted_at = 7;
+    repeated PostReply replies = 8;
+}
+
+message GetPostRepliesResponse {
+    // Whether this post's connector can fetch replies at all.
+    bool supported = 1;
+    // Whether the post_engagement job (which also fetches replies) is enabled.
+    bool tracking_enabled = 2;
+    // RFC3339 time replies were last fetched; empty if never.
+    string last_fetched_at = 3;
+    // Total number of stored replies, at every depth.
+    uint32 reply_count = 4;
+    // Top-level replies, oldest first, each with nested replies.
+    repeated PostReply replies = 5;
+}
+
+message GetSocialAccountRecentInteractionsRequest {
+    uint32 social_account_id = 1;
+    // Window size in days, counting back from now. Defaults to 7; maximum 30.
+    uint32 days = 2;
+}
+
+// One entry in an account's recent activity.
+message RecentInteraction {
+    // "post" (published by this account), "reply" (received), or
+    // "engagement" (an increase in likes, reposts, quotes or replies, detected
+    // by the post_engagement job).
+    string kind = 1;
+    // RFC3339. For engagement, when the increase was detected.
+    string at = 2;
+    uint32 post_id = 3;
+    // Plain-text snippet of the post this interaction is about.
+    string post_snippet = 4;
+    string post_url = 5;
+    // For kind = engagement: the increase.
+    PostEngagement engagement = 6;
+    // For kind = reply.
+    PostReply reply = 7;
+}
+
+message GetSocialAccountRecentInteractionsResponse {
+    uint32 days = 1;
+    bool supported = 2;
+    bool tracking_enabled = 3;
+    // Posts published in the window.
+    uint32 posts = 4;
+    // Interactions received in the window.
+    PostEngagement totals = 5;
+    // One entry per calendar day (UTC), oldest first: posts published and
+    // interactions received that day.
+    repeated PostPerformanceDay daily = 6;
+    // Newest first.
+    repeated RecentInteraction items = 7;
+}
+
+message FeedColumn {
+    uint32 id = 1;
+    string title = 2;
+    // A hashtag ("#golang"), free-text search ("japella release") or
+    // internal tag ("tag:todo").
+    string query = 3;
+    bool is_hashtag = 4;
+    // The accounts whose networks are searched; results are merged.
+    repeated FeedColumnAccount accounts = 5;
+    // Set for "tag:<tag>" columns, which list the caller's posts with that
+    // internal tag instead of searching (and have no accounts).
+    string tag = 6;
+}
+
+message FeedColumnAccount {
+    uint32 id = 1;
+    string identity = 2;
+    string icon = 3;
+    string connector = 4;
+    // False when this account's network cannot search.
+    bool supported = 5;
+}
+
+message ListFeedColumnsRequest {}
+
+message ListFeedColumnsResponse {
+    // Left to right.
+    repeated FeedColumn columns = 1;
+}
+
+message CreateFeedColumnRequest {
+    string query = 1;
+    // At least one.
+    repeated uint32 social_account_ids = 2;
+    // Optional; defaults to the query.
+    string title = 3;
+}
+
+message CreateFeedColumnResponse {
+    FeedColumn column = 1;
+}
+
+message UpdateFeedColumnRequest {
+    uint32 id = 1;
+    string query = 2;
+    // At least one.
+    repeated uint32 social_account_ids = 3;
+    string title = 4;
+}
+
+message UpdateFeedColumnResponse {
+    FeedColumn column = 1;
+}
+
+message DeleteFeedColumnRequest {
+    uint32 id = 1;
+}
+
+message DeleteFeedColumnResponse {}
+
+message ReorderFeedColumnsRequest {
+    // Column ids, left to right.
+    repeated uint32 ids = 1;
+}
+
+message ReorderFeedColumnsResponse {}
+
+message GetFeedColumnPostsRequest {
+    uint32 id = 1;
+}
+
+message GetFeedColumnPostsResponse {
+    // Newest first, merged across the column's accounts.
+    repeated FeedPost posts = 1;
+    // Set when the search failed for one or more accounts; posts may still
+    // hold their last good results.
+    string error = 2;
+    // RFC3339 time of the oldest result shown (the least fresh account).
+    string fetched_at = 4;
+
+    reserved 3;
+}
+
+message SetSocialAccountPreferredLanguagesRequest {
+    uint32 social_account_id = 1;
+    // ISO 639 codes ("en", "pt-BR" is stored as "pt"). Empty clears the filter.
+    repeated string languages = 2;
+}
+
+message SetSocialAccountPreferredLanguagesResponse {
+    // As stored: normalised, de-duplicated and sorted.
+    repeated string languages = 1;
+}
+
+message MarkFeedPostReadRequest {
+    // A stored feed post. Leave 0 for feed column posts, which aren't stored,
+    // and identify them by remote_url / remote_id instead.
+    uint32 id = 1;
+    string remote_url = 2;
+    string remote_id = 3;
+}
+
+message MarkFeedPostReadResponse {}
+
+// Identifies a feed or feed column post on its network.
+message PostRef {
+    uint32 social_account_id = 1;
+    // Set for stored feed posts, so their state is updated too.
+    uint32 feed_post_id = 2;
+    string remote_id = 3;
+    string remote_url = 4;
+    // Preferred over remote_id when set (a boost's original).
+    string interaction_remote_id = 5;
+}
+
+message SetPostLikedRequest {
+    PostRef post = 1;
+    bool liked = 2;
+}
+
+message SetPostLikedResponse {
+    bool liked = 1;
+    uint32 like_count = 2;
+}
+
+message GetPostThreadRequest {
+    PostRef post = 1;
+}
+
+message GetPostThreadResponse {
+    // Top-level replies, oldest first, each with nested replies.
+    repeated PostReply replies = 1;
+    uint32 reply_count = 2;
+    // Whether the social account has a comment in this thread.
+    bool commented = 3;
+}
+
+message PostCommentRequest {
+    PostRef post = 1;
+    string content = 2;
+}
+
+message PostCommentResponse {
+    PostReply reply = 1;
+}
+
+message SetPostTagsRequest {
+    PostRef post = 1;
+    // The post as shown, kept so tag columns can show it later. Stored feed
+    // posts (post.feed_post_id) are read from the database instead.
+    FeedPost snapshot = 2;
+    // Replaces the post's tags; empty removes them all.
+    repeated string tags = 3;
+}
+
+message SetPostTagsResponse {
+    // As stored: lowercase, without '#', de-duplicated.
+    repeated string tags = 1;
+}
+
+message ListPostTagsRequest {}
+
+message PostTagCount {
+    string tag = 1;
+    uint32 posts = 2;
+}
+
+message ListPostTagsResponse {
+    // Most used first.
+    repeated PostTagCount tags = 1;
+}
+
+message GetAuthorFollowRequest {
+    uint32 social_account_id = 1;
+    // A feed post's author_id (or original_author_id), as seen by that account.
+    string author_id = 2;
+}
+
+message GetAuthorFollowResponse {
+    // False when the account's network can't follow from Japella.
+    bool supported = 1;
+    bool following = 2;
+    // A follow is waiting for the author's approval.
+    bool requested = 3;
+    // Whether the caller may follow or unfollow as this account.
+    bool can_change = 4;
+}
+
+message SetAuthorFollowRequest {
+    uint32 social_account_id = 1;
+    string author_id = 2;
+    bool follow = 3;
+}
+
+message SetAuthorFollowResponse {
+    bool following = 1;
+    bool requested = 2;
+}
+
+message RefreshPostRequest {
+    PostRef post = 1;
+}
+
+message RefreshPostResponse {
+    FeedPost post = 1;
+}
+
+message GetMediaSuitabilityRequest {
+    string filename = 1;
+}
+
+message MediaSuitabilityCheck {
+    // "ok", "warning" or "error".
+    string level = 1;
+    string message = 2;
+}
+
+message MediaSuitability {
+    string protocol = 1;
+    string name = 2;
+    string icon = 3;
+    // The worst check level: "ok", "warning" or "error".
+    string verdict = 4;
+    repeated MediaSuitabilityCheck checks = 5;
+}
+
+message GetMediaSuitabilityResponse {
+    uint64 size_bytes = 1;
+    // 0 when not an image Japella can read.
+    uint32 width = 2;
+    uint32 height = 3;
+    // One per network the caller has an active account on, in name order.
+    repeated MediaSuitability networks = 4;
+}
+
+message OptimiseMediaRequest {
+    string filename = 1;
+    // "lossless" (default): identical pixels, saved as "<name>.optimised.<ext>".
+    // "posting": resized and re-saved at high quality to fit every network
+    // the caller has accounts on, saved as "<name>.posting.jpg" or ".png".
+    string mode = 2;
+}
+
+message OptimiseMediaResponse {
+    // The optimised copy; unset when no smaller copy could be made.
+    MediaItem item = 1;
+    uint64 original_size_bytes = 2;
+    uint64 optimised_size_bytes = 3;
+    // What was done, or why no copy was made.
+    string message = 4;
 }

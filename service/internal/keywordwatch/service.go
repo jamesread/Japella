@@ -24,8 +24,8 @@ type Service struct {
 	Connectors ConnectorResolver
 	Webhook    *webhook.Dispatcher
 
-	mu          sync.Mutex
-	supervisor  *Supervisor
+	mu         sync.Mutex
+	supervisor *Supervisor
 }
 
 func NewService(dbc *db.DB, connectors ConnectorResolver, wh *webhook.Dispatcher) *Service {

@@ -19,6 +19,7 @@ type xSearchResponse struct {
 		Text      string `json:"text"`
 		AuthorID  string `json:"author_id"`
 		CreatedAt string `json:"created_at"`
+		Lang      string `json:"lang"`
 	} `json:"data"`
 	Includes struct {
 		Users []struct {
@@ -61,7 +62,7 @@ func (x *XConnector) SearchRecentByKeyword(ctx context.Context, sa *connector.So
 	q := url.Values{}
 	q.Set("query", keyword)
 	q.Set("max_results", strconv.Itoa(limit))
-	q.Set("tweet.fields", "created_at,author_id")
+	q.Set("tweet.fields", "created_at,author_id,lang")
 	q.Set("expansions", "author_id")
 	q.Set("user.fields", "username")
 	if !since.IsZero() {
@@ -109,9 +110,10 @@ func (x *XConnector) SearchRecentByKeyword(ctx context.Context, sa *connector.So
 	for _, tw := range parsed.Data {
 		postedAt, _ := time.Parse(time.RFC3339, tw.CreatedAt)
 		handle := users[tw.AuthorID]
-		remoteURL := ""
+		remoteURL, profileURL := "", ""
 		if handle != "" {
 			remoteURL = fmt.Sprintf("https://x.com/%s/status/%s", handle, tw.ID)
+			profileURL = "https://x.com/" + handle
 		}
 		out = append(out, &connector.RemotePost{
 			RemoteID:     tw.ID,
@@ -120,6 +122,9 @@ func (x *XConnector) SearchRecentByKeyword(ctx context.Context, sa *connector.So
 			AuthorHandle: handle,
 			Content:      tw.Text,
 			PostedAt:     postedAt,
+			Language:     tw.Lang,
+
+			AuthorProfileURL: profileURL,
 		})
 	}
 	return out, nil

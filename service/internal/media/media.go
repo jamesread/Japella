@@ -36,6 +36,15 @@ func GetDir() (string, error) {
 type Item struct {
 	Filename string
 	URL      string
+	// SizeBytes is 0 if the file couldn't be stat'd.
+	SizeBytes int64
+	// OptimisedOf is the original this is an optimised copy of, if it is
+	// one, and OptimisedKind which kind (KindLossless or KindPosting).
+	OptimisedOf   string
+	OptimisedKind string
+	// An original's copies, if they exist.
+	OptimisedVersion string
+	PostingVersion   string
 }
 
 // PathFromURL resolves a media URL (e.g. /media/files/filename.png) to an absolute path
@@ -82,12 +91,38 @@ func List() ([]Item, error) {
 	if err != nil {
 		return nil, err
 	}
-	var list []Item
+	// Originals by stem, and each original stem's copies.
+	originals := map[string]string{}
+	copies := map[string]map[string]string{}
 	for _, e := range entries {
-		if e.IsDir() || strings.HasPrefix(e.Name(), ".") {
+		if e.IsDir() || strings.HasSuffix(e.Name(), ".tmp") {
 			continue
 		}
-		list = append(list, Item{Filename: e.Name(), URL: "/media/files/" + e.Name()})
+		if stem, kind := DerivedOf(e.Name()); kind != "" {
+			if copies[stem] == nil {
+				copies[stem] = map[string]string{}
+			}
+			copies[stem][kind] = e.Name()
+		} else {
+			originals[Stem(e.Name())] = e.Name()
+		}
+	}
+	var list []Item
+	for _, e := range entries {
+		if e.IsDir() || strings.HasPrefix(e.Name(), ".") || strings.HasSuffix(e.Name(), ".tmp") {
+			continue
+		}
+		item := Item{Filename: e.Name(), URL: "/media/files/" + e.Name()}
+		if info, err := e.Info(); err == nil {
+			item.SizeBytes = info.Size()
+		}
+		if stem, kind := DerivedOf(e.Name()); kind != "" {
+			item.OptimisedOf, item.OptimisedKind = originals[stem], kind
+		} else {
+			c := copies[Stem(e.Name())]
+			item.OptimisedVersion, item.PostingVersion = c[KindLossless], c[KindPosting]
+		}
+		list = append(list, item)
 	}
 	return list, nil
 }

@@ -112,9 +112,16 @@ func timelineStatusToRemotePost(status TimelineStatus) *connector.RemotePost {
 		RemoteID:     feedPost.RemoteID,
 		RemoteURL:    feedPost.RemoteURL,
 		AuthorID:     feedPost.AuthorID,
-		AuthorHandle: feedPost.AuthorName,
+		AuthorHandle: feedPost.AuthorName, // keyword.matched webhooks expose this; keep its format
 		Content:      feedPost.Content,
 		PostedAt:     feedPost.PostedDate,
+
+		AuthorName:       feedPost.AuthorName,
+		AuthorAvatarURL:  feedPost.AuthorAvatarURL,
+		AuthorProfileURL: feedPost.AuthorProfileURL,
+		ContentIsHTML:    true,
+		Language:         feedPost.Language,
+		PostInteraction:  feedPost.PostInteraction,
 	}
 }
 

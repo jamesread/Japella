@@ -1,0 +1,55 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - bidichk
+    - bodyclose
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - errorlint
+    - gocritic
+    - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+    - modernize
+    - nilerr
+    - noctx
+    - staticcheck
+    - testifylint
+    - thelper
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+  settings:
+    gocyclo:
+      min-complexity: 4
+    gosec:
+      enable-all-rules: true
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+  exclusions:
+    generated: lax
+    paths:
+      - (^|/)gen(/|$)
+    rules:
+      - path: (^|/)gen(/|$)
+        linters:
+          - gocyclo
+      - path: \.(pb|connect)\.go$
+        linters:
+          - gocyclo
+      - path: _test\.go
+        linters:
+          - gosec
+          - gocyclo

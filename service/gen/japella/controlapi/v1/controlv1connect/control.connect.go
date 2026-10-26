@@ -201,6 +201,18 @@ const (
 	// JapellaControlApiServiceRefetchFeedPostProcedure is the fully-qualified name of the
 	// JapellaControlApiService's RefetchFeedPost RPC.
 	JapellaControlApiServiceRefetchFeedPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/RefetchFeedPost"
+	// JapellaControlApiServiceMarkFeedPostReadProcedure is the fully-qualified name of the
+	// JapellaControlApiService's MarkFeedPostRead RPC.
+	JapellaControlApiServiceMarkFeedPostReadProcedure = "/japella.controlapi.v1.JapellaControlApiService/MarkFeedPostRead"
+	// JapellaControlApiServiceSetPostLikedProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetPostLiked RPC.
+	JapellaControlApiServiceSetPostLikedProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetPostLiked"
+	// JapellaControlApiServiceGetPostThreadProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetPostThread RPC.
+	JapellaControlApiServiceGetPostThreadProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetPostThread"
+	// JapellaControlApiServicePostCommentProcedure is the fully-qualified name of the
+	// JapellaControlApiService's PostComment RPC.
+	JapellaControlApiServicePostCommentProcedure = "/japella.controlapi.v1.JapellaControlApiService/PostComment"
 	// JapellaControlApiServiceGetLogsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetLogs RPC.
 	JapellaControlApiServiceGetLogsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetLogs"
@@ -210,6 +222,12 @@ const (
 	// JapellaControlApiServiceListMediaProcedure is the fully-qualified name of the
 	// JapellaControlApiService's ListMedia RPC.
 	JapellaControlApiServiceListMediaProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListMedia"
+	// JapellaControlApiServiceGetMediaSuitabilityProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetMediaSuitability RPC.
+	JapellaControlApiServiceGetMediaSuitabilityProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetMediaSuitability"
+	// JapellaControlApiServiceOptimiseMediaProcedure is the fully-qualified name of the
+	// JapellaControlApiService's OptimiseMedia RPC.
+	JapellaControlApiServiceOptimiseMediaProcedure = "/japella.controlapi.v1.JapellaControlApiService/OptimiseMedia"
 	// JapellaControlApiServiceGetMediaPostsProcedure is the fully-qualified name of the
 	// JapellaControlApiService's GetMediaPosts RPC.
 	JapellaControlApiServiceGetMediaPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetMediaPosts"
@@ -405,6 +423,60 @@ const (
 	// JapellaControlApiServiceGetSocialAccountPostPerformanceProcedure is the fully-qualified name of
 	// the JapellaControlApiService's GetSocialAccountPostPerformance RPC.
 	JapellaControlApiServiceGetSocialAccountPostPerformanceProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetSocialAccountPostPerformance"
+	// JapellaControlApiServiceGetPostRepliesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetPostReplies RPC.
+	JapellaControlApiServiceGetPostRepliesProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetPostReplies"
+	// JapellaControlApiServiceSetSocialAccountPreferredLanguagesProcedure is the fully-qualified name
+	// of the JapellaControlApiService's SetSocialAccountPreferredLanguages RPC.
+	JapellaControlApiServiceSetSocialAccountPreferredLanguagesProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetSocialAccountPreferredLanguages"
+	// JapellaControlApiServiceGetSocialAccountRecentInteractionsProcedure is the fully-qualified name
+	// of the JapellaControlApiService's GetSocialAccountRecentInteractions RPC.
+	JapellaControlApiServiceGetSocialAccountRecentInteractionsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetSocialAccountRecentInteractions"
+	// JapellaControlApiServiceListFeedColumnsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListFeedColumns RPC.
+	JapellaControlApiServiceListFeedColumnsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListFeedColumns"
+	// JapellaControlApiServiceCreateFeedColumnProcedure is the fully-qualified name of the
+	// JapellaControlApiService's CreateFeedColumn RPC.
+	JapellaControlApiServiceCreateFeedColumnProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateFeedColumn"
+	// JapellaControlApiServiceUpdateFeedColumnProcedure is the fully-qualified name of the
+	// JapellaControlApiService's UpdateFeedColumn RPC.
+	JapellaControlApiServiceUpdateFeedColumnProcedure = "/japella.controlapi.v1.JapellaControlApiService/UpdateFeedColumn"
+	// JapellaControlApiServiceDeleteFeedColumnProcedure is the fully-qualified name of the
+	// JapellaControlApiService's DeleteFeedColumn RPC.
+	JapellaControlApiServiceDeleteFeedColumnProcedure = "/japella.controlapi.v1.JapellaControlApiService/DeleteFeedColumn"
+	// JapellaControlApiServiceReorderFeedColumnsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ReorderFeedColumns RPC.
+	JapellaControlApiServiceReorderFeedColumnsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ReorderFeedColumns"
+	// JapellaControlApiServiceGetFeedColumnPostsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetFeedColumnPosts RPC.
+	JapellaControlApiServiceGetFeedColumnPostsProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetFeedColumnPosts"
+	// JapellaControlApiServiceSetPostTagsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetPostTags RPC.
+	JapellaControlApiServiceSetPostTagsProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetPostTags"
+	// JapellaControlApiServiceListPostTagsProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListPostTags RPC.
+	JapellaControlApiServiceListPostTagsProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListPostTags"
+	// JapellaControlApiServiceRefreshPostProcedure is the fully-qualified name of the
+	// JapellaControlApiService's RefreshPost RPC.
+	JapellaControlApiServiceRefreshPostProcedure = "/japella.controlapi.v1.JapellaControlApiService/RefreshPost"
+	// JapellaControlApiServiceGetAuthorFollowProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetAuthorFollow RPC.
+	JapellaControlApiServiceGetAuthorFollowProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetAuthorFollow"
+	// JapellaControlApiServiceSetAuthorFollowProcedure is the fully-qualified name of the
+	// JapellaControlApiService's SetAuthorFollow RPC.
+	JapellaControlApiServiceSetAuthorFollowProcedure = "/japella.controlapi.v1.JapellaControlApiService/SetAuthorFollow"
+	// JapellaControlApiServiceListHealthIssuesProcedure is the fully-qualified name of the
+	// JapellaControlApiService's ListHealthIssues RPC.
+	JapellaControlApiServiceListHealthIssuesProcedure = "/japella.controlapi.v1.JapellaControlApiService/ListHealthIssues"
+	// JapellaControlApiServiceGetHealthSummaryProcedure is the fully-qualified name of the
+	// JapellaControlApiService's GetHealthSummary RPC.
+	JapellaControlApiServiceGetHealthSummaryProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetHealthSummary"
+	// JapellaControlApiServiceRunHealthChecksProcedure is the fully-qualified name of the
+	// JapellaControlApiService's RunHealthChecks RPC.
+	JapellaControlApiServiceRunHealthChecksProcedure = "/japella.controlapi.v1.JapellaControlApiService/RunHealthChecks"
+	// JapellaControlApiServiceAcknowledgeHealthIssueProcedure is the fully-qualified name of the
+	// JapellaControlApiService's AcknowledgeHealthIssue RPC.
+	JapellaControlApiServiceAcknowledgeHealthIssueProcedure = "/japella.controlapi.v1.JapellaControlApiService/AcknowledgeHealthIssue"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -466,9 +538,23 @@ type JapellaControlApiServiceClient interface {
 	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
 	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
 	RefetchFeedPost(context.Context, *connect.Request[v1.RefetchFeedPostRequest]) (*connect.Response[v1.RefetchFeedPostResponse], error)
+	// Hides one feed post from the caller's feed. Other users, and the
+	// author's other posts, are unaffected.
+	MarkFeedPostRead(context.Context, *connect.Request[v1.MarkFeedPostReadRequest]) (*connect.Response[v1.MarkFeedPostReadResponse], error)
+	// Likes or unlikes a feed or feed column post as its social account.
+	SetPostLiked(context.Context, *connect.Request[v1.SetPostLikedRequest]) (*connect.Response[v1.SetPostLikedResponse], error)
+	// Fetches the live reply thread under any feed or feed column post.
+	GetPostThread(context.Context, *connect.Request[v1.GetPostThreadRequest]) (*connect.Response[v1.GetPostThreadResponse], error)
+	// Publishes a comment (reply) on a feed or feed column post as its social account.
+	PostComment(context.Context, *connect.Request[v1.PostCommentRequest]) (*connect.Response[v1.PostCommentResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
+	// How well a media file suits each network the caller has accounts on.
+	GetMediaSuitability(context.Context, *connect.Request[v1.GetMediaSuitabilityRequest]) (*connect.Response[v1.GetMediaSuitabilityResponse], error)
+	// Saves a smaller copy of an image as a new media item (see
+	// OptimiseMediaRequest.mode); the original is kept.
+	OptimiseMedia(context.Context, *connect.Request[v1.OptimiseMediaRequest]) (*connect.Response[v1.OptimiseMediaResponse], error)
 	GetMediaPosts(context.Context, *connect.Request[v1.GetMediaPostsRequest]) (*connect.Response[v1.GetMediaPostsResponse], error)
 	DeleteMedia(context.Context, *connect.Request[v1.DeleteMediaRequest]) (*connect.Response[v1.DeleteMediaResponse], error)
 	GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error)
@@ -534,6 +620,29 @@ type JapellaControlApiServiceClient interface {
 	DeleteKeywordWatch(context.Context, *connect.Request[v1.DeleteKeywordWatchRequest]) (*connect.Response[v1.DeleteKeywordWatchResponse], error)
 	CreateDummySocialAccount(context.Context, *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error)
 	GetSocialAccountPostPerformance(context.Context, *connect.Request[v1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[v1.GetSocialAccountPostPerformanceResponse], error)
+	GetPostReplies(context.Context, *connect.Request[v1.GetPostRepliesRequest]) (*connect.Response[v1.GetPostRepliesResponse], error)
+	SetSocialAccountPreferredLanguages(context.Context, *connect.Request[v1.SetSocialAccountPreferredLanguagesRequest]) (*connect.Response[v1.SetSocialAccountPreferredLanguagesResponse], error)
+	GetSocialAccountRecentInteractions(context.Context, *connect.Request[v1.GetSocialAccountRecentInteractionsRequest]) (*connect.Response[v1.GetSocialAccountRecentInteractionsResponse], error)
+	// Extra feed columns (per user): recent posts for a hashtag or search query.
+	ListFeedColumns(context.Context, *connect.Request[v1.ListFeedColumnsRequest]) (*connect.Response[v1.ListFeedColumnsResponse], error)
+	CreateFeedColumn(context.Context, *connect.Request[v1.CreateFeedColumnRequest]) (*connect.Response[v1.CreateFeedColumnResponse], error)
+	UpdateFeedColumn(context.Context, *connect.Request[v1.UpdateFeedColumnRequest]) (*connect.Response[v1.UpdateFeedColumnResponse], error)
+	DeleteFeedColumn(context.Context, *connect.Request[v1.DeleteFeedColumnRequest]) (*connect.Response[v1.DeleteFeedColumnResponse], error)
+	ReorderFeedColumns(context.Context, *connect.Request[v1.ReorderFeedColumnsRequest]) (*connect.Response[v1.ReorderFeedColumnsResponse], error)
+	GetFeedColumnPosts(context.Context, *connect.Request[v1.GetFeedColumnPostsRequest]) (*connect.Response[v1.GetFeedColumnPostsResponse], error)
+	// Internal tags on posts; private to Japella, never posted.
+	SetPostTags(context.Context, *connect.Request[v1.SetPostTagsRequest]) (*connect.Response[v1.SetPostTagsResponse], error)
+	ListPostTags(context.Context, *connect.Request[v1.ListPostTagsRequest]) (*connect.Response[v1.ListPostTagsResponse], error)
+	// Reloads a feed or feed column post, with its likes and comment counts.
+	RefreshPost(context.Context, *connect.Request[v1.RefreshPostRequest]) (*connect.Response[v1.RefreshPostResponse], error)
+	// Following a post's author as a social account.
+	GetAuthorFollow(context.Context, *connect.Request[v1.GetAuthorFollowRequest]) (*connect.Response[v1.GetAuthorFollowResponse], error)
+	SetAuthorFollow(context.Context, *connect.Request[v1.SetAuthorFollowRequest]) (*connect.Response[v1.SetAuthorFollowResponse], error)
+	// Health checks (admins only: system.settings)
+	ListHealthIssues(context.Context, *connect.Request[v1.ListHealthIssuesRequest]) (*connect.Response[v1.ListHealthIssuesResponse], error)
+	GetHealthSummary(context.Context, *connect.Request[v1.GetHealthSummaryRequest]) (*connect.Response[v1.GetHealthSummaryResponse], error)
+	RunHealthChecks(context.Context, *connect.Request[v1.RunHealthChecksRequest]) (*connect.Response[v1.RunHealthChecksResponse], error)
+	AcknowledgeHealthIssue(context.Context, *connect.Request[v1.AcknowledgeHealthIssueRequest]) (*connect.Response[v1.AcknowledgeHealthIssueResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -884,6 +993,30 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("RefetchFeedPost")),
 			connect.WithClientOptions(opts...),
 		),
+		markFeedPostRead: connect.NewClient[v1.MarkFeedPostReadRequest, v1.MarkFeedPostReadResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceMarkFeedPostReadProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("MarkFeedPostRead")),
+			connect.WithClientOptions(opts...),
+		),
+		setPostLiked: connect.NewClient[v1.SetPostLikedRequest, v1.SetPostLikedResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetPostLikedProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetPostLiked")),
+			connect.WithClientOptions(opts...),
+		),
+		getPostThread: connect.NewClient[v1.GetPostThreadRequest, v1.GetPostThreadResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetPostThreadProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPostThread")),
+			connect.WithClientOptions(opts...),
+		),
+		postComment: connect.NewClient[v1.PostCommentRequest, v1.PostCommentResponse](
+			httpClient,
+			baseURL+JapellaControlApiServicePostCommentProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("PostComment")),
+			connect.WithClientOptions(opts...),
+		),
 		getLogs: connect.NewClient[v1.GetLogsRequest, v1.GetLogsResponse](
 			httpClient,
 			baseURL+JapellaControlApiServiceGetLogsProcedure,
@@ -900,6 +1033,18 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			httpClient,
 			baseURL+JapellaControlApiServiceListMediaProcedure,
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListMedia")),
+			connect.WithClientOptions(opts...),
+		),
+		getMediaSuitability: connect.NewClient[v1.GetMediaSuitabilityRequest, v1.GetMediaSuitabilityResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetMediaSuitabilityProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetMediaSuitability")),
+			connect.WithClientOptions(opts...),
+		),
+		optimiseMedia: connect.NewClient[v1.OptimiseMediaRequest, v1.OptimiseMediaResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceOptimiseMediaProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("OptimiseMedia")),
 			connect.WithClientOptions(opts...),
 		),
 		getMediaPosts: connect.NewClient[v1.GetMediaPostsRequest, v1.GetMediaPostsResponse](
@@ -1292,135 +1437,267 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccountPostPerformance")),
 			connect.WithClientOptions(opts...),
 		),
+		getPostReplies: connect.NewClient[v1.GetPostRepliesRequest, v1.GetPostRepliesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetPostRepliesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPostReplies")),
+			connect.WithClientOptions(opts...),
+		),
+		setSocialAccountPreferredLanguages: connect.NewClient[v1.SetSocialAccountPreferredLanguagesRequest, v1.SetSocialAccountPreferredLanguagesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetSocialAccountPreferredLanguagesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountPreferredLanguages")),
+			connect.WithClientOptions(opts...),
+		),
+		getSocialAccountRecentInteractions: connect.NewClient[v1.GetSocialAccountRecentInteractionsRequest, v1.GetSocialAccountRecentInteractionsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetSocialAccountRecentInteractionsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccountRecentInteractions")),
+			connect.WithClientOptions(opts...),
+		),
+		listFeedColumns: connect.NewClient[v1.ListFeedColumnsRequest, v1.ListFeedColumnsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListFeedColumnsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListFeedColumns")),
+			connect.WithClientOptions(opts...),
+		),
+		createFeedColumn: connect.NewClient[v1.CreateFeedColumnRequest, v1.CreateFeedColumnResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceCreateFeedColumnProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateFeedColumn")),
+			connect.WithClientOptions(opts...),
+		),
+		updateFeedColumn: connect.NewClient[v1.UpdateFeedColumnRequest, v1.UpdateFeedColumnResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceUpdateFeedColumnProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateFeedColumn")),
+			connect.WithClientOptions(opts...),
+		),
+		deleteFeedColumn: connect.NewClient[v1.DeleteFeedColumnRequest, v1.DeleteFeedColumnResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceDeleteFeedColumnProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteFeedColumn")),
+			connect.WithClientOptions(opts...),
+		),
+		reorderFeedColumns: connect.NewClient[v1.ReorderFeedColumnsRequest, v1.ReorderFeedColumnsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceReorderFeedColumnsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ReorderFeedColumns")),
+			connect.WithClientOptions(opts...),
+		),
+		getFeedColumnPosts: connect.NewClient[v1.GetFeedColumnPostsRequest, v1.GetFeedColumnPostsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetFeedColumnPostsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetFeedColumnPosts")),
+			connect.WithClientOptions(opts...),
+		),
+		setPostTags: connect.NewClient[v1.SetPostTagsRequest, v1.SetPostTagsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetPostTagsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetPostTags")),
+			connect.WithClientOptions(opts...),
+		),
+		listPostTags: connect.NewClient[v1.ListPostTagsRequest, v1.ListPostTagsResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListPostTagsProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListPostTags")),
+			connect.WithClientOptions(opts...),
+		),
+		refreshPost: connect.NewClient[v1.RefreshPostRequest, v1.RefreshPostResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRefreshPostProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RefreshPost")),
+			connect.WithClientOptions(opts...),
+		),
+		getAuthorFollow: connect.NewClient[v1.GetAuthorFollowRequest, v1.GetAuthorFollowResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetAuthorFollowProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetAuthorFollow")),
+			connect.WithClientOptions(opts...),
+		),
+		setAuthorFollow: connect.NewClient[v1.SetAuthorFollowRequest, v1.SetAuthorFollowResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceSetAuthorFollowProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("SetAuthorFollow")),
+			connect.WithClientOptions(opts...),
+		),
+		listHealthIssues: connect.NewClient[v1.ListHealthIssuesRequest, v1.ListHealthIssuesResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceListHealthIssuesProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("ListHealthIssues")),
+			connect.WithClientOptions(opts...),
+		),
+		getHealthSummary: connect.NewClient[v1.GetHealthSummaryRequest, v1.GetHealthSummaryResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetHealthSummaryProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetHealthSummary")),
+			connect.WithClientOptions(opts...),
+		),
+		runHealthChecks: connect.NewClient[v1.RunHealthChecksRequest, v1.RunHealthChecksResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceRunHealthChecksProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("RunHealthChecks")),
+			connect.WithClientOptions(opts...),
+		),
+		acknowledgeHealthIssue: connect.NewClient[v1.AcknowledgeHealthIssueRequest, v1.AcknowledgeHealthIssueResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceAcknowledgeHealthIssueProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("AcknowledgeHealthIssue")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // japellaControlApiServiceClient implements JapellaControlApiServiceClient.
 type japellaControlApiServiceClient struct {
-	getStatus                       *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
-	submitPost                      *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
-	getCannedPosts                  *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
-	getCannedPost                   *connect.Client[v1.GetCannedPostRequest, v1.GetCannedPostResponse]
-	createCannedPost                *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
-	deleteCannedPost                *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
-	getSocialAccounts               *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
-	deleteSocialAccount             *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
-	refreshSocialAccount            *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
-	getConnectors                   *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
-	refreshConnectors               *connect.Client[v1.RefreshConnectorsRequest, v1.RefreshConnectorsResponse]
-	stopService                     *connect.Client[v1.StopServiceRequest, v1.StopServiceResponse]
-	startOAuth                      *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
-	getTimeline                     *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
-	getFeed                         *connect.Client[v1.GetFeedRequest, v1.GetFeedResponse]
-	updatePostCampaign              *connect.Client[v1.UpdatePostCampaignRequest, v1.UpdatePostCampaignResponse]
-	forgetPost                      *connect.Client[v1.ForgetPostRequest, v1.ForgetPostResponse]
-	retryPost                       *connect.Client[v1.RetryPostRequest, v1.RetryPostResponse]
-	setSocialAccountActive          *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
-	loginWithUsernameAndPassword    *connect.Client[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse]
-	changePassword                  *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
-	resetUserPassword               *connect.Client[v1.ResetUserPasswordRequest, v1.ResetUserPasswordResponse]
-	logout                          *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
-	getUsers                        *connect.Client[v1.GetUsersRequest, v1.GetUsersResponse]
-	getUser                         *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
-	createUser                      *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
-	deleteUser                      *connect.Client[v1.DeleteUserRequest, v1.DeleteUserResponse]
-	listRbacPermissions             *connect.Client[v1.ListRbacPermissionsRequest, v1.ListRbacPermissionsResponse]
-	listRbacRoles                   *connect.Client[v1.ListRbacRolesRequest, v1.ListRbacRolesResponse]
-	createRbacRole                  *connect.Client[v1.CreateRbacRoleRequest, v1.CreateRbacRoleResponse]
-	updateRbacRole                  *connect.Client[v1.UpdateRbacRoleRequest, v1.UpdateRbacRoleResponse]
-	deleteRbacRole                  *connect.Client[v1.DeleteRbacRoleRequest, v1.DeleteRbacRoleResponse]
-	getUserRbacRoles                *connect.Client[v1.GetUserRbacRolesRequest, v1.GetUserRbacRolesResponse]
-	getMyPermissionsAudit           *connect.Client[v1.GetMyPermissionsAuditRequest, v1.GetMyPermissionsAuditResponse]
-	getUserGroupRbacRoles           *connect.Client[v1.GetUserGroupRbacRolesRequest, v1.GetUserGroupRbacRolesResponse]
-	setUserGroupRbacRoles           *connect.Client[v1.SetUserGroupRbacRolesRequest, v1.SetUserGroupRbacRolesResponse]
-	getRbacRoleUsers                *connect.Client[v1.GetRbacRoleUsersRequest, v1.GetRbacRoleUsersResponse]
-	getRbacRoleGroups               *connect.Client[v1.GetRbacRoleGroupsRequest, v1.GetRbacRoleGroupsResponse]
-	getApiKeys                      *connect.Client[v1.GetApiKeysRequest, v1.GetApiKeysResponse]
-	getCvars                        *connect.Client[v1.GetCvarsRequest, v1.GetCvarsResponse]
-	getUserPreferences              *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
-	saveUserPreferences             *connect.Client[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse]
-	createApiKey                    *connect.Client[v1.CreateApiKeyRequest, v1.CreateApiKeyResponse]
-	revokeApiKey                    *connect.Client[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse]
-	setCvar                         *connect.Client[v1.SetCvarRequest, v1.SetCvarResponse]
-	registerConnector               *connect.Client[v1.RegisterConnectorRequest, v1.RegisterConnectorResponse]
-	createCampaign                  *connect.Client[v1.CreateCampaignRequest, v1.CreateCampaignResponse]
-	getCampaigns                    *connect.Client[v1.GetCampaignsRequest, v1.GetCampaignsResponse]
-	updateCampaign                  *connect.Client[v1.UpdateCampaignRequest, v1.UpdateCampaignResponse]
-	deleteCampaign                  *connect.Client[v1.DeleteCampaignRequest, v1.DeleteCampaignResponse]
-	updateCannedPost                *connect.Client[v1.UpdateCannedPostRequest, v1.UpdateCannedPostResponse]
-	addSocialAccountToCampaign      *connect.Client[v1.AddSocialAccountToCampaignRequest, v1.AddSocialAccountToCampaignResponse]
-	removeSocialAccountFromCampaign *connect.Client[v1.RemoveSocialAccountFromCampaignRequest, v1.RemoveSocialAccountFromCampaignResponse]
-	getCampaignSocialAccounts       *connect.Client[v1.GetCampaignSocialAccountsRequest, v1.GetCampaignSocialAccountsResponse]
-	cleanupFeedPosts                *connect.Client[v1.CleanupFeedPostsRequest, v1.CleanupFeedPostsResponse]
-	refetchFeedPost                 *connect.Client[v1.RefetchFeedPostRequest, v1.RefetchFeedPostResponse]
-	getLogs                         *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
-	getJobsStatus                   *connect.Client[v1.GetJobsStatusRequest, v1.GetJobsStatusResponse]
-	listMedia                       *connect.Client[v1.ListMediaRequest, v1.ListMediaResponse]
-	getMediaPosts                   *connect.Client[v1.GetMediaPostsRequest, v1.GetMediaPostsResponse]
-	deleteMedia                     *connect.Client[v1.DeleteMediaRequest, v1.DeleteMediaResponse]
-	getChatBots                     *connect.Client[v1.GetChatBotsRequest, v1.GetChatBotsResponse]
-	createChatBot                   *connect.Client[v1.CreateChatBotRequest, v1.CreateChatBotResponse]
-	updateChatBot                   *connect.Client[v1.UpdateChatBotRequest, v1.UpdateChatBotResponse]
-	deleteChatBot                   *connect.Client[v1.DeleteChatBotRequest, v1.DeleteChatBotResponse]
-	startChatBot                    *connect.Client[v1.StartChatBotRequest, v1.StartChatBotResponse]
-	stopChatBot                     *connect.Client[v1.StopChatBotRequest, v1.StopChatBotResponse]
-	getBotChannels                  *connect.Client[v1.GetBotChannelsRequest, v1.GetBotChannelsResponse]
-	getBotHooks                     *connect.Client[v1.GetBotHooksRequest, v1.GetBotHooksResponse]
-	setBotHooks                     *connect.Client[v1.SetBotHooksRequest, v1.SetBotHooksResponse]
-	getBotConversations             *connect.Client[v1.GetBotConversationsRequest, v1.GetBotConversationsResponse]
-	getBotConversationMessages      *connect.Client[v1.GetBotConversationMessagesRequest, v1.GetBotConversationMessagesResponse]
-	sendBotConversationMessage      *connect.Client[v1.SendBotConversationMessageRequest, v1.SendBotConversationMessageResponse]
-	streamBotConversationUpdates    *connect.Client[v1.StreamBotConversationUpdatesRequest, v1.StreamBotConversationUpdatesResponse]
-	getSocialAccountShares          *connect.Client[v1.GetSocialAccountSharesRequest, v1.GetSocialAccountSharesResponse]
-	setSocialAccountShares          *connect.Client[v1.SetSocialAccountSharesRequest, v1.SetSocialAccountSharesResponse]
-	impersonateUser                 *connect.Client[v1.ImpersonateUserRequest, v1.ImpersonateUserResponse]
-	stopImpersonation               *connect.Client[v1.StopImpersonationRequest, v1.StopImpersonationResponse]
-	listUserGroups                  *connect.Client[v1.ListUserGroupsRequest, v1.ListUserGroupsResponse]
-	createUserGroup                 *connect.Client[v1.CreateUserGroupRequest, v1.CreateUserGroupResponse]
-	deleteUserGroup                 *connect.Client[v1.DeleteUserGroupRequest, v1.DeleteUserGroupResponse]
-	getUserGroupMembers             *connect.Client[v1.GetUserGroupMembersRequest, v1.GetUserGroupMembersResponse]
-	setUserGroupMembers             *connect.Client[v1.SetUserGroupMembersRequest, v1.SetUserGroupMembersResponse]
-	getUserGroupSharedAccounts      *connect.Client[v1.GetUserGroupSharedAccountsRequest, v1.GetUserGroupSharedAccountsResponse]
-	listAccountPolicies             *connect.Client[v1.ListAccountPoliciesRequest, v1.ListAccountPoliciesResponse]
-	getAccountPolicy                *connect.Client[v1.GetAccountPolicyRequest, v1.GetAccountPolicyResponse]
-	createAccountPolicy             *connect.Client[v1.CreateAccountPolicyRequest, v1.CreateAccountPolicyResponse]
-	updateAccountPolicy             *connect.Client[v1.UpdateAccountPolicyRequest, v1.UpdateAccountPolicyResponse]
-	deleteAccountPolicy             *connect.Client[v1.DeleteAccountPolicyRequest, v1.DeleteAccountPolicyResponse]
-	listPendingApprovals            *connect.Client[v1.ListPendingApprovalsRequest, v1.ListPendingApprovalsResponse]
-	approvePost                     *connect.Client[v1.ApprovePostRequest, v1.ApprovePostResponse]
-	rejectPost                      *connect.Client[v1.RejectPostRequest, v1.RejectPostResponse]
-	getPost                         *connect.Client[v1.GetPostRequest, v1.GetPostResponse]
-	updatePendingPost               *connect.Client[v1.UpdatePendingPostRequest, v1.UpdatePendingPostResponse]
-	updatePostContent               *connect.Client[v1.UpdatePostContentRequest, v1.UpdatePostContentResponse]
-	listLlmConnections              *connect.Client[v1.ListLlmConnectionsRequest, v1.ListLlmConnectionsResponse]
-	getLlmConnection                *connect.Client[v1.GetLlmConnectionRequest, v1.GetLlmConnectionResponse]
-	createLlmConnection             *connect.Client[v1.CreateLlmConnectionRequest, v1.CreateLlmConnectionResponse]
-	updateLlmConnection             *connect.Client[v1.UpdateLlmConnectionRequest, v1.UpdateLlmConnectionResponse]
-	deleteLlmConnection             *connect.Client[v1.DeleteLlmConnectionRequest, v1.DeleteLlmConnectionResponse]
-	testLlmConnection               *connect.Client[v1.TestLlmConnectionRequest, v1.TestLlmConnectionResponse]
-	listLlmConnectionPresets        *connect.Client[v1.ListLlmConnectionPresetsRequest, v1.ListLlmConnectionPresetsResponse]
-	listLlmConnectionModels         *connect.Client[v1.ListLlmConnectionModelsRequest, v1.ListLlmConnectionModelsResponse]
-	listLlmTools                    *connect.Client[v1.ListLlmToolsRequest, v1.ListLlmToolsResponse]
-	getLlmTool                      *connect.Client[v1.GetLlmToolRequest, v1.GetLlmToolResponse]
-	createLlmTool                   *connect.Client[v1.CreateLlmToolRequest, v1.CreateLlmToolResponse]
-	updateLlmTool                   *connect.Client[v1.UpdateLlmToolRequest, v1.UpdateLlmToolResponse]
-	deleteLlmTool                   *connect.Client[v1.DeleteLlmToolRequest, v1.DeleteLlmToolResponse]
-	listEnabledLlmTools             *connect.Client[v1.ListEnabledLlmToolsRequest, v1.ListEnabledLlmToolsResponse]
-	runLlmTool                      *connect.Client[v1.RunLlmToolRequest, v1.RunLlmToolResponse]
-	listLlmToolRuns                 *connect.Client[v1.ListLlmToolRunsRequest, v1.ListLlmToolRunsResponse]
-	listWebhooks                    *connect.Client[v1.ListWebhooksRequest, v1.ListWebhooksResponse]
-	getWebhook                      *connect.Client[v1.GetWebhookRequest, v1.GetWebhookResponse]
-	createWebhook                   *connect.Client[v1.CreateWebhookRequest, v1.CreateWebhookResponse]
-	updateWebhook                   *connect.Client[v1.UpdateWebhookRequest, v1.UpdateWebhookResponse]
-	deleteWebhook                   *connect.Client[v1.DeleteWebhookRequest, v1.DeleteWebhookResponse]
-	testWebhook                     *connect.Client[v1.TestWebhookRequest, v1.TestWebhookResponse]
-	listBotWebhooks                 *connect.Client[v1.ListBotWebhooksRequest, v1.ListBotWebhooksResponse]
-	listKeywordWatches              *connect.Client[v1.ListKeywordWatchesRequest, v1.ListKeywordWatchesResponse]
-	createKeywordWatch              *connect.Client[v1.CreateKeywordWatchRequest, v1.CreateKeywordWatchResponse]
-	updateKeywordWatch              *connect.Client[v1.UpdateKeywordWatchRequest, v1.UpdateKeywordWatchResponse]
-	deleteKeywordWatch              *connect.Client[v1.DeleteKeywordWatchRequest, v1.DeleteKeywordWatchResponse]
-	createDummySocialAccount        *connect.Client[v1.CreateDummySocialAccountRequest, v1.CreateDummySocialAccountResponse]
-	getSocialAccountPostPerformance *connect.Client[v1.GetSocialAccountPostPerformanceRequest, v1.GetSocialAccountPostPerformanceResponse]
+	getStatus                          *connect.Client[v1.GetStatusRequest, v1.GetStatusResponse]
+	submitPost                         *connect.Client[v1.SubmitPostRequest, v1.SubmitPostResponse]
+	getCannedPosts                     *connect.Client[v1.GetCannedPostsRequest, v1.GetCannedPostsResponse]
+	getCannedPost                      *connect.Client[v1.GetCannedPostRequest, v1.GetCannedPostResponse]
+	createCannedPost                   *connect.Client[v1.CreateCannedPostRequest, v1.CreateCannedPostResponse]
+	deleteCannedPost                   *connect.Client[v1.DeleteCannedPostRequest, v1.DeleteCannedPostResponse]
+	getSocialAccounts                  *connect.Client[v1.GetSocialAccountsRequest, v1.GetSocialAccountsResponse]
+	deleteSocialAccount                *connect.Client[v1.DeleteSocialAccountRequest, v1.DeleteSocialAccountResponse]
+	refreshSocialAccount               *connect.Client[v1.RefreshSocialAccountRequest, v1.RefreshSocialAccountResponse]
+	getConnectors                      *connect.Client[v1.GetConnectorsRequest, v1.GetConnectorsResponse]
+	refreshConnectors                  *connect.Client[v1.RefreshConnectorsRequest, v1.RefreshConnectorsResponse]
+	stopService                        *connect.Client[v1.StopServiceRequest, v1.StopServiceResponse]
+	startOAuth                         *connect.Client[v1.StartOAuthRequest, v1.StartOAuthResponse]
+	getTimeline                        *connect.Client[v1.GetTimelineRequest, v1.GetTimelineResponse]
+	getFeed                            *connect.Client[v1.GetFeedRequest, v1.GetFeedResponse]
+	updatePostCampaign                 *connect.Client[v1.UpdatePostCampaignRequest, v1.UpdatePostCampaignResponse]
+	forgetPost                         *connect.Client[v1.ForgetPostRequest, v1.ForgetPostResponse]
+	retryPost                          *connect.Client[v1.RetryPostRequest, v1.RetryPostResponse]
+	setSocialAccountActive             *connect.Client[v1.SetSocialAccountActiveRequest, v1.SetSocialAccountActiveResponse]
+	loginWithUsernameAndPassword       *connect.Client[v1.LoginWithUsernameAndPasswordRequest, v1.LoginWithUsernameAndPasswordResponse]
+	changePassword                     *connect.Client[v1.ChangePasswordRequest, v1.ChangePasswordResponse]
+	resetUserPassword                  *connect.Client[v1.ResetUserPasswordRequest, v1.ResetUserPasswordResponse]
+	logout                             *connect.Client[v1.LogoutRequest, v1.LogoutResponse]
+	getUsers                           *connect.Client[v1.GetUsersRequest, v1.GetUsersResponse]
+	getUser                            *connect.Client[v1.GetUserRequest, v1.GetUserResponse]
+	createUser                         *connect.Client[v1.CreateUserRequest, v1.CreateUserResponse]
+	deleteUser                         *connect.Client[v1.DeleteUserRequest, v1.DeleteUserResponse]
+	listRbacPermissions                *connect.Client[v1.ListRbacPermissionsRequest, v1.ListRbacPermissionsResponse]
+	listRbacRoles                      *connect.Client[v1.ListRbacRolesRequest, v1.ListRbacRolesResponse]
+	createRbacRole                     *connect.Client[v1.CreateRbacRoleRequest, v1.CreateRbacRoleResponse]
+	updateRbacRole                     *connect.Client[v1.UpdateRbacRoleRequest, v1.UpdateRbacRoleResponse]
+	deleteRbacRole                     *connect.Client[v1.DeleteRbacRoleRequest, v1.DeleteRbacRoleResponse]
+	getUserRbacRoles                   *connect.Client[v1.GetUserRbacRolesRequest, v1.GetUserRbacRolesResponse]
+	getMyPermissionsAudit              *connect.Client[v1.GetMyPermissionsAuditRequest, v1.GetMyPermissionsAuditResponse]
+	getUserGroupRbacRoles              *connect.Client[v1.GetUserGroupRbacRolesRequest, v1.GetUserGroupRbacRolesResponse]
+	setUserGroupRbacRoles              *connect.Client[v1.SetUserGroupRbacRolesRequest, v1.SetUserGroupRbacRolesResponse]
+	getRbacRoleUsers                   *connect.Client[v1.GetRbacRoleUsersRequest, v1.GetRbacRoleUsersResponse]
+	getRbacRoleGroups                  *connect.Client[v1.GetRbacRoleGroupsRequest, v1.GetRbacRoleGroupsResponse]
+	getApiKeys                         *connect.Client[v1.GetApiKeysRequest, v1.GetApiKeysResponse]
+	getCvars                           *connect.Client[v1.GetCvarsRequest, v1.GetCvarsResponse]
+	getUserPreferences                 *connect.Client[v1.GetUserPreferencesRequest, v1.GetUserPreferencesResponse]
+	saveUserPreferences                *connect.Client[v1.SaveUserPreferencesRequest, v1.SaveUserPreferencesResponse]
+	createApiKey                       *connect.Client[v1.CreateApiKeyRequest, v1.CreateApiKeyResponse]
+	revokeApiKey                       *connect.Client[v1.RevokeApiKeyRequest, v1.RevokeApiKeyResponse]
+	setCvar                            *connect.Client[v1.SetCvarRequest, v1.SetCvarResponse]
+	registerConnector                  *connect.Client[v1.RegisterConnectorRequest, v1.RegisterConnectorResponse]
+	createCampaign                     *connect.Client[v1.CreateCampaignRequest, v1.CreateCampaignResponse]
+	getCampaigns                       *connect.Client[v1.GetCampaignsRequest, v1.GetCampaignsResponse]
+	updateCampaign                     *connect.Client[v1.UpdateCampaignRequest, v1.UpdateCampaignResponse]
+	deleteCampaign                     *connect.Client[v1.DeleteCampaignRequest, v1.DeleteCampaignResponse]
+	updateCannedPost                   *connect.Client[v1.UpdateCannedPostRequest, v1.UpdateCannedPostResponse]
+	addSocialAccountToCampaign         *connect.Client[v1.AddSocialAccountToCampaignRequest, v1.AddSocialAccountToCampaignResponse]
+	removeSocialAccountFromCampaign    *connect.Client[v1.RemoveSocialAccountFromCampaignRequest, v1.RemoveSocialAccountFromCampaignResponse]
+	getCampaignSocialAccounts          *connect.Client[v1.GetCampaignSocialAccountsRequest, v1.GetCampaignSocialAccountsResponse]
+	cleanupFeedPosts                   *connect.Client[v1.CleanupFeedPostsRequest, v1.CleanupFeedPostsResponse]
+	refetchFeedPost                    *connect.Client[v1.RefetchFeedPostRequest, v1.RefetchFeedPostResponse]
+	markFeedPostRead                   *connect.Client[v1.MarkFeedPostReadRequest, v1.MarkFeedPostReadResponse]
+	setPostLiked                       *connect.Client[v1.SetPostLikedRequest, v1.SetPostLikedResponse]
+	getPostThread                      *connect.Client[v1.GetPostThreadRequest, v1.GetPostThreadResponse]
+	postComment                        *connect.Client[v1.PostCommentRequest, v1.PostCommentResponse]
+	getLogs                            *connect.Client[v1.GetLogsRequest, v1.GetLogsResponse]
+	getJobsStatus                      *connect.Client[v1.GetJobsStatusRequest, v1.GetJobsStatusResponse]
+	listMedia                          *connect.Client[v1.ListMediaRequest, v1.ListMediaResponse]
+	getMediaSuitability                *connect.Client[v1.GetMediaSuitabilityRequest, v1.GetMediaSuitabilityResponse]
+	optimiseMedia                      *connect.Client[v1.OptimiseMediaRequest, v1.OptimiseMediaResponse]
+	getMediaPosts                      *connect.Client[v1.GetMediaPostsRequest, v1.GetMediaPostsResponse]
+	deleteMedia                        *connect.Client[v1.DeleteMediaRequest, v1.DeleteMediaResponse]
+	getChatBots                        *connect.Client[v1.GetChatBotsRequest, v1.GetChatBotsResponse]
+	createChatBot                      *connect.Client[v1.CreateChatBotRequest, v1.CreateChatBotResponse]
+	updateChatBot                      *connect.Client[v1.UpdateChatBotRequest, v1.UpdateChatBotResponse]
+	deleteChatBot                      *connect.Client[v1.DeleteChatBotRequest, v1.DeleteChatBotResponse]
+	startChatBot                       *connect.Client[v1.StartChatBotRequest, v1.StartChatBotResponse]
+	stopChatBot                        *connect.Client[v1.StopChatBotRequest, v1.StopChatBotResponse]
+	getBotChannels                     *connect.Client[v1.GetBotChannelsRequest, v1.GetBotChannelsResponse]
+	getBotHooks                        *connect.Client[v1.GetBotHooksRequest, v1.GetBotHooksResponse]
+	setBotHooks                        *connect.Client[v1.SetBotHooksRequest, v1.SetBotHooksResponse]
+	getBotConversations                *connect.Client[v1.GetBotConversationsRequest, v1.GetBotConversationsResponse]
+	getBotConversationMessages         *connect.Client[v1.GetBotConversationMessagesRequest, v1.GetBotConversationMessagesResponse]
+	sendBotConversationMessage         *connect.Client[v1.SendBotConversationMessageRequest, v1.SendBotConversationMessageResponse]
+	streamBotConversationUpdates       *connect.Client[v1.StreamBotConversationUpdatesRequest, v1.StreamBotConversationUpdatesResponse]
+	getSocialAccountShares             *connect.Client[v1.GetSocialAccountSharesRequest, v1.GetSocialAccountSharesResponse]
+	setSocialAccountShares             *connect.Client[v1.SetSocialAccountSharesRequest, v1.SetSocialAccountSharesResponse]
+	impersonateUser                    *connect.Client[v1.ImpersonateUserRequest, v1.ImpersonateUserResponse]
+	stopImpersonation                  *connect.Client[v1.StopImpersonationRequest, v1.StopImpersonationResponse]
+	listUserGroups                     *connect.Client[v1.ListUserGroupsRequest, v1.ListUserGroupsResponse]
+	createUserGroup                    *connect.Client[v1.CreateUserGroupRequest, v1.CreateUserGroupResponse]
+	deleteUserGroup                    *connect.Client[v1.DeleteUserGroupRequest, v1.DeleteUserGroupResponse]
+	getUserGroupMembers                *connect.Client[v1.GetUserGroupMembersRequest, v1.GetUserGroupMembersResponse]
+	setUserGroupMembers                *connect.Client[v1.SetUserGroupMembersRequest, v1.SetUserGroupMembersResponse]
+	getUserGroupSharedAccounts         *connect.Client[v1.GetUserGroupSharedAccountsRequest, v1.GetUserGroupSharedAccountsResponse]
+	listAccountPolicies                *connect.Client[v1.ListAccountPoliciesRequest, v1.ListAccountPoliciesResponse]
+	getAccountPolicy                   *connect.Client[v1.GetAccountPolicyRequest, v1.GetAccountPolicyResponse]
+	createAccountPolicy                *connect.Client[v1.CreateAccountPolicyRequest, v1.CreateAccountPolicyResponse]
+	updateAccountPolicy                *connect.Client[v1.UpdateAccountPolicyRequest, v1.UpdateAccountPolicyResponse]
+	deleteAccountPolicy                *connect.Client[v1.DeleteAccountPolicyRequest, v1.DeleteAccountPolicyResponse]
+	listPendingApprovals               *connect.Client[v1.ListPendingApprovalsRequest, v1.ListPendingApprovalsResponse]
+	approvePost                        *connect.Client[v1.ApprovePostRequest, v1.ApprovePostResponse]
+	rejectPost                         *connect.Client[v1.RejectPostRequest, v1.RejectPostResponse]
+	getPost                            *connect.Client[v1.GetPostRequest, v1.GetPostResponse]
+	updatePendingPost                  *connect.Client[v1.UpdatePendingPostRequest, v1.UpdatePendingPostResponse]
+	updatePostContent                  *connect.Client[v1.UpdatePostContentRequest, v1.UpdatePostContentResponse]
+	listLlmConnections                 *connect.Client[v1.ListLlmConnectionsRequest, v1.ListLlmConnectionsResponse]
+	getLlmConnection                   *connect.Client[v1.GetLlmConnectionRequest, v1.GetLlmConnectionResponse]
+	createLlmConnection                *connect.Client[v1.CreateLlmConnectionRequest, v1.CreateLlmConnectionResponse]
+	updateLlmConnection                *connect.Client[v1.UpdateLlmConnectionRequest, v1.UpdateLlmConnectionResponse]
+	deleteLlmConnection                *connect.Client[v1.DeleteLlmConnectionRequest, v1.DeleteLlmConnectionResponse]
+	testLlmConnection                  *connect.Client[v1.TestLlmConnectionRequest, v1.TestLlmConnectionResponse]
+	listLlmConnectionPresets           *connect.Client[v1.ListLlmConnectionPresetsRequest, v1.ListLlmConnectionPresetsResponse]
+	listLlmConnectionModels            *connect.Client[v1.ListLlmConnectionModelsRequest, v1.ListLlmConnectionModelsResponse]
+	listLlmTools                       *connect.Client[v1.ListLlmToolsRequest, v1.ListLlmToolsResponse]
+	getLlmTool                         *connect.Client[v1.GetLlmToolRequest, v1.GetLlmToolResponse]
+	createLlmTool                      *connect.Client[v1.CreateLlmToolRequest, v1.CreateLlmToolResponse]
+	updateLlmTool                      *connect.Client[v1.UpdateLlmToolRequest, v1.UpdateLlmToolResponse]
+	deleteLlmTool                      *connect.Client[v1.DeleteLlmToolRequest, v1.DeleteLlmToolResponse]
+	listEnabledLlmTools                *connect.Client[v1.ListEnabledLlmToolsRequest, v1.ListEnabledLlmToolsResponse]
+	runLlmTool                         *connect.Client[v1.RunLlmToolRequest, v1.RunLlmToolResponse]
+	listLlmToolRuns                    *connect.Client[v1.ListLlmToolRunsRequest, v1.ListLlmToolRunsResponse]
+	listWebhooks                       *connect.Client[v1.ListWebhooksRequest, v1.ListWebhooksResponse]
+	getWebhook                         *connect.Client[v1.GetWebhookRequest, v1.GetWebhookResponse]
+	createWebhook                      *connect.Client[v1.CreateWebhookRequest, v1.CreateWebhookResponse]
+	updateWebhook                      *connect.Client[v1.UpdateWebhookRequest, v1.UpdateWebhookResponse]
+	deleteWebhook                      *connect.Client[v1.DeleteWebhookRequest, v1.DeleteWebhookResponse]
+	testWebhook                        *connect.Client[v1.TestWebhookRequest, v1.TestWebhookResponse]
+	listBotWebhooks                    *connect.Client[v1.ListBotWebhooksRequest, v1.ListBotWebhooksResponse]
+	listKeywordWatches                 *connect.Client[v1.ListKeywordWatchesRequest, v1.ListKeywordWatchesResponse]
+	createKeywordWatch                 *connect.Client[v1.CreateKeywordWatchRequest, v1.CreateKeywordWatchResponse]
+	updateKeywordWatch                 *connect.Client[v1.UpdateKeywordWatchRequest, v1.UpdateKeywordWatchResponse]
+	deleteKeywordWatch                 *connect.Client[v1.DeleteKeywordWatchRequest, v1.DeleteKeywordWatchResponse]
+	createDummySocialAccount           *connect.Client[v1.CreateDummySocialAccountRequest, v1.CreateDummySocialAccountResponse]
+	getSocialAccountPostPerformance    *connect.Client[v1.GetSocialAccountPostPerformanceRequest, v1.GetSocialAccountPostPerformanceResponse]
+	getPostReplies                     *connect.Client[v1.GetPostRepliesRequest, v1.GetPostRepliesResponse]
+	setSocialAccountPreferredLanguages *connect.Client[v1.SetSocialAccountPreferredLanguagesRequest, v1.SetSocialAccountPreferredLanguagesResponse]
+	getSocialAccountRecentInteractions *connect.Client[v1.GetSocialAccountRecentInteractionsRequest, v1.GetSocialAccountRecentInteractionsResponse]
+	listFeedColumns                    *connect.Client[v1.ListFeedColumnsRequest, v1.ListFeedColumnsResponse]
+	createFeedColumn                   *connect.Client[v1.CreateFeedColumnRequest, v1.CreateFeedColumnResponse]
+	updateFeedColumn                   *connect.Client[v1.UpdateFeedColumnRequest, v1.UpdateFeedColumnResponse]
+	deleteFeedColumn                   *connect.Client[v1.DeleteFeedColumnRequest, v1.DeleteFeedColumnResponse]
+	reorderFeedColumns                 *connect.Client[v1.ReorderFeedColumnsRequest, v1.ReorderFeedColumnsResponse]
+	getFeedColumnPosts                 *connect.Client[v1.GetFeedColumnPostsRequest, v1.GetFeedColumnPostsResponse]
+	setPostTags                        *connect.Client[v1.SetPostTagsRequest, v1.SetPostTagsResponse]
+	listPostTags                       *connect.Client[v1.ListPostTagsRequest, v1.ListPostTagsResponse]
+	refreshPost                        *connect.Client[v1.RefreshPostRequest, v1.RefreshPostResponse]
+	getAuthorFollow                    *connect.Client[v1.GetAuthorFollowRequest, v1.GetAuthorFollowResponse]
+	setAuthorFollow                    *connect.Client[v1.SetAuthorFollowRequest, v1.SetAuthorFollowResponse]
+	listHealthIssues                   *connect.Client[v1.ListHealthIssuesRequest, v1.ListHealthIssuesResponse]
+	getHealthSummary                   *connect.Client[v1.GetHealthSummaryRequest, v1.GetHealthSummaryResponse]
+	runHealthChecks                    *connect.Client[v1.RunHealthChecksRequest, v1.RunHealthChecksResponse]
+	acknowledgeHealthIssue             *connect.Client[v1.AcknowledgeHealthIssueRequest, v1.AcknowledgeHealthIssueResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -1708,6 +1985,26 @@ func (c *japellaControlApiServiceClient) RefetchFeedPost(ctx context.Context, re
 	return c.refetchFeedPost.CallUnary(ctx, req)
 }
 
+// MarkFeedPostRead calls japella.controlapi.v1.JapellaControlApiService.MarkFeedPostRead.
+func (c *japellaControlApiServiceClient) MarkFeedPostRead(ctx context.Context, req *connect.Request[v1.MarkFeedPostReadRequest]) (*connect.Response[v1.MarkFeedPostReadResponse], error) {
+	return c.markFeedPostRead.CallUnary(ctx, req)
+}
+
+// SetPostLiked calls japella.controlapi.v1.JapellaControlApiService.SetPostLiked.
+func (c *japellaControlApiServiceClient) SetPostLiked(ctx context.Context, req *connect.Request[v1.SetPostLikedRequest]) (*connect.Response[v1.SetPostLikedResponse], error) {
+	return c.setPostLiked.CallUnary(ctx, req)
+}
+
+// GetPostThread calls japella.controlapi.v1.JapellaControlApiService.GetPostThread.
+func (c *japellaControlApiServiceClient) GetPostThread(ctx context.Context, req *connect.Request[v1.GetPostThreadRequest]) (*connect.Response[v1.GetPostThreadResponse], error) {
+	return c.getPostThread.CallUnary(ctx, req)
+}
+
+// PostComment calls japella.controlapi.v1.JapellaControlApiService.PostComment.
+func (c *japellaControlApiServiceClient) PostComment(ctx context.Context, req *connect.Request[v1.PostCommentRequest]) (*connect.Response[v1.PostCommentResponse], error) {
+	return c.postComment.CallUnary(ctx, req)
+}
+
 // GetLogs calls japella.controlapi.v1.JapellaControlApiService.GetLogs.
 func (c *japellaControlApiServiceClient) GetLogs(ctx context.Context, req *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error) {
 	return c.getLogs.CallUnary(ctx, req)
@@ -1721,6 +2018,16 @@ func (c *japellaControlApiServiceClient) GetJobsStatus(ctx context.Context, req 
 // ListMedia calls japella.controlapi.v1.JapellaControlApiService.ListMedia.
 func (c *japellaControlApiServiceClient) ListMedia(ctx context.Context, req *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error) {
 	return c.listMedia.CallUnary(ctx, req)
+}
+
+// GetMediaSuitability calls japella.controlapi.v1.JapellaControlApiService.GetMediaSuitability.
+func (c *japellaControlApiServiceClient) GetMediaSuitability(ctx context.Context, req *connect.Request[v1.GetMediaSuitabilityRequest]) (*connect.Response[v1.GetMediaSuitabilityResponse], error) {
+	return c.getMediaSuitability.CallUnary(ctx, req)
+}
+
+// OptimiseMedia calls japella.controlapi.v1.JapellaControlApiService.OptimiseMedia.
+func (c *japellaControlApiServiceClient) OptimiseMedia(ctx context.Context, req *connect.Request[v1.OptimiseMediaRequest]) (*connect.Response[v1.OptimiseMediaResponse], error) {
+	return c.optimiseMedia.CallUnary(ctx, req)
 }
 
 // GetMediaPosts calls japella.controlapi.v1.JapellaControlApiService.GetMediaPosts.
@@ -2058,6 +2365,99 @@ func (c *japellaControlApiServiceClient) GetSocialAccountPostPerformance(ctx con
 	return c.getSocialAccountPostPerformance.CallUnary(ctx, req)
 }
 
+// GetPostReplies calls japella.controlapi.v1.JapellaControlApiService.GetPostReplies.
+func (c *japellaControlApiServiceClient) GetPostReplies(ctx context.Context, req *connect.Request[v1.GetPostRepliesRequest]) (*connect.Response[v1.GetPostRepliesResponse], error) {
+	return c.getPostReplies.CallUnary(ctx, req)
+}
+
+// SetSocialAccountPreferredLanguages calls
+// japella.controlapi.v1.JapellaControlApiService.SetSocialAccountPreferredLanguages.
+func (c *japellaControlApiServiceClient) SetSocialAccountPreferredLanguages(ctx context.Context, req *connect.Request[v1.SetSocialAccountPreferredLanguagesRequest]) (*connect.Response[v1.SetSocialAccountPreferredLanguagesResponse], error) {
+	return c.setSocialAccountPreferredLanguages.CallUnary(ctx, req)
+}
+
+// GetSocialAccountRecentInteractions calls
+// japella.controlapi.v1.JapellaControlApiService.GetSocialAccountRecentInteractions.
+func (c *japellaControlApiServiceClient) GetSocialAccountRecentInteractions(ctx context.Context, req *connect.Request[v1.GetSocialAccountRecentInteractionsRequest]) (*connect.Response[v1.GetSocialAccountRecentInteractionsResponse], error) {
+	return c.getSocialAccountRecentInteractions.CallUnary(ctx, req)
+}
+
+// ListFeedColumns calls japella.controlapi.v1.JapellaControlApiService.ListFeedColumns.
+func (c *japellaControlApiServiceClient) ListFeedColumns(ctx context.Context, req *connect.Request[v1.ListFeedColumnsRequest]) (*connect.Response[v1.ListFeedColumnsResponse], error) {
+	return c.listFeedColumns.CallUnary(ctx, req)
+}
+
+// CreateFeedColumn calls japella.controlapi.v1.JapellaControlApiService.CreateFeedColumn.
+func (c *japellaControlApiServiceClient) CreateFeedColumn(ctx context.Context, req *connect.Request[v1.CreateFeedColumnRequest]) (*connect.Response[v1.CreateFeedColumnResponse], error) {
+	return c.createFeedColumn.CallUnary(ctx, req)
+}
+
+// UpdateFeedColumn calls japella.controlapi.v1.JapellaControlApiService.UpdateFeedColumn.
+func (c *japellaControlApiServiceClient) UpdateFeedColumn(ctx context.Context, req *connect.Request[v1.UpdateFeedColumnRequest]) (*connect.Response[v1.UpdateFeedColumnResponse], error) {
+	return c.updateFeedColumn.CallUnary(ctx, req)
+}
+
+// DeleteFeedColumn calls japella.controlapi.v1.JapellaControlApiService.DeleteFeedColumn.
+func (c *japellaControlApiServiceClient) DeleteFeedColumn(ctx context.Context, req *connect.Request[v1.DeleteFeedColumnRequest]) (*connect.Response[v1.DeleteFeedColumnResponse], error) {
+	return c.deleteFeedColumn.CallUnary(ctx, req)
+}
+
+// ReorderFeedColumns calls japella.controlapi.v1.JapellaControlApiService.ReorderFeedColumns.
+func (c *japellaControlApiServiceClient) ReorderFeedColumns(ctx context.Context, req *connect.Request[v1.ReorderFeedColumnsRequest]) (*connect.Response[v1.ReorderFeedColumnsResponse], error) {
+	return c.reorderFeedColumns.CallUnary(ctx, req)
+}
+
+// GetFeedColumnPosts calls japella.controlapi.v1.JapellaControlApiService.GetFeedColumnPosts.
+func (c *japellaControlApiServiceClient) GetFeedColumnPosts(ctx context.Context, req *connect.Request[v1.GetFeedColumnPostsRequest]) (*connect.Response[v1.GetFeedColumnPostsResponse], error) {
+	return c.getFeedColumnPosts.CallUnary(ctx, req)
+}
+
+// SetPostTags calls japella.controlapi.v1.JapellaControlApiService.SetPostTags.
+func (c *japellaControlApiServiceClient) SetPostTags(ctx context.Context, req *connect.Request[v1.SetPostTagsRequest]) (*connect.Response[v1.SetPostTagsResponse], error) {
+	return c.setPostTags.CallUnary(ctx, req)
+}
+
+// ListPostTags calls japella.controlapi.v1.JapellaControlApiService.ListPostTags.
+func (c *japellaControlApiServiceClient) ListPostTags(ctx context.Context, req *connect.Request[v1.ListPostTagsRequest]) (*connect.Response[v1.ListPostTagsResponse], error) {
+	return c.listPostTags.CallUnary(ctx, req)
+}
+
+// RefreshPost calls japella.controlapi.v1.JapellaControlApiService.RefreshPost.
+func (c *japellaControlApiServiceClient) RefreshPost(ctx context.Context, req *connect.Request[v1.RefreshPostRequest]) (*connect.Response[v1.RefreshPostResponse], error) {
+	return c.refreshPost.CallUnary(ctx, req)
+}
+
+// GetAuthorFollow calls japella.controlapi.v1.JapellaControlApiService.GetAuthorFollow.
+func (c *japellaControlApiServiceClient) GetAuthorFollow(ctx context.Context, req *connect.Request[v1.GetAuthorFollowRequest]) (*connect.Response[v1.GetAuthorFollowResponse], error) {
+	return c.getAuthorFollow.CallUnary(ctx, req)
+}
+
+// SetAuthorFollow calls japella.controlapi.v1.JapellaControlApiService.SetAuthorFollow.
+func (c *japellaControlApiServiceClient) SetAuthorFollow(ctx context.Context, req *connect.Request[v1.SetAuthorFollowRequest]) (*connect.Response[v1.SetAuthorFollowResponse], error) {
+	return c.setAuthorFollow.CallUnary(ctx, req)
+}
+
+// ListHealthIssues calls japella.controlapi.v1.JapellaControlApiService.ListHealthIssues.
+func (c *japellaControlApiServiceClient) ListHealthIssues(ctx context.Context, req *connect.Request[v1.ListHealthIssuesRequest]) (*connect.Response[v1.ListHealthIssuesResponse], error) {
+	return c.listHealthIssues.CallUnary(ctx, req)
+}
+
+// GetHealthSummary calls japella.controlapi.v1.JapellaControlApiService.GetHealthSummary.
+func (c *japellaControlApiServiceClient) GetHealthSummary(ctx context.Context, req *connect.Request[v1.GetHealthSummaryRequest]) (*connect.Response[v1.GetHealthSummaryResponse], error) {
+	return c.getHealthSummary.CallUnary(ctx, req)
+}
+
+// RunHealthChecks calls japella.controlapi.v1.JapellaControlApiService.RunHealthChecks.
+func (c *japellaControlApiServiceClient) RunHealthChecks(ctx context.Context, req *connect.Request[v1.RunHealthChecksRequest]) (*connect.Response[v1.RunHealthChecksResponse], error) {
+	return c.runHealthChecks.CallUnary(ctx, req)
+}
+
+// AcknowledgeHealthIssue calls
+// japella.controlapi.v1.JapellaControlApiService.AcknowledgeHealthIssue.
+func (c *japellaControlApiServiceClient) AcknowledgeHealthIssue(ctx context.Context, req *connect.Request[v1.AcknowledgeHealthIssueRequest]) (*connect.Response[v1.AcknowledgeHealthIssueResponse], error) {
+	return c.acknowledgeHealthIssue.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -2117,9 +2517,23 @@ type JapellaControlApiServiceHandler interface {
 	GetCampaignSocialAccounts(context.Context, *connect.Request[v1.GetCampaignSocialAccountsRequest]) (*connect.Response[v1.GetCampaignSocialAccountsResponse], error)
 	CleanupFeedPosts(context.Context, *connect.Request[v1.CleanupFeedPostsRequest]) (*connect.Response[v1.CleanupFeedPostsResponse], error)
 	RefetchFeedPost(context.Context, *connect.Request[v1.RefetchFeedPostRequest]) (*connect.Response[v1.RefetchFeedPostResponse], error)
+	// Hides one feed post from the caller's feed. Other users, and the
+	// author's other posts, are unaffected.
+	MarkFeedPostRead(context.Context, *connect.Request[v1.MarkFeedPostReadRequest]) (*connect.Response[v1.MarkFeedPostReadResponse], error)
+	// Likes or unlikes a feed or feed column post as its social account.
+	SetPostLiked(context.Context, *connect.Request[v1.SetPostLikedRequest]) (*connect.Response[v1.SetPostLikedResponse], error)
+	// Fetches the live reply thread under any feed or feed column post.
+	GetPostThread(context.Context, *connect.Request[v1.GetPostThreadRequest]) (*connect.Response[v1.GetPostThreadResponse], error)
+	// Publishes a comment (reply) on a feed or feed column post as its social account.
+	PostComment(context.Context, *connect.Request[v1.PostCommentRequest]) (*connect.Response[v1.PostCommentResponse], error)
 	GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error)
 	GetJobsStatus(context.Context, *connect.Request[v1.GetJobsStatusRequest]) (*connect.Response[v1.GetJobsStatusResponse], error)
 	ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error)
+	// How well a media file suits each network the caller has accounts on.
+	GetMediaSuitability(context.Context, *connect.Request[v1.GetMediaSuitabilityRequest]) (*connect.Response[v1.GetMediaSuitabilityResponse], error)
+	// Saves a smaller copy of an image as a new media item (see
+	// OptimiseMediaRequest.mode); the original is kept.
+	OptimiseMedia(context.Context, *connect.Request[v1.OptimiseMediaRequest]) (*connect.Response[v1.OptimiseMediaResponse], error)
 	GetMediaPosts(context.Context, *connect.Request[v1.GetMediaPostsRequest]) (*connect.Response[v1.GetMediaPostsResponse], error)
 	DeleteMedia(context.Context, *connect.Request[v1.DeleteMediaRequest]) (*connect.Response[v1.DeleteMediaResponse], error)
 	GetChatBots(context.Context, *connect.Request[v1.GetChatBotsRequest]) (*connect.Response[v1.GetChatBotsResponse], error)
@@ -2185,6 +2599,29 @@ type JapellaControlApiServiceHandler interface {
 	DeleteKeywordWatch(context.Context, *connect.Request[v1.DeleteKeywordWatchRequest]) (*connect.Response[v1.DeleteKeywordWatchResponse], error)
 	CreateDummySocialAccount(context.Context, *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error)
 	GetSocialAccountPostPerformance(context.Context, *connect.Request[v1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[v1.GetSocialAccountPostPerformanceResponse], error)
+	GetPostReplies(context.Context, *connect.Request[v1.GetPostRepliesRequest]) (*connect.Response[v1.GetPostRepliesResponse], error)
+	SetSocialAccountPreferredLanguages(context.Context, *connect.Request[v1.SetSocialAccountPreferredLanguagesRequest]) (*connect.Response[v1.SetSocialAccountPreferredLanguagesResponse], error)
+	GetSocialAccountRecentInteractions(context.Context, *connect.Request[v1.GetSocialAccountRecentInteractionsRequest]) (*connect.Response[v1.GetSocialAccountRecentInteractionsResponse], error)
+	// Extra feed columns (per user): recent posts for a hashtag or search query.
+	ListFeedColumns(context.Context, *connect.Request[v1.ListFeedColumnsRequest]) (*connect.Response[v1.ListFeedColumnsResponse], error)
+	CreateFeedColumn(context.Context, *connect.Request[v1.CreateFeedColumnRequest]) (*connect.Response[v1.CreateFeedColumnResponse], error)
+	UpdateFeedColumn(context.Context, *connect.Request[v1.UpdateFeedColumnRequest]) (*connect.Response[v1.UpdateFeedColumnResponse], error)
+	DeleteFeedColumn(context.Context, *connect.Request[v1.DeleteFeedColumnRequest]) (*connect.Response[v1.DeleteFeedColumnResponse], error)
+	ReorderFeedColumns(context.Context, *connect.Request[v1.ReorderFeedColumnsRequest]) (*connect.Response[v1.ReorderFeedColumnsResponse], error)
+	GetFeedColumnPosts(context.Context, *connect.Request[v1.GetFeedColumnPostsRequest]) (*connect.Response[v1.GetFeedColumnPostsResponse], error)
+	// Internal tags on posts; private to Japella, never posted.
+	SetPostTags(context.Context, *connect.Request[v1.SetPostTagsRequest]) (*connect.Response[v1.SetPostTagsResponse], error)
+	ListPostTags(context.Context, *connect.Request[v1.ListPostTagsRequest]) (*connect.Response[v1.ListPostTagsResponse], error)
+	// Reloads a feed or feed column post, with its likes and comment counts.
+	RefreshPost(context.Context, *connect.Request[v1.RefreshPostRequest]) (*connect.Response[v1.RefreshPostResponse], error)
+	// Following a post's author as a social account.
+	GetAuthorFollow(context.Context, *connect.Request[v1.GetAuthorFollowRequest]) (*connect.Response[v1.GetAuthorFollowResponse], error)
+	SetAuthorFollow(context.Context, *connect.Request[v1.SetAuthorFollowRequest]) (*connect.Response[v1.SetAuthorFollowResponse], error)
+	// Health checks (admins only: system.settings)
+	ListHealthIssues(context.Context, *connect.Request[v1.ListHealthIssuesRequest]) (*connect.Response[v1.ListHealthIssuesResponse], error)
+	GetHealthSummary(context.Context, *connect.Request[v1.GetHealthSummaryRequest]) (*connect.Response[v1.GetHealthSummaryResponse], error)
+	RunHealthChecks(context.Context, *connect.Request[v1.RunHealthChecksRequest]) (*connect.Response[v1.RunHealthChecksResponse], error)
+	AcknowledgeHealthIssue(context.Context, *connect.Request[v1.AcknowledgeHealthIssueRequest]) (*connect.Response[v1.AcknowledgeHealthIssueResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -2530,6 +2967,30 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("RefetchFeedPost")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceMarkFeedPostReadHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceMarkFeedPostReadProcedure,
+		svc.MarkFeedPostRead,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("MarkFeedPostRead")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetPostLikedHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetPostLikedProcedure,
+		svc.SetPostLiked,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetPostLiked")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetPostThreadHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetPostThreadProcedure,
+		svc.GetPostThread,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPostThread")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServicePostCommentHandler := connect.NewUnaryHandler(
+		JapellaControlApiServicePostCommentProcedure,
+		svc.PostComment,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("PostComment")),
+		connect.WithHandlerOptions(opts...),
+	)
 	japellaControlApiServiceGetLogsHandler := connect.NewUnaryHandler(
 		JapellaControlApiServiceGetLogsProcedure,
 		svc.GetLogs,
@@ -2546,6 +3007,18 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		JapellaControlApiServiceListMediaProcedure,
 		svc.ListMedia,
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListMedia")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetMediaSuitabilityHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetMediaSuitabilityProcedure,
+		svc.GetMediaSuitability,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetMediaSuitability")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceOptimiseMediaHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceOptimiseMediaProcedure,
+		svc.OptimiseMedia,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("OptimiseMedia")),
 		connect.WithHandlerOptions(opts...),
 	)
 	japellaControlApiServiceGetMediaPostsHandler := connect.NewUnaryHandler(
@@ -2938,6 +3411,114 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccountPostPerformance")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetPostRepliesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetPostRepliesProcedure,
+		svc.GetPostReplies,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetPostReplies")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetSocialAccountPreferredLanguagesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetSocialAccountPreferredLanguagesProcedure,
+		svc.SetSocialAccountPreferredLanguages,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetSocialAccountPreferredLanguages")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetSocialAccountRecentInteractionsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetSocialAccountRecentInteractionsProcedure,
+		svc.GetSocialAccountRecentInteractions,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccountRecentInteractions")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListFeedColumnsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListFeedColumnsProcedure,
+		svc.ListFeedColumns,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListFeedColumns")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceCreateFeedColumnHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceCreateFeedColumnProcedure,
+		svc.CreateFeedColumn,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateFeedColumn")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceUpdateFeedColumnHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceUpdateFeedColumnProcedure,
+		svc.UpdateFeedColumn,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("UpdateFeedColumn")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceDeleteFeedColumnHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceDeleteFeedColumnProcedure,
+		svc.DeleteFeedColumn,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("DeleteFeedColumn")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceReorderFeedColumnsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceReorderFeedColumnsProcedure,
+		svc.ReorderFeedColumns,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ReorderFeedColumns")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetFeedColumnPostsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetFeedColumnPostsProcedure,
+		svc.GetFeedColumnPosts,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetFeedColumnPosts")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetPostTagsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetPostTagsProcedure,
+		svc.SetPostTags,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetPostTags")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListPostTagsHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListPostTagsProcedure,
+		svc.ListPostTags,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListPostTags")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceRefreshPostHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRefreshPostProcedure,
+		svc.RefreshPost,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RefreshPost")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetAuthorFollowHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetAuthorFollowProcedure,
+		svc.GetAuthorFollow,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetAuthorFollow")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceSetAuthorFollowHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceSetAuthorFollowProcedure,
+		svc.SetAuthorFollow,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("SetAuthorFollow")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceListHealthIssuesHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceListHealthIssuesProcedure,
+		svc.ListHealthIssues,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("ListHealthIssues")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceGetHealthSummaryHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetHealthSummaryProcedure,
+		svc.GetHealthSummary,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetHealthSummary")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceRunHealthChecksHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceRunHealthChecksProcedure,
+		svc.RunHealthChecks,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("RunHealthChecks")),
+		connect.WithHandlerOptions(opts...),
+	)
+	japellaControlApiServiceAcknowledgeHealthIssueHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceAcknowledgeHealthIssueProcedure,
+		svc.AcknowledgeHealthIssue,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("AcknowledgeHealthIssue")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -3052,12 +3633,24 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceCleanupFeedPostsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceRefetchFeedPostProcedure:
 			japellaControlApiServiceRefetchFeedPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceMarkFeedPostReadProcedure:
+			japellaControlApiServiceMarkFeedPostReadHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetPostLikedProcedure:
+			japellaControlApiServiceSetPostLikedHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetPostThreadProcedure:
+			japellaControlApiServiceGetPostThreadHandler.ServeHTTP(w, r)
+		case JapellaControlApiServicePostCommentProcedure:
+			japellaControlApiServicePostCommentHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetLogsProcedure:
 			japellaControlApiServiceGetLogsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetJobsStatusProcedure:
 			japellaControlApiServiceGetJobsStatusHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceListMediaProcedure:
 			japellaControlApiServiceListMediaHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetMediaSuitabilityProcedure:
+			japellaControlApiServiceGetMediaSuitabilityHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceOptimiseMediaProcedure:
+			japellaControlApiServiceOptimiseMediaHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetMediaPostsProcedure:
 			japellaControlApiServiceGetMediaPostsHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceDeleteMediaProcedure:
@@ -3188,6 +3781,42 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceCreateDummySocialAccountHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceGetSocialAccountPostPerformanceProcedure:
 			japellaControlApiServiceGetSocialAccountPostPerformanceHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetPostRepliesProcedure:
+			japellaControlApiServiceGetPostRepliesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetSocialAccountPreferredLanguagesProcedure:
+			japellaControlApiServiceSetSocialAccountPreferredLanguagesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetSocialAccountRecentInteractionsProcedure:
+			japellaControlApiServiceGetSocialAccountRecentInteractionsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListFeedColumnsProcedure:
+			japellaControlApiServiceListFeedColumnsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceCreateFeedColumnProcedure:
+			japellaControlApiServiceCreateFeedColumnHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceUpdateFeedColumnProcedure:
+			japellaControlApiServiceUpdateFeedColumnHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceDeleteFeedColumnProcedure:
+			japellaControlApiServiceDeleteFeedColumnHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceReorderFeedColumnsProcedure:
+			japellaControlApiServiceReorderFeedColumnsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetFeedColumnPostsProcedure:
+			japellaControlApiServiceGetFeedColumnPostsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetPostTagsProcedure:
+			japellaControlApiServiceSetPostTagsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListPostTagsProcedure:
+			japellaControlApiServiceListPostTagsHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRefreshPostProcedure:
+			japellaControlApiServiceRefreshPostHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetAuthorFollowProcedure:
+			japellaControlApiServiceGetAuthorFollowHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceSetAuthorFollowProcedure:
+			japellaControlApiServiceSetAuthorFollowHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceListHealthIssuesProcedure:
+			japellaControlApiServiceListHealthIssuesHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetHealthSummaryProcedure:
+			japellaControlApiServiceGetHealthSummaryHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceRunHealthChecksProcedure:
+			japellaControlApiServiceRunHealthChecksHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceAcknowledgeHealthIssueProcedure:
+			japellaControlApiServiceAcknowledgeHealthIssueHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3421,6 +4050,22 @@ func (UnimplementedJapellaControlApiServiceHandler) RefetchFeedPost(context.Cont
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RefetchFeedPost is not implemented"))
 }
 
+func (UnimplementedJapellaControlApiServiceHandler) MarkFeedPostRead(context.Context, *connect.Request[v1.MarkFeedPostReadRequest]) (*connect.Response[v1.MarkFeedPostReadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.MarkFeedPostRead is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetPostLiked(context.Context, *connect.Request[v1.SetPostLikedRequest]) (*connect.Response[v1.SetPostLikedResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetPostLiked is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetPostThread(context.Context, *connect.Request[v1.GetPostThreadRequest]) (*connect.Response[v1.GetPostThreadResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetPostThread is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) PostComment(context.Context, *connect.Request[v1.PostCommentRequest]) (*connect.Response[v1.PostCommentResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.PostComment is not implemented"))
+}
+
 func (UnimplementedJapellaControlApiServiceHandler) GetLogs(context.Context, *connect.Request[v1.GetLogsRequest]) (*connect.Response[v1.GetLogsResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetLogs is not implemented"))
 }
@@ -3431,6 +4076,14 @@ func (UnimplementedJapellaControlApiServiceHandler) GetJobsStatus(context.Contex
 
 func (UnimplementedJapellaControlApiServiceHandler) ListMedia(context.Context, *connect.Request[v1.ListMediaRequest]) (*connect.Response[v1.ListMediaResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListMedia is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetMediaSuitability(context.Context, *connect.Request[v1.GetMediaSuitabilityRequest]) (*connect.Response[v1.GetMediaSuitabilityResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetMediaSuitability is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) OptimiseMedia(context.Context, *connect.Request[v1.OptimiseMediaRequest]) (*connect.Response[v1.OptimiseMediaResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.OptimiseMedia is not implemented"))
 }
 
 func (UnimplementedJapellaControlApiServiceHandler) GetMediaPosts(context.Context, *connect.Request[v1.GetMediaPostsRequest]) (*connect.Response[v1.GetMediaPostsResponse], error) {
@@ -3691,4 +4344,76 @@ func (UnimplementedJapellaControlApiServiceHandler) CreateDummySocialAccount(con
 
 func (UnimplementedJapellaControlApiServiceHandler) GetSocialAccountPostPerformance(context.Context, *connect.Request[v1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[v1.GetSocialAccountPostPerformanceResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetSocialAccountPostPerformance is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetPostReplies(context.Context, *connect.Request[v1.GetPostRepliesRequest]) (*connect.Response[v1.GetPostRepliesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetPostReplies is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetSocialAccountPreferredLanguages(context.Context, *connect.Request[v1.SetSocialAccountPreferredLanguagesRequest]) (*connect.Response[v1.SetSocialAccountPreferredLanguagesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetSocialAccountPreferredLanguages is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetSocialAccountRecentInteractions(context.Context, *connect.Request[v1.GetSocialAccountRecentInteractionsRequest]) (*connect.Response[v1.GetSocialAccountRecentInteractionsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetSocialAccountRecentInteractions is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListFeedColumns(context.Context, *connect.Request[v1.ListFeedColumnsRequest]) (*connect.Response[v1.ListFeedColumnsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListFeedColumns is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) CreateFeedColumn(context.Context, *connect.Request[v1.CreateFeedColumnRequest]) (*connect.Response[v1.CreateFeedColumnResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateFeedColumn is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) UpdateFeedColumn(context.Context, *connect.Request[v1.UpdateFeedColumnRequest]) (*connect.Response[v1.UpdateFeedColumnResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.UpdateFeedColumn is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) DeleteFeedColumn(context.Context, *connect.Request[v1.DeleteFeedColumnRequest]) (*connect.Response[v1.DeleteFeedColumnResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.DeleteFeedColumn is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ReorderFeedColumns(context.Context, *connect.Request[v1.ReorderFeedColumnsRequest]) (*connect.Response[v1.ReorderFeedColumnsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ReorderFeedColumns is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetFeedColumnPosts(context.Context, *connect.Request[v1.GetFeedColumnPostsRequest]) (*connect.Response[v1.GetFeedColumnPostsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetFeedColumnPosts is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetPostTags(context.Context, *connect.Request[v1.SetPostTagsRequest]) (*connect.Response[v1.SetPostTagsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetPostTags is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListPostTags(context.Context, *connect.Request[v1.ListPostTagsRequest]) (*connect.Response[v1.ListPostTagsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListPostTags is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) RefreshPost(context.Context, *connect.Request[v1.RefreshPostRequest]) (*connect.Response[v1.RefreshPostResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RefreshPost is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetAuthorFollow(context.Context, *connect.Request[v1.GetAuthorFollowRequest]) (*connect.Response[v1.GetAuthorFollowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetAuthorFollow is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) SetAuthorFollow(context.Context, *connect.Request[v1.SetAuthorFollowRequest]) (*connect.Response[v1.SetAuthorFollowResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.SetAuthorFollow is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) ListHealthIssues(context.Context, *connect.Request[v1.ListHealthIssuesRequest]) (*connect.Response[v1.ListHealthIssuesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.ListHealthIssues is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetHealthSummary(context.Context, *connect.Request[v1.GetHealthSummaryRequest]) (*connect.Response[v1.GetHealthSummaryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetHealthSummary is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) RunHealthChecks(context.Context, *connect.Request[v1.RunHealthChecksRequest]) (*connect.Response[v1.RunHealthChecksResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.RunHealthChecks is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) AcknowledgeHealthIssue(context.Context, *connect.Request[v1.AcknowledgeHealthIssueRequest]) (*connect.Response[v1.AcknowledgeHealthIssueResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.AcknowledgeHealthIssue is not implemented"))
 }

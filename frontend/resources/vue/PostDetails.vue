@@ -182,6 +182,8 @@
 				</div>
 			</Section>
 
+			<PostReplies v-if="post.state === 'completed' && post.postUrl" :post-id="post.id" />
+
 			<Section
 				v-if="llmToolSessions.length || (canEdit && enabledLlmTools.length) || llmToolsLoading || llmToolError"
 				title="LLM tool runs"
@@ -280,6 +282,7 @@
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import DangerZone from 'picocrank/vue/components/DangerZone.vue';
 	import PostPreview from './PostPreview.vue';
+	import PostReplies from './PostReplies.vue';
 	import LlmToolRunsPanel from './LlmToolRunsPanel.vue';
 	import { buildLlmToolSessions, replyFromApiRun } from '../javascript/llmToolSessions.js';
 

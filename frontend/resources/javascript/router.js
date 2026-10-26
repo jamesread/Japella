@@ -22,6 +22,7 @@ import SocialAccountDetails from '../vue/SocialAccountDetails.vue'
 import ApiKeys from '../vue/ApiKeys.vue'
 import Media from '../vue/Media.vue'
 import ControlPanel from '../vue/ControlPanel.vue'
+import Health from '../vue/Health.vue'
 import Iam from '../vue/Iam.vue'
 import UserControlPanel from '../vue/UserControlPanel.vue'
 import MyPermissions from '../vue/MyPermissions.vue'
@@ -227,7 +228,10 @@ const routes = [
     meta: {
       icon: ActivityIcon,
       title: 'Feed',
-      requiresAuth: true
+      requiresAuth: true,
+      // Columns fill the viewport and scroll on their own; a footer would
+      // make the page itself scroll.
+      hideFooter: true
     }
   },
   {
@@ -404,6 +408,17 @@ const routes = [
       description: 'View and manage API keys for this user',
       requiresAuth: true
     }
+  },
+  {
+    path: '/admin/health',
+    name: 'adminHealth',
+    component: Health,
+    meta: {
+      icon: ActivityIcon,
+      title: 'Health',
+      requiresAuth: true,
+      requiresControlPanel: true,
+    },
   },
   {
     path: '/admin/webhooks',

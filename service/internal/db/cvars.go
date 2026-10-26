@@ -8,43 +8,43 @@ const (
 )
 
 var CvarKeys = struct {
-	BaseUrl                         string
-	OAuth2RedirectURL               string
-	IsPubliclyAccessible            string
-	ThemeColorSchemeSwitcherEnabled string
-	ThemeName                       string
-	ThemeControl                    string
-	DebugAuth                       string
-	DebugFeed                       string
-	DebugHTTP                       string
-	KeywordWatchSearchIntervalSeconds  string
-	KeywordWatchSearchLookbackSeconds  string
-	KeywordWatchNativeRetrySeconds     string
-	KeywordWatchMaxMatchesPerPoll      string
-	KeywordWatchMaxEmitsPerHour        string
-	KeywordWatchMatchRetention         string
-	PostEngagementIntervalSeconds      string
-	PostEngagementMaxAgeDays           string
-	PostEngagementMaxPostsPerRun       string
+	BaseUrl                           string
+	OAuth2RedirectURL                 string
+	IsPubliclyAccessible              string
+	ThemeColorSchemeSwitcherEnabled   string
+	ThemeName                         string
+	ThemeControl                      string
+	DebugAuth                         string
+	DebugFeed                         string
+	DebugHTTP                         string
+	KeywordWatchSearchIntervalSeconds string
+	KeywordWatchSearchLookbackSeconds string
+	KeywordWatchNativeRetrySeconds    string
+	KeywordWatchMaxMatchesPerPoll     string
+	KeywordWatchMaxEmitsPerHour       string
+	KeywordWatchMatchRetention        string
+	PostEngagementIntervalSeconds     string
+	PostEngagementMaxAgeDays          string
+	PostEngagementMaxPostsPerRun      string
 }{
-	BaseUrl:                            "base_url",
-	OAuth2RedirectURL:                  "oauth2_redirect_url",
-	IsPubliclyAccessible:               "is_publicly_accessible",
-	ThemeColorSchemeSwitcherEnabled:    "theme_color_scheme_switcher_enabled",
-	ThemeName:                          "theme_name",
-	ThemeControl:                       "theme_control",
-	DebugAuth:                          debuglog.KeyAuth,
-	DebugFeed:                          debuglog.KeyFeed,
-	DebugHTTP:                          debuglog.KeyHTTP,
-	KeywordWatchSearchIntervalSeconds:  "keyword_watch_search_interval_seconds",
-	KeywordWatchSearchLookbackSeconds:  "keyword_watch_search_lookback_seconds",
-	KeywordWatchNativeRetrySeconds:     "keyword_watch_native_retry_seconds",
-	KeywordWatchMaxMatchesPerPoll:      "keyword_watch_max_matches_per_poll",
-	KeywordWatchMaxEmitsPerHour:        "keyword_watch_max_emits_per_hour",
-	KeywordWatchMatchRetention:         "keyword_watch_match_retention",
-	PostEngagementIntervalSeconds:      "post_engagement_interval_seconds",
-	PostEngagementMaxAgeDays:           "post_engagement_max_age_days",
-	PostEngagementMaxPostsPerRun:       "post_engagement_max_posts_per_run",
+	BaseUrl:                           "base_url",
+	OAuth2RedirectURL:                 "oauth2_redirect_url",
+	IsPubliclyAccessible:              "is_publicly_accessible",
+	ThemeColorSchemeSwitcherEnabled:   "theme_color_scheme_switcher_enabled",
+	ThemeName:                         "theme_name",
+	ThemeControl:                      "theme_control",
+	DebugAuth:                         debuglog.KeyAuth,
+	DebugFeed:                         debuglog.KeyFeed,
+	DebugHTTP:                         debuglog.KeyHTTP,
+	KeywordWatchSearchIntervalSeconds: "keyword_watch_search_interval_seconds",
+	KeywordWatchSearchLookbackSeconds: "keyword_watch_search_lookback_seconds",
+	KeywordWatchNativeRetrySeconds:    "keyword_watch_native_retry_seconds",
+	KeywordWatchMaxMatchesPerPoll:     "keyword_watch_max_matches_per_poll",
+	KeywordWatchMaxEmitsPerHour:       "keyword_watch_max_emits_per_hour",
+	KeywordWatchMatchRetention:        "keyword_watch_match_retention",
+	PostEngagementIntervalSeconds:     "post_engagement_interval_seconds",
+	PostEngagementMaxAgeDays:          "post_engagement_max_age_days",
+	PostEngagementMaxPostsPerRun:      "post_engagement_max_posts_per_run",
 }
 
 var CvarList = []Cvar{
