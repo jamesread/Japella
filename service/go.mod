@@ -35,7 +35,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/teris-io/shortid v0.0.0-20220617161101-71ec9f2aa569
 	go.mau.fi/whatsmeow v0.0.0-20261017175727-b2b1e71d45e2
-	golang.org/x/image v0.42.0
+	golang.org/x/image v0.45.0
 	golang.org/x/net v0.61.0
 	golang.org/x/oauth2 v0.37.0
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.2
