@@ -402,6 +402,9 @@ const (
 	// JapellaControlApiServiceCreateDummySocialAccountProcedure is the fully-qualified name of the
 	// JapellaControlApiService's CreateDummySocialAccount RPC.
 	JapellaControlApiServiceCreateDummySocialAccountProcedure = "/japella.controlapi.v1.JapellaControlApiService/CreateDummySocialAccount"
+	// JapellaControlApiServiceGetSocialAccountPostPerformanceProcedure is the fully-qualified name of
+	// the JapellaControlApiService's GetSocialAccountPostPerformance RPC.
+	JapellaControlApiServiceGetSocialAccountPostPerformanceProcedure = "/japella.controlapi.v1.JapellaControlApiService/GetSocialAccountPostPerformance"
 )
 
 // JapellaControlApiServiceClient is a client for the japella.controlapi.v1.JapellaControlApiService
@@ -530,6 +533,7 @@ type JapellaControlApiServiceClient interface {
 	UpdateKeywordWatch(context.Context, *connect.Request[v1.UpdateKeywordWatchRequest]) (*connect.Response[v1.UpdateKeywordWatchResponse], error)
 	DeleteKeywordWatch(context.Context, *connect.Request[v1.DeleteKeywordWatchRequest]) (*connect.Response[v1.DeleteKeywordWatchResponse], error)
 	CreateDummySocialAccount(context.Context, *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error)
+	GetSocialAccountPostPerformance(context.Context, *connect.Request[v1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[v1.GetSocialAccountPostPerformanceResponse], error)
 }
 
 // NewJapellaControlApiServiceClient constructs a client for the
@@ -1282,6 +1286,12 @@ func NewJapellaControlApiServiceClient(httpClient connect.HTTPClient, baseURL st
 			connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateDummySocialAccount")),
 			connect.WithClientOptions(opts...),
 		),
+		getSocialAccountPostPerformance: connect.NewClient[v1.GetSocialAccountPostPerformanceRequest, v1.GetSocialAccountPostPerformanceResponse](
+			httpClient,
+			baseURL+JapellaControlApiServiceGetSocialAccountPostPerformanceProcedure,
+			connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccountPostPerformance")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -1410,6 +1420,7 @@ type japellaControlApiServiceClient struct {
 	updateKeywordWatch              *connect.Client[v1.UpdateKeywordWatchRequest, v1.UpdateKeywordWatchResponse]
 	deleteKeywordWatch              *connect.Client[v1.DeleteKeywordWatchRequest, v1.DeleteKeywordWatchResponse]
 	createDummySocialAccount        *connect.Client[v1.CreateDummySocialAccountRequest, v1.CreateDummySocialAccountResponse]
+	getSocialAccountPostPerformance *connect.Client[v1.GetSocialAccountPostPerformanceRequest, v1.GetSocialAccountPostPerformanceResponse]
 }
 
 // GetStatus calls japella.controlapi.v1.JapellaControlApiService.GetStatus.
@@ -2041,6 +2052,12 @@ func (c *japellaControlApiServiceClient) CreateDummySocialAccount(ctx context.Co
 	return c.createDummySocialAccount.CallUnary(ctx, req)
 }
 
+// GetSocialAccountPostPerformance calls
+// japella.controlapi.v1.JapellaControlApiService.GetSocialAccountPostPerformance.
+func (c *japellaControlApiServiceClient) GetSocialAccountPostPerformance(ctx context.Context, req *connect.Request[v1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[v1.GetSocialAccountPostPerformanceResponse], error) {
+	return c.getSocialAccountPostPerformance.CallUnary(ctx, req)
+}
+
 // JapellaControlApiServiceHandler is an implementation of the
 // japella.controlapi.v1.JapellaControlApiService service.
 type JapellaControlApiServiceHandler interface {
@@ -2167,6 +2184,7 @@ type JapellaControlApiServiceHandler interface {
 	UpdateKeywordWatch(context.Context, *connect.Request[v1.UpdateKeywordWatchRequest]) (*connect.Response[v1.UpdateKeywordWatchResponse], error)
 	DeleteKeywordWatch(context.Context, *connect.Request[v1.DeleteKeywordWatchRequest]) (*connect.Response[v1.DeleteKeywordWatchResponse], error)
 	CreateDummySocialAccount(context.Context, *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error)
+	GetSocialAccountPostPerformance(context.Context, *connect.Request[v1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[v1.GetSocialAccountPostPerformanceResponse], error)
 }
 
 // NewJapellaControlApiServiceHandler builds an HTTP handler from the service implementation. It
@@ -2914,6 +2932,12 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 		connect.WithSchema(japellaControlApiServiceMethods.ByName("CreateDummySocialAccount")),
 		connect.WithHandlerOptions(opts...),
 	)
+	japellaControlApiServiceGetSocialAccountPostPerformanceHandler := connect.NewUnaryHandler(
+		JapellaControlApiServiceGetSocialAccountPostPerformanceProcedure,
+		svc.GetSocialAccountPostPerformance,
+		connect.WithSchema(japellaControlApiServiceMethods.ByName("GetSocialAccountPostPerformance")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/japella.controlapi.v1.JapellaControlApiService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case JapellaControlApiServiceGetStatusProcedure:
@@ -3162,6 +3186,8 @@ func NewJapellaControlApiServiceHandler(svc JapellaControlApiServiceHandler, opt
 			japellaControlApiServiceDeleteKeywordWatchHandler.ServeHTTP(w, r)
 		case JapellaControlApiServiceCreateDummySocialAccountProcedure:
 			japellaControlApiServiceCreateDummySocialAccountHandler.ServeHTTP(w, r)
+		case JapellaControlApiServiceGetSocialAccountPostPerformanceProcedure:
+			japellaControlApiServiceGetSocialAccountPostPerformanceHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -3661,4 +3687,8 @@ func (UnimplementedJapellaControlApiServiceHandler) DeleteKeywordWatch(context.C
 
 func (UnimplementedJapellaControlApiServiceHandler) CreateDummySocialAccount(context.Context, *connect.Request[v1.CreateDummySocialAccountRequest]) (*connect.Response[v1.CreateDummySocialAccountResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.CreateDummySocialAccount is not implemented"))
+}
+
+func (UnimplementedJapellaControlApiServiceHandler) GetSocialAccountPostPerformance(context.Context, *connect.Request[v1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[v1.GetSocialAccountPostPerformanceResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("japella.controlapi.v1.JapellaControlApiService.GetSocialAccountPostPerformance is not implemented"))
 }

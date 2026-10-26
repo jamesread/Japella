@@ -179,6 +179,8 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 			s.processKeywordWatchCleanup()
 		}
 	}()
+	// Fetch likes/reposts/replies for recently published posts (interval from cvar)
+	go s.startPostEngagementJob(recordJobRun)
 }
 
 func (s *ControlApi) IsReady() bool {
@@ -1100,7 +1102,7 @@ func (s *ControlApi) postToPostStatus(post *db.Post) *controlv1.PostStatus {
 		postedDate = post.ScheduledAt.Time
 	}
 
-	return &controlv1.PostStatus{
+	status := &controlv1.PostStatus{
 		Id:                    post.ID,
 		Created:               post.CreatedAt.Format("2006-01-02 15:04:05"),
 		SocialAccountId:       post.SocialAccountIDUint(),
@@ -1114,6 +1116,14 @@ func (s *ControlApi) postToPostStatus(post *db.Post) *controlv1.PostStatus {
 		State:                 post.State,
 		PostedDate:            postedDate.Format("2006-01-02 15:04:05"),
 	}
+
+	if post.ID != 0 && s.DB != nil {
+		if pe, err := s.DB.GetPostEngagement(post.ID); err == nil {
+			status.Engagement = engagementToProto(pe)
+		}
+	}
+
+	return status
 }
 
 func toConnectorSA(socialAccount *db.SocialAccount) *connector.SocialAccount {
@@ -1664,6 +1674,8 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 		})
 	}
 
+	s.attachEngagement(timeline)
+
 	res := connect.NewResponse(&controlv1.GetTimelineResponse{
 		Posts: timeline,
 		Total: uint32(total),
@@ -2088,6 +2100,12 @@ func (s *ControlApi) GetJobsStatus(ctx context.Context, req *connect.Request[con
 			DisplayName: "Keyword Watch Cleanup",
 			Schedule:    "Every 1 hour",
 			LastRun:     s.getJobLastRun("keyword_watch_cleanup"),
+		},
+		{
+			Name:        postEngagementJobName,
+			DisplayName: "Post Engagement",
+			Schedule:    s.postEngagementSchedule(),
+			LastRun:     s.getJobLastRun(postEngagementJobName),
 		},
 	}
 

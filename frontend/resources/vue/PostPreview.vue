@@ -88,6 +88,8 @@
 			</div>
 		</div>
 
+		<PostEngagementBar v-if="timelineMode" :engagement="post.engagement" />
+
 		<div
 			v-if="showPostFooter"
 			class="post-footer"
@@ -151,6 +153,7 @@
 	import FeedAuthorAvatar from './FeedAuthorAvatar.vue';
 	import PostDiagnosticDialog from './PostDiagnosticDialog.vue';
 	import SocialAccountChip from './SocialAccountChip.vue';
+	import PostEngagementBar from './PostEngagementBar.vue';
 
 	const props = defineProps({
 		post: {
