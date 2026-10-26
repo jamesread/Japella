@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"strings"
 	"time"
 )
 
@@ -24,7 +25,6 @@ type PostEngagement struct {
 // within maxAge, on active social accounts, least-recently-fetched first.
 func (db *DB) SelectPostsForEngagementFetch(maxAge time.Duration, limit int) ([]*Post, error) {
 	posts := make([]*Post, 0)
-	since := time.Now().Add(-maxAge)
 	err := db.ResilientSelect(&posts, `
 		SELECT p.id, p.social_account_id, p.status, p.state, p.content, p.post_url, p.remote_id,
 			p.scheduled_at, p.created_at, p.campaign_id AS campaign_id
@@ -34,9 +34,9 @@ func (db *DB) SelectPostsForEngagementFetch(maxAge time.Duration, limit int) ([]
 		WHERE p.state = ?
 			AND p.post_url IS NOT NULL AND p.post_url <> ''
 			AND sa.active = 1
-			AND COALESCE(p.scheduled_at, p.created_at) >= ?
+			AND COALESCE(p.scheduled_at, p.created_at) >= NOW() - INTERVAL ? SECOND
 		ORDER BY pe.last_fetched_at IS NOT NULL, pe.last_fetched_at ASC, p.id DESC
-		LIMIT ?`, PostStateCompleted, since, limit)
+		LIMIT ?`, PostStateCompleted, int64(maxAge/time.Second), limit)
 	if err != nil {
 		db.Logger().Errorf("Failed to select posts for engagement fetch: %v", err)
 		return nil, err
@@ -96,4 +96,61 @@ func (db *DB) MarkPostEngagementError(postID uint32, message string) error {
 		db.Logger().Errorf("Failed to record post engagement error for post %d: %v", postID, err)
 	}
 	return err
+}
+
+// postEngagementLookupChunk keeps IN (...) lists well under MySQL's placeholder limit.
+const postEngagementLookupChunk = 500
+
+// SelectPostEngagementForPosts returns stored engagement rows keyed by post id.
+// Posts without a row are absent from the map.
+func (db *DB) SelectPostEngagementForPosts(postIDs []uint32) (map[uint32]*PostEngagement, error) {
+	ret := make(map[uint32]*PostEngagement, len(postIDs))
+
+	for start := 0; start < len(postIDs); start += postEngagementLookupChunk {
+		end := start + postEngagementLookupChunk
+		if end > len(postIDs) {
+			end = len(postIDs)
+		}
+		chunk := postIDs[start:end]
+
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(chunk)), ",")
+		args := make([]any, len(chunk))
+		for i, id := range chunk {
+			args[i] = id
+		}
+
+		rows := make([]*PostEngagement, 0, len(chunk))
+		err := db.ResilientSelect(&rows, "SELECT * FROM post_engagement WHERE post_id IN ("+placeholders+")", args...)
+		if err != nil {
+			db.Logger().Errorf("Failed to select post engagement: %v", err)
+			return ret, err
+		}
+
+		for _, row := range rows {
+			ret[row.PostID] = row
+		}
+	}
+
+	return ret, nil
+}
+
+// SelectCompletedPostsForAccountSince returns completed posts for a social
+// account published on the last `days` calendar days (including today), newest first.
+func (db *DB) SelectCompletedPostsForAccountSince(socialAccountID uint32, days int) ([]*Post, error) {
+	posts := make([]*Post, 0)
+	err := db.ResilientSelect(&posts, `
+		SELECT p.id, p.social_account_id, p.status, p.state, p.content, p.post_url, p.remote_id,
+			p.scheduled_at, p.created_at, p.campaign_id AS campaign_id, c.name AS campaign_name
+		FROM posts p
+		LEFT JOIN campaigns c ON p.campaign_id = c.id
+		WHERE p.social_account_id = ?
+			AND p.state = ?
+			AND COALESCE(p.scheduled_at, p.created_at) >= CURDATE() - INTERVAL ? DAY
+		ORDER BY COALESCE(p.scheduled_at, p.created_at) DESC, p.id DESC`,
+		socialAccountID, PostStateCompleted, days-1)
+	if err != nil {
+		db.Logger().Errorf("Failed to select recent posts for account %d: %v", socialAccountID, err)
+		return nil, err
+	}
+	return posts, nil
 }

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"connectrpc.com/connect"
+	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/postengagement"
@@ -204,4 +206,185 @@ func (s *ControlApi) postEngagementSchedule() string {
 		return "Disabled (cvar)"
 	}
 	return fmt.Sprintf("Every %s (cvar)", s.postEngagementInterval())
+}
+
+const (
+	postPerformanceDefaultDays = 7
+	postPerformanceMaxDays     = 90
+	postPerformanceMaxPosts    = 200
+)
+
+// engagementToProto converts a stored row; nil means never fetched.
+func engagementToProto(pe *db.PostEngagement) *controlv1.PostEngagement {
+	if pe == nil {
+		return nil
+	}
+	out := countsToProto(postengagement.FromDB(pe))
+	out.LastError = pe.LastError
+	out.HasData = postengagement.HasBaseline(pe)
+	if pe.LastFetchedAt.Valid {
+		out.LastFetchedAt = pe.LastFetchedAt.Time.UTC().Format(time.RFC3339)
+	}
+	return out
+}
+
+func countsToProto(c postengagement.Counts) *controlv1.PostEngagement {
+	return &controlv1.PostEngagement{
+		Likes:       c.Likes,
+		Reposts:     c.Reposts,
+		Replies:     c.Replies,
+		Quotes:      c.Quotes,
+		Impressions: c.Impressions,
+	}
+}
+
+// attachEngagement fills PostStatus.Engagement for a batch of statuses in one query.
+func (s *ControlApi) attachEngagement(statuses []*controlv1.PostStatus) {
+	if s.DB == nil || len(statuses) == 0 {
+		return
+	}
+	ids := make([]uint32, 0, len(statuses))
+	for _, st := range statuses {
+		if st != nil && st.Id != 0 {
+			ids = append(ids, st.Id)
+		}
+	}
+	rows, err := s.DB.SelectPostEngagementForPosts(ids)
+	if err != nil {
+		return
+	}
+	for _, st := range statuses {
+		if st == nil {
+			continue
+		}
+		st.Engagement = engagementToProto(rows[st.Id])
+	}
+}
+
+func (s *ControlApi) connectorSupportsEngagement(connectorName string) bool {
+	if s.cc == nil {
+		return false
+	}
+	svc := s.cc.Get(connectorName)
+	if svc == nil {
+		return false
+	}
+	_, ok := svc.(connector.ConnectorWithPostEngagement)
+	return ok
+}
+
+func clampPerformanceDays(days uint32) int {
+	if days == 0 {
+		return postPerformanceDefaultDays
+	}
+	if days > postPerformanceMaxDays {
+		return postPerformanceMaxDays
+	}
+	return int(days)
+}
+
+func postedAt(p *db.Post) time.Time {
+	if p.ScheduledAt.Valid {
+		return p.ScheduledAt.Time
+	}
+	return p.CreatedAt
+}
+
+// GetSocialAccountPostPerformance summarises engagement on an account's posts
+// published during the last N calendar days.
+func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[controlv1.GetSocialAccountPostPerformanceResponse], error) {
+	au := s.getAuthenticatedUser(ctx)
+	if au == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+
+	accountID := req.Msg.GetSocialAccountId()
+	if accountID == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id is required"))
+	}
+	if !s.userCanReadSocialAccount(au, accountID) {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
+	}
+
+	sa, err := s.DB.GetSocialAccount(accountID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load social account"))
+	}
+	if sa == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found"))
+	}
+
+	days := clampPerformanceDays(req.Msg.GetDays())
+
+	posts, err := s.DB.SelectCompletedPostsForAccountSince(accountID, days)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load posts"))
+	}
+
+	ids := make([]uint32, len(posts))
+	for i, p := range posts {
+		ids[i] = p.ID
+	}
+	rows, err := s.DB.SelectPostEngagementForPosts(ids)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load engagement"))
+	}
+
+	byID := make(map[uint32]*db.Post, len(posts))
+	samples := make([]postengagement.PostSample, len(posts))
+	for i, p := range posts {
+		byID[p.ID] = p
+		samples[i] = postengagement.PostSample{
+			PostID:   p.ID,
+			PostedAt: postedAt(p),
+			Counts:   postengagement.FromDB(rows[p.ID]),
+		}
+	}
+
+	res := &controlv1.GetSocialAccountPostPerformanceResponse{
+		Days:            uint32(days),
+		Supported:       s.connectorSupportsEngagement(sa.Connector),
+		TrackingEnabled: s.postEngagementMaxAge() > 0,
+		PostCount:       uint32(len(posts)),
+		Totals:          countsToProto(postengagement.Total(samples)),
+	}
+
+	for _, b := range postengagement.Daily(time.Now(), days, samples) {
+		res.Daily = append(res.Daily, &controlv1.PostPerformanceDay{
+			Date:       b.Date,
+			Posts:      b.Posts,
+			Engagement: countsToProto(b.Counts),
+		})
+	}
+
+	icon := "mdi:question-mark-circle"
+	if s.cc != nil {
+		if svc := s.cc.Get(sa.Connector); svc != nil {
+			icon = svc.GetIcon()
+		}
+	}
+
+	for _, sample := range postengagement.SortByInteractions(samples) {
+		if len(res.Posts) >= postPerformanceMaxPosts {
+			break
+		}
+		p := byID[sample.PostID]
+		res.Posts = append(res.Posts, &controlv1.PostStatus{
+			Id:                    p.ID,
+			Created:               p.CreatedAt.Format("2006-01-02 15:04:05"),
+			SocialAccountId:       accountID,
+			SocialAccountIcon:     icon,
+			SocialAccountIdentity: sa.Identity,
+			Content:               p.Content,
+			Success:               p.Status,
+			PostUrl:               p.PostURL.String,
+			CampaignId:            uint32(p.CampaignID.Int32),
+			CampaignName:          p.CampaignName.String,
+			State:                 p.State,
+			PostedDate:            postedAt(p).Format("2006-01-02 15:04:05"),
+			Engagement:            engagementToProto(rows[p.ID]),
+		})
+	}
+
+	return connect.NewResponse(res), nil
 }

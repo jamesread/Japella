@@ -74,6 +74,11 @@
 		</dl>
 	</Section>
 
+	<SocialAccountPostPerformance
+		v-if="!loading && account"
+		:social-account-id="account.id"
+	/>
+
 	<Section
 		v-if="!loading && account && account.canManage"
 		title="Account Actions"
@@ -452,6 +457,7 @@
 	import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
 	import Table from 'picocrank/vue/components/Table.vue';
 	import UserGroupLookupDialog from './UserGroupLookupDialog.vue';
+	import SocialAccountPostPerformance from './SocialAccountPostPerformance.vue';
 
 	const route = useRoute();
 	const router = useRouter();

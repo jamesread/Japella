@@ -32,6 +32,8 @@ message PostStatus {
     string campaign_name = 10;
     string state = 11;
     string posted_date = 12; // The date the post was/will be posted (scheduled_at if set, otherwise created_at)
+    // Latest engagement counters fetched from the platform. Unset if never fetched.
+    PostEngagement engagement = 13;
 }
 
 message GetStatusRequest {}
@@ -1750,4 +1752,51 @@ service JapellaControlApiService {
     rpc UpdateKeywordWatch(UpdateKeywordWatchRequest) returns (UpdateKeywordWatchResponse) {}
     rpc DeleteKeywordWatch(DeleteKeywordWatchRequest) returns (DeleteKeywordWatchResponse) {}
     rpc CreateDummySocialAccount(CreateDummySocialAccountRequest) returns (CreateDummySocialAccountResponse) {}
+
+    rpc GetSocialAccountPostPerformance(GetSocialAccountPostPerformanceRequest) returns (GetSocialAccountPostPerformanceResponse) {}
+}
+
+message GetSocialAccountPostPerformanceRequest {
+    uint32 social_account_id = 1;
+    // Window size in days, counting back from today. Defaults to 7; maximum 90.
+    uint32 days = 2;
+}
+
+// Engagement for posts published on a single day.
+message PostPerformanceDay {
+    // YYYY-MM-DD (UTC).
+    string date = 1;
+    uint32 posts = 2;
+    PostEngagement engagement = 3;
+}
+
+message GetSocialAccountPostPerformanceResponse {
+    uint32 days = 1;
+    // Whether this account's connector can report engagement at all.
+    bool supported = 2;
+    // Whether the post_engagement job is enabled (post_engagement_max_age_days > 0).
+    bool tracking_enabled = 3;
+    uint32 post_count = 4;
+    // Sum of engagement across all posts in the window.
+    PostEngagement totals = 5;
+    // One entry per day in the window, oldest first.
+    repeated PostPerformanceDay daily = 6;
+    // Posts in the window, most interactions first.
+    repeated PostStatus posts = 7;
+}
+
+// Engagement counters for a published post, refreshed by the post_engagement job.
+// Platforms that lack a counter report 0 for it.
+message PostEngagement {
+    uint32 likes = 1;
+    uint32 reposts = 2;
+    uint32 replies = 3;
+    uint32 quotes = 4;
+    uint32 impressions = 5;
+    // RFC3339 time of the most recent fetch attempt; empty if never attempted.
+    string last_fetched_at = 6;
+    // Error from the most recent fetch attempt, if it failed.
+    string last_error = 7;
+    // True once at least one fetch has succeeded, so the counters are meaningful.
+    bool has_data = 8;
 }
