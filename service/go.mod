@@ -18,7 +18,7 @@ require (
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.32.0
-	github.com/jamesread/armature-health v0.0.0
+	github.com/jamesread/armature-health v1.0.0
 	github.com/jamesread/armature-iam v1.0.1
 	github.com/jamesread/golure v0.0.0-20260927082702-900b761e432f
 	github.com/jamesread/httpauthshim v0.2.0
@@ -185,5 +185,3 @@ require (
 )
 
 tool github.com/air-verse/air
-
-replace github.com/jamesread/armature-health => ../../../armature-health

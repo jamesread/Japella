@@ -272,6 +272,8 @@ github.com/hashicorp/golang-lru/v2 v2.0.7 h1:a+bsQ5rvGLjzHuww6tVxozPZFVghXaHOwFs
 github.com/hashicorp/golang-lru/v2 v2.0.7/go.mod h1:QeFd9opnmA6QUJc5vARoKUSoFhyfM2/ZepoAG6RGpeM=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
+github.com/jamesread/armature-health v1.0.0 h1:2ebkecImo/OCDrd6blOtkoKpnAiSW/RfDOLzSEKz7o8=
+github.com/jamesread/armature-health v1.0.0/go.mod h1:Rf5rqmrO+4Y+cvj30ErKpMJcYBtxubVmt8kJpNw7A1o=
 github.com/jamesread/armature-iam v1.0.1 h1:l9mQu+qgS9iebYLS2XCgSSxBp/9r+spPzPRUdTvRhOs=
 github.com/jamesread/armature-iam v1.0.1/go.mod h1:51noGiJsZwoylKpIm7WMOLQMWngCe/rWc3ZbNDSVCNQ=
 github.com/jamesread/golure v0.0.0-20260927082702-900b761e432f h1:9eoL7vPEKO2JXRJjfLCmONS5jGpMXMsQzHwjTIOpN98=
