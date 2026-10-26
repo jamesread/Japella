@@ -4,7 +4,7 @@
 
 const STORAGE_KEY = 'feed.columnWidths';
 
-export const DEFAULT_COLUMN_WIDTH = 384;
+export const DEFAULT_COLUMN_WIDTH = 442;
 export const MIN_COLUMN_WIDTH = 256;
 export const MAX_COLUMN_WIDTH = 960;
 

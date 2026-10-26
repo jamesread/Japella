@@ -44,6 +44,8 @@
 <style scoped>
 	.social-account-chip {
 		white-space: nowrap;
+		max-width: 100%;
+		min-width: 0;
 		border-radius: 0.5em;
 		background-color: #f5f5f5;
 		color: #333;
@@ -57,6 +59,16 @@
 		text-decoration: none;
 		transition: all 0.2s ease;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+	}
+
+	.social-account-chip > svg {
+		flex-shrink: 0;
+	}
+
+	.social-account-chip > span {
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.social-account-chip:hover {

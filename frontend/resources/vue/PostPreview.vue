@@ -381,15 +381,27 @@
 	margin-bottom: 0.5rem;
 }
 
+/* Takes only the space the author leaves, so the account chip truncates first. */
 .post-header-actions {
 	display: flex;
+	flex: 1 1 0;
+	justify-content: flex-end;
 	align-items: center;
 	gap: 0.5rem;
+	min-width: 4rem;
+}
+
+.post-header-actions > * {
 	flex-shrink: 0;
+}
+
+.post-header-actions > .social-account-chip {
+	flex-shrink: 1;
 }
 
 .social-account-info {
 	display: flex;
+	min-width: 0;
 	align-items: center;
 	gap: 0.5rem;
 	font-size: 1.1rem;
