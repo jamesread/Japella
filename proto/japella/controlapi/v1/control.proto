@@ -1913,6 +1913,9 @@ message PostPerformanceDay {
     string date = 1;
     uint32 posts = 2;
     PostEngagement engagement = 3;
+    // Recent interactions only: likes and comments the account made that day.
+    uint32 likes_given = 4;
+    uint32 comments_made = 5;
 }
 
 message GetSocialAccountPostPerformanceResponse {
@@ -1985,9 +1988,10 @@ message GetSocialAccountRecentInteractionsRequest {
 
 // One entry in an account's recent activity.
 message RecentInteraction {
-    // "post" (published by this account), "reply" (received), or
+    // "post" (published by this account), "reply" (received),
     // "engagement" (an increase in likes, reposts, quotes or replies, detected
-    // by the post_engagement job).
+    // by the post_engagement job), or "liked" / "commented" (by this account,
+    // through Japella, on someone else's post; post_id is 0).
     string kind = 1;
     // RFC3339. For engagement, when the increase was detected.
     string at = 2;
@@ -1999,6 +2003,11 @@ message RecentInteraction {
     PostEngagement engagement = 6;
     // For kind = reply.
     PostReply reply = 7;
+    // For kind = liked or commented: who wrote the post.
+    string post_author = 8;
+    // For kind = commented: the comment, as plain text, and its URL.
+    string comment = 9;
+    string comment_url = 10;
 }
 
 message GetSocialAccountRecentInteractionsResponse {
@@ -2014,6 +2023,9 @@ message GetSocialAccountRecentInteractionsResponse {
     repeated PostPerformanceDay daily = 6;
     // Newest first.
     repeated RecentInteraction items = 7;
+    // Likes and comments this account made through Japella in the window.
+    uint32 likes_given = 8;
+    uint32 comments_made = 9;
 }
 
 message FeedColumn {
@@ -2129,6 +2141,10 @@ message PostRef {
     string remote_url = 4;
     // Preferred over remote_id when set (a boost's original).
     string interaction_remote_id = 5;
+    // Display only: recorded with likes and comments in the account's recent
+    // interactions. Plain text; the server truncates it.
+    string snippet = 6;
+    string author_name = 7;
 }
 
 message SetPostLikedRequest {

@@ -12,10 +12,14 @@ const (
 	InteractionPost       = "post"
 	InteractionReply      = "reply"
 	InteractionEngagement = "engagement"
+	// Likes and comments the account itself made through Japella.
+	InteractionLiked     = "liked"
+	InteractionCommented = "commented"
 )
 
 // Interaction is one entry in an account's recent activity: a post it
-// published, a reply it received, or a detected increase in engagement.
+// published, a reply it received, a detected increase in engagement, or a
+// like or comment it made.
 type Interaction struct {
 	Kind        string
 	At          time.Time
@@ -28,6 +32,12 @@ type Interaction struct {
 
 	// Set for InteractionReply.
 	Reply *db.PostReply
+
+	// Set for InteractionLiked and InteractionCommented: the post is someone
+	// else's, so PostID is 0.
+	PostAuthor string
+	Comment    string
+	CommentURL string
 }
 
 // InteractionSources are the raw rows for one account and window.
@@ -35,6 +45,8 @@ type InteractionSources struct {
 	Posts   []*db.Post
 	Replies []*db.AccountPostReply
 	Events  []*db.PostEngagementEvent
+	// Likes and comments the account made.
+	Activity []*db.AccountActivity
 
 	// RepliesFromThreads is true when the account's connector fetches reply
 	// threads: replies are then listed individually, and the replies part of
@@ -46,14 +58,17 @@ type InteractionSources struct {
 type InteractionSummary struct {
 	Posts  uint32
 	Counts Counts
-	Daily  []DayBucket
-	Items  []Interaction
+	// Likes and comments the account made, kept apart from Counts (received).
+	LikesGiven   uint32
+	CommentsMade uint32
+	Daily        []DayBucket
+	Items        []Interaction
 }
 
 // SummariseInteractions merges posts, replies and engagement events into one
 // timeline (newest first, at most maxItems) with totals and one bucket per
 // calendar day for the `days` days ending on `today`. Day buckets count
-// posts published and interactions detected that day.
+// posts published, interactions detected, and likes and comments made that day.
 func SummariseInteractions(today time.Time, days int, src InteractionSources, maxItems int) InteractionSummary {
 	sum := InteractionSummary{Daily: Daily(today, days, nil)}
 	index := make(map[string]int, len(sum.Daily))
@@ -67,7 +82,7 @@ func SummariseInteractions(today time.Time, days int, src InteractionSources, ma
 		}
 	}
 
-	items := make([]Interaction, 0, len(src.Posts)+len(src.Replies)+len(src.Events))
+	items := make([]Interaction, 0, len(src.Posts)+len(src.Replies)+len(src.Events)+len(src.Activity))
 
 	for _, p := range src.Posts {
 		at := p.CreatedAt
@@ -124,6 +139,34 @@ func SummariseInteractions(today time.Time, days int, src InteractionSources, ma
 				Reply:       &reply,
 			})
 		}
+	}
+
+	for _, a := range src.Activity {
+		it := Interaction{
+			At:          a.CreatedAt,
+			PostContent: a.PostSnippet,
+			PostURL:     a.PostURL,
+			PostAuthor:  a.PostAuthor,
+		}
+		switch a.Kind {
+		case db.AccountActivityLiked:
+			sum.LikesGiven++
+			it.Kind = InteractionLiked
+			if i, ok := index[DateKey(a.CreatedAt)]; ok {
+				sum.Daily[i].LikesGiven++
+			}
+		case db.AccountActivityCommented:
+			sum.CommentsMade++
+			it.Kind = InteractionCommented
+			it.Comment = a.CommentContent.String
+			it.CommentURL = a.CommentURL
+			if i, ok := index[DateKey(a.CreatedAt)]; ok {
+				sum.Daily[i].CommentsMade++
+			}
+		default:
+			continue
+		}
+		items = append(items, it)
 	}
 
 	sort.SliceStable(items, func(i, j int) bool { return items[i].At.After(items[j].At) })

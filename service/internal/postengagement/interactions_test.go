@@ -68,3 +68,33 @@ func TestSummariseInteractionsWithoutThreads(t *testing.T) {
 		t.Fatalf("reply counts should come from events: %+v", sum)
 	}
 }
+
+func TestSummariseInteractionsActivity(t *testing.T) {
+	today := time.Date(2026, 10, 7, 18, 0, 0, 0, time.UTC)
+	day := func(d, h int) time.Time { return time.Date(2026, 10, d, h, 0, 0, 0, time.UTC) }
+
+	src := InteractionSources{
+		Activity: []*db.AccountActivity{
+			{Kind: db.AccountActivityLiked, PostSnippet: "nice", PostAuthor: "Alice", CreatedAt: day(7, 9)},
+			{Kind: db.AccountActivityCommented, CommentContent: sql.NullString{String: "agreed", Valid: true}, CreatedAt: day(7, 10)},
+			{Kind: db.AccountActivityLiked, CreatedAt: day(6, 9)},
+			{Kind: "unknown", CreatedAt: day(7, 11)},
+		},
+	}
+
+	sum := SummariseInteractions(today, 7, src, 0)
+
+	if sum.LikesGiven != 2 || sum.CommentsMade != 1 {
+		t.Fatalf("given = %d likes, %d comments; want 2, 1", sum.LikesGiven, sum.CommentsMade)
+	}
+	if sum.Counts.Interactions() != 0 {
+		t.Fatalf("outgoing activity counted as received: %+v", sum.Counts)
+	}
+	if len(sum.Items) != 3 || sum.Items[0].Kind != InteractionCommented || sum.Items[0].Comment != "agreed" {
+		t.Fatalf("unexpected items: %+v", sum.Items)
+	}
+	last := sum.Daily[len(sum.Daily)-1]
+	if last.LikesGiven != 1 || last.CommentsMade != 1 {
+		t.Fatalf("today bucket = %+v", last)
+	}
+}

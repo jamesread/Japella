@@ -1,7 +1,7 @@
 <template>
 	<Section
 		title="Recent interactions"
-		:subtitle="`Posts, replies and engagement on this account in the last ${days} days`"
+		:subtitle="`Posts, replies and engagement on this account, and likes and comments it made, in the last ${days} days`"
 		:icon="Notification03Icon"
 		classes="social-account-interactions"
 	>
@@ -61,9 +61,22 @@
 							<time class="subtle" :datetime="item.at">{{ formatHumanDateTime(item.at) }}</time>
 						</div>
 						<p v-if="item.kind === 'reply'" class="interaction-reply">{{ item.reply.content }}</p>
-						<router-link :to="item.to" class="interaction-post">
+						<p v-else-if="item.kind === 'commented'" class="interaction-reply">{{ item.comment }}</p>
+						<router-link v-if="item.to" :to="item.to" class="interaction-post">
 							<span v-if="item.kind !== 'post'" class="subtle">on </span>{{ item.postSnippet || '(no text)' }}
 						</router-link>
+						<a
+							v-else-if="item.postUrl"
+							:href="item.postUrl"
+							target="_blank"
+							rel="noopener noreferrer"
+							class="interaction-post"
+						>
+							<span class="subtle">on </span>{{ item.postSnippet || '(no text)' }}
+						</a>
+						<span v-else class="interaction-post">
+							<span class="subtle">on </span>{{ item.postSnippet || '(no text)' }}
+						</span>
 					</div>
 
 					<a
@@ -123,7 +136,9 @@
 		const t = report.value?.totals || {};
 		return [
 			{ key: 'posts', label: 'Posts', value: report.value?.posts || 0 },
-			{ key: 'interactions', label: 'Interactions', value: interactionsOf(t) },
+			{ key: 'likes-given', label: 'Likes given', value: report.value?.likesGiven || 0 },
+			{ key: 'comments-made', label: 'Comments made', value: report.value?.commentsMade || 0 },
+			{ key: 'interactions', label: 'Interactions received', value: interactionsOf(t) },
 			{ key: 'likes', label: 'Likes', value: t.likes || 0 },
 			{ key: 'reposts', label: 'Reposts', value: t.reposts || 0 },
 			{ key: 'replies', label: 'Replies', value: t.replies || 0 },
@@ -133,7 +148,8 @@
 
 	const dailyBars = computed(() => {
 		const daily = report.value?.daily || [];
-		const activity = (d) => interactionsOf(d.engagement) + (d.posts || 0);
+		const given = (d) => (d.likesGiven || 0) + (d.commentsMade || 0);
+		const activity = (d) => interactionsOf(d.engagement) + (d.posts || 0) + given(d);
 		const max = Math.max(1, ...daily.map(activity));
 		return daily.map((d) => {
 			// Dates are UTC calendar days; parse at noon UTC so the weekday label is stable.
@@ -142,7 +158,7 @@
 				date: d.date,
 				height: `${Math.round((activity(d) / max) * 100)}%`,
 				label: date.toLocaleDateString(undefined, { weekday: 'short', timeZone: 'UTC' }),
-				title: `${date.toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })}: ${plural(d.posts || 0, 'post', 'posts')}, ${plural(interactionsOf(d.engagement), 'interaction', 'interactions')}`,
+				title: `${date.toLocaleDateString(undefined, { dateStyle: 'medium', timeZone: 'UTC' })}: ${plural(d.posts || 0, 'post', 'posts')}, ${plural(interactionsOf(d.engagement), 'interaction', 'interactions')} received, ${plural(d.likesGiven || 0, 'like', 'likes')} and ${plural(d.commentsMade || 0, 'comment', 'comments')} made`,
 			};
 		});
 	});
@@ -180,6 +196,22 @@
 					to: { ...postRoute, hash: '#replies' },
 					externalUrl: it.reply.remoteUrl,
 					externalTitle: 'Open reply',
+				};
+			}
+
+			// Likes and comments the account made are on other people's posts,
+			// which only exist on the network.
+			if (it.kind === 'liked' || it.kind === 'commented') {
+				const whose = it.postAuthor ? `${it.postAuthor}'s post` : 'a post';
+				const commented = it.kind === 'commented';
+				return {
+					...base,
+					icon: commented ? 'mdi:comment-text-outline' : 'mdi:heart-outline',
+					headline: commented ? `Commented on ${whose}` : `Liked ${whose}`,
+					comment: it.comment,
+					postUrl: it.postUrl,
+					externalUrl: (commented && it.commentUrl) || it.postUrl,
+					externalTitle: commented && it.commentUrl ? 'Open comment' : 'Open post',
 				};
 			}
 

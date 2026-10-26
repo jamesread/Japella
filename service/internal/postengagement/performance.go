@@ -33,6 +33,9 @@ type DayBucket struct {
 	Date   string
 	Posts  uint32
 	Counts Counts
+	// Likes and comments the account made (recent interactions only).
+	LikesGiven   uint32
+	CommentsMade uint32
 }
 
 // DateKey is the calendar day (UTC) a time falls on, as YYYY-MM-DD.

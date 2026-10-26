@@ -16774,9 +16774,12 @@ func (x *GetSocialAccountPostPerformanceRequest) GetDays() uint32 {
 type PostPerformanceDay struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// YYYY-MM-DD (UTC).
-	Date          string          `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
-	Posts         uint32          `protobuf:"varint,2,opt,name=posts,proto3" json:"posts,omitempty"`
-	Engagement    *PostEngagement `protobuf:"bytes,3,opt,name=engagement,proto3" json:"engagement,omitempty"`
+	Date       string          `protobuf:"bytes,1,opt,name=date,proto3" json:"date,omitempty"`
+	Posts      uint32          `protobuf:"varint,2,opt,name=posts,proto3" json:"posts,omitempty"`
+	Engagement *PostEngagement `protobuf:"bytes,3,opt,name=engagement,proto3" json:"engagement,omitempty"`
+	// Recent interactions only: likes and comments the account made that day.
+	LikesGiven    uint32 `protobuf:"varint,4,opt,name=likes_given,json=likesGiven,proto3" json:"likes_given,omitempty"`
+	CommentsMade  uint32 `protobuf:"varint,5,opt,name=comments_made,json=commentsMade,proto3" json:"comments_made,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -16830,6 +16833,20 @@ func (x *PostPerformanceDay) GetEngagement() *PostEngagement {
 		return x.Engagement
 	}
 	return nil
+}
+
+func (x *PostPerformanceDay) GetLikesGiven() uint32 {
+	if x != nil {
+		return x.LikesGiven
+	}
+	return 0
+}
+
+func (x *PostPerformanceDay) GetCommentsMade() uint32 {
+	if x != nil {
+		return x.CommentsMade
+	}
+	return 0
 }
 
 type GetSocialAccountPostPerformanceResponse struct {
@@ -17318,9 +17335,10 @@ func (x *GetSocialAccountRecentInteractionsRequest) GetDays() uint32 {
 // One entry in an account's recent activity.
 type RecentInteraction struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// "post" (published by this account), "reply" (received), or
+	// "post" (published by this account), "reply" (received),
 	// "engagement" (an increase in likes, reposts, quotes or replies, detected
-	// by the post_engagement job).
+	// by the post_engagement job), or "liked" / "commented" (by this account,
+	// through Japella, on someone else's post; post_id is 0).
 	Kind string `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
 	// RFC3339. For engagement, when the increase was detected.
 	At     string `protobuf:"bytes,2,opt,name=at,proto3" json:"at,omitempty"`
@@ -17331,7 +17349,12 @@ type RecentInteraction struct {
 	// For kind = engagement: the increase.
 	Engagement *PostEngagement `protobuf:"bytes,6,opt,name=engagement,proto3" json:"engagement,omitempty"`
 	// For kind = reply.
-	Reply         *PostReply `protobuf:"bytes,7,opt,name=reply,proto3" json:"reply,omitempty"`
+	Reply *PostReply `protobuf:"bytes,7,opt,name=reply,proto3" json:"reply,omitempty"`
+	// For kind = liked or commented: who wrote the post.
+	PostAuthor string `protobuf:"bytes,8,opt,name=post_author,json=postAuthor,proto3" json:"post_author,omitempty"`
+	// For kind = commented: the comment, as plain text, and its URL.
+	Comment       string `protobuf:"bytes,9,opt,name=comment,proto3" json:"comment,omitempty"`
+	CommentUrl    string `protobuf:"bytes,10,opt,name=comment_url,json=commentUrl,proto3" json:"comment_url,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -17415,6 +17438,27 @@ func (x *RecentInteraction) GetReply() *PostReply {
 	return nil
 }
 
+func (x *RecentInteraction) GetPostAuthor() string {
+	if x != nil {
+		return x.PostAuthor
+	}
+	return ""
+}
+
+func (x *RecentInteraction) GetComment() string {
+	if x != nil {
+		return x.Comment
+	}
+	return ""
+}
+
+func (x *RecentInteraction) GetCommentUrl() string {
+	if x != nil {
+		return x.CommentUrl
+	}
+	return ""
+}
+
 type GetSocialAccountRecentInteractionsResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Days            uint32                 `protobuf:"varint,1,opt,name=days,proto3" json:"days,omitempty"`
@@ -17428,7 +17472,10 @@ type GetSocialAccountRecentInteractionsResponse struct {
 	// interactions received that day.
 	Daily []*PostPerformanceDay `protobuf:"bytes,6,rep,name=daily,proto3" json:"daily,omitempty"`
 	// Newest first.
-	Items         []*RecentInteraction `protobuf:"bytes,7,rep,name=items,proto3" json:"items,omitempty"`
+	Items []*RecentInteraction `protobuf:"bytes,7,rep,name=items,proto3" json:"items,omitempty"`
+	// Likes and comments this account made through Japella in the window.
+	LikesGiven    uint32 `protobuf:"varint,8,opt,name=likes_given,json=likesGiven,proto3" json:"likes_given,omitempty"`
+	CommentsMade  uint32 `protobuf:"varint,9,opt,name=comments_made,json=commentsMade,proto3" json:"comments_made,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -17510,6 +17557,20 @@ func (x *GetSocialAccountRecentInteractionsResponse) GetItems() []*RecentInterac
 		return x.Items
 	}
 	return nil
+}
+
+func (x *GetSocialAccountRecentInteractionsResponse) GetLikesGiven() uint32 {
+	if x != nil {
+		return x.LikesGiven
+	}
+	return 0
+}
+
+func (x *GetSocialAccountRecentInteractionsResponse) GetCommentsMade() uint32 {
+	if x != nil {
+		return x.CommentsMade
+	}
+	return 0
 }
 
 type FeedColumn struct {
@@ -18453,8 +18514,12 @@ type PostRef struct {
 	RemoteUrl  string `protobuf:"bytes,4,opt,name=remote_url,json=remoteUrl,proto3" json:"remote_url,omitempty"`
 	// Preferred over remote_id when set (a boost's original).
 	InteractionRemoteId string `protobuf:"bytes,5,opt,name=interaction_remote_id,json=interactionRemoteId,proto3" json:"interaction_remote_id,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Display only: recorded with likes and comments in the account's recent
+	// interactions. Plain text; the server truncates it.
+	Snippet       string `protobuf:"bytes,6,opt,name=snippet,proto3" json:"snippet,omitempty"`
+	AuthorName    string `protobuf:"bytes,7,opt,name=author_name,json=authorName,proto3" json:"author_name,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PostRef) Reset() {
@@ -18518,6 +18583,20 @@ func (x *PostRef) GetRemoteUrl() string {
 func (x *PostRef) GetInteractionRemoteId() string {
 	if x != nil {
 		return x.InteractionRemoteId
+	}
+	return ""
+}
+
+func (x *PostRef) GetSnippet() string {
+	if x != nil {
+		return x.Snippet
+	}
+	return ""
+}
+
+func (x *PostRef) GetAuthorName() string {
+	if x != nil {
+		return x.AuthorName
 	}
 	return ""
 }
@@ -20902,13 +20981,16 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x1eAcknowledgeHealthIssueResponse\"h\n" +
 	"&GetSocialAccountPostPerformanceRequest\x12*\n" +
 	"\x11social_account_id\x18\x01 \x01(\rR\x0fsocialAccountId\x12\x12\n" +
-	"\x04days\x18\x02 \x01(\rR\x04days\"\x85\x01\n" +
+	"\x04days\x18\x02 \x01(\rR\x04days\"\xcb\x01\n" +
 	"\x12PostPerformanceDay\x12\x12\n" +
 	"\x04date\x18\x01 \x01(\tR\x04date\x12\x14\n" +
 	"\x05posts\x18\x02 \x01(\rR\x05posts\x12E\n" +
 	"\n" +
 	"engagement\x18\x03 \x01(\v2%.japella.controlapi.v1.PostEngagementR\n" +
-	"engagement\"\xde\x02\n" +
+	"engagement\x12\x1f\n" +
+	"\vlikes_given\x18\x04 \x01(\rR\n" +
+	"likesGiven\x12#\n" +
+	"\rcomments_made\x18\x05 \x01(\rR\fcommentsMade\"\xde\x02\n" +
 	"'GetSocialAccountPostPerformanceResponse\x12\x12\n" +
 	"\x04days\x18\x01 \x01(\rR\x04days\x12\x1c\n" +
 	"\tsupported\x18\x02 \x01(\bR\tsupported\x12)\n" +
@@ -20950,7 +21032,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\areplies\x18\x05 \x03(\v2 .japella.controlapi.v1.PostReplyR\areplies\"k\n" +
 	")GetSocialAccountRecentInteractionsRequest\x12*\n" +
 	"\x11social_account_id\x18\x01 \x01(\rR\x0fsocialAccountId\x12\x12\n" +
-	"\x04days\x18\x02 \x01(\rR\x04days\"\x8d\x02\n" +
+	"\x04days\x18\x02 \x01(\rR\x04days\"\xe9\x02\n" +
 	"\x11RecentInteraction\x12\x12\n" +
 	"\x04kind\x18\x01 \x01(\tR\x04kind\x12\x0e\n" +
 	"\x02at\x18\x02 \x01(\tR\x02at\x12\x17\n" +
@@ -20960,7 +21042,13 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\n" +
 	"engagement\x18\x06 \x01(\v2%.japella.controlapi.v1.PostEngagementR\n" +
 	"engagement\x126\n" +
-	"\x05reply\x18\a \x01(\v2 .japella.controlapi.v1.PostReplyR\x05reply\"\xdf\x02\n" +
+	"\x05reply\x18\a \x01(\v2 .japella.controlapi.v1.PostReplyR\x05reply\x12\x1f\n" +
+	"\vpost_author\x18\b \x01(\tR\n" +
+	"postAuthor\x12\x18\n" +
+	"\acomment\x18\t \x01(\tR\acomment\x12\x1f\n" +
+	"\vcomment_url\x18\n" +
+	" \x01(\tR\n" +
+	"commentUrl\"\xa5\x03\n" +
 	"*GetSocialAccountRecentInteractionsResponse\x12\x12\n" +
 	"\x04days\x18\x01 \x01(\rR\x04days\x12\x1c\n" +
 	"\tsupported\x18\x02 \x01(\bR\tsupported\x12)\n" +
@@ -20968,7 +21056,10 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x05posts\x18\x04 \x01(\rR\x05posts\x12=\n" +
 	"\x06totals\x18\x05 \x01(\v2%.japella.controlapi.v1.PostEngagementR\x06totals\x12?\n" +
 	"\x05daily\x18\x06 \x03(\v2).japella.controlapi.v1.PostPerformanceDayR\x05daily\x12>\n" +
-	"\x05items\x18\a \x03(\v2(.japella.controlapi.v1.RecentInteractionR\x05items\"\xbf\x01\n" +
+	"\x05items\x18\a \x03(\v2(.japella.controlapi.v1.RecentInteractionR\x05items\x12\x1f\n" +
+	"\vlikes_given\x18\b \x01(\rR\n" +
+	"likesGiven\x12#\n" +
+	"\rcomments_made\x18\t \x01(\rR\fcommentsMade\"\xbf\x01\n" +
 	"\n" +
 	"FeedColumn\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\rR\x02id\x12\x14\n" +
@@ -21023,7 +21114,7 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\n" +
 	"remote_url\x18\x02 \x01(\tR\tremoteUrl\x12\x1b\n" +
 	"\tremote_id\x18\x03 \x01(\tR\bremoteId\"\x1a\n" +
-	"\x18MarkFeedPostReadResponse\"\xc7\x01\n" +
+	"\x18MarkFeedPostReadResponse\"\x82\x02\n" +
 	"\aPostRef\x12*\n" +
 	"\x11social_account_id\x18\x01 \x01(\rR\x0fsocialAccountId\x12 \n" +
 	"\ffeed_post_id\x18\x02 \x01(\rR\n" +
@@ -21031,7 +21122,10 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\tremote_id\x18\x03 \x01(\tR\bremoteId\x12\x1d\n" +
 	"\n" +
 	"remote_url\x18\x04 \x01(\tR\tremoteUrl\x122\n" +
-	"\x15interaction_remote_id\x18\x05 \x01(\tR\x13interactionRemoteId\"_\n" +
+	"\x15interaction_remote_id\x18\x05 \x01(\tR\x13interactionRemoteId\x12\x18\n" +
+	"\asnippet\x18\x06 \x01(\tR\asnippet\x12\x1f\n" +
+	"\vauthor_name\x18\a \x01(\tR\n" +
+	"authorName\"_\n" +
 	"\x13SetPostLikedRequest\x122\n" +
 	"\x04post\x18\x01 \x01(\v2\x1e.japella.controlapi.v1.PostRefR\x04post\x12\x14\n" +
 	"\x05liked\x18\x02 \x01(\bR\x05liked\"K\n" +

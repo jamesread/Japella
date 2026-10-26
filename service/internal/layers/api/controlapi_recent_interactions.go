@@ -44,13 +44,20 @@ func recentInteractionToProto(it postengagement.Interaction) *controlv1.RecentIn
 		if replies := replyNodesToProto([]*postreplies.Node{{Reply: it.Reply}}); len(replies) == 1 {
 			out.Reply = replies[0]
 		}
+	case postengagement.InteractionLiked:
+		out.PostAuthor = it.PostAuthor
+	case postengagement.InteractionCommented:
+		out.PostAuthor = it.PostAuthor
+		out.Comment = it.Comment
+		out.CommentUrl = it.CommentURL
 	}
 	return out
 }
 
 // GetSocialAccountRecentInteractions lists what happened on an account over
-// the last N days: posts it published, replies it received and increases in
-// engagement, newest first, with totals and per-day counts.
+// the last N days: posts it published, replies it received, increases in
+// engagement, and likes and comments it made, newest first, with totals and
+// per-day counts.
 func (s *ControlApi) GetSocialAccountRecentInteractions(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountRecentInteractionsRequest]) (*connect.Response[controlv1.GetSocialAccountRecentInteractionsResponse], error) {
 	au := s.getAuthenticatedUser(ctx)
 	if au == nil {
@@ -93,10 +100,16 @@ func (s *ControlApi) GetSocialAccountRecentInteractions(ctx context.Context, req
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load replies"))
 	}
 
+	activity, err := s.DB.SelectAccountActivitySince(accountID, since)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load likes and comments"))
+	}
+
 	sum := postengagement.SummariseInteractions(time.Now(), days, postengagement.InteractionSources{
 		Posts:              posts,
 		Replies:            replies,
 		Events:             events,
+		Activity:           activity,
 		RepliesFromThreads: s.connectorSupportsReplies(sa.Connector),
 	}, recentInteractionsMaxItems)
 
@@ -106,12 +119,16 @@ func (s *ControlApi) GetSocialAccountRecentInteractions(ctx context.Context, req
 		TrackingEnabled: s.postEngagementMaxAge() > 0,
 		Posts:           sum.Posts,
 		Totals:          countsToProto(sum.Counts),
+		LikesGiven:      sum.LikesGiven,
+		CommentsMade:    sum.CommentsMade,
 	}
 	for _, b := range sum.Daily {
 		res.Daily = append(res.Daily, &controlv1.PostPerformanceDay{
-			Date:       b.Date,
-			Posts:      b.Posts,
-			Engagement: countsToProto(b.Counts),
+			Date:         b.Date,
+			Posts:        b.Posts,
+			Engagement:   countsToProto(b.Counts),
+			LikesGiven:   b.LikesGiven,
+			CommentsMade: b.CommentsMade,
 		})
 	}
 	for _, it := range sum.Items {

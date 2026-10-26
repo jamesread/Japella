@@ -79,12 +79,25 @@
 		commented.value = true;
 	}
 
+	const SNIPPET_CHARS = 300;
+
+	function plainSnippet(html) {
+		if (!html) {
+			return '';
+		}
+		const text = (new DOMParser().parseFromString(html, 'text/html').body.textContent || '').trim();
+		return text.slice(0, SNIPPET_CHARS);
+	}
+
 	const postRef = computed(() => ({
 		socialAccountId: props.post.socialAccountId,
 		feedPostId: props.post.id || 0,
 		remoteId: props.post.remoteId || '',
 		remoteUrl: props.post.remoteUrl || '',
 		interactionRemoteId: props.post.interactionRemoteId || '',
+		// Recorded with the like or comment in the account's recent interactions.
+		snippet: plainSnippet(props.post.content),
+		authorName: props.post.originalAuthorName || props.post.authorName || '',
 	}));
 
 	async function toggleLike() {

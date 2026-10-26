@@ -116,6 +116,7 @@ func (s *ControlApi) SetPostLiked(ctx context.Context, req *connect.Request[cont
 			_ = s.DB.SetFeedEntryLiked(id, result.Liked, result.LikeCount)
 		}
 	}
+	s.recordLikeActivity(sa, ref, result.Liked)
 
 	return connect.NewResponse(&controlv1.SetPostLikedResponse{Liked: result.Liked, LikeCount: result.LikeCount}), nil
 }
@@ -237,6 +238,7 @@ func (s *ControlApi) PostComment(ctx context.Context, req *connect.Request[contr
 	}
 
 	s.recordPostCommented(sa.ID, ref)
+	s.recordCommentActivity(sa, ref, content, reply)
 
 	out := &controlv1.PostCommentResponse{}
 	if reply != nil {
