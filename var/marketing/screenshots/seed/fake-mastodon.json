@@ -1,0 +1,21 @@
+{
+  "_comment": "Fictional posts served by fake-mastodon.py for the feed's search columns. All people, handles and instances are made up.",
+  "tags": {
+    "coffee": [
+      {"id": "3101", "minutes_ago": 6, "username": "riley", "acct": "riley@cafe.example.org", "content": "<p>Cold mornings mean the first pour-over of the day tastes twice as good. <a href=\"https://cafe.example.org/tags/coffee\" class=\"mention hashtag\" rel=\"tag\">#<span>coffee</span></a></p>", "favourites": 14, "replies": 2},
+      {"id": "3102", "minutes_ago": 19, "username": "harbourbeans", "acct": "harbourbeans@social.example.net", "content": "<p>New single origin on the bar today: washed Ethiopian, all jasmine and lemon. Come say hi. <a href=\"https://social.example.net/tags/coffee\" class=\"mention hashtag\" rel=\"tag\">#<span>coffee</span></a></p>", "favourites": 31, "replies": 5},
+      {"id": "3103", "minutes_ago": 44, "username": "devonbrews", "acct": "devonbrews@mastodon.example.org", "content": "<p>Finally dialled in the new grinder. Turns out I was grinding far too fine for the last month. <a href=\"https://mastodon.example.org/tags/coffee\" class=\"mention hashtag\" rel=\"tag\">#<span>coffee</span></a> <a href=\"https://mastodon.example.org/tags/homebarista\" class=\"mention hashtag\" rel=\"tag\">#<span>homebarista</span></a></p>", "favourites": 8, "replies": 3},
+      {"id": "3104", "minutes_ago": 95, "username": "sam_reads", "acct": "sam_reads@books.example.com", "content": "<p>Rainy afternoon, a long novel and a flask of <a href=\"https://books.example.com/tags/coffee\" class=\"mention hashtag\" rel=\"tag\">#<span>coffee</span></a>. That is the whole plan.</p>", "favourites": 22, "replies": 1},
+      {"id": "3105", "minutes_ago": 160, "username": "citycyclist", "acct": "citycyclist@mastodon.example.org", "content": "<p>Ride report: 40km, two hills, one excellent flat white at the halfway stop. <a href=\"https://mastodon.example.org/tags/coffee\" class=\"mention hashtag\" rel=\"tag\">#<span>coffee</span></a></p>", "favourites": 17, "replies": 0}
+    ]
+  },
+  "search": {
+    "latte art": [
+      {"id": "3201", "minutes_ago": 12, "username": "jamie", "acct": "jamie@cafe.example.org", "content": "<p>Latte art practice, day 14. The tulip has three layers now and only one of them is wobbly.</p>", "favourites": 26, "replies": 4},
+      {"id": "3202", "minutes_ago": 37, "username": "baristaschool", "acct": "baristaschool@learn.example.net", "content": "<p>Saturday latte art workshop has two spaces left. Milk, cups and patience provided.</p>", "favourites": 11, "replies": 2},
+      {"id": "3203", "minutes_ago": 81, "username": "morgan", "acct": "morgan@social.example.net", "content": "<p>Asked for oat milk and got a perfect rosetta. Whoever is on the bar at the harbour cafe this morning: thank you.</p>", "favourites": 19, "replies": 1},
+      {"id": "3204", "minutes_ago": 140, "username": "devonbrews", "acct": "devonbrews@mastodon.example.org", "content": "<p>Hot take: latte art matters less than temperature. A beautiful swan on scalded milk is still scalded milk.</p>", "favourites": 42, "replies": 9},
+      {"id": "3205", "minutes_ago": 210, "username": "riley", "acct": "riley@cafe.example.org", "content": "<p>My kid drew latte art on paper for me this morning. Best heart I have seen all week.</p>", "favourites": 57, "replies": 6}
+    ]
+  }
+}

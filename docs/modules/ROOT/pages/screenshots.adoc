@@ -8,6 +8,12 @@ Write a post, pick the Mastodon, Bluesky, X, Facebook and Instagram accounts it 
 
 image::marketing/compose.png[Compose once, post everywhere]
 
+== Monitor multiple social feeds
+
+Read your feed side by side with columns that follow a hashtag or a search, and keep track of posts with private tags such as to-reply.
+
+image::marketing/feed.png[Monitor multiple social feeds]
+
 == Timeline
 
 Every post you have published, scheduled or drafted, across all of your accounts, with its campaign and a link to the live post.
@@ -37,12 +43,6 @@ image::marketing/campaigns.png[Campaigns]
 All of the accounts Japella can post to in one list, including who owns them, so teams can share accounts without sharing passwords.
 
 image::marketing/social-accounts.png[Social accounts]
-
-== Feed
-
-Read recent posts from the accounts you follow without leaving Japella, filtered by account, post type or author.
-
-image::marketing/feed.png[Feed]
 
 == Dark mode
 

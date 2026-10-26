@@ -4,8 +4,11 @@
 -- model can't scan NULLs), and the Makefile points the backend's outbound
 -- HTTP at a closed port, so nothing ever contacts a real network.
 -- owner_user_id 2 is the bootstrap admin user.
+-- The main Mastodon account's instance is fake-mastodon.py on localhost (the
+-- UI never shows it), which serves fixed fictional posts for the feed's
+-- search columns.
 INSERT INTO social_accounts (id, created_at, updated_at, connector, identity, did, homeserver, active, state, owner_user_id, oauth2_token, oauth2_token_expiry, oauth2_refresh_token) VALUES
-  (1, NOW() - INTERVAL 90 DAY, NOW(), 'mastodon',  'acmeroasters@mastodon.example.org', '', 'https://mastodon.example.org', 1, 'active', 2, '', NOW() + INTERVAL 60 DAY, ''),
+  (1, NOW() - INTERVAL 90 DAY, NOW(), 'mastodon',  'acmeroasters@mastodon.example.org', '', 'http://127.0.0.1:18381', 1, 'active', 2, '', NOW() + INTERVAL 60 DAY, ''),
   (2, NOW() - INTERVAL 90 DAY, NOW(), 'bluesky',   'acmeroasters.example.com', 'did:plc:demo-acmeroasters', 'https://bsky.example.com', 1, 'active', 2, '', NOW() + INTERVAL 60 DAY, ''),
   (3, NOW() - INTERVAL 80 DAY, NOW(), 'x',         'AcmeRoasters', '', '', 1, 'active', 2, '', NOW() + INTERVAL 60 DAY, ''),
   (4, NOW() - INTERVAL 70 DAY, NOW(), 'facebook',  'Acme Roasters', '', '', 1, 'active', 2, '', NOW() + INTERVAL 60 DAY, ''),

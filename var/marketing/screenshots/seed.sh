@@ -80,6 +80,14 @@ done
 echo "Seeding publishing history and feed (SQL)"
 $SQL < "$seed/history.sql"
 
+echo "Seeding feed columns and a tagged feed post"
+# Both search through the Mastodon account, answered by fake-mastodon.py.
+rpc "$admin" CreateFeedColumn '{"query": "#coffee", "socialAccountIds": [1]}' >/dev/null
+rpc "$admin" CreateFeedColumn '{"query": "latte art", "title": "Latte art", "socialAccountIds": [1]}' >/dev/null
+rpc "$admin" GetFeed '{}' | jq -c '.posts[] | select(.remoteId == "demo-2002")
+	| {post: {socialAccountId, feedPostId: .id, remoteId, remoteUrl}, tags: ["to-reply"]}' |
+	while read -r t; do rpc "$admin" SetPostTags "$t" >/dev/null; done
+
 echo "Seeding scheduled posts and drafts"
 jq -c '.scheduled[]' "$seed/posts.json" | while read -r p; do
 	at=$(when "$(jq -r .days <<<"$p")" "$(jq -r .time <<<"$p")")

@@ -20,6 +20,12 @@ Japella's architecture splits out the connections to different protocols (eg Tel
 
 Write a post, pick the Mastodon, Bluesky, X, Facebook and Instagram accounts it should go to, and publish now, schedule it or save a draft.
 
+### Monitor multiple social feeds
+
+![Monitor multiple social feeds](var/marketing/screenshots/feed.png)
+
+Read your feed side by side with columns that follow a hashtag or a search, and keep track of posts with private tags such as to-reply.
+
 ### Timeline
 
 ![Timeline](var/marketing/screenshots/timeline.png)
@@ -49,12 +55,6 @@ Group related posts and accounts into campaigns, such as a product launch, and t
 ![Social accounts](var/marketing/screenshots/social-accounts.png)
 
 All of the accounts Japella can post to in one list, including who owns them, so teams can share accounts without sharing passwords.
-
-### Feed
-
-![Feed](var/marketing/screenshots/feed.png)
-
-Read recent posts from the accounts you follow without leaving Japella, filtered by account, post type or author.
 
 ### Dark mode
 

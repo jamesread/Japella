@@ -10,6 +10,14 @@ screenshots:
     width: 1280
     height: 800
     theme: "light"
+  - name: "feed"
+    title: "Monitor multiple social feeds"
+    description: "Read your feed side by side with columns that follow a hashtag or a search, and keep track of posts with private tags such as to-reply."
+    url: "https://raw.githubusercontent.com/jamesread/Japella/main/var/marketing/screenshots/feed.png"
+    file: "feed.png"
+    width: 1760
+    height: 990
+    theme: "light"
   - name: "timeline"
     title: "Timeline"
     description: "Every post you have published, scheduled or drafted, across all of your accounts, with its campaign and a link to the live post."
@@ -47,14 +55,6 @@ screenshots:
     description: "All of the accounts Japella can post to in one list, including who owns them, so teams can share accounts without sharing passwords."
     url: "https://raw.githubusercontent.com/jamesread/Japella/main/var/marketing/screenshots/social-accounts.png"
     file: "social-accounts.png"
-    width: 1280
-    height: 800
-    theme: "light"
-  - name: "feed"
-    title: "Feed"
-    description: "Read recent posts from the accounts you follow without leaving Japella, filtered by account, post type or author."
-    url: "https://raw.githubusercontent.com/jamesread/Japella/main/var/marketing/screenshots/feed.png"
-    file: "feed.png"
     width: 1280
     height: 800
     theme: "light"

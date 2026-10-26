@@ -11,6 +11,8 @@ DB_CTR := japella-mkt-mariadb
 DB_PORT := 13307
 
 BACKEND_URL := http://127.0.0.1:18380
+# Stand-in Mastodon instance for the feed's search columns (fake-mastodon.py).
+FAKE_MASTODON_PORT := 18381
 
 DOCS_IMAGES := $(ROOT)/docs/modules/ROOT/images/marketing
 
@@ -47,6 +49,7 @@ up:
 	@for i in $$(seq 120); do \
 		$(CONTAINER) exec $(DB_CTR) mariadb -ujapella -pjapella-demo -h127.0.0.1 -e 'SELECT 1' japella >/dev/null 2>&1 && exit 0; \
 		sleep 1; done; echo "MariaDB did not start"; exit 1
+	{ ./fake-mastodon.py $(FAKE_MASTODON_PORT) > $(TMP)/fake-mastodon.log 2>&1 & echo $$! > $(TMP)/fake-mastodon.pid; }
 	cd $(RUN)/service && { $(BACKEND_ENV) $(ROOT)/service/japella > $(TMP)/service.log 2>&1 & echo $$! > $(TMP)/service.pid; }
 	# /healthz passes before the DB is migrated; API calls only succeed once
 	# the database and connector controller are ready.
@@ -74,6 +77,7 @@ publish:
 
 down:
 	-@[ -f $(TMP)/service.pid ] && kill $$(cat $(TMP)/service.pid) 2>/dev/null; rm -f $(TMP)/service.pid
+	-@[ -f $(TMP)/fake-mastodon.pid ] && kill $$(cat $(TMP)/fake-mastodon.pid) 2>/dev/null; rm -f $(TMP)/fake-mastodon.pid
 	-@$(CONTAINER) rm -f $(DB_CTR) >/dev/null 2>&1
 
 clean: down
