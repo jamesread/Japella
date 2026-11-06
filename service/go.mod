@@ -67,7 +67,7 @@ require (
 	github.com/MicahParks/keyfunc/v3 v3.8.2 // indirect
 	github.com/Microsoft/go-winio v0.6.4 // indirect
 	github.com/air-verse/air v1.64.5 // indirect
-	github.com/andybalholm/brotli v1.2.0 // indirect
+	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/beeper/argo-go v1.1.2 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
