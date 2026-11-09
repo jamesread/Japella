@@ -274,10 +274,10 @@ github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2
 github.com/inconshreveable/mousetrap v1.1.0/go.mod h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=
 github.com/jamesread/armature-health v1.0.0 h1:2ebkecImo/OCDrd6blOtkoKpnAiSW/RfDOLzSEKz7o8=
 github.com/jamesread/armature-health v1.0.0/go.mod h1:Rf5rqmrO+4Y+cvj30ErKpMJcYBtxubVmt8kJpNw7A1o=
-github.com/jamesread/armature-iam v1.0.1 h1:l9mQu+qgS9iebYLS2XCgSSxBp/9r+spPzPRUdTvRhOs=
-github.com/jamesread/armature-iam v1.0.1/go.mod h1:51noGiJsZwoylKpIm7WMOLQMWngCe/rWc3ZbNDSVCNQ=
-github.com/jamesread/golure v0.0.0-20260927082702-900b761e432f h1:9eoL7vPEKO2JXRJjfLCmONS5jGpMXMsQzHwjTIOpN98=
-github.com/jamesread/golure v0.0.0-20260927082702-900b761e432f/go.mod h1:BZ/CMtZJJ4LNEBDSjGfafTJMjlDPIA9FS16+reN9NUE=
+github.com/jamesread/armature-iam v1.0.2-0.20261109144521-2ed2864bdeea h1:dIY839EIgFiqHNNc3NHvquQ5QKxRaxRtAAIXyfHdi10=
+github.com/jamesread/armature-iam v1.0.2-0.20261109144521-2ed2864bdeea/go.mod h1:51noGiJsZwoylKpIm7WMOLQMWngCe/rWc3ZbNDSVCNQ=
+github.com/jamesread/golure v0.0.0-20261109144715-86ce70a3f84b h1:N3oywTsqSBvbeQBAi2rTuskPUBxjNgzRVORQDkL8JcU=
+github.com/jamesread/golure v0.0.0-20261109144715-86ce70a3f84b/go.mod h1:C5IAp6bbli1tZYibp+dQhGOmJWscUhiIp+QPEJCMIJ4=
 github.com/jamesread/httpauthshim v0.2.0 h1:0vWutwipdNBCROQyjhsONdlb6qxcbnyajNc4fl8r/Fc=
 github.com/jamesread/httpauthshim v0.2.0/go.mod h1:SvCzQpS3Llj+oykwcV3cnDEDdb/5ra7i/sh3faGFcKs=
 github.com/jdkato/prose v1.2.1 h1:Fp3UnJmLVISmlc57BgKUzdjr0lOtjqTZicL3PaYy6cU=

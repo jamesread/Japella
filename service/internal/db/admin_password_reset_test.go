@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/jamesread/japella/internal/utils"
+	armpassword "github.com/jamesread/armature-iam/password"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,13 +26,13 @@ func TestAdminPasswordReset(t *testing.T) {
 	// Test 2: Verify password hashing works correctly
 	t.Run("PasswordHashing", func(t *testing.T) {
 		password := "admin"
-		hashedPassword, err := utils.HashPassword(password)
+		hashedPassword, err := armpassword.Hash(password)
 
 		assert.NoError(t, err, "Should hash password without error")
 		assert.NotEmpty(t, hashedPassword, "Hashed password should not be empty")
 
 		// Verify the hash can be verified
-		match, err := utils.VerifyPassword(hashedPassword, password)
+		match, err := armpassword.Verify(hashedPassword, password)
 		assert.NoError(t, err, "Should verify password without error")
 		assert.True(t, match, "Password should match its hash")
 	})
@@ -80,7 +80,7 @@ func TestAdminPasswordResetIntegration(t *testing.T) {
 	assert.NotNil(t, updatedAdmin)
 
 	// Verify the password is now "admin"
-	match, err := utils.VerifyPassword(updatedAdmin.PasswordHash, "admin")
+	match, err := armpassword.Verify(updatedAdmin.PasswordHash, "admin")
 	assert.NoError(t, err)
 	assert.True(t, match, "Admin password should be reset to 'admin'")
 }

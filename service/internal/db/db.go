@@ -10,6 +10,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	armpassword "github.com/jamesread/armature-iam/password"
 	"github.com/jamesread/armature-iam/store"
 	"github.com/jamesread/golure/pkg/dirs"
 	"github.com/jamesread/japella/internal/runtimeconfig"
@@ -281,7 +282,7 @@ func (db *DB) initAdminUser(chain *ConnectionChain) {
 		adminUser := db.GetUserByUsername("admin")
 		if adminUser != nil {
 			// Hash the new password
-			passwordHash, err := utils.HashPassword("admin")
+			passwordHash, err := armpassword.Hash("admin")
 			if err != nil {
 				db.Logger().Errorf("Error hashing admin password: %v", err)
 				chain.err = err
@@ -306,7 +307,7 @@ func (db *DB) initAdminUser(chain *ConnectionChain) {
 	if !db.HasAnyUsers() {
 		db.Logger().Warn("No users found in the database, creating default admin user")
 
-		passwordHash, err := utils.HashPassword("admin")
+		passwordHash, err := armpassword.Hash("admin")
 
 		if err != nil {
 			db.Logger().Errorf("Error hashing default password: %v", err)

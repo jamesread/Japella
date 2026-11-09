@@ -6,7 +6,6 @@ require (
 	connectrpc.com/authn v0.2.0
 	connectrpc.com/connect v1.21.1
 	connectrpc.com/cors v0.1.0
-	github.com/alexedwards/argon2id v1.0.0
 	github.com/bufbuild/buf v1.74.0
 	github.com/bwmarrin/discordgo v0.29.0
 	github.com/fzipp/gocyclo v0.6.0
@@ -19,8 +18,8 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.32.0
 	github.com/jamesread/armature-health v1.0.0
-	github.com/jamesread/armature-iam v1.0.1
-	github.com/jamesread/golure v0.0.0-20260927082702-900b761e432f
+	github.com/jamesread/armature-iam v1.0.2-0.20261109144521-2ed2864bdeea
+	github.com/jamesread/golure v0.0.0-20261109144715-86ce70a3f84b
 	github.com/jamesread/httpauthshim v0.2.0
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mark3labs/mcp-go v1.3.0
@@ -67,6 +66,7 @@ require (
 	github.com/MicahParks/keyfunc/v3 v3.8.2 // indirect
 	github.com/Microsoft/go-winio v0.6.4 // indirect
 	github.com/air-verse/air v1.64.5 // indirect
+	github.com/alexedwards/argon2id v1.0.0 // indirect
 	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/beeper/argo-go v1.1.2 // indirect

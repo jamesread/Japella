@@ -23,7 +23,7 @@ import (
 	"encoding/json"
 
 	armhealth "github.com/jamesread/armature-health"
-	"github.com/jamesread/armature-iam/password"
+	armpassword "github.com/jamesread/armature-iam/password"
 	"github.com/jamesread/armature-iam/store"
 	"github.com/jamesread/golure/pkg/redact"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
@@ -47,7 +47,6 @@ import (
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/shutdown"
 	"github.com/jamesread/japella/internal/themes"
-	"github.com/jamesread/japella/internal/utils"
 	"github.com/jamesread/japella/internal/webhook"
 	log "github.com/sirupsen/logrus"
 
@@ -2433,7 +2432,7 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 
 	res := connect.NewResponse(&controlv1.LoginWithUsernameAndPasswordResponse{})
 
-	match, err := utils.VerifyPassword(user.PasswordHash, req.Msg.Password)
+	match, err := armpassword.Verify(user.PasswordHash, req.Msg.Password)
 
 	if err != nil || !match {
 		res.Msg.StandardResponse = &controlv1.StandardResponse{
@@ -2500,7 +2499,7 @@ func (s *ControlApi) ChangePassword(ctx context.Context, req *connect.Request[co
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user has no password set"))
 	}
 
-	match, err := utils.VerifyPassword(user.PasswordHash, req.Msg.CurrentPassword)
+	match, err := armpassword.Verify(user.PasswordHash, req.Msg.CurrentPassword)
 	if err != nil || !match {
 		log.Warnf("Invalid current password for user: %s", user.Username)
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid current password"))
@@ -2513,7 +2512,7 @@ func (s *ControlApi) ChangePassword(ctx context.Context, req *connect.Request[co
 	}
 
 	// Hash new password
-	newPasswordHash, err := utils.HashPassword(req.Msg.NewPassword)
+	newPasswordHash, err := armpassword.Hash(req.Msg.NewPassword)
 	if err != nil {
 		log.Errorf("Error hashing new password for user %s: %v", user.Username, err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash new password"))
@@ -2551,7 +2550,7 @@ func (s *ControlApi) ResetUserPassword(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
 	}
 
-	newHash, err := utils.HashPassword(req.Msg.NewPassword)
+	newHash, err := armpassword.Hash(req.Msg.NewPassword)
 	if err != nil {
 		log.Errorf("ResetUserPassword: hash error: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash password"))
@@ -2754,7 +2753,7 @@ func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[contro
 	passwordHash := ""
 	if password != "" {
 		var err error
-		passwordHash, err = utils.HashPassword(password)
+		passwordHash, err = armpassword.Hash(password)
 		if err != nil {
 			log.Errorf("Error hashing password for new user %s: %v", username, err)
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash password"))
@@ -3007,7 +3006,7 @@ func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[cont
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("API key name must be 128 characters or fewer"))
 	}
 
-	newKeyValue, err := password.GenerateAPIKey("")
+	newKeyValue, err := armpassword.GenerateAPIKey("")
 	if err != nil {
 		log.Errorf("Error generating API key: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to generate API key: %w", err))

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jamesread/japella/internal/utils"
+	armpassword "github.com/jamesread/armature-iam/password"
 	"github.com/spf13/cobra"
 )
 
@@ -31,12 +31,12 @@ func runAdminPasswordReset(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("user not found: %s", username)
 	}
 
-	password, err := utils.GeneratePassword()
+	password, err := armpassword.Generate(16)
 	if err != nil {
 		return fmt.Errorf("generate password: %w", err)
 	}
 
-	hash, err := utils.HashPassword(password)
+	hash, err := armpassword.Hash(password)
 	if err != nil {
 		return fmt.Errorf("hash password: %w", err)
 	}

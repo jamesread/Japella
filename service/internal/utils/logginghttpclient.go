@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
+	"github.com/jamesread/golure/pkg/redact"
 
 	logp "github.com/sirupsen/logrus"
 
@@ -41,7 +42,7 @@ func (l *ChainingHttpClient) logRequestHeaders(req *http.Request) {
 		return
 	}
 	for key, values := range req.Header {
-		for _, value := range values {
+		for _, value := range redact.HeaderValues(key, values) {
 			debuglog.HTTPf("Request Header: %s: %s", key, value)
 		}
 	}
@@ -52,7 +53,7 @@ func (l *ChainingHttpClient) logResponseHeaders(resp *http.Response) {
 		return
 	}
 	for key, values := range resp.Header {
-		for _, value := range values {
+		for _, value := range redact.HeaderValues(key, values) {
 			debuglog.HTTPf("Response Header: %s: %s", key, value)
 		}
 	}

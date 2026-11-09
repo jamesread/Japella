@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 	armhealth "github.com/jamesread/armature-health"
 	"github.com/jamesread/armature-health/store"
+	armpassword "github.com/jamesread/armature-iam/password"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/health"
 	"github.com/jamesread/japella/internal/runtimeconfig"
@@ -68,7 +69,7 @@ func (s *ControlApi) adminUsesDefaultPassword(_ context.Context) (bool, error) {
 	if adminUser == nil || adminUser.PasswordHash == "" {
 		return false, nil
 	}
-	return utils.VerifyPassword(adminUser.PasswordHash, "admin")
+	return armpassword.Verify(adminUser.PasswordHash, "admin")
 }
 
 func (s *ControlApi) ListHealthIssues(ctx context.Context, req *connect.Request[controlv1.ListHealthIssuesRequest]) (*connect.Response[controlv1.ListHealthIssuesResponse], error) {

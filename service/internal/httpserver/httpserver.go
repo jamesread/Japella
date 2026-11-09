@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
+	"github.com/jamesread/golure/pkg/httpserve"
+	"github.com/jamesread/golure/pkg/listenaddr"
 
 	"github.com/jamesread/japella/internal/httpserver/frontend"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
@@ -72,24 +71,6 @@ func allowCors(h http.Handler) http.Handler {
 }
 */
 
-func handleReadyz(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := w.Write([]byte("ok")); err != nil {
-		log.Errorf("Error writing response: %v", err)
-	}
-}
-
-func handleHealthz(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-
-	if _, err := w.Write([]byte("healthy")); err != nil {
-		log.Errorf("Error writing response: %v", err)
-	}
-}
-
 func CreateServer(endpoint string) (*http.Server, error) {
 	mux := http.NewServeMux()
 
@@ -114,8 +95,8 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	mux.Handle("/lang", http.HandlerFunc(i18n.Handle))
 	mux.HandleFunc("/upload", upload.Handle)
 	mux.HandleFunc("/media/files/", upload.HandleServeMedia)
-	mux.HandleFunc("/readyz", handleReadyz)
-	mux.HandleFunc("/healthz", handleHealthz)
+	mux.HandleFunc("/readyz", httpserve.OK("ok"))
+	mux.HandleFunc("/healthz", httpserve.OK("healthy"))
 	mux.Handle("/metrics", promhttp.Handler())
 	mux.HandleFunc("/llms.txt", handleLLMsTxt)
 	mux.Handle("/mcp", authenticatedMCPHandler)
@@ -124,12 +105,7 @@ func CreateServer(endpoint string) (*http.Server, error) {
 
 	handler := healthcheck.ReadinessMiddleware(srv, mux)
 
-	server := &http.Server{
-		Addr:    endpoint,
-		Handler: h2c.NewHandler(handler, &http2.Server{}),
-	}
-
-	return server, nil
+	return httpserve.New(httpserve.Config{Addr: endpoint, Handler: handler, H2C: true}), nil
 }
 
 func handleLLMsTxt(w http.ResponseWriter, r *http.Request) {
@@ -168,21 +144,16 @@ func findCerts() (string, string) {
 // GetListenAddress returns the effective listen address that will be used.
 // Priority: $PORT, then config listenAddress, then TLS :443 or default :8080.
 func GetListenAddress() string {
-	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {
-		return "0.0.0.0:" + port
-	}
-
 	cfg := runtimeconfig.Get()
-	if cfg.ListenAddress != "" {
-		return cfg.ListenAddress
+	fallback := "0.0.0.0:8080"
+
+	if cfg.ListenAddress == "" {
+		if crt, key := findCerts(); crt != "" && key != "" {
+			fallback = "0.0.0.0:443"
+		}
 	}
 
-	crt, key := findCerts()
-	if crt != "" && key != "" {
-		return "0.0.0.0:443"
-	}
-
-	return "0.0.0.0:8080"
+	return listenaddr.Resolve(cfg.ListenAddress, fallback)
 }
 
 func Start() {

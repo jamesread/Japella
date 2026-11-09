@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jamesread/golure/pkg/httpserve"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -137,12 +138,12 @@ func TestHandleReadyz(t *testing.T) {
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handleReadyz)
+	handler := httpserve.OK("ok")
 
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, "text/plain", rr.Header().Get("Content-Type"))
+	assert.Equal(t, "text/plain; charset=utf-8", rr.Header().Get("Content-Type"))
 	assert.Equal(t, "ok", strings.TrimSpace(rr.Body.String()))
 }
 
@@ -151,12 +152,12 @@ func TestHandleHealthz(t *testing.T) {
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(handleHealthz)
+	handler := httpserve.OK("healthy")
 
 	handler.ServeHTTP(rr, req)
 
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, "text/plain", rr.Header().Get("Content-Type"))
+	assert.Equal(t, "text/plain; charset=utf-8", rr.Header().Get("Content-Type"))
 	assert.Equal(t, "healthy", strings.TrimSpace(rr.Body.String()))
 }
 
