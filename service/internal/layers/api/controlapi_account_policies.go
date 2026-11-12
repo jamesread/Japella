@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/jamesread/japella/internal/intconv"
+
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/db"
@@ -39,10 +41,10 @@ func (s *ControlApi) marshalAccountPolicy(policy *db.AccountPolicy) (*controlv1.
 			StageOrder: st.StageOrder,
 		}
 		if st.UserID.Valid {
-			ps.UserId = uint32(st.UserID.Int32)
+			ps.UserId = intconv.Uint32(st.UserID.Int32)
 		}
 		if st.UserGroupID.Valid {
-			ps.UserGroupId = uint32(st.UserGroupID.Int32)
+			ps.UserGroupId = intconv.Uint32(st.UserGroupID.Int32)
 		}
 		if st.Username.Valid {
 			ps.Username = st.Username.String
@@ -68,9 +70,9 @@ func validatePolicyStages(stages []*controlv1.AccountPolicyApprovalStage) ([]*db
 		}
 		dbStage := &db.AccountPolicyApprovalStage{StageOrder: uint32(i)}
 		if hasUser {
-			dbStage.UserID = sql.NullInt32{Int32: int32(st.UserId), Valid: true}
+			dbStage.UserID = sql.NullInt32{Int32: intconv.Int32(st.UserId), Valid: true}
 		} else {
-			dbStage.UserGroupID = sql.NullInt32{Int32: int32(st.UserGroupId), Valid: true}
+			dbStage.UserGroupID = sql.NullInt32{Int32: intconv.Int32(st.UserGroupId), Valid: true}
 		}
 		out = append(out, dbStage)
 	}
@@ -242,13 +244,13 @@ func (s *ControlApi) marshalPendingApproval(p *db.Post, viewerID uint32) *contro
 		SubmissionSource: p.SubmissionSource,
 	}
 	if p.AccountPolicyID.Valid {
-		item.AccountPolicyId = uint32(p.AccountPolicyID.Int32)
+		item.AccountPolicyId = intconv.Uint32(p.AccountPolicyID.Int32)
 		if pol, err := s.DB.GetAccountPolicy(item.AccountPolicyId); err == nil && pol != nil {
 			item.AccountPolicyName = pol.Name
 		}
 	}
 	if p.SubmittedByUserID.Valid {
-		item.SubmittedByUserId = uint32(p.SubmittedByUserID.Int32)
+		item.SubmittedByUserId = intconv.Uint32(p.SubmittedByUserID.Int32)
 		if u := s.DB.GetUserByID(item.SubmittedByUserId); u != nil {
 			item.SubmittedByUsername = u.Username
 		}
@@ -262,16 +264,16 @@ func (s *ControlApi) marshalPendingApproval(p *db.Post, viewerID uint32) *contro
 		}
 	}
 	if p.CampaignID.Valid {
-		item.Post.CampaignId = uint32(p.CampaignID.Int32)
+		item.Post.CampaignId = intconv.Uint32(p.CampaignID.Int32)
 	}
 	if p.CampaignName.Valid {
 		item.Post.CampaignName = p.CampaignName.String
 	}
 
-	isSubmitter := p.SubmittedByUserID.Valid && uint32(p.SubmittedByUserID.Int32) == viewerID
+	isSubmitter := p.SubmittedByUserID.Valid && intconv.Uint32(p.SubmittedByUserID.Int32) == viewerID
 	isAssignee := false
 	if p.AccountPolicyID.Valid {
-		if stage, err := s.DB.GetApprovalStageByPolicyAndOrder(uint32(p.AccountPolicyID.Int32), p.ApprovalStage); err == nil && stage != nil {
+		if stage, err := s.DB.GetApprovalStageByPolicyAndOrder(intconv.Uint32(p.AccountPolicyID.Int32), p.ApprovalStage); err == nil && stage != nil {
 			ok, _ := s.DB.CanUserApproveStage(viewerID, stage)
 			isAssignee = ok
 			item.WaitingOn = describeStageAssignee(stage)
@@ -318,14 +320,14 @@ func (s *ControlApi) ApprovePost(ctx context.Context, req *connect.Request[contr
 	if post.State != db.PostStatePendingApproval {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("post is not pending approval"))
 	}
-	if post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == au.User.ID {
+	if post.SubmittedByUserID.Valid && intconv.Uint32(post.SubmittedByUserID.Int32) == au.User.ID {
 		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("submitter cannot approve their own post"))
 	}
 	if !post.AccountPolicyID.Valid {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("post has no account policy"))
 	}
 
-	policyID := uint32(post.AccountPolicyID.Int32)
+	policyID := intconv.Uint32(post.AccountPolicyID.Int32)
 	stage, err := s.DB.GetApprovalStageByPolicyAndOrder(policyID, post.ApprovalStage)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("current approval stage not found"))
@@ -335,7 +337,7 @@ func (s *ControlApi) ApprovePost(ctx context.Context, req *connect.Request[contr
 		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("not an approver for the current stage"))
 	}
 
-	if err := s.DB.RecordPostApproval(post.ID, stage.ID, au.User.ID); err != nil {
+	if err = s.DB.RecordPostApproval(post.ID, stage.ID, au.User.ID); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to record approval"))
 	}
 
@@ -346,7 +348,7 @@ func (s *ControlApi) ApprovePost(ctx context.Context, req *connect.Request[contr
 
 	nextStage := post.ApprovalStage + 1
 	if int(nextStage) < stageCount {
-		if err := s.DB.AdvancePostApprovalStage(post.ID, nextStage); err != nil {
+		if err = s.DB.AdvancePostApprovalStage(post.ID, nextStage); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to advance stage"))
 		}
 		post.ApprovalStage = nextStage
@@ -392,10 +394,10 @@ func (s *ControlApi) RejectPost(ctx context.Context, req *connect.Request[contro
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("post is not pending approval"))
 	}
 
-	isSubmitter := post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == au.User.ID
+	isSubmitter := post.SubmittedByUserID.Valid && intconv.Uint32(post.SubmittedByUserID.Int32) == au.User.ID
 	canReject := isSubmitter
 	if !canReject && post.AccountPolicyID.Valid {
-		stage, stErr := s.DB.GetApprovalStageByPolicyAndOrder(uint32(post.AccountPolicyID.Int32), post.ApprovalStage)
+		stage, stErr := s.DB.GetApprovalStageByPolicyAndOrder(intconv.Uint32(post.AccountPolicyID.Int32), post.ApprovalStage)
 		if stErr == nil {
 			ok, _ := s.DB.CanUserApproveStage(au.User.ID, stage)
 			canReject = ok
@@ -440,7 +442,7 @@ func (s *ControlApi) marshalPostStatus(post *db.Post) *controlv1.PostStatus {
 	}
 	ps.PostedDate = postedDate.Format("2006-01-02 15:04:05")
 	if post.CampaignID.Valid {
-		ps.CampaignId = uint32(post.CampaignID.Int32)
+		ps.CampaignId = intconv.Uint32(post.CampaignID.Int32)
 	}
 	if post.CampaignName.Valid {
 		ps.CampaignName = post.CampaignName.String
@@ -480,7 +482,8 @@ func (s *ControlApi) GetPost(ctx context.Context, req *connect.Request[controlv1
 		Post: s.marshalPostStatus(post),
 	}
 
-	if post.State == db.PostStatePendingApproval {
+	switch post.State {
+	case db.PostStatePendingApproval:
 		pending := s.marshalPendingApproval(post, au.User.ID)
 		res.ApprovalStage = pending.ApprovalStage
 		res.AccountPolicyId = pending.AccountPolicyId
@@ -492,8 +495,8 @@ func (s *ControlApi) GetPost(ctx context.Context, req *connect.Request[controlv1
 		res.CanReject = pending.CanReject
 		res.CanEdit = pending.CanReject
 		res.WaitingOn = pending.WaitingOn
-	} else if post.State == db.PostStateDraft {
-		if post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == au.User.ID {
+	case db.PostStateDraft:
+		if post.SubmittedByUserID.Valid && intconv.Uint32(post.SubmittedByUserID.Int32) == au.User.ID {
 			res.CanEdit = true
 		}
 	}
@@ -522,10 +525,10 @@ func (s *ControlApi) UpdatePendingPost(ctx context.Context, req *connect.Request
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("post is not pending approval"))
 	}
 
-	isSubmitter := post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == au.User.ID
+	isSubmitter := post.SubmittedByUserID.Valid && intconv.Uint32(post.SubmittedByUserID.Int32) == au.User.ID
 	canEdit := isSubmitter
 	if !canEdit && post.AccountPolicyID.Valid {
-		stage, stErr := s.DB.GetApprovalStageByPolicyAndOrder(uint32(post.AccountPolicyID.Int32), post.ApprovalStage)
+		stage, stErr := s.DB.GetApprovalStageByPolicyAndOrder(intconv.Uint32(post.AccountPolicyID.Int32), post.ApprovalStage)
 		if stErr == nil {
 			ok, _ := s.DB.CanUserApproveStage(au.User.ID, stage)
 			canEdit = ok

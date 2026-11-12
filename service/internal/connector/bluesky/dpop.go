@@ -17,28 +17,22 @@ func base64urlEncode(data []byte) string {
 	return base64.RawURLEncoding.EncodeToString(data)
 }
 
-// calculateAccessTokenHash calculates the SHA-256 hash of the access token for the "ath" claim
-func calculateAccessTokenHash(accessToken string) string {
-	hash := sha256.Sum256([]byte(accessToken))
-	return base64urlEncode(hash[:])
-}
-
 func createDPoPProof(privKey *ecdsa.PrivateKey, httpMethod, httpUrl, serverNonce, accessTokenHash string) (string, error) {
 	// JWT header
-	header := map[string]interface{}{
+	header := map[string]any{
 		"typ": "dpop+jwt",
 		"alg": "ES256",
-		"jwk": map[string]interface{}{
+		"jwk": map[string]any{
 			"kty": "EC",
 			"crv": "P-256",
-			"x":   base64urlEncode(privKey.PublicKey.X.Bytes()),
-			"y":   base64urlEncode(privKey.PublicKey.Y.Bytes()),
+			"x":   base64urlEncode(privKey.X.Bytes()),
+			"y":   base64urlEncode(privKey.Y.Bytes()),
 		},
 	}
 
 	// JWT payload
 	now := time.Now().Unix()
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"htu": httpUrl,
 		"htm": httpMethod,
 		"iat": now,

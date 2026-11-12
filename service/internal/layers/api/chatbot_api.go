@@ -151,16 +151,12 @@ func (s *ControlApi) reloadChatBotConnector(protocol, botID, displayName string)
 	if svc == nil {
 		return fmt.Errorf("chat bot not registered: %s/%s", protocol, botID)
 	}
-	base, ok := svc.(connector.BaseConnector)
-	if !ok {
-		return fmt.Errorf("connector does not support reload: %s/%s", protocol, botID)
-	}
 	cfg := &connector.ChatBotStartupConfig{
 		Protocol:    protocol,
 		BotID:       botID,
 		DisplayName: displayName,
 	}
-	base.SetStartupConfiguration(&connector.ControllerStartupConfiguration{
+	svc.SetStartupConfiguration(&connector.ControllerStartupConfiguration{
 		DB:     s.DB,
 		Config: cfg,
 	})

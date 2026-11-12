@@ -2,11 +2,11 @@ package dummy
 
 import (
 	"fmt"
-	"math/rand"
 	"strings"
 	"sync"
 
 	"github.com/jamesread/japella/internal/connector"
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 // Simulated engagement for posts published through the dummy connector, so
@@ -35,17 +35,17 @@ func (c *Connector) FetchPostEngagement(sa *connector.SocialAccount, remoteID st
 		engagementByURL[key] = e
 	}
 
-	e.Likes += uint32(rand.Intn(4))
-	if rand.Intn(3) == 0 {
+	e.Likes += intconv.Uint32(simIntN(4))
+	if simIntN(3) == 0 {
 		e.Reposts++
 	}
-	if rand.Intn(4) == 0 {
+	if simIntN(4) == 0 {
 		e.Replies++
 	}
-	if rand.Intn(10) == 0 {
+	if simIntN(10) == 0 {
 		e.Quotes++
 	}
-	e.Impressions += uint32(5 + rand.Intn(40))
+	e.Impressions += intconv.Uint32(5 + simIntN(40))
 
 	out := *e
 	return &out, nil

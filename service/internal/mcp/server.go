@@ -8,6 +8,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/jamesread/japella/internal/intconv"
+
 	"connectrpc.com/connect"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -107,16 +109,16 @@ func handleListSocialAccounts(ctx context.Context, srv *api.ControlApi, req mcp.
 	return jsonResult(map[string]any{"accounts": accounts})
 }
 
-func rejectReadOnlyMCP(ctx context.Context) (*mcp.CallToolResult, error) {
+func rejectReadOnlyMCP(ctx context.Context) *mcp.CallToolResult {
 	if au := authentication.FromContext(ctx); au != nil && au.ReadOnly {
-		return mcp.NewToolResultError("read-only API key cannot perform this action"), nil
+		return mcp.NewToolResultError("read-only API key cannot perform this action")
 	}
-	return nil, nil
+	return nil
 }
 
 func handleSubmitPost(ctx context.Context, srv *api.ControlApi, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	if denied, err := rejectReadOnlyMCP(ctx); denied != nil || err != nil {
-		return denied, err
+	if denied := rejectReadOnlyMCP(ctx); denied != nil {
+		return denied, nil
 	}
 	content, err := req.RequireString("content")
 	if err != nil {
@@ -136,7 +138,7 @@ func handleSubmitPost(ctx context.Context, srv *api.ControlApi, req mcp.CallTool
 		if id < 0 {
 			return mcp.NewToolResultError("social_account_ids must be non-negative"), nil
 		}
-		socialAccounts = append(socialAccounts, uint32(id))
+		socialAccounts = append(socialAccounts, intconv.Uint32(id))
 	}
 
 	ctx = api.WithSubmissionSource(ctx, db.SubmissionSourceMCP)
@@ -144,7 +146,7 @@ func handleSubmitPost(ctx context.Context, srv *api.ControlApi, req mcp.CallTool
 		Content:        content,
 		SocialAccounts: socialAccounts,
 		ScheduledAt:    req.GetString("scheduled_at", ""),
-		CampaignId:     uint32(req.GetInt("campaign_id", 0)),
+		CampaignId:     intconv.Uint32(req.GetInt("campaign_id", 0)),
 	}
 
 	res, err := srv.SubmitPost(ctx, connect.NewRequest(submitReq))
@@ -201,8 +203,8 @@ func handleListPendingApprovals(ctx context.Context, srv *api.ControlApi) (*mcp.
 }
 
 func handleApprovePost(ctx context.Context, srv *api.ControlApi, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	if denied, err := rejectReadOnlyMCP(ctx); denied != nil || err != nil {
-		return denied, err
+	if denied := rejectReadOnlyMCP(ctx); denied != nil {
+		return denied, nil
 	}
 	postID, err := req.RequireInt("post_id")
 	if err != nil {
@@ -211,7 +213,7 @@ func handleApprovePost(ctx context.Context, srv *api.ControlApi, req mcp.CallToo
 	if postID < 0 {
 		return mcp.NewToolResultError("post_id must be non-negative"), nil
 	}
-	res, err := srv.ApprovePost(ctx, connect.NewRequest(&controlv1.ApprovePostRequest{PostId: uint32(postID)}))
+	res, err := srv.ApprovePost(ctx, connect.NewRequest(&controlv1.ApprovePostRequest{PostId: intconv.Uint32(postID)}))
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
@@ -229,8 +231,8 @@ func handleApprovePost(ctx context.Context, srv *api.ControlApi, req mcp.CallToo
 }
 
 func handleRejectPost(ctx context.Context, srv *api.ControlApi, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-	if denied, err := rejectReadOnlyMCP(ctx); denied != nil || err != nil {
-		return denied, err
+	if denied := rejectReadOnlyMCP(ctx); denied != nil {
+		return denied, nil
 	}
 	postID, err := req.RequireInt("post_id")
 	if err != nil {
@@ -240,7 +242,7 @@ func handleRejectPost(ctx context.Context, srv *api.ControlApi, req mcp.CallTool
 		return mcp.NewToolResultError("post_id must be non-negative"), nil
 	}
 	res, err := srv.RejectPost(ctx, connect.NewRequest(&controlv1.RejectPostRequest{
-		PostId: uint32(postID),
+		PostId: intconv.Uint32(postID),
 		Reason: req.GetString("reason", ""),
 	}))
 	if err != nil {

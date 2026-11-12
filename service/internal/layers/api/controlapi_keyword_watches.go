@@ -220,7 +220,7 @@ func (s *ControlApi) UpdateKeywordWatch(ctx context.Context, req *connect.Reques
 	if existing == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("keyword watch not found"))
 	}
-	if err := s.canManageKeywordWatches(ctx, existing.SocialAccountID); err != nil {
+	if err = s.canManageKeywordWatches(ctx, existing.SocialAccountID); err != nil {
 		return nil, err
 	}
 	display, norm, err := keywordwatch.NormalizeKeyword(req.Msg.Keyword)

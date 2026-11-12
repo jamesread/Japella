@@ -29,9 +29,9 @@ func getConfigFilePath(filename string) string {
 // ConfigYAMLAbsolutePath returns the absolute filesystem path to config.yaml (the file the loader uses).
 func ConfigYAMLAbsolutePath() string {
 	p := getConfigFilePath("config.yaml")
-	if strings.HasPrefix(p, "~/") {
+	if after, ok := strings.CutPrefix(p, "~/"); ok {
 		if home, err := os.UserHomeDir(); err == nil {
-			p = filepath.Join(home, strings.TrimPrefix(p, "~/"))
+			p = filepath.Join(home, after)
 		}
 	}
 	abs, err := filepath.Abs(p)
@@ -42,7 +42,7 @@ func ConfigYAMLAbsolutePath() string {
 }
 
 func readFile(filename string) ([]byte, error) {
-	handle, err := os.Open(filename)
+	handle, err := os.Open(filename) //nolint:gosec // config path is chosen by the operator
 
 	if err != nil {
 		return nil, err

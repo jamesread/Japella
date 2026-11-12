@@ -1,6 +1,8 @@
 package discord
 
 import (
+	"time"
+
 	"github.com/bwmarrin/discordgo"
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/amqp"
@@ -9,7 +11,6 @@ import (
 	"github.com/jamesread/japella/internal/hooks"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 var goBot *discordgo.Session
@@ -90,12 +91,15 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 }
 
 func cmdPing(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Pong!",
 		},
 	})
+	if err != nil {
+		log.Warnf("Discord ping response failed: %v", err)
+	}
 }
 
 func registerCommand(name string, handler func(s *discordgo.Session, i *discordgo.InteractionCreate)) {
@@ -182,16 +186,7 @@ func (a *DiscordConnector) GetChatBot() *connector.ChatBot {
 		name = "Discord"
 	}
 
-	statusMsg := ""
-	if a.isRunning {
-		statusMsg = "Bot is running and connected"
-	} else if a.errorMessage != "" {
-		statusMsg = a.errorMessage
-	} else if a.statusMessage != "" {
-		statusMsg = a.statusMessage
-	} else {
-		statusMsg = "Stopped (not connected)"
-	}
+	statusMsg := connector.ChatBotStatusMessage(a.isRunning, a.errorMessage, a.statusMessage)
 
 	return &connector.ChatBot{
 		BotID:               a.botID,
@@ -253,7 +248,9 @@ func (a *DiscordConnector) Replier() {
 		// Note: AMQP binding should already filter by identity via routing key, but we keep protocol check for safety
 
 		if goBot != nil {
-			goBot.ChannelMessageSend(reply.Channel, reply.Content)
+			if _, err := goBot.ChannelMessageSend(reply.Channel, reply.Content); err != nil {
+				a.Logger().Warnf("Failed to send Discord message to channel %s: %v", reply.Channel, err)
+			}
 
 			if a.db != nil {
 				conversationKey, conversationTitle := a.db.ResolveOutgoingConversationForLog(

@@ -9,7 +9,6 @@ import (
 	"image/png"
 	"math"
 	"os"
-	"path/filepath"
 
 	xdraw "golang.org/x/image/draw"
 )
@@ -48,11 +47,10 @@ func OptimiseForPosting(filename string, target PostingTarget) (*OptimiseResult,
 		target.MaxSide = DefaultPostingTarget.MaxSide
 	}
 
-	path, err := PathFromURL(mediaFilesPrefix + filename)
-	if err != nil {
-		return nil, err
+	if !ValidFilename(filename) {
+		return nil, os.ErrNotExist
 	}
-	data, err := os.ReadFile(path)
+	data, err := readFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +61,7 @@ func OptimiseForPosting(filename string, target PostingTarget) (*OptimiseResult,
 	}
 	switch format {
 	case "png":
-		if chunks, err := pngChunks(data); err == nil {
+		if chunks, chunkErr := pngChunks(data); chunkErr == nil {
 			for _, c := range chunks {
 				if c.typ == "acTL" {
 					return nil, fmt.Errorf("animated PNGs can't be prepared for posting")
@@ -98,14 +96,13 @@ func OptimiseForPosting(filename string, target PostingTarget) (*OptimiseResult,
 		ext = ".png"
 	}
 	name := postingName(filename, ext)
-	dir := filepath.Dir(path)
 	// A previous copy may have been saved in the other format.
 	for _, old := range []string{".jpg", ".png"} {
 		if old != ext {
-			os.Remove(filepath.Join(dir, postingName(filename, old)))
+			_ = RemoveFile(postingName(filename, old))
 		}
 	}
-	if err := writeAtomic(filepath.Join(dir, name), out); err != nil {
+	if err := writeFileAtomic(name, out); err != nil {
 		return nil, err
 	}
 
@@ -250,8 +247,8 @@ func applyOrientation(img image.Image, orientation int) image.Image {
 		dw, dh = h, w
 	}
 	dst := image.NewNRGBA(image.Rect(0, 0, dw, dh))
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			var dx, dy int
 			switch orientation {
 			case 2:

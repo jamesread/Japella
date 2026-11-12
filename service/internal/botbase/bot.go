@@ -2,13 +2,14 @@ package botbase
 
 import (
 	"fmt"
+	"regexp"
+	"sync"
+
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/amqp"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/utils"
 	"google.golang.org/protobuf/reflect/protoreflect"
-	"regexp"
-	"sync"
 )
 
 type Bot struct {
@@ -98,7 +99,7 @@ func (b *Bot) handleBangCommand(msg *msgs.IncomingMessage) {
 		} else {
 			b.Logger().Warnf("Unhandled message: %v, %+v", command, msg)
 
-			for k, _ := range b.bangCommands {
+			for k := range b.bangCommands {
 				b.Logger().Warnf("Available command: %v", k)
 			}
 		}

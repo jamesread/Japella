@@ -73,16 +73,7 @@ func (c *TelegramConnector) GetChatBot() *connector.ChatBot {
 		name = c.nickname
 	}
 
-	statusMsg := ""
-	if c.isRunning {
-		statusMsg = "Bot is running and connected"
-	} else if c.errorMessage != "" {
-		statusMsg = c.errorMessage
-	} else if c.statusMessage != "" {
-		statusMsg = c.statusMessage
-	} else {
-		statusMsg = "Stopped (not connected)"
-	}
+	statusMsg := connector.ChatBotStatusMessage(c.isRunning, c.errorMessage, c.statusMessage)
 
 	return &connector.ChatBot{
 		BotID:               c.botID,
@@ -345,20 +336,21 @@ func (c *TelegramConnector) messageHandler(ctx context.Context, b *tgbotapi.Bot,
 	c.Logger().Infof("=== messageHandler ENTERED ===")
 
 	// Log all update types
-	if update.Message != nil {
+	switch {
+	case update.Message != nil:
 		c.Logger().Infof("Processing Message update")
 		c.handleMessage(update.Message)
-	} else if update.ChannelPost != nil {
+	case update.ChannelPost != nil:
 		c.Logger().Infof("Processing ChannelPost update")
 		c.handleMessage(update.ChannelPost)
-	} else if update.EditedMessage != nil {
+	case update.EditedMessage != nil:
 		c.Logger().Infof("Processing EditedMessage update")
 		c.handleMessage(update.EditedMessage)
-	} else if update.CallbackQuery != nil {
+	case update.CallbackQuery != nil:
 		c.Logger().Infof("Processing CallbackQuery update (ID: %s)", update.CallbackQuery.ID)
-	} else if update.InlineQuery != nil {
+	case update.InlineQuery != nil:
 		c.Logger().Infof("Processing InlineQuery update (ID: %s)", update.InlineQuery.ID)
-	} else {
+	default:
 		c.Logger().Warnf("Received update with unknown type")
 		c.Logger().Infof("Full update structure: %+v", update)
 	}

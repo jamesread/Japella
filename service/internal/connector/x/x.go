@@ -139,7 +139,7 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 	refreshTokenArgs := make(map[string]string)
 	refreshTokenArgs["refresh_token"] = socialAccount.OAuth2RefreshToken
 	refreshTokenArgs["grant_type"] = "refresh_token"
-	//refreshTokenArgs["client_id"] = x.db.GetCvarString(CFG_X_CLIENT_ID)
+	// refreshTokenArgs["client_id"] = x.db.GetCvarString(CFG_X_CLIENT_ID)
 
 	requrl := "https://api.x.com/2/oauth2/token"
 	tok := base64.StdEncoding.EncodeToString([]byte(x.db.GetCvarString(CFG_X_CLIENT_ID) + ":" + x.db.GetCvarString(CFG_X_CLIENT_SECRET)))
@@ -162,7 +162,9 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 
 	x.Logger().Debugf("Token refreshed successfully: %+v", res)
 
-	x.db.UpdateSocialAccountToken(socialAccount.ID, res.AccessToken, res.RefreshToken, res.ExpiresIn)
+	if err := x.db.UpdateSocialAccountToken(socialAccount.ID, res.AccessToken, res.RefreshToken, res.ExpiresIn); err != nil {
+		return fmt.Errorf("save refreshed X token: %w", err)
+	}
 
 	socialAccount.OAuth2Token = res.AccessToken
 	x.whoami(socialAccount)
@@ -194,9 +196,13 @@ func (x *XConnector) whoami(socialAccount *db.SocialAccount) {
 	}
 
 	x.Logger().Infof("Updated X account identity to: %s", whoamiResult.Data.Username)
-	x.db.UpdateSocialAccountIdentity(socialAccount.ID, whoamiResult.Data.Username)
+	if err := x.db.UpdateSocialAccountIdentity(socialAccount.ID, whoamiResult.Data.Username); err != nil {
+		x.Logger().Warnf("Failed to save X account identity: %v", err)
+	}
 	if whoamiResult.Data.ID != "" {
-		x.db.UpdateSocialAccountDid(socialAccount.ID, whoamiResult.Data.ID)
+		if err := x.db.UpdateSocialAccountDid(socialAccount.ID, whoamiResult.Data.ID); err != nil {
+			x.Logger().Warnf("Failed to save X account id: %v", err)
+		}
 	}
 }
 
@@ -217,7 +223,7 @@ func (x *XConnector) lookupUserID(accessToken string) (string, error) {
 	}
 
 	if whoamiResult.Data.ID == "" {
-		return "", fmt.Errorf("X API returned empty user id")
+		return "", fmt.Errorf("empty user id from the X API")
 	}
 
 	return whoamiResult.Data.ID, nil
@@ -234,7 +240,9 @@ func (x *XConnector) resolveUserID(accessToken string, cachedUserID string, acco
 	}
 
 	if accountID != 0 {
-		x.db.UpdateSocialAccountDid(accountID, userID)
+		if err := x.db.UpdateSocialAccountDid(accountID, userID); err != nil {
+			x.Logger().Warnf("Failed to save X account id: %v", err)
+		}
 	}
 
 	return userID, nil
@@ -244,22 +252,22 @@ func (x *XConnector) resolveUserID(accessToken string, cachedUserID string, acco
 // v1-style: { "media_id": 123 } or { "media_id_string": "123" }
 // v2-style: { "data": { "media_key": "..." } } or { "data": { "media_id": "..." } }
 type mediaUploadResponse struct {
-	MediaID       interface{}      `json:"media_id"`
+	MediaID       any              `json:"media_id"`
 	MediaIDString string           `json:"media_id_string"`
 	Data          *mediaUploadData `json:"data"`
 }
 
 type mediaUploadData struct {
-	MediaKey string      `json:"media_key"`
-	MediaID  interface{} `json:"media_id"`
+	MediaKey string `json:"media_key"`
+	MediaID  any    `json:"media_id"`
 }
 
 func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // path comes from media.PathFromURL, confined to the media directory
 	if err != nil {
 		return "", fmt.Errorf("open file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	body := &bytes.Buffer{}
 	w := multipart.NewWriter(body)
@@ -269,7 +277,7 @@ func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("create form file: %w", err)
 	}
-	if _, err := io.Copy(part, f); err != nil {
+	if _, err = io.Copy(part, f); err != nil {
 		return "", fmt.Errorf("write file to form: %w", err)
 	}
 	// Optional: set media_category for images so X treats as tweet_image
@@ -278,11 +286,11 @@ func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error
 		_ = w.WriteField("media_category", "tweet_image")
 	}
 	contentType := w.FormDataContentType()
-	if err := w.Close(); err != nil {
+	if err = w.Close(); err != nil {
 		return "", fmt.Errorf("close multipart writer: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", "https://api.x.com/2/media/upload", body)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://api.x.com/2/media/upload", body)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
@@ -294,9 +302,9 @@ func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error
 	if err != nil {
 		return "", fmt.Errorf("do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
-	if resp.StatusCode == 403 {
+	if resp.StatusCode == http.StatusForbidden {
 		b, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("media upload forbidden (403): X requires the media.write scope. Disconnect and reconnect your X account in Japella so the new permission is granted. Response: %s", string(b))
 	}
@@ -413,7 +421,7 @@ func (x *XConnector) PostToWall(sa *connector.SocialAccount, message string, med
 	if tweetResult.Data.ID == "" {
 		x.Logger().Errorf("X API returned empty tweet ID - post may have failed")
 
-		err := fmt.Errorf("X API returned empty tweet ID")
+		err := fmt.Errorf("empty tweet ID from the X API")
 		_ = x.db.InsertTableLog(
 			fmt.Sprintf("X API returned empty tweet ID for account %d", sa.Id),
 			"error",
@@ -634,7 +642,7 @@ func (x *XConnector) fetchFeedPostWithToken(accessToken string, remoteID string)
 	}
 
 	if response.Data.ID == "" {
-		return nil, fmt.Errorf("X tweet %s not found", remoteID)
+		return nil, fmt.Errorf("tweet %s not found on X", remoteID)
 	}
 
 	authorName := ""

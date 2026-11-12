@@ -50,10 +50,10 @@ func runAdminUserGroupAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("user group not found: %s", groupName)
 	}
 
-	if err := database.AddUserGroupMember(user.ID, group.ID); err != nil {
+	if err = database.AddUserGroupMember(user.ID, group.ID); err != nil {
 		return fmt.Errorf("add user to group: %w", err)
 	}
 
-	fmt.Fprintf(os.Stdout, "Added user %q to group %q\n", username, groupName)
-	return nil
+	_, err = fmt.Fprintf(os.Stdout, "Added user %q to group %q\n", username, groupName)
+	return err
 }

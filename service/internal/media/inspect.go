@@ -26,15 +26,14 @@ type Info struct {
 // Inspect reads a library file's size and image dimensions. Only the image
 // header is read.
 func Inspect(filename string) (*Info, error) {
-	path, err := PathFromURL(mediaFilesPrefix + filename)
+	if !ValidFilename(filename) {
+		return nil, os.ErrNotExist
+	}
+	f, err := OpenFile(filename)
 	if err != nil {
 		return nil, err
 	}
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	st, err := f.Stat()
 	if err != nil {

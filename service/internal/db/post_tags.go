@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"time"
@@ -38,17 +39,17 @@ func (db *DB) SetPostTags(userID uint32, keyHash, key string, socialAccountID ui
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
 	if len(tags) == 0 {
-		if _, err := tx.Exec(`DELETE FROM tagged_posts WHERE user_account_id = ? AND post_key_hash = ?`, userID, keyHash); err != nil {
+		if _, err := tx.ExecContext(context.Background(), `DELETE FROM tagged_posts WHERE user_account_id = ? AND post_key_hash = ?`, userID, keyHash); err != nil {
 			db.Logger().Errorf("Failed to untag post for user %d: %v", userID, err)
 			return err
 		}
 		return tx.Commit()
 	}
 
-	if _, err := tx.Exec(`
+	if _, err := tx.ExecContext(context.Background(), `
 		INSERT INTO tagged_posts (user_account_id, post_key_hash, post_key, social_account_id, snapshot, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3))
 		ON DUPLICATE KEY UPDATE social_account_id = VALUES(social_account_id), snapshot = VALUES(snapshot), updated_at = NOW(3)`,
@@ -66,13 +67,13 @@ func (db *DB) SetPostTags(userID uint32, keyHash, key string, socialAccountID ui
 	for _, t := range tags {
 		args = append(args, t)
 	}
-	if _, err := tx.Exec(`DELETE FROM post_tags WHERE tagged_post_id = ? AND tag NOT IN (`+placeholders(len(tags))+`)`, args...); err != nil {
+	if _, err := tx.ExecContext(context.Background(), `DELETE FROM post_tags WHERE tagged_post_id = ? AND tag NOT IN (`+placeholders(len(tags))+`)`, args...); err != nil {
 		db.Logger().Errorf("Failed to remove post tags: %v", err)
 		return err
 	}
 	// INSERT IGNORE keeps when each existing tag was first added, which orders tag columns.
 	for _, t := range tags {
-		if _, err := tx.Exec(`INSERT IGNORE INTO post_tags (tagged_post_id, tag, created_at) VALUES (?, ?, NOW(3))`, id, t); err != nil {
+		if _, err := tx.ExecContext(context.Background(), `INSERT IGNORE INTO post_tags (tagged_post_id, tag, created_at) VALUES (?, ?, NOW(3))`, id, t); err != nil {
 			db.Logger().Errorf("Failed to add post tag: %v", err)
 			return err
 		}

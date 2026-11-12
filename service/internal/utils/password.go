@@ -4,8 +4,9 @@ import (
 	"crypto/rand"
 	"math/big"
 
-	"github.com/alexedwards/argon2id"
 	"runtime"
+
+	"github.com/alexedwards/argon2id"
 )
 
 var defaultHashParams = argon2id.Params{

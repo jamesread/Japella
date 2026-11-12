@@ -3,7 +3,7 @@ package dummy
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -47,7 +47,6 @@ type Connector struct {
 	mu       sync.RWMutex
 	posts    []simPost
 	seq      uint64
-	stopSim  context.CancelFunc
 	interval time.Duration
 }
 
@@ -62,10 +61,9 @@ func (c *Connector) Start() {
 	if c.interval <= 0 {
 		c.interval = 15 * time.Second
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	c.stopSim = cancel
 	c.seedInitialPosts()
-	go c.runSimulator(ctx)
+	// Connectors have no stop lifecycle, so the simulator runs until exit.
+	go c.runSimulator(context.Background())
 	c.Logger().Infof("Dummy connector started (sim interval %s)", c.interval)
 }
 
@@ -83,7 +81,7 @@ func (c *Connector) OnRefresh(socialAccount *db.SocialAccount) error {
 
 func (c *Connector) seedInitialPosts() {
 	now := time.Now()
-	for i := 0; i < 30; i++ {
+	for i := range 30 {
 		c.appendPost(now.Add(-time.Duration(30-i) * time.Minute))
 	}
 }
@@ -102,12 +100,12 @@ func (c *Connector) runSimulator(ctx context.Context) {
 }
 
 func (c *Connector) appendPost(at time.Time) {
-	kw := KeywordPool[rand.Intn(len(KeywordPool))]
-	tpl := templates[rand.Intn(len(templates))]
+	kw := KeywordPool[simIntN(len(KeywordPool))]
+	tpl := templates[simIntN(len(templates))]
 	content := fmt.Sprintf(tpl, kw, at.UTC().Format(time.RFC3339))
 	// Occasionally include a second keyword.
-	if rand.Intn(3) == 0 {
-		other := KeywordPool[rand.Intn(len(KeywordPool))]
+	if simIntN(3) == 0 {
+		other := KeywordPool[simIntN(len(KeywordPool))]
 		if other != kw {
 			content += " also mentioning " + other
 		}
@@ -194,8 +192,8 @@ func (c *Connector) SearchRecentByKeyword(ctx context.Context, sa *connector.Soc
 	}
 	posts := c.snapshot()
 	out := make([]*connector.RemotePost, 0)
-	for i := len(posts) - 1; i >= 0; i-- {
-		p := posts[i]
+	for _, v := range slices.Backward(posts) {
+		p := v
 		if !since.IsZero() && p.PostedAt.Before(since) {
 			continue
 		}
@@ -235,11 +233,9 @@ func (c *Connector) StartKeywordWatch(ctx context.Context, sa *connector.SocialA
 	}
 	runCtx, cancel := context.WithCancel(ctx)
 	h := &watchHandle{cancel: cancel}
-	h.wg.Add(1)
-	go func() {
-		defer h.wg.Done()
+	h.wg.Go(func() {
 		c.runNativeWatch(runCtx, keywords, sink)
-	}()
+	})
 	return h, nil
 }
 

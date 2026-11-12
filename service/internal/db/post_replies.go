@@ -1,6 +1,7 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -32,9 +33,9 @@ func (db *DB) ReplacePostReplies(postID uint32, replies []*PostReply, replyCount
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
-	if _, err = tx.Exec(`DELETE FROM post_replies WHERE post_id = ?`, postID); err != nil {
+	if _, err = tx.ExecContext(context.Background(), `DELETE FROM post_replies WHERE post_id = ?`, postID); err != nil {
 		db.Logger().Errorf("Failed to clear replies for post %d: %v", postID, err)
 		return err
 	}
@@ -44,7 +45,7 @@ func (db *DB) ReplacePostReplies(postID uint32, replies []*PostReply, replyCount
 		if r.PostedAt.Valid {
 			postedAt = r.PostedAt.Time
 		}
-		if _, err = tx.Exec(`
+		if _, err = tx.ExecContext(context.Background(), `
 			INSERT INTO post_replies
 				(post_id, remote_id, parent_remote_id, remote_url, author_name, author_handle, author_avatar_url, content, posted_at, created_at)
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))`,
@@ -54,7 +55,7 @@ func (db *DB) ReplacePostReplies(postID uint32, replies []*PostReply, replyCount
 		}
 	}
 
-	if _, err = tx.Exec(`
+	if _, err = tx.ExecContext(context.Background(), `
 		INSERT INTO post_engagement (post_id, replies_fetched_at, replies_fetched_count, created_at, updated_at)
 		VALUES (?, NOW(3), ?, NOW(3), NOW(3))
 		ON DUPLICATE KEY UPDATE replies_fetched_at = NOW(3), replies_fetched_count = VALUES(replies_fetched_count), updated_at = NOW(3)`,

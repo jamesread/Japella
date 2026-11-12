@@ -13,8 +13,8 @@ import (
 func handleParts(s string) (local, domain string) {
 	s = strings.ToLower(strings.TrimSpace(s))
 	s = strings.TrimPrefix(s, "@")
-	if i := strings.Index(s, "@"); i >= 0 {
-		return s[:i], s[i+1:]
+	if before, after, ok := strings.Cut(s, "@"); ok {
+		return before, after
 	}
 	return s, ""
 }

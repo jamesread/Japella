@@ -2,15 +2,16 @@ package amqp
 
 import (
 	"fmt"
-	"github.com/jamesread/japella/internal/runtimeconfig"
-	amqp "github.com/rabbitmq/amqp091-go"
-	log "github.com/sirupsen/logrus"
-	"github.com/teris-io/shortid"
 	"os"
 	"reflect"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/jamesread/japella/internal/runtimeconfig"
+	amqp "github.com/rabbitmq/amqp091-go"
+	log "github.com/sirupsen/logrus"
+	"github.com/teris-io/shortid"
 )
 
 var (
@@ -64,7 +65,7 @@ func getDialURL() string {
 }
 
 func GetChannel(name string) (*amqp.Channel, error) {
-	conn, err := getConn()
+	connection, err := getConn()
 
 	if err != nil {
 		return nil, err
@@ -73,7 +74,7 @@ func GetChannel(name string) (*amqp.Channel, error) {
 	if channel, ok := channels[name]; !ok || channel.IsClosed() {
 		log.Debugf("GetChannel() - Opening new channel for %v", name)
 
-		channel, err = conn.Channel()
+		channel, err = connection.Channel()
 
 		if err != nil {
 			log.Warnf("GetChannel() - Error opening channel: %v", name)
@@ -153,8 +154,8 @@ func getConn() (*amqp.Connection, error) {
 	return conn, nil
 }
 
-func getMsgType(msg interface{}) string {
-	if t := reflect.TypeOf(msg); t.Kind() == reflect.Ptr {
+func getMsgType(msg any) string {
+	if t := reflect.TypeOf(msg); t.Kind() == reflect.Pointer {
 		return t.Elem().Name()
 	} else {
 		return t.Name()
@@ -229,7 +230,7 @@ func publishMandatoryWithReturn(c *amqp.Channel, routingKey string, msg amqp.Pub
 	}
 }
 
-func PublishPbWithRoutingKey(msg interface{}, routingKey string) {
+func PublishPbWithRoutingKey(msg any, routingKey string) {
 	channel, err := GetChannel("Publish-" + getMsgType(msg))
 
 	if err != nil {
@@ -270,7 +271,7 @@ func GetOutgoingMessageRoutingKey(protocol string, identity string) string {
 	return protocol + "-OutgoingMessage"
 }
 
-func PublishPb(msg interface{}) {
+func PublishPb(msg any) {
 	channel, err := GetChannel("Publish-" + getMsgType(msg))
 
 	if err != nil {
@@ -281,7 +282,7 @@ func PublishPb(msg interface{}) {
 	PublishPbWithChannel(channel, msg)
 }
 
-func PublishPbWithChannel(c *amqp.Channel, msg interface{}) {
+func PublishPbWithChannel(c *amqp.Channel, msg any) {
 	msgType := getMsgType(msg)
 
 	env := newEnvelope(msgType, Encode(msg))
@@ -341,17 +342,6 @@ func consumeForever(handlerDone *sync.WaitGroup, deliveryTag string, handlerFunc
 			consumeWithChannel(handlerDone, channel, deliveryTag, handlerFunc)
 		}
 
-		time.Sleep(10 * time.Second)
-	}
-}
-
-func consumeWithChannelForever(handlerWait *sync.WaitGroup, c *amqp.Channel, deliveryTag string, handlerFunc HandlerFunc) {
-	for {
-		log.Infof("Consumer channel creating for: %v", deliveryTag)
-
-		consumeWithChannel(handlerWait, c, deliveryTag, handlerFunc)
-
-		log.Infof("Consumer channel closed for: %v", deliveryTag)
 		time.Sleep(10 * time.Second)
 	}
 }

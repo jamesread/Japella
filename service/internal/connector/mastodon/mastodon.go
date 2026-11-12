@@ -25,8 +25,7 @@ import (
 )
 
 type MastodonConnector struct {
-	token string
-	db    *db.DB
+	db *db.DB
 
 	connector.ConnectorWithWall
 	connector.OAuth2Connector
@@ -236,11 +235,11 @@ func (c *MastodonConnector) Start() {
 }
 
 func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // path comes from media.PathFromURL, confined to the media directory
 	if err != nil {
 		return "", fmt.Errorf("open file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	body := &bytes.Buffer{}
 	w := multipart.NewWriter(body)
@@ -248,15 +247,15 @@ func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (
 	if err != nil {
 		return "", fmt.Errorf("create form file: %w", err)
 	}
-	if _, err := io.Copy(part, f); err != nil {
+	if _, err = io.Copy(part, f); err != nil {
 		return "", fmt.Errorf("write file to form: %w", err)
 	}
 	contentType := w.FormDataContentType()
-	if err := w.Close(); err != nil {
+	if err = w.Close(); err != nil {
 		return "", fmt.Errorf("close multipart writer: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", instanceURL+"/api/v2/media", body)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, instanceURL+"/api/v2/media", body)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
@@ -268,7 +267,7 @@ func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (
 	if err != nil {
 		return "", fmt.Errorf("do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -365,7 +364,7 @@ func (c *MastodonConnector) FetchRecentPosts(socialAccount *connector.SocialAcco
 	const maxPages = 5
 	maxID := ""
 
-	for page := 0; page < maxPages; page++ {
+	for range maxPages {
 		timelineURL := fmt.Sprintf("%s/api/v1/timelines/home?limit=%d", instanceURL, pageLimit)
 		if maxID != "" {
 			timelineURL += "&max_id=" + url.QueryEscape(maxID)
@@ -583,7 +582,9 @@ func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
 
 	c.Logger().Infof("Whoami response: %+v", data)
 
-	c.db.UpdateSocialAccountIdentity(socialAccount.ID, data.Username)
+	if err := c.db.UpdateSocialAccountIdentity(socialAccount.ID, data.Username); err != nil {
+		c.Logger().Warnf("Failed to save Mastodon account identity: %v", err)
+	}
 }
 
 func (c *MastodonConnector) OnRefresh(socialAccount *db.SocialAccount) error {

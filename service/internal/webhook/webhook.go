@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
+	"slices"
 	"strings"
 )
 
@@ -21,10 +22,8 @@ var SupportedEvents = []string{EventApprovalRequested, EventPostCompleted, Event
 
 func NormalizeEvent(event string) (string, error) {
 	event = strings.TrimSpace(event)
-	for _, e := range SupportedEvents {
-		if event == e {
-			return event, nil
-		}
+	if slices.Contains(SupportedEvents, event) {
+		return event, nil
 	}
 	return "", fmt.Errorf("unsupported webhook event")
 }

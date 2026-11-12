@@ -2,9 +2,11 @@ package i18n
 
 import (
 	"encoding/json"
+	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -41,7 +43,8 @@ func createCombineLanguageContent() *CombinedLanguageContent {
 		Messages: make(map[string]map[string]string),
 	}
 
-	files, err := os.ReadDir(languageDir)
+	langFS := os.DirFS(languageDir)
+	files, err := fs.ReadDir(langFS, ".")
 
 	if err != nil {
 		log.Errorf("Error reading language directory %s: %v", languageDir, err)
@@ -55,7 +58,7 @@ func createCombineLanguageContent() *CombinedLanguageContent {
 			fullPath := filepath.Join(languageDir, file.Name())
 			log.Infof("Loading language file: %s", fullPath)
 
-			content, err := os.ReadFile(fullPath)
+			content, err := fs.ReadFile(langFS, file.Name())
 
 			if err != nil {
 				log.Errorf("Error reading language file %s: %v", fullPath, err)
@@ -92,12 +95,7 @@ func IsSupportedLanguage(code string) bool {
 	if code == "" {
 		return true
 	}
-	for _, available := range AvailableLanguageCodes() {
-		if available == code {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(AvailableLanguageCodes(), code)
 }
 
 var isLoaded = false
@@ -118,7 +116,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 	combinedContent.AcceptLanguages = make([]string, 0)
 
-	for _, lang := range strings.Split(headerLanguage, ",") {
+	for lang := range strings.SplitSeq(headerLanguage, ",") {
 		lang = strings.TrimSpace(lang)
 
 		combinedContent.AcceptLanguages = append(combinedContent.AcceptLanguages, lang)
@@ -128,7 +126,11 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		log.Errorf("Error marshalling combined language content: %v", err)
+		http.Error(w, "Failed to load language", http.StatusInternalServerError)
+		return
 	}
 
-	w.Write(jsonData)
+	if _, err := w.Write(jsonData); err != nil {
+		log.Warnf("Error writing language content: %v", err)
+	}
 }

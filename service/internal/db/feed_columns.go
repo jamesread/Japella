@@ -1,9 +1,13 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/jamesread/japella/internal/intconv"
 
 	"github.com/jmoiron/sqlx"
 )
@@ -59,11 +63,11 @@ func (db *DB) loadFeedColumnAccounts(cols []*FeedColumn) error {
 }
 
 func setFeedColumnAccounts(tx *sqlx.Tx, columnID uint32, accountIDs []uint32) error {
-	if _, err := tx.Exec(`DELETE FROM feed_column_social_accounts WHERE feed_column_id = ?`, columnID); err != nil {
+	if _, err := tx.ExecContext(context.Background(), `DELETE FROM feed_column_social_accounts WHERE feed_column_id = ?`, columnID); err != nil {
 		return err
 	}
 	for _, id := range accountIDs {
-		if _, err := tx.Exec(`INSERT INTO feed_column_social_accounts (feed_column_id, social_account_id) VALUES (?, ?)`, columnID, id); err != nil {
+		if _, err := tx.ExecContext(context.Background(), `INSERT INTO feed_column_social_accounts (feed_column_id, social_account_id) VALUES (?, ?)`, columnID, id); err != nil {
 			return err
 		}
 	}
@@ -88,7 +92,7 @@ func (db *DB) SelectFeedColumnsForUser(userID uint32) ([]*FeedColumn, error) {
 func (db *DB) GetFeedColumn(id uint32) (*FeedColumn, error) {
 	var col FeedColumn
 	err := db.ResilientGet(&col, `SELECT * FROM feed_columns WHERE id = ?`, id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -111,9 +115,9 @@ func (db *DB) CreateFeedColumn(col *FeedColumn) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
-	res, err := tx.Exec(`
+	res, err := tx.ExecContext(context.Background(), `
 		INSERT INTO feed_columns (user_account_id, title, query, sort_order, created_at, updated_at)
 		SELECT ?, ?, ?, COALESCE(MAX(sort_order) + 1, 0), NOW(3), NOW(3)
 		FROM feed_columns WHERE user_account_id = ?`,
@@ -126,11 +130,11 @@ func (db *DB) CreateFeedColumn(col *FeedColumn) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	if err := setFeedColumnAccounts(tx, uint32(id), col.SocialAccountIDs); err != nil {
+	if err := setFeedColumnAccounts(tx, intconv.Uint32(id), col.SocialAccountIDs); err != nil {
 		db.Logger().Errorf("Failed to set accounts for feed column %d: %v", id, err)
 		return 0, err
 	}
-	return uint32(id), tx.Commit()
+	return intconv.Uint32(id), tx.Commit()
 }
 
 // UpdateFeedColumn changes a column's title, query and accounts.
@@ -143,9 +147,9 @@ func (db *DB) UpdateFeedColumn(col *FeedColumn) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
-	res, err := tx.Exec(`
+	res, err := tx.ExecContext(context.Background(), `
 		UPDATE feed_columns SET title = ?, query = ?, updated_at = NOW(3)
 		WHERE id = ? AND user_account_id = ?`,
 		col.Title, col.Query, col.ID, col.UserAccountID)
@@ -187,13 +191,13 @@ func (db *DB) ReorderFeedColumns(userID uint32, ids []uint32) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
-	if _, err = tx.Exec(`UPDATE feed_columns SET sort_order = sort_order + ? WHERE user_account_id = ?`, len(ids), userID); err != nil {
+	if _, err = tx.ExecContext(context.Background(), `UPDATE feed_columns SET sort_order = sort_order + ? WHERE user_account_id = ?`, len(ids), userID); err != nil {
 		return err
 	}
 	for i, id := range ids {
-		if _, err = tx.Exec(`UPDATE feed_columns SET sort_order = ?, updated_at = NOW(3) WHERE id = ? AND user_account_id = ?`, i, id, userID); err != nil {
+		if _, err = tx.ExecContext(context.Background(), `UPDATE feed_columns SET sort_order = ?, updated_at = NOW(3) WHERE id = ? AND user_account_id = ?`, i, id, userID); err != nil {
 			db.Logger().Errorf("Failed to reorder feed column %d: %v", id, err)
 			return err
 		}

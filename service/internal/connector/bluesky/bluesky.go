@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
@@ -24,7 +23,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"math/big"
 	"net/http"
 	"net/url"
 	"os"
@@ -93,7 +91,7 @@ type BlueskyPostRecord struct {
 	Text      string         `json:"text"`
 	CreatedAt string         `json:"createdAt"`
 	Facets    []BlueskyFacet `json:"facets,omitempty"`
-	Embed     interface{}    `json:"embed,omitempty"`
+	Embed     any            `json:"embed,omitempty"`
 	// Reply makes the post a reply; Root is the thread's first post.
 	Reply *BlueskyReplyRef `json:"reply,omitempty"`
 }
@@ -199,11 +197,11 @@ func blobRefMimeToContentType(ext string) string {
 
 func imageAspectRatio(path string) (w, h int) {
 	w, h = 1, 1
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // path comes from media.PathFromURL, confined to the media directory
 	if err != nil {
 		return 1, 1
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	cfg, _, err := image.DecodeConfig(f)
 	if err != nil {
 		return 1, 1
@@ -218,14 +216,14 @@ func imageAspectRatio(path string) (w, h int) {
 }
 
 func (b *BlueskyConnector) uploadBlob(pdsURL, path string, client *utils.ChainingHttpClient) (*BlueskyBlobRef, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // a media.PathFromURL path or a file from os.CreateTemp
 	if err != nil {
 		return nil, fmt.Errorf("read file: %w", err)
 	}
 	ext := filepath.Ext(path)
 	contentType := blobRefMimeToContentType(ext)
 
-	req, err := http.NewRequest("POST", pdsURL+"/xrpc/com.atproto.repo.uploadBlob", bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, pdsURL+"/xrpc/com.atproto.repo.uploadBlob", bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -238,7 +236,7 @@ func (b *BlueskyConnector) uploadBlob(pdsURL, path string, client *utils.Chainin
 	if err != nil {
 		return nil, fmt.Errorf("upload request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -264,7 +262,7 @@ const (
 // downloadAndUploadThumb fetches an image from imageURL, saves to a temp file, uploads as blob to PDS, and returns the blob ref.
 func (b *BlueskyConnector) downloadAndUploadThumb(pdsURL, imageURL string, client *utils.ChainingHttpClient) *BlueskyBlobRef {
 	httpClient := &http.Client{Timeout: thumbTimeout}
-	req, err := http.NewRequest("GET", imageURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, imageURL, nil)
 	if err != nil {
 		return nil
 	}
@@ -273,7 +271,7 @@ func (b *BlueskyConnector) downloadAndUploadThumb(pdsURL, imageURL string, clien
 	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	ct := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(ct, "image/") {
 		return nil
@@ -296,12 +294,12 @@ func (b *BlueskyConnector) downloadAndUploadThumb(pdsURL, imageURL string, clien
 		return nil
 	}
 	tmpPath := tmp.Name()
-	defer os.Remove(tmpPath)
-	if _, err := tmp.Write(body); err != nil {
-		tmp.Close()
+	defer func() { _ = os.Remove(tmpPath) }()
+	if _, err = tmp.Write(body); err != nil {
+		_ = tmp.Close()
 		return nil
 	}
-	if err := tmp.Close(); err != nil {
+	if err = tmp.Close(); err != nil {
 		return nil
 	}
 	blob, err := b.uploadBlob(pdsURL, tmpPath, client)
@@ -316,7 +314,7 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 	dbSocialAccount, err := b.db.GetSocialAccount(socialAccount.Id)
 	if err != nil {
 		b.Logger().Errorf("Failed to get social account: %v", err)
-		return &connector.PostResult{Err: fmt.Errorf("failed to get social account: %v", err), URL: ""}
+		return &connector.PostResult{Err: fmt.Errorf("failed to get social account: %w", err), URL: ""}
 	}
 
 	// Parse facets from content
@@ -333,7 +331,7 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 	pdsURL, pdsErr := b.getPDSEndpoint(dbSocialAccount)
 	if pdsErr != nil {
 		b.Logger().Errorf("Failed to get PDS endpoint: %v", pdsErr)
-		return &connector.PostResult{Err: fmt.Errorf("failed to get PDS endpoint: %v", pdsErr), URL: ""}
+		return &connector.PostResult{Err: fmt.Errorf("failed to get PDS endpoint: %w", pdsErr), URL: ""}
 	}
 
 	b.Logger().Infof("Posting to Bluesky PDS at: %s", pdsURL)
@@ -433,7 +431,7 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 
 			if refreshErr := b.refreshToken(dbSocialAccount); refreshErr != nil {
 				b.Logger().Errorf("Failed to refresh token after detecting invalid token during post: %v", refreshErr)
-				return &connector.PostResult{Err: fmt.Errorf("token refresh failed: %v", refreshErr), URL: ""}
+				return &connector.PostResult{Err: fmt.Errorf("token refresh failed: %w", refreshErr), URL: ""}
 			}
 			// Reload the social account and retry the post
 			if updatedAccount, err := b.db.GetSocialAccount(socialAccount.Id); err == nil {
@@ -448,7 +446,7 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 				}
 			} else {
 				b.Logger().Errorf("Failed to get social account for token refresh: %v", err)
-				return &connector.PostResult{Err: fmt.Errorf("failed to get social account: %v", err), URL: ""}
+				return &connector.PostResult{Err: fmt.Errorf("failed to get social account: %w", err), URL: ""}
 			}
 		}
 
@@ -673,7 +671,7 @@ func (b *BlueskyConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 		b.Logger().Warnf("OAuth token is expired, attempting to refresh")
 		if err := b.refreshToken(socialAccount); err != nil {
 			b.Logger().Errorf("Failed to refresh expired token: %v", err)
-			return fmt.Errorf("token refresh failed: %v", err)
+			return fmt.Errorf("token refresh failed: %w", err)
 		}
 		// Reload the social account to get updated token
 		if updatedAccount, err := b.db.GetSocialAccount(socialAccount.ID); err == nil {
@@ -696,7 +694,7 @@ func (b *BlueskyConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 				b.Logger().Warnf("Would update social account DID to: %s (method not implemented)", did)
 			} else {
 				b.Logger().Errorf("Failed to extract DID from token: %v", err)
-				return fmt.Errorf("failed to extract DID from token: %v", err)
+				return fmt.Errorf("failed to extract DID from token: %w", err)
 			}
 		} else {
 			b.Logger().Errorf("No OAuth token available to extract DID from")
@@ -713,7 +711,7 @@ func (b *BlueskyConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 			b.Logger().Infof("Retrieved handle for DID %s: %s", user, handle)
 
 			// Update the social account with the retrieved handle
-			if err := b.db.UpdateSocialAccountIdentity(socialAccount.ID, handle); err != nil {
+			if err = b.db.UpdateSocialAccountIdentity(socialAccount.ID, handle); err != nil {
 				b.Logger().Errorf("Failed to update social account identity: %v", err)
 			}
 		} else {
@@ -766,7 +764,7 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 	clientAssertion, err := b.createClientAssertion(clientId)
 	if err != nil {
 		b.Logger().Errorf("Failed to create client assertion: %v", err)
-		return fmt.Errorf("failed to create client assertion: %v", err)
+		return fmt.Errorf("failed to create client assertion: %w", err)
 	}
 
 	// Prepare refresh token request with JWT client assertion
@@ -785,10 +783,10 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 	}
 
 	// Create HTTP request manually so we can read error responses
-	req, err := http.NewRequest("POST", "https://bsky.social/oauth/token", strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://bsky.social/oauth/token", strings.NewReader(form.Encode()))
 	if err != nil {
 		b.Logger().Errorf("Failed to create refresh token request: %v", err)
-		return fmt.Errorf("token refresh failed: %v", err)
+		return fmt.Errorf("token refresh failed: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
@@ -796,15 +794,15 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 	resp, err := client.UnderlyingClient().Do(req)
 	if err != nil {
 		b.Logger().Errorf("Failed to execute refresh token request: %v", err)
-		return fmt.Errorf("token refresh failed: %v", err)
+		return fmt.Errorf("token refresh failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read the response body
 	bodyBytes, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
 		b.Logger().Errorf("Failed to read response body: %v", readErr)
-		return fmt.Errorf("token refresh failed: failed to read response: %v", readErr)
+		return fmt.Errorf("token refresh failed: failed to read response: %w", readErr)
 	}
 
 	// Check status code
@@ -813,7 +811,7 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 		b.Logger().Errorf("Token refresh failed with status %d. Response body: %s", resp.StatusCode, bodyStr)
 
 		// Try to parse error response as JSON
-		var errorResponse map[string]interface{}
+		var errorResponse map[string]any
 		if json.Unmarshal(bodyBytes, &errorResponse) == nil {
 			if errorMsg, ok := errorResponse["error"].(string); ok {
 				errorDesc := ""
@@ -841,9 +839,9 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 		TokenType    string `json:"token_type"`
 		Scope        string `json:"scope"`
 	}
-	if err := json.Unmarshal(bodyBytes, &tokenResponse); err != nil {
+	if err = json.Unmarshal(bodyBytes, &tokenResponse); err != nil {
 		b.Logger().Errorf("Failed to parse token response: %v", err)
-		return fmt.Errorf("token refresh failed: failed to parse response: %v", err)
+		return fmt.Errorf("token refresh failed: failed to parse response: %w", err)
 	}
 
 	if tokenResponse.AccessToken == "" {
@@ -860,7 +858,7 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 	err = b.db.UpdateSocialAccountToken(socialAccount.ID, tokenResponse.AccessToken, tokenResponse.RefreshToken, tokenResponse.ExpiresIn)
 	if err != nil {
 		b.Logger().Errorf("Failed to update social account token: %v", err)
-		return fmt.Errorf("failed to update token in database: %v", err)
+		return fmt.Errorf("failed to update token in database: %w", err)
 	}
 
 	// Update the local social account object
@@ -882,14 +880,11 @@ func (b *BlueskyConnector) createDPoPClientForRefresh(sa *db.SocialAccount) *uti
 		return nil
 	}
 
-	// Rebuild private key from decimal string
-	d := new(big.Int)
-	if _, ok := d.SetString(sa.DpopKey.String, 10); !ok {
+	priv, err := decodeDPoPKey(sa.DpopKey.String)
+	if err != nil {
+		b.Logger().Warnf("Cannot rebuild DPoP key for account %d: %v", sa.ID, err)
 		return nil
 	}
-	priv := &ecdsa.PrivateKey{D: d, PublicKey: ecdsa.PublicKey{Curve: elliptic.P256()}}
-	// Derive public key from D
-	priv.PublicKey.X, priv.PublicKey.Y = priv.PublicKey.Curve.ScalarBaseMult(d.Bytes())
 
 	client := utils.NewClient(b.Logger())
 
@@ -917,7 +912,7 @@ func (b *BlueskyConnector) resolveHandleToDID(handle string) (string, error) {
 
 	client.Get(url).AsJson(&response)
 	if client.Err != nil {
-		return "", fmt.Errorf("failed to resolve handle %s: %v", handle, client.Err)
+		return "", fmt.Errorf("failed to resolve handle %s: %w", handle, client.Err)
 	}
 
 	if response.Did == "" {
@@ -934,13 +929,13 @@ func (b *BlueskyConnector) resolveDIDToPDS(did string) (string, error) {
 	// Resolve the DID document
 	didDoc, err := b.resolveDIDDocument(did)
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve DID document for %s: %v", did, err)
+		return "", fmt.Errorf("failed to resolve DID document for %s: %w", did, err)
 	}
 
 	// Extract PDS service endpoint from the DID document
 	pdsURL, err := b.extractPDSServiceEndpoint(didDoc)
 	if err != nil {
-		return "", fmt.Errorf("failed to extract PDS service endpoint from DID document: %v", err)
+		return "", fmt.Errorf("failed to extract PDS service endpoint from DID document: %w", err)
 	}
 
 	b.Logger().Infof("Found PDS endpoint for DID %s: %s", did, pdsURL)
@@ -948,7 +943,7 @@ func (b *BlueskyConnector) resolveDIDToPDS(did string) (string, error) {
 }
 
 // resolveDIDDocument resolves a DID to its document
-func (b *BlueskyConnector) resolveDIDDocument(did string) (map[string]interface{}, error) {
+func (b *BlueskyConnector) resolveDIDDocument(did string) (map[string]any, error) {
 	// Extract the DID method and identifier
 	parts := strings.SplitN(did, ":", 3)
 	if len(parts) < 3 {
@@ -978,12 +973,12 @@ func (b *BlueskyConnector) resolveDIDDocument(did string) (map[string]interface{
 }
 
 // resolvePLCDIDDocument resolves a PLC (Placeholder) DID document
-func (b *BlueskyConnector) resolvePLCDIDDocument(identifier string) (map[string]interface{}, error) {
+func (b *BlueskyConnector) resolvePLCDIDDocument(identifier string) (map[string]any, error) {
 	// PLC DIDs are resolved via the PLC directory
 	url := fmt.Sprintf("https://plc.directory/did:plc:%s", identifier)
 
 	client := utils.NewClient(b.Logger())
-	var didDoc map[string]interface{}
+	var didDoc map[string]any
 
 	client.Get(url).AsJson(&didDoc)
 	if client.Err != nil {
@@ -991,40 +986,40 @@ func (b *BlueskyConnector) resolvePLCDIDDocument(identifier string) (map[string]
 		if strings.Contains(client.Err.Error(), "404") || strings.Contains(client.Err.Error(), "Not Found") {
 			return nil, fmt.Errorf("DID not registered: %s", identifier)
 		}
-		return nil, fmt.Errorf("failed to resolve PLC DID document: %v", client.Err)
+		return nil, fmt.Errorf("failed to resolve PLC DID document: %w", client.Err)
 	}
 
 	return didDoc, nil
 }
 
 // resolveWebDIDDocument resolves a Web DID document
-func (b *BlueskyConnector) resolveWebDIDDocument(identifier string) (map[string]interface{}, error) {
+func (b *BlueskyConnector) resolveWebDIDDocument(identifier string) (map[string]any, error) {
 	// Web DIDs are resolved via the domain's well-known endpoint
 	// Format: did:web:example.com -> https://example.com/.well-known/did.json
 	url := fmt.Sprintf("https://%s/.well-known/did.json", identifier)
 
 	client := utils.NewClient(b.Logger())
-	var didDoc map[string]interface{}
+	var didDoc map[string]any
 
 	client.Get(url).AsJson(&didDoc)
 	if client.Err != nil {
-		return nil, fmt.Errorf("failed to resolve Web DID document: %v", client.Err)
+		return nil, fmt.Errorf("failed to resolve Web DID document: %w", client.Err)
 	}
 
 	return didDoc, nil
 }
 
 // extractPDSServiceEndpoint extracts the PDS service endpoint from a DID document
-func (b *BlueskyConnector) extractPDSServiceEndpoint(didDoc map[string]interface{}) (string, error) {
+func (b *BlueskyConnector) extractPDSServiceEndpoint(didDoc map[string]any) (string, error) {
 	// Look for services in the DID document
-	services, ok := didDoc["service"].([]interface{})
+	services, ok := didDoc["service"].([]any)
 	if !ok {
 		return "", fmt.Errorf("no services found in DID document")
 	}
 
 	// Find the AtprotoPersonalDataServer service
 	for _, service := range services {
-		serviceMap, ok := service.(map[string]interface{})
+		serviceMap, ok := service.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -1048,7 +1043,7 @@ func (b *BlueskyConnector) extractPDSServiceEndpoint(didDoc map[string]interface
 
 	// If no AtprotoPersonalDataServer service found, try to find any atproto service
 	for _, service := range services {
-		serviceMap, ok := service.(map[string]interface{})
+		serviceMap, ok := service.(map[string]any)
 		if !ok {
 			continue
 		}
@@ -1093,7 +1088,7 @@ func (b *BlueskyConnector) getPDSEndpoint(socialAccount *db.SocialAccount) (stri
 			// Identity is a handle, resolve it to DID first
 			did, err := b.resolveHandleToDID(socialAccount.Identity)
 			if err != nil {
-				return "", fmt.Errorf("failed to resolve handle to DID: %v", err)
+				return "", fmt.Errorf("failed to resolve handle to DID: %w", err)
 			}
 
 			// Update the social account with the DID
@@ -1113,25 +1108,25 @@ func (b *BlueskyConnector) createClientAssertion(clientId string) (string, error
 	// In a production system, you might want to store this key securely
 	privKey, err := generatePrivateKey()
 	if err != nil {
-		return "", fmt.Errorf("failed to generate client assertion key: %v", err)
+		return "", fmt.Errorf("failed to generate client assertion key: %w", err)
 	}
 
 	now := time.Now()
 
 	// JWT header
-	header := map[string]interface{}{
+	header := map[string]any{
 		"typ": "JWT",
 		"alg": "ES256",
-		"jwk": map[string]interface{}{
+		"jwk": map[string]any{
 			"kty": "EC",
 			"crv": "P-256",
-			"x":   base64.RawURLEncoding.EncodeToString(privKey.PublicKey.X.Bytes()),
-			"y":   base64.RawURLEncoding.EncodeToString(privKey.PublicKey.Y.Bytes()),
+			"x":   base64.RawURLEncoding.EncodeToString(privKey.X.Bytes()),
+			"y":   base64.RawURLEncoding.EncodeToString(privKey.Y.Bytes()),
 		},
 	}
 
 	// JWT payload
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"iss": clientId,                          // issuer (client_id)
 		"sub": clientId,                          // subject (client_id)
 		"aud": "https://bsky.social/oauth/token", // audience
@@ -1143,12 +1138,12 @@ func (b *BlueskyConnector) createClientAssertion(clientId string) (string, error
 	// Encode header and payload
 	headerJSON, err := json.Marshal(header)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal JWT header: %v", err)
+		return "", fmt.Errorf("failed to marshal JWT header: %w", err)
 	}
 
 	payloadJSON, err := json.Marshal(payload)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal JWT payload: %v", err)
+		return "", fmt.Errorf("failed to marshal JWT payload: %w", err)
 	}
 
 	encodedHeader := base64.RawURLEncoding.EncodeToString(headerJSON)
@@ -1160,7 +1155,7 @@ func (b *BlueskyConnector) createClientAssertion(clientId string) (string, error
 	hash := sha256.Sum256([]byte(dataToSign))
 	r, s, err := ecdsa.Sign(rand.Reader, privKey, hash[:])
 	if err != nil {
-		return "", fmt.Errorf("failed to sign JWT: %v", err)
+		return "", fmt.Errorf("failed to sign JWT: %w", err)
 	}
 
 	// Concatenate r and s into a 64-byte signature
@@ -1176,7 +1171,7 @@ func (b *BlueskyConnector) createClientAssertion(clientId string) (string, error
 }
 
 func (b *BlueskyConnector) GetOAuth2Config() *oauth2.Config {
-	ep := oauth2.Endpoint{
+	ep := oauth2.Endpoint{ //nolint:gosec // public OAuth endpoint URLs, not credentials
 		AuthURL:  "https://bsky.social/oauth/authorize",
 		TokenURL: "https://bsky.social/oauth/token",
 	}
@@ -1242,17 +1237,8 @@ func (b *BlueskyConnector) CheckConfiguration() *connector.ConfigurationCheckRes
 	return res
 }
 
-func findHeader(res *http.Response) string {
-	if res == nil || res.Header == nil {
-		return ""
-	}
-
-	return res.Header.Get("Dpop-Nonce")
-}
-
 type dpopTransport struct {
 	base              http.RoundTripper
-	dpopJWT           string
 	dpopNonce         string
 	signedAccessToken string
 	accessTokenHash   string
@@ -1278,7 +1264,7 @@ func (t *dpopTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if resp != nil && (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusBadRequest) {
 		// Read response body to check for specific errors
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		bodyStr := string(bodyBytes)
 
 		// Check if this is a DPoP nonce error
@@ -1367,18 +1353,18 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 	// Bind DPoP transport to access token
 	tp.signedAccessToken = token.AccessToken
 
-	b.Logger().Debugf("Received token on exchange (token type: %s, expires in: %v)", token.TokenType, token.Expiry.Sub(time.Now()))
+	b.Logger().Debugf("Received token on exchange (token type: %s, expires in: %v)", token.TokenType, time.Until(token.Expiry))
 
 	// Extract identity (user DID) from token's 'sub' claim
 	// The token contains the user's DID in the 'sub' field
 	identity := ""
 	if token.AccessToken != "" {
 		// Parse JWT to extract 'sub' claim (user DID)
-		if did, err := b.extractDIDFromToken(token.AccessToken); err == nil {
+		if did, didErr := b.extractDIDFromToken(token.AccessToken); didErr == nil {
 			identity = did
 			b.Logger().Infof("Extracted user DID from token: %s", identity)
 		} else {
-			b.Logger().Warnf("Failed to extract DID from token: %v", err)
+			b.Logger().Warnf("Failed to extract DID from token: %v", didErr)
 		}
 	}
 
@@ -1386,12 +1372,17 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 	handle := ""
 	if identity != "" {
 		// Get handle from PLC directory or AppView
-		if h, err := b.getHandleFromDID(identity); err == nil && h != "" {
+		if h, handleErr := b.getHandleFromDID(identity); handleErr == nil && h != "" {
 			handle = h
 			b.Logger().Infof("Retrieved handle for DID %s: %s", identity, handle)
 		} else {
-			b.Logger().Warnf("Failed to get handle for DID %s: %v", identity, err)
+			b.Logger().Warnf("Failed to get handle for DID %s: %v", identity, handleErr)
 		}
+	}
+
+	dpopKey, err := encodeDPoPKey(privKey)
+	if err != nil {
+		return err
 	}
 
 	err = b.db.RegisterAccount(&db.SocialAccount{
@@ -1404,7 +1395,7 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 		OAuth2Token:        token.AccessToken,
 		OAuth2TokenExpiry:  token.Expiry,
 		OAuth2RefreshToken: token.RefreshToken,
-		DpopKey:            sql.NullString{String: privKey.D.String(), Valid: true},
+		DpopKey:            sql.NullString{String: dpopKey, Valid: true},
 	})
 
 	return err
@@ -1415,14 +1406,11 @@ func (b *BlueskyConnector) ensureDPoPClient(sa *db.SocialAccount) *utils.Chainin
 	if sa == nil || !sa.DpopKey.Valid || sa.OAuth2Token == "" {
 		return nil
 	}
-	// Rebuild private key from decimal string
-	d := new(big.Int)
-	if _, ok := d.SetString(sa.DpopKey.String, 10); !ok {
+	priv, err := decodeDPoPKey(sa.DpopKey.String)
+	if err != nil {
+		b.Logger().Warnf("Cannot rebuild DPoP key for account %d: %v", sa.ID, err)
 		return nil
 	}
-	priv := &ecdsa.PrivateKey{D: d, PublicKey: ecdsa.PublicKey{Curve: elliptic.P256()}}
-	// Derive public key from D
-	priv.PublicKey.X, priv.PublicKey.Y = priv.PublicKey.Curve.ScalarBaseMult(d.Bytes())
 
 	client := utils.NewClient(b.Logger())
 
@@ -1443,31 +1431,6 @@ func (b *BlueskyConnector) ensureDPoPClient(sa *db.SocialAccount) *utils.Chainin
 	return client
 }
 
-type sessionResponse struct {
-	Did    string `json:"did"`
-	Handle string `json:"handle"`
-}
-
-// getSessionHandle fetches the current session and returns handle
-func (b *BlueskyConnector) getSessionHandle() (string, error) {
-	client := b.tmpClient
-	if client == nil {
-		return "", fmt.Errorf("client not initialized")
-	}
-	// GET com.atproto.server.getSession
-	var sr sessionResponse
-	client.Get("https://bsky.social/xrpc/com.atproto.server.getSession").AsJson(&sr)
-	if client.Err != nil {
-		b.Logger().Errorf("Failed to get session: %v", client.Err)
-		return "", fmt.Errorf("session request failed: %v", client.Err)
-	}
-	return sr.Handle, nil
-}
-
-type resolveHandleResponse struct {
-	Did string `json:"did"`
-}
-
 // extractDIDFromToken extracts the user DID from the JWT token's 'sub' claim
 func (b *BlueskyConnector) extractDIDFromToken(accessToken string) (string, error) {
 	// Parse JWT token to extract 'sub' claim
@@ -1480,13 +1443,13 @@ func (b *BlueskyConnector) extractDIDFromToken(accessToken string) (string, erro
 	// Decode payload (base64url)
 	payloadBytes, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return "", fmt.Errorf("failed to decode JWT payload: %v", err)
+		return "", fmt.Errorf("failed to decode JWT payload: %w", err)
 	}
 
 	// Parse JSON payload
-	var payload map[string]interface{}
+	var payload map[string]any
 	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
-		return "", fmt.Errorf("failed to parse JWT payload: %v", err)
+		return "", fmt.Errorf("failed to parse JWT payload: %w", err)
 	}
 
 	// Extract 'sub' claim (user DID)
@@ -1521,15 +1484,15 @@ func (b *BlueskyConnector) getHandleFromPLC(did string) (string, error) {
 	url := fmt.Sprintf("https://plc.directory/%s", did)
 
 	client := utils.NewClient(b.Logger())
-	var didDoc map[string]interface{}
+	var didDoc map[string]any
 
 	client.Get(url).AsJson(&didDoc)
 	if client.Err != nil {
-		return "", fmt.Errorf("failed to get PLC document: %v", client.Err)
+		return "", fmt.Errorf("failed to get PLC document: %w", client.Err)
 	}
 
 	// Look for alsoKnownAs field
-	alsoKnownAs, ok := didDoc["alsoKnownAs"].([]interface{})
+	alsoKnownAs, ok := didDoc["alsoKnownAs"].([]any)
 	if !ok || len(alsoKnownAs) == 0 {
 		return "", fmt.Errorf("no alsoKnownAs found in PLC document")
 	}
@@ -1541,8 +1504,8 @@ func (b *BlueskyConnector) getHandleFromPLC(did string) (string, error) {
 	}
 
 	// Extract handle from at://alice.bsky.social format
-	if strings.HasPrefix(firstEntry, "at://") {
-		handle := strings.TrimPrefix(firstEntry, "at://")
+	if after, ok0 := strings.CutPrefix(firstEntry, "at://"); ok0 {
+		handle := after
 		return handle, nil
 	}
 
@@ -1566,7 +1529,7 @@ func (b *BlueskyConnector) getHandleFromAppView(did string) (string, error) {
 			b.Logger().Warnf("Profile for DID %s requires authentication, skipping handle resolution", did)
 			return "", fmt.Errorf("profile requires authentication")
 		}
-		return "", fmt.Errorf("failed to get profile from AppView: %v", client.Err)
+		return "", fmt.Errorf("failed to get profile from AppView: %w", client.Err)
 	}
 
 	return response.Handle, nil

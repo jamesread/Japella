@@ -8,6 +8,8 @@ import (
 	"os"
 	"sort"
 
+	"github.com/jamesread/japella/internal/intconv"
+
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/layers/authentication"
@@ -33,9 +35,9 @@ func (s *ControlApi) GetMediaSuitability(ctx context.Context, req *connect.Reque
 	}
 
 	return connect.NewResponse(&controlv1.GetMediaSuitabilityResponse{
-		SizeBytes: uint64(info.SizeBytes),
-		Width:     uint32(info.Width),
-		Height:    uint32(info.Height),
+		SizeBytes: intconv.Uint64(info.SizeBytes),
+		Width:     intconv.Uint32(info.Width),
+		Height:    intconv.Uint32(info.Height),
 		Networks:  s.mediaSuitability(s.userMediaNetworks(au), info),
 	}), nil
 }
@@ -127,20 +129,20 @@ func (s *ControlApi) OptimiseMedia(ctx context.Context, req *connect.Request[con
 	}
 
 	res := &controlv1.OptimiseMediaResponse{
-		OriginalSizeBytes:  uint64(result.OriginalBytes),
-		OptimisedSizeBytes: uint64(result.OptimisedBytes),
+		OriginalSizeBytes:  intconv.Uint64(result.OriginalBytes),
+		OptimisedSizeBytes: intconv.Uint64(result.OptimisedBytes),
 		Message:            result.Note,
 	}
 	if result.Filename != "" {
 		item := &controlv1.MediaItem{
 			Filename:      result.Filename,
 			Url:           "/media/files/" + result.Filename,
-			SizeBytes:     uint64(result.OptimisedBytes),
+			SizeBytes:     intconv.Uint64(result.OptimisedBytes),
 			OptimisedOf:   req.Msg.GetFilename(),
 			OptimisedKind: kind,
 		}
 		if info, err := media.Inspect(result.Filename); err == nil {
-			item.Width, item.Height = uint32(info.Width), uint32(info.Height)
+			item.Width, item.Height = intconv.Uint32(info.Width), intconv.Uint32(info.Height)
 			item.Suitability = s.mediaSuitability(s.userMediaNetworks(au), info)
 		}
 		res.Item = item

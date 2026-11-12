@@ -2,6 +2,7 @@ package connectorcontroller
 
 import (
 	"fmt"
+	"maps"
 	"sync"
 
 	"github.com/jamesread/japella/internal/chatbot"
@@ -60,11 +61,11 @@ func New(dbc *db.DB) *ConnectionController {
 	}
 
 	if isPubliclyAccessible {
-		cc.setupConnector(&mastodon.MastodonConnector{}, nil)
-		cc.setupConnector(&x.XConnector{}, nil)
-		cc.setupConnector(&bluesky.BlueskyConnector{}, nil)
-		cc.setupConnector(&facebook.FacebookConnector{}, nil)
-		cc.setupConnector(&instagram.InstagramConnector{}, nil)
+		cc.setupConnector(&mastodon.MastodonConnector{})
+		cc.setupConnector(&x.XConnector{})
+		cc.setupConnector(&bluesky.BlueskyConnector{})
+		cc.setupConnector(&facebook.FacebookConnector{})
+		cc.setupConnector(&instagram.InstagramConnector{})
 	} else {
 		log.Infof("OAuth connectors not started: IsPubliclyAccessible is false")
 	}
@@ -72,7 +73,7 @@ func New(dbc *db.DB) *ConnectionController {
 	cc.loadChatBotsFromDB()
 
 	// Always available for local/dev keyword-watch and feed testing.
-	cc.setupConnector(&dummy.Connector{}, nil)
+	cc.setupConnector(&dummy.Connector{})
 
 	return cc
 }
@@ -173,9 +174,7 @@ func (cc *ConnectionController) GetServices() map[string]connector.BaseConnector
 	cc.mu.RLock()
 	defer cc.mu.RUnlock()
 	services := make(map[string]connector.BaseConnector, len(cc.controllers))
-	for k, v := range cc.controllers {
-		services[k] = v
-	}
+	maps.Copy(services, cc.controllers)
 	return services
 }
 
@@ -318,9 +317,9 @@ func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig
 	}
 }
 
-func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config any) {
+func (cc *ConnectionController) setupConnector(c connector.BaseConnector) {
 	name := c.GetProtocol()
-	cc.setupConnectorWithKey(c, config, name)
+	cc.setupConnectorWithKey(c, nil, name)
 }
 
 func (cc *ConnectionController) setupConnectorWithKey(c connector.BaseConnector, config any, key string) {

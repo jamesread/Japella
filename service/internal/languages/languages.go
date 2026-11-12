@@ -62,7 +62,7 @@ func Join(codes []string) string {
 // Split reads a stored comma-separated list.
 func Split(stored string) []string {
 	out := make([]string, 0)
-	for _, c := range strings.Split(stored, ",") {
+	for c := range strings.SplitSeq(stored, ",") {
 		if c = Base(c); c != "" {
 			out = append(out, c)
 		}

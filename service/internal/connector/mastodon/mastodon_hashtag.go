@@ -42,7 +42,7 @@ func (c *MastodonConnector) FetchHashtagTimeline(ctx context.Context, sa *connec
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode == http.StatusTooManyRequests {

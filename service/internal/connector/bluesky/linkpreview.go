@@ -1,6 +1,7 @@
 package bluesky
 
 import (
+	"context"
 	"io"
 	"net/http"
 	"net/url"
@@ -35,7 +36,7 @@ func (b *BlueskyConnector) fetchLinkPreview(rawURL string) (*LinkPreview, error)
 	}
 
 	client := &http.Client{Timeout: linkPreviewTimeout}
-	req, err := http.NewRequest("GET", rawURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func (b *BlueskyConnector) fetchLinkPreview(rawURL string) (*LinkPreview, error)
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil, nil

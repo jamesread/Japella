@@ -3,8 +3,11 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
+
+	"github.com/jamesread/japella/internal/intconv"
 
 	"github.com/jamesread/japella/internal/webhook"
 	"github.com/jmoiron/sqlx"
@@ -44,7 +47,7 @@ func (db *DB) GetWebhookTarget(id uint32) (*WebhookTarget, error) {
 		SELECT id, url, secret, enabled, created_at, updated_at
 		FROM webhook_targets WHERE id = ?`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("GetWebhookTarget: %v", err)
@@ -95,13 +98,13 @@ func (db *DB) CreateWebhookTarget(url, secret string, events []string, enabled b
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
 	enabledInt := 0
 	if enabled {
 		enabledInt = 1
 	}
-	res, err := tx.Exec(`
+	res, err := tx.ExecContext(context.Background(), `
 		INSERT INTO webhook_targets (url, secret, enabled, created_at, updated_at)
 		VALUES (?, ?, ?, NOW(3), NOW(3))`, url, secret, enabledInt)
 	if err != nil {
@@ -111,7 +114,7 @@ func (db *DB) CreateWebhookTarget(url, secret string, events []string, enabled b
 	if err != nil {
 		return 0, err
 	}
-	targetID := uint32(lastID)
+	targetID := intconv.Uint32(lastID)
 	if err := insertWebhookEventsTx(tx, targetID, events); err != nil {
 		return 0, err
 	}
@@ -130,7 +133,7 @@ func (db *DB) UpdateWebhookTarget(id uint32, url, secret string, events []string
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
 	enabledInt := 0
 	if enabled {
@@ -138,20 +141,20 @@ func (db *DB) UpdateWebhookTarget(id uint32, url, secret string, events []string
 	}
 
 	if keepSecret {
-		if _, err = tx.Exec(`
+		if _, err = tx.ExecContext(context.Background(), `
 			UPDATE webhook_targets SET url = ?, enabled = ?, updated_at = NOW(3) WHERE id = ?`,
 			url, enabledInt, id); err != nil {
 			return err
 		}
 	} else {
-		if _, err = tx.Exec(`
+		if _, err = tx.ExecContext(context.Background(), `
 			UPDATE webhook_targets SET url = ?, secret = ?, enabled = ?, updated_at = NOW(3) WHERE id = ?`,
 			url, secret, enabledInt, id); err != nil {
 			return err
 		}
 	}
 
-	if _, err = tx.Exec(`DELETE FROM webhook_events WHERE webhook_target_id = ?`, id); err != nil {
+	if _, err = tx.ExecContext(context.Background(), `DELETE FROM webhook_events WHERE webhook_target_id = ?`, id); err != nil {
 		return err
 	}
 	if err := insertWebhookEventsTx(tx, id, events); err != nil {
@@ -181,7 +184,7 @@ func (db *DB) selectWebhookEvents(targetID uint32) ([]string, error) {
 
 func insertWebhookEventsTx(tx *sqlx.Tx, targetID uint32, events []string) error {
 	for _, event := range events {
-		if _, err := tx.Exec(
+		if _, err := tx.ExecContext(context.Background(),
 			`INSERT INTO webhook_events (webhook_target_id, event) VALUES (?, ?)`,
 			targetID, event); err != nil {
 			return err

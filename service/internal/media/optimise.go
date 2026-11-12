@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 // Optimised copies sit beside their original as "<stem>.<kind>.<ext>", so
@@ -39,8 +41,8 @@ func postingName(filename, ext string) string {
 func DerivedOf(filename string) (stem, kind string) {
 	base := strings.TrimSuffix(filename, filepath.Ext(filename))
 	for _, k := range []string{KindLossless, KindPosting} {
-		if strings.HasSuffix(base, "."+k) {
-			return strings.TrimSuffix(base, "."+k), k
+		if before, ok := strings.CutSuffix(base, "."+k); ok {
+			return before, k
 		}
 	}
 	return "", ""
@@ -72,11 +74,10 @@ func Optimise(filename string) (*OptimiseResult, error) {
 	if _, kind := DerivedOf(filename); kind != "" {
 		return nil, fmt.Errorf("%s is already an optimised copy", filename)
 	}
-	path, err := PathFromURL(mediaFilesPrefix + filename)
-	if err != nil {
-		return nil, err
+	if !ValidFilename(filename) {
+		return nil, os.ErrNotExist
 	}
-	data, err := os.ReadFile(path)
+	data, err := readFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -107,23 +108,11 @@ func Optimise(filename string) (*OptimiseResult, error) {
 	}
 
 	name := OptimisedName(filename)
-	if err := writeAtomic(filepath.Join(filepath.Dir(path), name), out); err != nil {
+	if err := writeFileAtomic(name, out); err != nil {
 		return nil, err
 	}
 	res.Filename, res.OptimisedBytes, res.Note = name, int64(len(out)), note
 	return res, nil
-}
-
-func writeAtomic(dst string, data []byte) error {
-	tmp := dst + ".tmp"
-	if err := os.WriteFile(tmp, data, 0644); err != nil {
-		return err
-	}
-	if err := os.Rename(tmp, dst); err != nil {
-		os.Remove(tmp)
-		return err
-	}
-	return nil
 }
 
 // --- PNG ---
@@ -185,7 +174,7 @@ func optimisePNG(data []byte) ([]byte, string, error) {
 	reduced, how := reducePNG(img)
 	var buf bytes.Buffer
 	enc := png.Encoder{CompressionLevel: pngCompressionLevel(reduced)}
-	if err := enc.Encode(&buf, reduced); err != nil {
+	if err = enc.Encode(&buf, reduced); err != nil {
 		return nil, "", err
 	}
 	out, err := insertPNGChunks(buf.Bytes(), keep)
@@ -460,7 +449,7 @@ func exifOrientation(tiff []byte) int {
 		return 0
 	}
 	count := int(bo.Uint16(tiff[ifd:]))
-	for i := 0; i < count; i++ {
+	for i := range count {
 		e := ifd + 2 + i*12
 		if e+12 > len(tiff) {
 			return 0
@@ -474,9 +463,9 @@ func exifOrientation(tiff []byte) int {
 
 // orientationEXIF is an APP1 segment holding only an Orientation tag.
 func orientationEXIF(orientation int) []byte {
-	tiff := []byte{'M', 'M', 0, 42, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, byte(orientation), 0, 0, 0, 0, 0, 0}
+	tiff := []byte{'M', 'M', 0, 42, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, intconv.Uint8(orientation), 0, 0, 0, 0, 0, 0}
 	payload := append([]byte("Exif\x00\x00"), tiff...)
 	seg := []byte{0xFF, 0xE1, 0, 0}
-	binary.BigEndian.PutUint16(seg[2:], uint16(len(payload)+2))
+	binary.BigEndian.PutUint16(seg[2:], intconv.Uint16(len(payload)+2))
 	return append(seg, payload...)
 }

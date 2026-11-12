@@ -17,19 +17,19 @@ func GetDir() (string, error) {
 		if err != nil {
 			continue
 		}
-		if err := os.MkdirAll(abs, 0755); err != nil {
+		if err = os.MkdirAll(abs, 0o750); err != nil {
 			continue
 		}
 		f, err := os.CreateTemp(abs, ".write-test-")
 		if err != nil {
 			continue
 		}
-		f.Close()
-		os.Remove(f.Name())
+		_ = f.Close()
+		_ = os.Remove(f.Name())
 		return abs, nil
 	}
 	abs, _ := filepath.Abs("media")
-	return abs, os.MkdirAll(abs, 0755)
+	return abs, os.MkdirAll(abs, 0o750)
 }
 
 // Item describes a single media file for listing.
@@ -55,7 +55,7 @@ func PathFromURL(mediaURL string) (string, error) {
 		return "", os.ErrNotExist
 	}
 	filename := strings.TrimPrefix(mediaURL, mediaFilesPrefix)
-	if filename == "" || strings.Contains(filename, "/") || strings.Contains(filename, "..") {
+	if !ValidFilename(filename) {
 		return "", os.ErrNotExist
 	}
 	dir, err := GetDir()

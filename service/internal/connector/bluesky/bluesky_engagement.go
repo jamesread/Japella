@@ -43,8 +43,8 @@ func (p bskyPostView) toPostEngagement() *connector.PostEngagement {
 func parseBlueskyPostRef(ref string) (repo string, rkey string, err error) {
 	ref = strings.TrimSpace(ref)
 
-	if strings.HasPrefix(ref, "at://") {
-		parts := strings.Split(strings.TrimPrefix(ref, "at://"), "/")
+	if after, ok := strings.CutPrefix(ref, "at://"); ok {
+		parts := strings.Split(after, "/")
 		if len(parts) == 3 && parts[1] == "app.bsky.feed.post" && parts[0] != "" && parts[2] != "" {
 			return parts[0], parts[2], nil
 		}

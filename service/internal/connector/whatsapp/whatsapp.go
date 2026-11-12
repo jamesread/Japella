@@ -83,9 +83,8 @@ func (conn WhatsAppConnector) connect() {
 	client.Disconnect()
 }
 
-func eventHandler(evt interface{}) {
-	switch v := evt.(type) {
-	case *events.Message:
+func eventHandler(evt any) {
+	if v, ok := evt.(*events.Message); ok {
 		fmt.Println("Received a message!", v.Message.GetConversation())
 	}
 }

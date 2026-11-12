@@ -1,6 +1,6 @@
 package runtimeconfig
 
-import "github.com/jamesread/httpauthshim/authpublic"
+import "github.com/jamesread/armature-httpauthshim/authpublic"
 
 type CommonConfig struct {
 	ConfigVersion int `yaml:"configVersion"`
@@ -16,8 +16,7 @@ type CommonConfig struct {
 	TelegramDebugChatId string `yaml:"telegramDebugChatId"` // Global debug chat ID for Telegram bots to send startup messages
 }
 
-type ConnectorConfig interface {
-}
+type ConnectorConfig any
 
 type NanoserviceConfig struct {
 	Name string
@@ -40,8 +39,9 @@ type DiscordConfig struct {
 }
 
 type IncomingMessageHook struct {
-	URL     string `yaml:"url"`     // Webhook URL to call
-	Enabled bool   `yaml:"enabled"` // Whether this hook is enabled
+	URL                string `yaml:"url"`                // Webhook URL to call
+	Enabled            bool   `yaml:"enabled"`            // Whether this hook is enabled
+	InsecureSkipVerify bool   `yaml:"insecureSkipVerify"` // Accept any TLS certificate, e.g. self-signed
 }
 
 type TelegramConfig struct {

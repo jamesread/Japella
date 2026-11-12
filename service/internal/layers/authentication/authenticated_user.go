@@ -2,7 +2,10 @@ package authentication
 
 import (
 	"context"
+	"maps"
 	"time"
+
+	"github.com/jamesread/japella/internal/intconv"
 
 	armlayer "github.com/jamesread/armature-iam/layer"
 	"github.com/jamesread/japella/internal/db"
@@ -70,7 +73,7 @@ func armatureUserToJapella(au *armlayer.AuthenticatedUser) *AuthenticatedUser {
 	out := &AuthenticatedUser{
 		User: &db.UserAccount{
 			Model: db.Model{
-				ID:        uint32(au.User.ID),
+				ID:        intconv.Uint32(au.User.ID),
 				CreatedAt: parseArmatureTime(au.User.CreatedAt),
 				UpdatedAt: parseArmatureTime(au.User.UpdatedAt),
 			},
@@ -82,9 +85,7 @@ func armatureUserToJapella(au *armlayer.AuthenticatedUser) *AuthenticatedUser {
 	}
 	if au.RBAC != nil {
 		perms := make(map[string]bool, len(au.RBAC.Permissions))
-		for k, v := range au.RBAC.Permissions {
-			perms[k] = v
-		}
+		maps.Copy(perms, au.RBAC.Permissions)
 		out.RBAC = &db.EffectiveRBAC{
 			IsSuperuser: au.RBAC.IsSuperuser,
 			Permissions: perms,

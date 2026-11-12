@@ -41,10 +41,10 @@ func runAdminPasswordReset(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("hash password: %w", err)
 	}
 
-	if err := database.UpdateUserPassword(user.ID, hash); err != nil {
+	if err = database.UpdateUserPassword(user.ID, hash); err != nil {
 		return fmt.Errorf("update password: %w", err)
 	}
 
-	fmt.Fprintf(os.Stdout, "Password reset for user %q\nNew password: %s\n", username, password)
-	return nil
+	_, err = fmt.Fprintf(os.Stdout, "Password reset for user %q\nNew password: %s\n", username, password)
+	return err
 }

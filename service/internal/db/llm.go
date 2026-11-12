@@ -2,7 +2,10 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
+
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 type LlmConnection struct {
@@ -64,7 +67,7 @@ func (db *DB) GetLlmConnection(id uint32) (*LlmConnection, error) {
 		SELECT id, name, base_url, api_key, model, enabled, created_at, updated_at
 		FROM llm_connections WHERE id = ?`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("GetLlmConnection: %v", err)
@@ -89,7 +92,7 @@ func (db *DB) CreateLlmConnection(name, baseURL, apiKey, model string, enabled b
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lastID), nil
+	return intconv.Uint32(lastID), nil
 }
 
 func (db *DB) UpdateLlmConnection(id uint32, name, baseURL, apiKey, model string, enabled bool, keepAPIKey bool) error {
@@ -165,7 +168,7 @@ func (db *DB) GetLlmTool(id uint32) (*LlmTool, error) {
 		LEFT JOIN llm_connections c ON c.id = t.llm_connection_id
 		WHERE t.id = ?`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("GetLlmTool: %v", err)
@@ -191,7 +194,7 @@ func (db *DB) CreateLlmTool(name, description string, connectionID uint32, promp
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lastID), nil
+	return intconv.Uint32(lastID), nil
 }
 
 func (db *DB) UpdateLlmTool(id uint32, name, description string, connectionID uint32, prompt string, enabled bool, sortOrder int32) error {
@@ -249,7 +252,7 @@ func (db *DB) CreateLlmToolRun(run *LlmToolRun) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lastID), nil
+	return intconv.Uint32(lastID), nil
 }
 
 func (db *DB) ListLlmToolRunsByPost(postID uint32) ([]*LlmToolRun, error) {

@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -67,7 +68,7 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 		contentType := req.Header.Get("Content-Type")
 		buf := new(bytes.Buffer)
 		n, _ := buf.ReadFrom(req.Body)
-		req.Body.Close()
+		_ = req.Body.Close()
 		bodyBytes := buf.Bytes()
 		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
@@ -128,7 +129,7 @@ func ReadBody(r *http.Response) (string, error) {
 		}
 
 		bodyString = buf.String()
-		r.Body.Close()                                           // Close the body to avoid resource leaks
+		_ = r.Body.Close()                                       // Close the body to avoid resource leaks
 		r.Body = io.NopCloser(bytes.NewBufferString(bodyString)) // Reassign the body to allow further reading
 	}
 
@@ -158,9 +159,11 @@ func ReadBodyNoChange(r *http.Response) string {
 	}
 	// Duplicate the body reader by reading it, but we cannot without consuming; rely on callers that just need a one-off
 	buf := new(bytes.Buffer)
-	io.Copy(buf, r.Body)
+	if _, err := io.Copy(buf, r.Body); err != nil {
+		logp.Debugf("Reading response body: %v", err)
+	}
 	body := buf.String()
-	r.Body.Close()
+	_ = r.Body.Close()
 	r.Body = io.NopCloser(strings.NewReader(body))
 	return body
 }
@@ -191,14 +194,15 @@ func NewClient(logger *logp.Entry) *ChainingHttpClient {
 }
 
 func (c *ChainingHttpClient) AsJson(v any) {
-	c.Res, c.Err = c.client.Do(c.req)
+	res, err := c.client.Do(c.req)
+	c.Res, c.Err = res, err
 
-	if c.Err != nil {
-		c.Err = fmt.Errorf("error making request: %w", c.Err)
+	if err != nil {
+		c.Err = fmt.Errorf("error making request: %w", err)
 		return
 	}
 
-	defer c.Res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	if c.Res.StatusCode < 200 || c.Res.StatusCode >= 300 {
 		c.ResBody, _ = io.ReadAll(c.Res.Body)
@@ -221,7 +225,7 @@ func (c *ChainingHttpClient) PostWithFormVars(requrl string, body map[string]str
 		form.Add(key, value)
 	}
 
-	c.req, c.Err = http.NewRequest("POST", c.url, strings.NewReader(form.Encode()))
+	c.req, c.Err = http.NewRequestWithContext(context.Background(), http.MethodPost, c.url, strings.NewReader(form.Encode()))
 	c.req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	return c
@@ -231,7 +235,7 @@ func (c *ChainingHttpClient) Get(requrl string) *ChainingHttpClient {
 	c.url = requrl
 
 	var err error
-	c.req, err = http.NewRequest("GET", c.url, nil)
+	c.req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, c.url, nil)
 
 	if err != nil {
 		c.Err = fmt.Errorf("error creating request: %w", err)
@@ -253,7 +257,7 @@ func (c *ChainingHttpClient) PostWithJson(requrl string, body any) *ChainingHttp
 		return c
 	}
 
-	c.req, c.Err = http.NewRequest("POST", requrl, bytes.NewReader(jsonBody))
+	c.req, c.Err = http.NewRequestWithContext(context.Background(), http.MethodPost, requrl, bytes.NewReader(jsonBody))
 	// Allow body to be recreated on retry (e.g., DPoP nonce retry)
 	reqBody := append([]byte(nil), jsonBody...)
 	c.req.GetBody = func() (io.ReadCloser, error) {

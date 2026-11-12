@@ -1,8 +1,12 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+
+	"github.com/jamesread/japella/internal/intconv"
 
 	"github.com/jamesread/japella/internal/rbac"
 )
@@ -90,18 +94,18 @@ func (db *DB) EnsureRBACBootstrap() error {
 	}
 
 	var memberRoleID, superuserRoleID uint32
-	if err := db.ResilientGet(&memberRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleMember); err != nil {
+	if err = db.ResilientGet(&memberRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleMember); err != nil {
 		return err
 	}
-	if err := db.ResilientGet(&superuserRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleSuperuser); err != nil {
+	if err = db.ResilientGet(&superuserRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleSuperuser); err != nil {
 		return err
 	}
 
-	if err := db.ensureGroupHasRole(everyoneID, memberRoleID); err != nil {
+	if err = db.ensureGroupHasRole(everyoneID, memberRoleID); err != nil {
 		db.Logger().Errorf("RBAC bootstrap (Everyone member role): %v", err)
 		return err
 	}
-	if err := db.ensureGroupHasRole(administratorsID, superuserRoleID); err != nil {
+	if err = db.ensureGroupHasRole(administratorsID, superuserRoleID); err != nil {
 		db.Logger().Errorf("RBAC bootstrap (Administrators superuser role): %v", err)
 		return err
 	}
@@ -112,8 +116,8 @@ func (db *DB) EnsureRBACBootstrap() error {
 	}
 	if superCount == 0 {
 		var firstUserID uint32
-		if err := db.ResilientGet(&firstUserID, `SELECT MIN(id) FROM user_accounts`); err == nil && firstUserID > 0 {
-			if err := db.ensureUserInGroup(firstUserID, administratorsID); err != nil {
+		if err = db.ResilientGet(&firstUserID, `SELECT MIN(id) FROM user_accounts`); err == nil && firstUserID > 0 {
+			if err = db.ensureUserInGroup(firstUserID, administratorsID); err != nil {
 				db.Logger().Errorf("RBAC bootstrap (first user Administrators): %v", err)
 				return err
 			}
@@ -236,7 +240,7 @@ func (db *DB) GetRBACRoleByID(id uint32) *RBACRole {
 	var r RBACRole
 	err := db.ResilientGet(&r, `SELECT * FROM rbac_roles WHERE id = ? LIMIT 1`, id)
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Errorf("GetRBACRoleByID: %v", err)
 		}
 		return nil
@@ -255,7 +259,7 @@ func (db *DB) CreateRBACRole(name, description string) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lid), nil
+	return intconv.Uint32(lid), nil
 }
 
 func (db *DB) UpdateRBACRole(id uint32, name, description string) error {
@@ -298,13 +302,13 @@ func (db *DB) SetRBACRolePermissions(roleID uint32, permissionIDs []uint32) erro
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
-	if _, err = tx.Exec(`DELETE FROM rbac_role_permissions WHERE role_id = ?`, roleID); err != nil {
+	if _, err = tx.ExecContext(context.Background(), `DELETE FROM rbac_role_permissions WHERE role_id = ?`, roleID); err != nil {
 		return err
 	}
 	for _, pid := range permissionIDs {
-		if _, err = tx.Exec(`INSERT INTO rbac_role_permissions (role_id, permission_id) VALUES (?, ?)`, roleID, pid); err != nil {
+		if _, err = tx.ExecContext(context.Background(), `INSERT INTO rbac_role_permissions (role_id, permission_id) VALUES (?, ?)`, roleID, pid); err != nil {
 			return err
 		}
 	}
@@ -386,13 +390,13 @@ func (db *DB) SetRBACGroupRoles(groupID uint32, roleIDs []uint32) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
-	if _, err = tx.Exec(`DELETE FROM rbac_group_roles WHERE user_group_id = ?`, groupID); err != nil {
+	if _, err = tx.ExecContext(context.Background(), `DELETE FROM rbac_group_roles WHERE user_group_id = ?`, groupID); err != nil {
 		return err
 	}
 	for _, rid := range roleIDs {
-		if _, err = tx.Exec(`INSERT INTO rbac_group_roles (user_group_id, role_id) VALUES (?, ?)`, groupID, rid); err != nil {
+		if _, err = tx.ExecContext(context.Background(), `INSERT INTO rbac_group_roles (user_group_id, role_id) VALUES (?, ?)`, groupID, rid); err != nil {
 			return err
 		}
 	}

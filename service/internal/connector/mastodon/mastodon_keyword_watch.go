@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -74,7 +75,7 @@ func (c *MastodonConnector) SearchRecentByKeyword(ctx context.Context, sa *conne
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode == http.StatusTooManyRequests {
@@ -175,7 +176,8 @@ func (c *MastodonConnector) streamHashtag(ctx context.Context, instanceURL, toke
 		if ctx.Err() != nil {
 			return
 		}
-		if rl, ok := err.(*connector.RateLimitedError); ok {
+		rl := &connector.RateLimitedError{}
+		if errors.As(err, &rl) {
 			wait := rl.RetryAfter
 			if wait <= 0 {
 				wait = 5 * time.Minute
@@ -215,7 +217,7 @@ func (c *MastodonConnector) streamHashtagOnce(ctx context.Context, instanceURL, 
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return &connector.RateLimitedError{
@@ -268,8 +270,8 @@ func (c *MastodonConnector) streamHashtagOnce(ctx context.Context, instanceURL, 
 			flush()
 			continue
 		}
-		if strings.HasPrefix(line, "event:") {
-			eventName = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+		if after, ok := strings.CutPrefix(line, "event:"); ok {
+			eventName = strings.TrimSpace(after)
 			continue
 		}
 		if strings.HasPrefix(line, "data:") {

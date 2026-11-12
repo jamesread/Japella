@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jamesread/japella/internal/intconv"
+
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/connector"
@@ -127,7 +129,7 @@ func (s *ControlApi) processPostEngagement() {
 			continue
 		}
 
-		if socialAccountNeedsTokenRefresh(sa, time.Hour) {
+		if socialAccountNeedsTokenRefresh(sa) {
 			if refreshed, refreshErr := s.refreshSocialAccountToken(sa, svc); refreshErr == nil {
 				sa = refreshed
 				accounts[saID] = sa
@@ -399,10 +401,10 @@ func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *c
 	}
 
 	res := &controlv1.GetSocialAccountPostPerformanceResponse{
-		Days:            uint32(days),
+		Days:            intconv.Uint32(days),
 		Supported:       s.connectorSupportsEngagement(sa.Connector),
 		TrackingEnabled: s.postEngagementMaxAge() > 0,
-		PostCount:       uint32(len(posts)),
+		PostCount:       intconv.Uint32(len(posts)),
 		Totals:          countsToProto(postengagement.Total(samples)),
 	}
 
@@ -435,7 +437,7 @@ func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *c
 			Content:               p.Content,
 			Success:               p.Status,
 			PostUrl:               p.PostURL.String,
-			CampaignId:            uint32(p.CampaignID.Int32),
+			CampaignId:            intconv.Uint32(p.CampaignID.Int32),
 			CampaignName:          p.CampaignName.String,
 			State:                 p.State,
 			PostedDate:            postedAt(p).Format("2006-01-02 15:04:05"),

@@ -17,20 +17,24 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// HTTPClient is a reusable HTTP client for webhook calls
-var httpClient *http.Client
+const hookTimeout = 60 * time.Second
 
-func init() {
-	// Create HTTP client with timeout and skip TLS certificate validation
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, // Skip certificate validation for webhooks
-		},
+var verifyingClient = &http.Client{Timeout: hookTimeout}
+
+// Only used for hooks that set insecureSkipVerify, for endpoints with
+// self-signed certificates.
+var insecureClient = &http.Client{
+	Timeout: hookTimeout,
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // explicit per-hook opt-in
+	},
+}
+
+func clientForHook(hook runtimeconfig.IncomingMessageHook) *http.Client {
+	if hook.InsecureSkipVerify {
+		return insecureClient
 	}
-	httpClient = &http.Client{
-		Timeout:   60 * time.Second, // 1 minute timeout for webhook calls
-		Transport: transport,
-	}
+	return verifyingClient
 }
 
 // ExecuteHooks calls all enabled hooks for a given message
@@ -56,11 +60,11 @@ func ExecuteHooks(hooks []runtimeconfig.IncomingMessageHook, msg *msgs.IncomingM
 			continue
 		}
 
-		go executeHook(hook.URL, jsonData, i, msg, logger)
+		go executeHook(clientForHook(hook), hook.URL, jsonData, i, msg, logger)
 	}
 }
 
-func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessage, logger log.FieldLogger) {
+func executeHook(httpClient *http.Client, url string, jsonData []byte, index int, msg *msgs.IncomingMessage, logger log.FieldLogger) {
 	// Log the full URL being called
 	if logger != nil {
 		logger.Infof("Hook %d: Calling webhook URL: %s", index, url)
@@ -72,7 +76,7 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second) // 1 minute timeout
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to create webhook request: %v", err)
 		if logger != nil {
@@ -102,7 +106,7 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 		sendErrorNotification(msg, errorMsg, logger)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body for logging
 	body, err := io.ReadAll(resp.Body)
@@ -124,7 +128,7 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 
 		// Extract "output" field from webhook response and emit OutgoingMessage
 		if len(body) > 0 {
-			var responseData map[string]interface{}
+			var responseData map[string]any
 			if err := json.Unmarshal(body, &responseData); err != nil {
 				if logger != nil {
 					logger.Warnf("Hook %d: Failed to parse webhook response JSON: %v", index, err)

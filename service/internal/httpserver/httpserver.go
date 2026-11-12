@@ -6,9 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
+	"time"
 
 	"github.com/jamesread/japella/internal/httpserver/frontend"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
@@ -124,9 +122,15 @@ func CreateServer(endpoint string) (*http.Server, error) {
 
 	handler := healthcheck.ReadinessMiddleware(srv, mux)
 
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
+
 	server := &http.Server{
-		Addr:    endpoint,
-		Handler: h2c.NewHandler(handler, &http2.Server{}),
+		Addr:              endpoint,
+		Handler:           handler,
+		Protocols:         protocols,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	return server, nil

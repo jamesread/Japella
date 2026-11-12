@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"time"
 
@@ -90,7 +91,9 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event string, payload map[str
 	}
 
 	for _, target := range targets {
-		go d.deliver(context.Background(), client, target, event, raw)
+		// Delivery outlives the request that triggered it, so it keeps the
+		// request's values but not its cancellation.
+		go d.deliver(context.WithoutCancel(ctx), client, target, event, raw)
 	}
 }
 
@@ -128,9 +131,7 @@ func (d *Dispatcher) marshalBody(event string, payload map[string]any) ([]byte, 
 		"event":     event,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
-	for k, v := range payload {
-		body[k] = v
-	}
+	maps.Copy(body, payload)
 	return json.Marshal(body)
 }
 
@@ -160,7 +161,7 @@ func (d *Dispatcher) deliverSync(ctx context.Context, client *http.Client, targe
 		log.Warnf("webhook target %d: POST %s: %v", target.ID, target.URL, err)
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ok := resp.StatusCode >= 200 && resp.StatusCode < 300
 	errMsg := ""
@@ -176,10 +177,7 @@ func (d *Dispatcher) record(ctx context.Context, targetID uint32, event string, 
 	if d == nil || d.Recorder == nil {
 		return
 	}
-	duration := int(time.Since(started).Milliseconds())
-	if duration < 0 {
-		duration = 0
-	}
+	duration := max(int(time.Since(started).Milliseconds()), 0)
 	if len(errMsg) > 1000 {
 		errMsg = errMsg[:1000]
 	}

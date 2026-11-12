@@ -1,6 +1,7 @@
 package dblogger
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 
@@ -66,7 +67,7 @@ func (bot *DbLogger) ConnectDatabase(db *runtimeconfig.DatabaseConfig) *sql.DB {
 func (bot *DbLogger) handleMessage(db *sql.DB, msg *msgs.IncomingMessage) {
 	bot.Logger().Infof("handleMessage: %+v", msg)
 
-	_, err := db.Exec("INSERT INTO messages (protocol, channel, author, content, timestamp) VALUES (?, ?, ?, ?, ?)", msg.Protocol, msg.Channel, msg.Author, msg.Content, msg.Timestamp)
+	_, err := db.ExecContext(context.Background(), "INSERT INTO messages (protocol, channel, author, content, timestamp) VALUES (?, ?, ?, ?, ?)", msg.Protocol, msg.Channel, msg.Author, msg.Content, msg.Timestamp)
 
 	if err != nil {
 		bot.Logger().Errorf("err: %v", err)

@@ -1,9 +1,12 @@
 package frontend
 
 import (
+	"errors"
+	"io/fs"
 	"net/http"
 	"os"
-	"path/filepath"
+	"path"
+	"strings"
 
 	"github.com/jamesread/golure/pkg/dirs"
 )
@@ -24,26 +27,11 @@ func findWebuiDir() string {
 // spaHandler serves the SPA by serving index.html for non-API routes that don't exist as files
 func spaHandler(webuiDir string) http.Handler {
 	fileServer := http.FileServer(http.Dir(webuiDir))
+	webui := os.DirFS(webuiDir)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the requested file exists
-		path := filepath.Join(webuiDir, r.URL.Path)
-
-		// If the path is a directory, check for index.html
-		if info, err := os.Stat(path); err == nil && info.IsDir() {
-			path = filepath.Join(path, "index.html")
-		}
-
-		// If the file doesn't exist, serve index.html for SPA routing
-		if _, err := os.Stat(path); os.IsNotExist(err) {
-			// Check if this is an API route or other non-SPA route
-			if r.URL.Path == "/api" ||
-				r.URL.Path == "/oauth2callback" ||
-				r.URL.Path == "/lang" ||
-				r.URL.Path == "/upload" ||
-				r.URL.Path == "/readyz" ||
-				r.URL.Path == "/healthz" ||
-				r.URL.Path == "/metrics" {
+		if !webuiFileExists(webui, r.URL.Path) {
+			if isServerRoute(r.URL.Path) {
 				// Let the main server handle these routes
 				http.NotFound(w, r)
 				return
@@ -55,6 +43,31 @@ func spaHandler(webuiDir string) http.Handler {
 
 		fileServer.ServeHTTP(w, r)
 	})
+}
+
+// The lookup goes through an fs.FS, whose paths cannot contain ".." elements,
+// so it never looks outside the web UI directory.
+func webuiFileExists(webui fs.FS, urlPath string) bool {
+	name := strings.TrimPrefix(path.Clean("/"+urlPath), "/")
+	if name == "" {
+		name = "."
+	}
+
+	info, err := fs.Stat(webui, name)
+	if err == nil && info.IsDir() {
+		_, err = fs.Stat(webui, path.Join(name, "index.html"))
+	}
+
+	return !errors.Is(err, fs.ErrNotExist)
+}
+
+func isServerRoute(urlPath string) bool {
+	switch urlPath {
+	case "/api", "/oauth2callback", "/lang", "/upload", "/readyz", "/healthz", "/metrics":
+		return true
+	default:
+		return false
+	}
 }
 
 func GetNewHandler() http.Handler {

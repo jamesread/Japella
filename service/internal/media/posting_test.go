@@ -15,8 +15,8 @@ import (
 func photo(w, h int) *image.NRGBA {
 	img := image.NewNRGBA(image.Rect(0, 0, w, h))
 	rng := rand.New(rand.NewSource(2))
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			i := img.PixOffset(x, y)
 			img.Pix[i] = uint8(x*255/w) ^ uint8(rng.Intn(64))
 			img.Pix[i+1] = uint8(y*255/h) ^ uint8(rng.Intn(64))
@@ -62,8 +62,8 @@ func TestOptimiseForPostingPhoto(t *testing.T) {
 func TestOptimiseForPostingKeepsGraphicsAsPNG(t *testing.T) {
 	dir := inMediaDir(t)
 	img := image.NewNRGBA(image.Rect(0, 0, 2400, 400))
-	for y := 0; y < 400; y++ {
-		for x := 0; x < 2400; x++ {
+	for y := range 400 {
+		for x := range 2400 {
 			if (x/40+y/40)%2 == 0 {
 				img.SetNRGBA(x, y, color.NRGBA{0, 0, 0, 0})
 			} else {
@@ -90,7 +90,9 @@ func TestOptimiseForPostingAppliesOrientation(t *testing.T) {
 	}
 	plain := enc.Bytes()
 	rotated := append(append([]byte{0xFF, 0xD8}, orientationEXIF(6)...), plain[2:]...)
-	os.WriteFile(filepath.Join(dir, "side.jpg"), rotated, 0644)
+	if err := os.WriteFile(filepath.Join(dir, "side.jpg"), rotated, 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	res, err := OptimiseForPosting("side.jpg", PostingTarget{MaxBytes: 1_000_000, MaxSide: 2000})
 	if err != nil || res.Filename == "" {
@@ -104,8 +106,12 @@ func TestOptimiseForPostingAppliesOrientation(t *testing.T) {
 func TestOptimiseForPostingAlreadyFits(t *testing.T) {
 	dir := inMediaDir(t)
 	var enc bytes.Buffer
-	jpeg.Encode(&enc, photo(300, 200), &jpeg.Options{Quality: 60})
-	os.WriteFile(filepath.Join(dir, "small.jpg"), enc.Bytes(), 0644)
+	if err := jpeg.Encode(&enc, photo(300, 200), &jpeg.Options{Quality: 60}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "small.jpg"), enc.Bytes(), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	res, err := OptimiseForPosting("small.jpg", PostingTarget{MaxBytes: 1_000_000, MaxSide: 2000})
 	if err != nil || res.Filename != "" {

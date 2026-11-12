@@ -1,8 +1,12 @@
 package db
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
+
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 const SubmissionSourceMCP = "mcp"
@@ -28,7 +32,7 @@ func (db *DB) CreateAccountPolicy(policy *AccountPolicy) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lid), nil
+	return intconv.Uint32(lid), nil
 }
 
 func (db *DB) UpdateAccountPolicy(policy *AccountPolicy) error {
@@ -59,7 +63,7 @@ func (db *DB) GetAccountPolicy(id uint32) (*AccountPolicy, error) {
 	var p AccountPolicy
 	err := db.ResilientGet(&p, `SELECT * FROM account_policies WHERE id = ? LIMIT 1`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
 		db.Logger().Errorf("GetAccountPolicy: %v", err)
@@ -99,13 +103,13 @@ func (db *DB) SetAccountPolicySocialAccounts(policyID uint32, socialAccountIDs [
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
-	if _, err = tx.Exec(`DELETE FROM account_policy_social_accounts WHERE account_policy_id = ?`, policyID); err != nil {
+	if _, err = tx.ExecContext(context.Background(), `DELETE FROM account_policy_social_accounts WHERE account_policy_id = ?`, policyID); err != nil {
 		return err
 	}
 	for _, saID := range socialAccountIDs {
-		if _, err = tx.Exec(
+		if _, err = tx.ExecContext(context.Background(),
 			`INSERT INTO account_policy_social_accounts (account_policy_id, social_account_id, created_at, updated_at) VALUES (?, ?, NOW(3), NOW(3))`,
 			policyID, saID); err != nil {
 			return err
@@ -139,13 +143,13 @@ func (db *DB) SetAccountPolicyApprovalStages(policyID uint32, stages []*AccountP
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer db.rollbackUnlessCommitted(tx)
 
-	if _, err = tx.Exec(`DELETE FROM account_policy_approval_stages WHERE account_policy_id = ?`, policyID); err != nil {
+	if _, err = tx.ExecContext(context.Background(), `DELETE FROM account_policy_approval_stages WHERE account_policy_id = ?`, policyID); err != nil {
 		return err
 	}
 	for _, st := range stages {
-		if _, err = tx.Exec(
+		if _, err = tx.ExecContext(context.Background(),
 			`INSERT INTO account_policy_approval_stages
 			 (account_policy_id, stage_order, user_id, user_group_id, created_at, updated_at)
 			 VALUES (?, ?, ?, ?, NOW(3), NOW(3))`,
@@ -172,7 +176,7 @@ func (db *DB) GetAccountPolicyForSocialAccount(socialAccountID uint32) (*Account
 		WHERE apsa.social_account_id = ?
 		LIMIT 1`, socialAccountID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("GetAccountPolicyForSocialAccount: %v", err)
@@ -191,7 +195,7 @@ func (db *DB) GetApprovalStageByPolicyAndOrder(policyID uint32, stageOrder uint3
 		WHERE s.account_policy_id = ? AND s.stage_order = ?
 		LIMIT 1`, policyID, stageOrder)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
 		db.Logger().Errorf("GetApprovalStageByPolicyAndOrder: %v", err)
@@ -222,11 +226,11 @@ func (db *DB) CanUserApproveStage(userID uint32, stage *AccountPolicyApprovalSta
 	if stage == nil {
 		return false, nil
 	}
-	if stage.UserID.Valid && uint32(stage.UserID.Int32) == userID {
+	if stage.UserID.Valid && intconv.Uint32(stage.UserID.Int32) == userID {
 		return true, nil
 	}
 	if stage.UserGroupID.Valid {
-		return db.IsUserInUserGroup(userID, uint32(stage.UserGroupID.Int32))
+		return db.IsUserInUserGroup(userID, intconv.Uint32(stage.UserGroupID.Int32))
 	}
 	return false, nil
 }

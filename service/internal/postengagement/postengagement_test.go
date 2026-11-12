@@ -9,13 +9,12 @@ import (
 	"github.com/jamesread/japella/internal/db"
 )
 
-func storedRow(likes, reposts, replies, quotes uint32) *db.PostEngagement {
+func storedRow(likes, reposts, replies uint32) *db.PostEngagement {
 	return &db.PostEngagement{
 		PostID:        1,
 		Likes:         likes,
 		Reposts:       reposts,
 		Replies:       replies,
-		Quotes:        quotes,
 		LastChangedAt: sql.NullTime{Time: time.Now(), Valid: true},
 	}
 }
@@ -39,7 +38,7 @@ func TestCompareErrorOnlyRowIsBaseline(t *testing.T) {
 }
 
 func TestCompareDetectsNewActivity(t *testing.T) {
-	cmp := Compare(storedRow(3, 1, 0, 0), Counts{Likes: 5, Reposts: 1, Replies: 2})
+	cmp := Compare(storedRow(3, 1, 0), Counts{Likes: 5, Reposts: 1, Replies: 2})
 	if cmp.Baseline || !cmp.Changed || !cmp.HasNewActivity() {
 		t.Fatalf("expected new activity, got %+v", cmp)
 	}
@@ -50,7 +49,7 @@ func TestCompareDetectsNewActivity(t *testing.T) {
 }
 
 func TestCompareDecreaseIsChangeButNotActivity(t *testing.T) {
-	cmp := Compare(storedRow(5, 0, 0, 0), Counts{Likes: 4})
+	cmp := Compare(storedRow(5, 0, 0), Counts{Likes: 4})
 	if !cmp.Changed {
 		t.Fatal("expected change to be recorded")
 	}
@@ -60,7 +59,7 @@ func TestCompareDecreaseIsChangeButNotActivity(t *testing.T) {
 }
 
 func TestCompareImpressionsOnlyIsNotActivity(t *testing.T) {
-	row := storedRow(1, 0, 0, 0)
+	row := storedRow(1, 0, 0)
 	row.Impressions = 100
 	cmp := Compare(row, Counts{Likes: 1, Impressions: 250})
 	if !cmp.Changed || cmp.HasNewActivity() {
@@ -72,7 +71,7 @@ func TestCompareImpressionsOnlyIsNotActivity(t *testing.T) {
 }
 
 func TestCompareUnchanged(t *testing.T) {
-	cmp := Compare(storedRow(2, 1, 1, 0), Counts{Likes: 2, Reposts: 1, Replies: 1})
+	cmp := Compare(storedRow(2, 1, 1), Counts{Likes: 2, Reposts: 1, Replies: 1})
 	if cmp.Changed || cmp.HasNewActivity() {
 		t.Fatalf("expected no change, got %+v", cmp)
 	}

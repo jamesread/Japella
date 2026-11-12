@@ -2,8 +2,10 @@ package themes
 
 import (
 	"encoding/json"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/jamesread/golure/pkg/dirs"
@@ -47,8 +49,7 @@ func parseThemeID(raw json.RawMessage) string {
 }
 
 func readThemeNamesFromIndex(webuiDir, relativePath string, seen map[string]struct{}, names *[]string) {
-	path := filepath.Join(webuiDir, relativePath)
-	data, err := os.ReadFile(path)
+	data, err := fs.ReadFile(os.DirFS(webuiDir), filepath.ToSlash(relativePath))
 	if err != nil {
 		return
 	}
@@ -90,10 +91,5 @@ func IsValidThemeName(name string, catalog []string) bool {
 	if name == "" {
 		return true
 	}
-	for _, allowed := range catalog {
-		if allowed == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(catalog, name)
 }

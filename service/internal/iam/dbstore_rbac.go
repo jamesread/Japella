@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/jamesread/japella/internal/intconv"
+
 	"github.com/jamesread/armature-iam/rbac"
 	"github.com/jamesread/armature-iam/store"
 )
@@ -76,17 +78,17 @@ func (s *DBStore) EnsureRBACBootstrap(ctx context.Context) error {
 	}
 
 	var memberRoleID, superuserRoleID int
-	if err := s.DB.ResilientGet(&memberRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleMember); err != nil {
+	if err = s.DB.ResilientGet(&memberRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleMember); err != nil {
 		return err
 	}
-	if err := s.DB.ResilientGet(&superuserRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleSuperuser); err != nil {
+	if err = s.DB.ResilientGet(&superuserRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleSuperuser); err != nil {
 		return err
 	}
 
-	if err := s.ensureGroupHasRole(ctx, everyoneID, memberRoleID); err != nil {
+	if err = s.ensureGroupHasRole(everyoneID, memberRoleID); err != nil {
 		return err
 	}
-	if err := s.ensureGroupHasRole(ctx, administratorsID, superuserRoleID); err != nil {
+	if err = s.ensureGroupHasRole(administratorsID, superuserRoleID); err != nil {
 		return err
 	}
 
@@ -121,7 +123,7 @@ func (s *DBStore) ensureSystemGroup(ctx context.Context, name string) (int, erro
 	return s.CreateUserGroup(ctx, name)
 }
 
-func (s *DBStore) ensureGroupHasRole(ctx context.Context, groupID, roleID int) error {
+func (s *DBStore) ensureGroupHasRole(groupID, roleID int) error {
 	_, err := s.DB.ResilientExec(
 		`INSERT IGNORE INTO rbac_group_roles (user_group_id, role_id) VALUES (?, ?)`,
 		groupID, roleID)
@@ -184,7 +186,7 @@ func (s *DBStore) ListRBACRoles(ctx context.Context) ([]store.RBACRoleRow, error
 }
 
 func (s *DBStore) GetRBACRole(ctx context.Context, id int) (*store.RBACRoleRow, error) {
-	role := s.DB.GetRBACRoleByID(uint32(id))
+	role := s.DB.GetRBACRoleByID(intconv.Uint32(id))
 	if role == nil {
 		return nil, nil
 	}
@@ -220,46 +222,46 @@ func (s *DBStore) CreateRBACRole(ctx context.Context, name, description string, 
 }
 
 func (s *DBStore) UpdateRBACRole(ctx context.Context, id int, name, description string, permissionIDs []int) error {
-	cur := s.DB.GetRBACRoleByID(uint32(id))
+	cur := s.DB.GetRBACRoleByID(intconv.Uint32(id))
 	if cur == nil {
 		return sql.ErrNoRows
 	}
 	if rbac.IsSystemRole(cur.Name) && name != cur.Name {
 		return fmt.Errorf("%w %q", store.ErrRenameSystemRole, cur.Name)
 	}
-	if err := s.DB.UpdateRBACRole(uint32(id), name, description); err != nil {
+	if err := s.DB.UpdateRBACRole(intconv.Uint32(id), name, description); err != nil {
 		return err
 	}
 	if cur.Name == rbac.RoleSuperuser {
 		return nil
 	}
-	return s.DB.SetRBACRolePermissions(uint32(id), intSliceToUint32(permissionIDs))
+	return s.DB.SetRBACRolePermissions(intconv.Uint32(id), intSliceToUint32(permissionIDs))
 }
 
 func (s *DBStore) DeleteRBACRole(ctx context.Context, id int) error {
-	role := s.DB.GetRBACRoleByID(uint32(id))
+	role := s.DB.GetRBACRoleByID(intconv.Uint32(id))
 	if role == nil {
 		return sql.ErrNoRows
 	}
 	if rbac.IsSystemRole(role.Name) {
 		return fmt.Errorf("%w %q", store.ErrSystemRole, role.Name)
 	}
-	return s.DB.DeleteRBACRole(uint32(id))
+	return s.DB.DeleteRBACRole(intconv.Uint32(id))
 }
 
 func (s *DBStore) SetRBACRolePermissions(ctx context.Context, roleID int, permissionIDs []int) error {
-	role := s.DB.GetRBACRoleByID(uint32(roleID))
+	role := s.DB.GetRBACRoleByID(intconv.Uint32(roleID))
 	if role == nil {
 		return sql.ErrNoRows
 	}
 	if role.Name == rbac.RoleSuperuser {
 		return fmt.Errorf("%w %q", store.ErrSystemRole, role.Name)
 	}
-	return s.DB.SetRBACRolePermissions(uint32(roleID), intSliceToUint32(permissionIDs))
+	return s.DB.SetRBACRolePermissions(intconv.Uint32(roleID), intSliceToUint32(permissionIDs))
 }
 
 func (s *DBStore) ListRolePermissionIDs(ctx context.Context, roleID int) ([]int, error) {
-	ids, err := s.DB.SelectPermissionIDsForRole(uint32(roleID))
+	ids, err := s.DB.SelectPermissionIDsForRole(intconv.Uint32(roleID))
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +290,7 @@ func (s *DBStore) GetUserRbacRoleNames(ctx context.Context, userID int) ([]strin
 }
 
 func (s *DBStore) GetUserGroupRbacRoleIDs(ctx context.Context, groupID int) ([]int, error) {
-	ids, err := s.DB.SelectRBACRoleIDsForGroup(uint32(groupID))
+	ids, err := s.DB.SelectRBACRoleIDsForGroup(intconv.Uint32(groupID))
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +298,7 @@ func (s *DBStore) GetUserGroupRbacRoleIDs(ctx context.Context, groupID int) ([]i
 }
 
 func (s *DBStore) SetUserGroupRbacRoles(ctx context.Context, groupID int, roleIDs []int) error {
-	if err := s.DB.SetRBACGroupRoles(uint32(groupID), intSliceToUint32(roleIDs)); err != nil {
+	if err := s.DB.SetRBACGroupRoles(intconv.Uint32(groupID), intSliceToUint32(roleIDs)); err != nil {
 		return err
 	}
 	return s.ensureSuperuserCoverage(ctx)
@@ -324,7 +326,7 @@ func (s *DBStore) ListRbacRoleUsernames(ctx context.Context, roleID int) ([]stri
 }
 
 func (s *DBStore) GetMyPermissionsAudit(ctx context.Context, userID int) ([]string, []string, bool, []store.MyPermissionAuditRow, error) {
-	audit, err := s.DB.BuildUserPermissionsAudit(uint32(userID))
+	audit, err := s.DB.BuildUserPermissionsAudit(intconv.Uint32(userID))
 	if err != nil {
 		return nil, nil, false, nil, err
 	}

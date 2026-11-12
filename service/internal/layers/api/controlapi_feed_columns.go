@@ -338,7 +338,7 @@ func (s *ControlApi) fetchFeedColumnAccount(ctx context.Context, col *db.FeedCol
 			}
 		}()
 
-		if socialAccountNeedsTokenRefresh(sa, time.Hour) {
+		if socialAccountNeedsTokenRefresh(sa) {
 			if refreshed, refreshErr := s.refreshSocialAccountToken(sa, svc); refreshErr == nil {
 				sa = refreshed
 			}
@@ -369,12 +369,12 @@ func (s *ControlApi) GetFeedColumnPosts(ctx context.Context, req *connect.Reques
 
 	q, err := feedcolumns.ParseQuery(col.Query)
 	if err != nil {
-		return connect.NewResponse(&controlv1.GetFeedColumnPostsResponse{Error: err.Error()}), nil
+		return feedColumnPostsError(err)
 	}
 	if q.Tag != "" {
-		res, err := s.tagColumnPosts(au, q.Tag)
-		if err != nil {
-			return nil, err
+		res, tagErr := s.tagColumnPosts(au, q.Tag)
+		if tagErr != nil {
+			return nil, tagErr
 		}
 		return connect.NewResponse(res), nil
 	}
@@ -464,4 +464,10 @@ func (s *ControlApi) GetFeedColumnPosts(ctx context.Context, req *connect.Reques
 		res.Posts = append(res.Posts, post)
 	}
 	return connect.NewResponse(res), nil
+}
+
+// A column whose saved query no longer parses is reported in the response so
+// the UI can show it on that column instead of failing the whole request.
+func feedColumnPostsError(err error) (*connect.Response[controlv1.GetFeedColumnPostsResponse], error) {
+	return connect.NewResponse(&controlv1.GetFeedColumnPostsResponse{Error: err.Error()}), nil
 }

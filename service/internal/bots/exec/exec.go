@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/google/shlex"
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/botbase"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
-	log "github.com/sirupsen/logrus"
-	"os"
-	"os/exec"
-	"strings"
-	"time"
 )
 
 type Exec struct {
@@ -37,8 +38,6 @@ func (e *Exec) Start() {
 		return
 	}
 
-	// List files in /usr/libexec/japella/
-
 	bot.RegisterBangCommand("exechelp", bot.exechelp)
 	bot.RegisterBangCommand("execrefresh", bot.refreshCommands)
 
@@ -48,7 +47,7 @@ func (e *Exec) Start() {
 }
 
 func (b *ExecBot) refreshCommands(m *msgs.IncomingMessage, command string, arguments string) {
-	files, err := os.ReadDir("/usr/libexec/japella/")
+	files, err := os.ReadDir(scriptDir)
 
 	if err != nil {
 		b.Logger().Errorf("Error reading directory: %v", err)
@@ -86,16 +85,20 @@ func (b *ExecBot) exechelp(m *msgs.IncomingMessage, command string, arguments st
 	b.SendMessage(out)
 }
 
-func getCommandContext(ctx context.Context, command string) (*exec.Cmd, error) {
-	args, err := shlex.Split(command)
+const scriptDir = "/usr/libexec/japella"
 
+// command is the bang command that matched a registered script, so only its
+// base name is used and the script always resolves inside scriptDir. Dots and
+// "!" have always been stripped from arguments; that is kept for compatibility.
+func getCommandContext(ctx context.Context, command string, arguments string) (*exec.Cmd, error) {
+	args, err := shlex.Split(strings.NewReplacer(".", "", "!", "").Replace(arguments))
 	if err != nil {
 		return nil, err
 	}
 
-	cmd := exec.CommandContext(ctx, "/usr/libexec/japella/"+args[0], args[1:]...)
+	script := filepath.Join(scriptDir, filepath.Base(command))
 
-	return cmd, nil
+	return exec.CommandContext(ctx, script, args...), nil //nolint:gosec // script is confined to scriptDir; arguments are passed without a shell
 }
 
 func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments string) {
@@ -106,19 +109,13 @@ func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments str
 		ConversationKey: db.BuildConversationKey(m.Channel, m.Author),
 	}
 
-	b.Logger().Infof("Executing command: %v", m.Content)
+	b.Logger().Infof("Executing command: %v %v", command, arguments)
 
-	script := m.Content
-	script = strings.ReplaceAll(script, ".", "")
-	script = strings.ReplaceAll(script, "!", "")
-
-	b.Logger().Infof("Executing command: %v", script)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10*time.Second))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
 
-	cmd, err := getCommandContext(ctx, script)
+	cmd, err := getCommandContext(ctx, command, arguments)
 
 	var stderr bytes.Buffer
 	var output string
@@ -131,7 +128,7 @@ func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments str
 		args["server"] = m.Server
 		args["content"] = m.Content
 		args["args"] = arguments
-		cmd.Env = buildEnv(b.Logger(), args)
+		cmd.Env = buildEnv(args)
 		cmd.Stderr = &stderr
 
 		var outputBytes []byte
@@ -151,7 +148,7 @@ func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments str
 	b.SendMessage(out)
 }
 
-func buildEnv(logger *log.Entry, args map[string]string) []string {
+func buildEnv(args map[string]string) []string {
 	env := os.Environ()
 	env = append(env, "JAPELLA=1")
 

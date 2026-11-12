@@ -6,6 +6,7 @@ import (
 
 	"github.com/jamesread/japella/internal/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAdminPasswordReset(t *testing.T) {
@@ -15,8 +16,7 @@ func TestAdminPasswordReset(t *testing.T) {
 	// Test 1: Verify environment variable detection
 	t.Run("EnvironmentVariableDetection", func(t *testing.T) {
 		// Test with environment variable set
-		os.Setenv("JAPELLA_RESET_ADMIN_PASSWORD", "true")
-		defer os.Unsetenv("JAPELLA_RESET_ADMIN_PASSWORD")
+		t.Setenv("JAPELLA_RESET_ADMIN_PASSWORD", "true")
 
 		envValue := os.Getenv("JAPELLA_RESET_ADMIN_PASSWORD")
 		assert.NotEmpty(t, envValue, "Environment variable should be set")
@@ -28,19 +28,20 @@ func TestAdminPasswordReset(t *testing.T) {
 		password := "admin"
 		hashedPassword, err := utils.HashPassword(password)
 
-		assert.NoError(t, err, "Should hash password without error")
+		require.NoError(t, err, "Should hash password without error")
 		assert.NotEmpty(t, hashedPassword, "Hashed password should not be empty")
 
 		// Verify the hash can be verified
 		match, err := utils.VerifyPassword(hashedPassword, password)
-		assert.NoError(t, err, "Should verify password without error")
+		require.NoError(t, err, "Should verify password without error")
 		assert.True(t, match, "Password should match its hash")
 	})
 
 	// Test 3: Verify environment variable is not set by default
 	t.Run("EnvironmentVariableNotSet", func(t *testing.T) {
 		// Ensure environment variable is not set
-		os.Unsetenv("JAPELLA_RESET_ADMIN_PASSWORD")
+		t.Setenv("JAPELLA_RESET_ADMIN_PASSWORD", "")
+		require.NoError(t, os.Unsetenv("JAPELLA_RESET_ADMIN_PASSWORD"))
 
 		envValue := os.Getenv("JAPELLA_RESET_ADMIN_PASSWORD")
 		assert.Empty(t, envValue, "Environment variable should not be set")
@@ -61,7 +62,7 @@ func TestAdminPasswordResetIntegration(t *testing.T) {
 
 	// Create an admin user with a different password
 	adminUser, err := db.CreateUserAccount("admin", "someOtherPassword", UserCreatedByAdmin)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, adminUser)
 
 	// Set the environment variable
@@ -73,7 +74,7 @@ func TestAdminPasswordResetIntegration(t *testing.T) {
 	db.initAdminUser(chain)
 
 	// Verify no error occurred
-	assert.NoError(t, chain.err)
+	require.NoError(t, chain.err)
 
 	// Verify the admin password was reset
 	updatedAdmin := db.GetUserByUsername("admin")
@@ -81,7 +82,7 @@ func TestAdminPasswordResetIntegration(t *testing.T) {
 
 	// Verify the password is now "admin"
 	match, err := utils.VerifyPassword(updatedAdmin.PasswordHash, "admin")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.True(t, match, "Admin password should be reset to 'admin'")
 }
 */

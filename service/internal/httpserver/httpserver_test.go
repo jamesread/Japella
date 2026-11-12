@@ -40,10 +40,10 @@ func TestCreateServer(t *testing.T) {
 			server, err := CreateServer(tt.endpoint)
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Nil(t, server)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, server)
 				assert.Equal(t, tt.endpoint, server.Addr)
 				assert.NotNil(t, server.Handler)
@@ -110,7 +110,7 @@ func TestCreateServer_RouteRegistration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req, err := http.NewRequest("GET", "http://localhost"+server.Addr+tc.path, nil)
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://localhost"+server.Addr+tc.path, nil)
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
@@ -133,7 +133,7 @@ func TestCreateServer_RouteRegistration(t *testing.T) {
 }
 
 func TestHandleReadyz(t *testing.T) {
-	req, err := http.NewRequest("GET", "/readyz", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/readyz", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -147,7 +147,7 @@ func TestHandleReadyz(t *testing.T) {
 }
 
 func TestHandleHealthz(t *testing.T) {
-	req, err := http.NewRequest("GET", "/healthz", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/healthz", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -170,7 +170,7 @@ func TestCreateServer_HTTP2Support(t *testing.T) {
 	assert.NotNil(t, server.Handler, "Server handler should not be nil")
 
 	// Test that the server can handle requests (basic functionality test)
-	req, err := http.NewRequest("GET", "/healthz", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/healthz", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -186,7 +186,7 @@ func TestCreateServer_AuthenticationLayer(t *testing.T) {
 
 	// Test that API endpoints are properly protected
 	// The GetStatus endpoint should be accessible without authentication (it's in the allowlist)
-	req, err := http.NewRequest("POST", "/api/japella.controlapi.v1.JapellaControlApiService/GetStatus", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/api/japella.controlapi.v1.JapellaControlApiService/GetStatus", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -222,7 +222,7 @@ func TestCreateServer_HandlerChain(t *testing.T) {
 
 	for _, endpoint := range endpoints {
 		t.Run("endpoint_"+endpoint, func(t *testing.T) {
-			req, err := http.NewRequest("GET", endpoint, nil)
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, endpoint, nil)
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
