@@ -147,24 +147,6 @@ html[data-theme="dark"] {
 	justify-content: space-between;
 }
 
-.messages .notification {
-	padding: 0.75em;
-	border-radius: 0.25em;
-	margin-bottom: 1em;
-	cursor: pointer;
-}
-
-.messages .notification span {
-	display: block;
-}
-
-.messages .notification a {
-	color: black;
-	display: block;
-	margin-top: 1em;
-	font-weight: bold;
-}
-
 .startup-failure-overlay {
 	min-height: 100vh;
 	display: flex;
@@ -239,6 +221,15 @@ input:disabled {
 }
 
 #app {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+}
+
+/* AppShell wraps the header and #layout in its own element; keep the flex
+   chain from #app so #layout still fills the viewport (the sticky sidebar
+   otherwise shifts up on short pages such as the feed). */
+#app > .app-shell {
 	display: flex;
 	flex-direction: column;
 	flex-grow: 1;

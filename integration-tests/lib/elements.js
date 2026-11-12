@@ -87,3 +87,57 @@ export async function requireFooterLink (hrefSubstring) {
     `expected footer link containing ${hrefSubstring}`
   )
 }
+
+export async function waitForElement (css, timeoutMs = DEFAULT_UI_WAIT_MS) {
+  await webdriver.wait(new Condition(`wait for ${css}`, async () => {
+    const found = await webdriver.findElements(By.css(css))
+    return found.length > 0
+  }), timeoutMs)
+}
+
+export async function openPage (pathname) {
+  await webdriver.get(new URL(pathname, runner.baseUrl()).toString())
+  await waitForAppReady()
+  await waitForLoggedIn()
+}
+
+export async function getElementRect (css) {
+  return webdriver.executeScript((selector) => {
+    const rect = document.querySelector(selector).getBoundingClientRect()
+    return { top: rect.top, bottom: rect.bottom, height: rect.height }
+  }, css)
+}
+
+export async function getViewportAndDocumentHeight () {
+  return webdriver.executeScript(() => ({
+    viewport: window.innerHeight,
+    document: document.documentElement.scrollHeight
+  }))
+}
+
+/*
+ * The seeded server never reports status messages or impersonation, so the
+ * GetStatus response is rewritten in the browser. Returns the CDP script id
+ * for removeGetStatusOverride.
+ */
+export async function overrideGetStatus (fields) {
+  const source = `
+    (() => {
+      const extra = ${JSON.stringify(fields)};
+      const originalFetch = window.fetch;
+      window.fetch = async (input, init) => {
+        const res = await originalFetch(input, init);
+        const url = typeof input === 'string' ? input : input.url;
+        if (!url.endsWith('/GetStatus')) return res;
+        const body = Object.assign(await res.clone().json(), extra);
+        return new Response(JSON.stringify(body), { status: res.status, headers: res.headers });
+      };
+    })();
+  `
+  const result = await webdriver.sendAndGetDevToolsCommand('Page.addScriptToEvaluateOnNewDocument', { source })
+  return result.identifier
+}
+
+export async function removeGetStatusOverride (identifier) {
+  await webdriver.sendDevToolsCommand('Page.removeScriptToEvaluateOnNewDocument', { identifier })
+}

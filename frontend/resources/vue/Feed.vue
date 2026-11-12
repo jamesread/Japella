@@ -679,7 +679,7 @@
 
 	.feed-layout > :deep(.feed-column),
 	.feed-add-column {
-		height: calc(100vh - var(--picocrank-fixed-header-offset, 0px) - 3.5rem);
+		height: calc(100vh - var(--picocrank-fixed-header-offset, 0px) - var(--picocrank-app-banners-height, 0px) - 3.5rem);
 	}
 
 	/* A quiet full-height placeholder after the last column, at the default column width. */
