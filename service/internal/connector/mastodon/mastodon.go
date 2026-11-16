@@ -25,8 +25,7 @@ import (
 )
 
 type MastodonConnector struct {
-	token string
-	db    *db.DB
+	db *db.DB
 
 	connector.ConnectorWithWall
 	connector.OAuth2Connector
@@ -256,7 +255,7 @@ func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (
 		return "", fmt.Errorf("close multipart writer: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", instanceURL+"/api/v2/media", body)
+	req, err := http.NewRequest(http.MethodPost, instanceURL+"/api/v2/media", body)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
@@ -365,7 +364,7 @@ func (c *MastodonConnector) FetchRecentPosts(socialAccount *connector.SocialAcco
 	const maxPages = 5
 	maxID := ""
 
-	for page := 0; page < maxPages; page++ {
+	for range maxPages {
 		timelineURL := fmt.Sprintf("%s/api/v1/timelines/home?limit=%d", instanceURL, pageLimit)
 		if maxID != "" {
 			timelineURL += "&max_id=" + url.QueryEscape(maxID)

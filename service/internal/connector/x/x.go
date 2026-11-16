@@ -139,7 +139,7 @@ func (x *XConnector) RefreshToken(socialAccount *db.SocialAccount) error {
 	refreshTokenArgs := make(map[string]string)
 	refreshTokenArgs["refresh_token"] = socialAccount.OAuth2RefreshToken
 	refreshTokenArgs["grant_type"] = "refresh_token"
-	//refreshTokenArgs["client_id"] = x.db.GetCvarString(CFG_X_CLIENT_ID)
+	// refreshTokenArgs["client_id"] = x.db.GetCvarString(CFG_X_CLIENT_ID)
 
 	requrl := "https://api.x.com/2/oauth2/token"
 	tok := base64.StdEncoding.EncodeToString([]byte(x.db.GetCvarString(CFG_X_CLIENT_ID) + ":" + x.db.GetCvarString(CFG_X_CLIENT_SECRET)))
@@ -244,14 +244,14 @@ func (x *XConnector) resolveUserID(accessToken string, cachedUserID string, acco
 // v1-style: { "media_id": 123 } or { "media_id_string": "123" }
 // v2-style: { "data": { "media_key": "..." } } or { "data": { "media_id": "..." } }
 type mediaUploadResponse struct {
-	MediaID       interface{}      `json:"media_id"`
+	MediaID       any              `json:"media_id"`
 	MediaIDString string           `json:"media_id_string"`
 	Data          *mediaUploadData `json:"data"`
 }
 
 type mediaUploadData struct {
-	MediaKey string      `json:"media_key"`
-	MediaID  interface{} `json:"media_id"`
+	MediaKey string `json:"media_key"`
+	MediaID  any    `json:"media_id"`
 }
 
 func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error) {
@@ -282,7 +282,7 @@ func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error
 		return "", fmt.Errorf("close multipart writer: %w", err)
 	}
 
-	req, err := http.NewRequest("POST", "https://api.x.com/2/media/upload", body)
+	req, err := http.NewRequest(http.MethodPost, "https://api.x.com/2/media/upload", body)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
@@ -296,7 +296,7 @@ func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 403 {
+	if resp.StatusCode == http.StatusForbidden {
 		b, _ := io.ReadAll(resp.Body)
 		return "", fmt.Errorf("media upload forbidden (403): X requires the media.write scope. Disconnect and reconnect your X account in Japella so the new permission is granted. Response: %s", string(b))
 	}

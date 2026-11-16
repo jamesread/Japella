@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 
 	"github.com/jamesread/golure/pkg/dirs"
@@ -90,10 +91,5 @@ func IsValidThemeName(name string, catalog []string) bool {
 	if name == "" {
 		return true
 	}
-	for _, allowed := range catalog {
-		if allowed == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(catalog, name)
 }

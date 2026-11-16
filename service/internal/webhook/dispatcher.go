@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"time"
 
@@ -128,9 +129,7 @@ func (d *Dispatcher) marshalBody(event string, payload map[string]any) ([]byte, 
 		"event":     event,
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
 	}
-	for k, v := range payload {
-		body[k] = v
-	}
+	maps.Copy(body, payload)
 	return json.Marshal(body)
 }
 
@@ -176,10 +175,7 @@ func (d *Dispatcher) record(ctx context.Context, targetID uint32, event string, 
 	if d == nil || d.Recorder == nil {
 		return
 	}
-	duration := int(time.Since(started).Milliseconds())
-	if duration < 0 {
-		duration = 0
-	}
+	duration := max(int(time.Since(started).Milliseconds()), 0)
 	if len(errMsg) > 1000 {
 		errMsg = errMsg[:1000]
 	}

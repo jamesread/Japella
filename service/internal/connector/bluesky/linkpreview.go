@@ -35,7 +35,7 @@ func (b *BlueskyConnector) fetchLinkPreview(rawURL string) (*LinkPreview, error)
 	}
 
 	client := &http.Client{Timeout: linkPreviewTimeout}
-	req, err := http.NewRequest("GET", rawURL, nil)
+	req, err := http.NewRequest(http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, err
 	}

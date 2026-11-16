@@ -147,7 +147,7 @@ func (db *DB) Migrate(chain *ConnectionChain) {
 
 	err = m.Up()
 
-	if err == migrate.ErrNoChange {
+	if errors.Is(err, migrate.ErrNoChange) {
 		db.Logger().Info("Database is already at the latest version, no migration needed")
 	} else if err != nil {
 		db.Logger().Errorf("Failed to migrate database: %v", err)
@@ -361,7 +361,7 @@ func (db *DB) ResilientNamedExec(query string, args ...any) (sql.Result, error) 
 	return db.connx.NamedExec(query, args)
 }
 
-func (db *DB) ResilientSelect(dest interface{}, query string, args ...any) error {
+func (db *DB) ResilientSelect(dest any, query string, args ...any) error {
 	if db.connx == nil {
 		db.ReconnectDatabaseAndSetErrorMessage()
 
@@ -371,7 +371,7 @@ func (db *DB) ResilientSelect(dest interface{}, query string, args ...any) error
 	return db.connx.Select(dest, query, args...)
 }
 
-func (db *DB) ResilientGet(dest interface{}, query string, args ...any) error {
+func (db *DB) ResilientGet(dest any, query string, args ...any) error {
 	if db.connx == nil {
 		db.ReconnectDatabaseAndSetErrorMessage()
 
@@ -443,7 +443,7 @@ func (db *DB) GetCannedPost(id uint32) (*CannedPost, error) {
 	var cannedPost CannedPost
 	err := db.ResilientGet(&cannedPost, "SELECT * FROM canned_posts WHERE id = ? LIMIT 1", id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Warnf("No canned post found for ID: %d", id)
 		} else {
 			db.Logger().Errorf("Error querying canned post by ID: %v", err)
@@ -496,7 +496,7 @@ func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
 			dpop_key = :dpop_key,
 			active = :active,
 			updated_at = NOW()
-			WHERE id = :id`, map[string]interface{}{
+			WHERE id = :id`, map[string]any{
 			"id":                   existingAccount.ID,
 			"identity":             socialAccount.Identity,
 			"did":                  socialAccount.Did,
@@ -512,7 +512,7 @@ func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
 			return err
 		}
 		return nil
-	} else if err != nil && err != sql.ErrNoRows {
+	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
 		// Error other than "not found"
 		db.Logger().Errorf("Error checking for existing social account: %v", err)
 		return err
@@ -735,7 +735,7 @@ func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {
 	var account SocialAccount
 	err := db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE id = ?", id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("Failed to get social account: %v", err)
@@ -755,7 +755,7 @@ func (db *DB) GetSocialAccountByConnectorAndIdentity(connector string, identity 
 		if err == nil {
 			return &account, nil
 		}
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Errorf("Error querying social account by connector and identity: %v", err)
 			return nil, err
 		}
@@ -767,7 +767,7 @@ func (db *DB) GetSocialAccountByConnectorAndIdentity(connector string, identity 
 		if err == nil {
 			return &account, nil
 		}
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Errorf("Error querying social account by connector and DID: %v", err)
 			return nil, err
 		}
@@ -800,7 +800,7 @@ func (db *DB) GetUserByApiKey(apiKey string) *UserAccount {
 	var user UserAccount
 	err := db.ResilientGet(&user, `SELECT ua.* FROM user_accounts ua JOIN api_keys ak ON ua.id = ak.user_account_id WHERE ak.key_value = ? LIMIT 1`, apiKey)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			// Expected when the Bearer token is a JWT or other non-API-key credential.
 			return nil
 		}
@@ -822,7 +822,7 @@ func (db *DB) GetUserByUsername(username string) *UserAccount {
 	var user UserAccount
 	err := db.ResilientGet(&user, "SELECT * FROM user_accounts WHERE username = ? LIMIT 1", username)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Warnf("No user found for username: %s", username)
 		} else {
 			db.Logger().Errorf("Error querying user by username: %v", err)
@@ -986,7 +986,7 @@ func (db *DB) FindUserByID(id uint32) (*UserAccount, error) {
 	var user UserAccount
 	err := db.ResilientGet(&user, "SELECT * FROM user_accounts WHERE id = ? LIMIT 1", id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
 		db.Logger().Errorf("Failed to get user by ID %d: %v", id, err)
@@ -999,7 +999,7 @@ func (db *DB) GetSessionByID(sessionID string) *Session {
 	var session Session
 	err := db.ResilientGet(&session, "SELECT * FROM sessions WHERE sid = ? LIMIT 1", sessionID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Warnf("No session found for ID: %s", sessionID)
 		} else {
 			db.Logger().Errorf("Error querying session by ID: %v", err)
@@ -1113,7 +1113,7 @@ func (db *DB) GetCvar(key string) *Cvar {
 	var cvar Cvar
 	err := db.ResilientGet(&cvar, "SELECT * FROM cvars WHERE key_name = ? LIMIT 1", key)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Warnf("No cvar found for key: %s", key)
 		} else {
 			db.Logger().Errorf("Error querying cvar by key: %v", err)
@@ -1307,7 +1307,7 @@ func (db *DB) GetCampaign(id uint32) (*Campaign, error) {
 	var campaign Campaign
 	err := db.ResilientGet(&campaign, "SELECT * FROM campaigns WHERE id = ? LIMIT 1", id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Warnf("No campaign found for ID: %d", id)
 		} else {
 			db.Logger().Errorf("Error querying campaign by ID: %v", err)
@@ -1464,7 +1464,7 @@ func (db *DB) SelectTableLogs(limit int, relatedSocialAccountID uint32) ([]*Tabl
 		FROM table_logs l
 		LEFT JOIN social_accounts sa ON l.related_social_account_id = sa.id`
 
-	args := make([]interface{}, 0, 2)
+	args := make([]any, 0, 2)
 	if relatedSocialAccountID > 0 {
 		query += ` WHERE l.related_social_account_id = ?`
 		args = append(args, relatedSocialAccountID)

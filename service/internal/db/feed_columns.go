@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -88,7 +89,7 @@ func (db *DB) SelectFeedColumnsForUser(userID uint32) ([]*FeedColumn, error) {
 func (db *DB) GetFeedColumn(id uint32) (*FeedColumn, error) {
 	var col FeedColumn
 	err := db.ResilientGet(&col, `SELECT * FROM feed_columns WHERE id = ?`, id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

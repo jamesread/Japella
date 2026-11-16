@@ -53,7 +53,7 @@ func Daily(today time.Time, days int, samples []PostSample) []DayBucket {
 	buckets := make([]DayBucket, days)
 	index := make(map[string]int, days)
 	start := today.UTC().AddDate(0, 0, -(days - 1))
-	for i := 0; i < days; i++ {
+	for i := range days {
 		key := DateKey(start.AddDate(0, 0, i))
 		buckets[i] = DayBucket{Date: key}
 		index[key] = i

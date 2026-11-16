@@ -25,20 +25,20 @@ func calculateAccessTokenHash(accessToken string) string {
 
 func createDPoPProof(privKey *ecdsa.PrivateKey, httpMethod, httpUrl, serverNonce, accessTokenHash string) (string, error) {
 	// JWT header
-	header := map[string]interface{}{
+	header := map[string]any{
 		"typ": "dpop+jwt",
 		"alg": "ES256",
-		"jwk": map[string]interface{}{
+		"jwk": map[string]any{
 			"kty": "EC",
 			"crv": "P-256",
-			"x":   base64urlEncode(privKey.PublicKey.X.Bytes()),
-			"y":   base64urlEncode(privKey.PublicKey.Y.Bytes()),
+			"x":   base64urlEncode(privKey.X.Bytes()),
+			"y":   base64urlEncode(privKey.Y.Bytes()),
 		},
 	}
 
 	// JWT payload
 	now := time.Now().Unix()
-	payload := map[string]interface{}{
+	payload := map[string]any{
 		"htu": httpUrl,
 		"htm": httpMethod,
 		"iat": now,

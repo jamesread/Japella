@@ -15,8 +15,8 @@ import (
 func photo(w, h int) *image.NRGBA {
 	img := image.NewNRGBA(image.Rect(0, 0, w, h))
 	rng := rand.New(rand.NewSource(2))
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			i := img.PixOffset(x, y)
 			img.Pix[i] = uint8(x*255/w) ^ uint8(rng.Intn(64))
 			img.Pix[i+1] = uint8(y*255/h) ^ uint8(rng.Intn(64))
@@ -62,8 +62,8 @@ func TestOptimiseForPostingPhoto(t *testing.T) {
 func TestOptimiseForPostingKeepsGraphicsAsPNG(t *testing.T) {
 	dir := inMediaDir(t)
 	img := image.NewNRGBA(image.Rect(0, 0, 2400, 400))
-	for y := 0; y < 400; y++ {
-		for x := 0; x < 2400; x++ {
+	for y := range 400 {
+		for x := range 2400 {
 			if (x/40+y/40)%2 == 0 {
 				img.SetNRGBA(x, y, color.NRGBA{0, 0, 0, 0})
 			} else {

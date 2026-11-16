@@ -2,10 +2,11 @@ package amqp
 
 import (
 	"encoding/json"
+
 	log "github.com/sirupsen/logrus"
 )
 
-func Encode(in interface{}) []byte {
+func Encode(in any) []byte {
 	jsonBytes, err := json.Marshal(in)
 
 	if err != nil {
@@ -15,6 +16,6 @@ func Encode(in interface{}) []byte {
 	return jsonBytes
 }
 
-func Decode(in []byte, typ interface{}) error {
+func Decode(in []byte, typ any) error {
 	return json.Unmarshal(in, typ)
 }

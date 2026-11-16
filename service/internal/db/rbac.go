@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/jamesread/japella/internal/rbac"
@@ -236,7 +237,7 @@ func (db *DB) GetRBACRoleByID(id uint32) *RBACRole {
 	var r RBACRole
 	err := db.ResilientGet(&r, `SELECT * FROM rbac_roles WHERE id = ? LIMIT 1`, id)
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Errorf("GetRBACRoleByID: %v", err)
 		}
 		return nil

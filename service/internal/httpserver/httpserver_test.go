@@ -110,7 +110,7 @@ func TestCreateServer_RouteRegistration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req, err := http.NewRequest("GET", "http://localhost"+server.Addr+tc.path, nil)
+			req, err := http.NewRequest(http.MethodGet, "http://localhost"+server.Addr+tc.path, nil)
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
@@ -133,7 +133,7 @@ func TestCreateServer_RouteRegistration(t *testing.T) {
 }
 
 func TestHandleReadyz(t *testing.T) {
-	req, err := http.NewRequest("GET", "/readyz", nil)
+	req, err := http.NewRequest(http.MethodGet, "/readyz", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -147,7 +147,7 @@ func TestHandleReadyz(t *testing.T) {
 }
 
 func TestHandleHealthz(t *testing.T) {
-	req, err := http.NewRequest("GET", "/healthz", nil)
+	req, err := http.NewRequest(http.MethodGet, "/healthz", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -170,7 +170,7 @@ func TestCreateServer_HTTP2Support(t *testing.T) {
 	assert.NotNil(t, server.Handler, "Server handler should not be nil")
 
 	// Test that the server can handle requests (basic functionality test)
-	req, err := http.NewRequest("GET", "/healthz", nil)
+	req, err := http.NewRequest(http.MethodGet, "/healthz", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -187,7 +187,7 @@ func TestCreateServer_AuthenticationLayer(t *testing.T) {
 	// Test that API endpoints are properly protected
 	// The GetStatus endpoint should be accessible without authentication (it's in the allowlist)
 	// and bypasses the readiness gate, so it succeeds whether or not the database is up.
-	req, err := http.NewRequest("POST", "/api/japella.controlapi.v1.JapellaControlApiService/GetStatus", strings.NewReader("{}"))
+	req, err := http.NewRequest(http.MethodPost, "/api/japella.controlapi.v1.JapellaControlApiService/GetStatus", strings.NewReader("{}"))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -223,7 +223,7 @@ func TestCreateServer_HandlerChain(t *testing.T) {
 
 	for _, endpoint := range endpoints {
 		t.Run("endpoint_"+endpoint, func(t *testing.T) {
-			req, err := http.NewRequest("GET", endpoint, nil)
+			req, err := http.NewRequest(http.MethodGet, endpoint, nil)
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()

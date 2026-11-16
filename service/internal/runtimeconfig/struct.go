@@ -16,8 +16,7 @@ type CommonConfig struct {
 	TelegramDebugChatId string `yaml:"telegramDebugChatId"` // Global debug chat ID for Telegram bots to send startup messages
 }
 
-type ConnectorConfig interface {
-}
+type ConnectorConfig any
 
 type NanoserviceConfig struct {
 	Name string

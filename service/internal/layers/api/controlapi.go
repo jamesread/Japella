@@ -541,10 +541,10 @@ func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *authentication.A
 
 func (s *ControlApi) extractSessionID(req http.Header) string {
 	cookie := req.Get("Cookie")
-	for _, part := range strings.Split(cookie, ";") {
+	for part := range strings.SplitSeq(cookie, ";") {
 		part = strings.TrimSpace(part)
-		if strings.HasPrefix(part, iam.CookieName+"=") {
-			return strings.TrimPrefix(part, iam.CookieName+"=")
+		if after, ok := strings.CutPrefix(part, iam.CookieName+"="); ok {
+			return after
 		}
 	}
 	return ""

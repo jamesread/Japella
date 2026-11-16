@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -64,7 +65,7 @@ func (db *DB) GetLlmConnection(id uint32) (*LlmConnection, error) {
 		SELECT id, name, base_url, api_key, model, enabled, created_at, updated_at
 		FROM llm_connections WHERE id = ?`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("GetLlmConnection: %v", err)
@@ -165,7 +166,7 @@ func (db *DB) GetLlmTool(id uint32) (*LlmTool, error) {
 		LEFT JOIN llm_connections c ON c.id = t.llm_connection_id
 		WHERE t.id = ?`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("GetLlmTool: %v", err)

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 )
 
@@ -59,7 +60,7 @@ func (db *DB) GetAccountPolicy(id uint32) (*AccountPolicy, error) {
 	var p AccountPolicy
 	err := db.ResilientGet(&p, `SELECT * FROM account_policies WHERE id = ? LIMIT 1`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
 		db.Logger().Errorf("GetAccountPolicy: %v", err)
@@ -172,7 +173,7 @@ func (db *DB) GetAccountPolicyForSocialAccount(socialAccountID uint32) (*Account
 		WHERE apsa.social_account_id = ?
 		LIMIT 1`, socialAccountID)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("GetAccountPolicyForSocialAccount: %v", err)
@@ -191,7 +192,7 @@ func (db *DB) GetApprovalStageByPolicyAndOrder(policyID uint32, stageOrder uint3
 		WHERE s.account_policy_id = ? AND s.stage_order = ?
 		LIMIT 1`, policyID, stageOrder)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
 		db.Logger().Errorf("GetApprovalStageByPolicyAndOrder: %v", err)

@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/jamesread/japella/internal/rbac"
@@ -126,7 +127,7 @@ func (db *DB) GetUserGroupByID(id uint32) *UserGroup {
 	var g UserGroup
 	err := db.ResilientGet(&g, `SELECT * FROM user_groups WHERE id = ? LIMIT 1`, id)
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Errorf("GetUserGroupByID: %v", err)
 		}
 		return nil
@@ -138,7 +139,7 @@ func (db *DB) GetUserGroupByName(name string) *UserGroup {
 	var g UserGroup
 	err := db.ResilientGet(&g, `SELECT * FROM user_groups WHERE name = ? LIMIT 1`, name)
 	if err != nil {
-		if err != sql.ErrNoRows {
+		if !errors.Is(err, sql.ErrNoRows) {
 			db.Logger().Errorf("GetUserGroupByName: %v", err)
 		}
 		return nil

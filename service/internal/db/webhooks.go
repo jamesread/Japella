@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"time"
 
@@ -44,7 +45,7 @@ func (db *DB) GetWebhookTarget(id uint32) (*WebhookTarget, error) {
 		SELECT id, url, secret, enabled, created_at, updated_at
 		FROM webhook_targets WHERE id = ?`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		db.Logger().Errorf("GetWebhookTarget: %v", err)

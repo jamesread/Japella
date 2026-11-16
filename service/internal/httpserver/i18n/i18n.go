@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -92,12 +93,7 @@ func IsSupportedLanguage(code string) bool {
 	if code == "" {
 		return true
 	}
-	for _, available := range AvailableLanguageCodes() {
-		if available == code {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(AvailableLanguageCodes(), code)
 }
 
 var isLoaded = false
@@ -118,7 +114,7 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 
 	combinedContent.AcceptLanguages = make([]string, 0)
 
-	for _, lang := range strings.Split(headerLanguage, ",") {
+	for lang := range strings.SplitSeq(headerLanguage, ",") {
 		lang = strings.TrimSpace(lang)
 
 		combinedContent.AcceptLanguages = append(combinedContent.AcceptLanguages, lang)

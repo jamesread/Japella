@@ -67,7 +67,7 @@ func appendLogValue(b *bytes.Buffer, value any) {
 			b.WriteString(v)
 		}
 	default:
-		b.WriteString(fmt.Sprint(v))
+		fmt.Fprint(b, v)
 	}
 }
 

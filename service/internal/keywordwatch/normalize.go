@@ -81,7 +81,7 @@ func IsHashtagKeyword(keyword string) bool {
 		return false
 	}
 	for _, r := range k {
-		if !(unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_') {
+		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
 			return false
 		}
 	}

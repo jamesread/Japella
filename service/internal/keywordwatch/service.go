@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/jamesread/japella/internal/connector"
@@ -24,7 +23,6 @@ type Service struct {
 	Connectors ConnectorResolver
 	Webhook    *webhook.Dispatcher
 
-	mu         sync.Mutex
 	supervisor *Supervisor
 }
 

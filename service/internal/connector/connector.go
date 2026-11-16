@@ -2,6 +2,7 @@ package connector
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
@@ -322,7 +323,8 @@ func AsRateLimited(err error) *RateLimitedError {
 	if err == nil {
 		return nil
 	}
-	if rl, ok := err.(*RateLimitedError); ok {
+	rl := &RateLimitedError{}
+	if errors.As(err, &rl) {
 		return rl
 	}
 	return nil

@@ -2,6 +2,7 @@ package connectorcontroller
 
 import (
 	"fmt"
+	"maps"
 	"sync"
 
 	"github.com/jamesread/japella/internal/chatbot"
@@ -173,9 +174,7 @@ func (cc *ConnectionController) GetServices() map[string]connector.BaseConnector
 	cc.mu.RLock()
 	defer cc.mu.RUnlock()
 	services := make(map[string]connector.BaseConnector, len(cc.controllers))
-	for k, v := range cc.controllers {
-		services[k] = v
-	}
+	maps.Copy(services, cc.controllers)
 	return services
 }
 

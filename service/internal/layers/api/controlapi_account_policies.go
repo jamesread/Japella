@@ -480,7 +480,8 @@ func (s *ControlApi) GetPost(ctx context.Context, req *connect.Request[controlv1
 		Post: s.marshalPostStatus(post),
 	}
 
-	if post.State == db.PostStatePendingApproval {
+	switch post.State {
+	case db.PostStatePendingApproval:
 		pending := s.marshalPendingApproval(post, au.User.ID)
 		res.ApprovalStage = pending.ApprovalStage
 		res.AccountPolicyId = pending.AccountPolicyId
@@ -492,7 +493,7 @@ func (s *ControlApi) GetPost(ctx context.Context, req *connect.Request[controlv1
 		res.CanReject = pending.CanReject
 		res.CanEdit = pending.CanReject
 		res.WaitingOn = pending.WaitingOn
-	} else if post.State == db.PostStateDraft {
+	case db.PostStateDraft:
 		if post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == au.User.ID {
 			res.CanEdit = true
 		}

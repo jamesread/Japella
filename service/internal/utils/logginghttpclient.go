@@ -221,7 +221,7 @@ func (c *ChainingHttpClient) PostWithFormVars(requrl string, body map[string]str
 		form.Add(key, value)
 	}
 
-	c.req, c.Err = http.NewRequest("POST", c.url, strings.NewReader(form.Encode()))
+	c.req, c.Err = http.NewRequest(http.MethodPost, c.url, strings.NewReader(form.Encode()))
 	c.req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	return c
@@ -231,7 +231,7 @@ func (c *ChainingHttpClient) Get(requrl string) *ChainingHttpClient {
 	c.url = requrl
 
 	var err error
-	c.req, err = http.NewRequest("GET", c.url, nil)
+	c.req, err = http.NewRequest(http.MethodGet, c.url, nil)
 
 	if err != nil {
 		c.Err = fmt.Errorf("error creating request: %w", err)
@@ -253,7 +253,7 @@ func (c *ChainingHttpClient) PostWithJson(requrl string, body any) *ChainingHttp
 		return c
 	}
 
-	c.req, c.Err = http.NewRequest("POST", requrl, bytes.NewReader(jsonBody))
+	c.req, c.Err = http.NewRequest(http.MethodPost, requrl, bytes.NewReader(jsonBody))
 	// Allow body to be recreated on retry (e.g., DPoP nonce retry)
 	reqBody := append([]byte(nil), jsonBody...)
 	c.req.GetBody = func() (io.ReadCloser, error) {

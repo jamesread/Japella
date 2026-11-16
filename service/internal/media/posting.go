@@ -250,8 +250,8 @@ func applyOrientation(img image.Image, orientation int) image.Image {
 		dw, dh = h, w
 	}
 	dst := image.NewNRGBA(image.Rect(0, 0, dw, dh))
-	for y := 0; y < h; y++ {
-		for x := 0; x < w; x++ {
+	for y := range h {
+		for x := range w {
 			var dx, dy int
 			switch orientation {
 			case 2:

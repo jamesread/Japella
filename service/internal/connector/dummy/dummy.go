@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -83,7 +84,7 @@ func (c *Connector) OnRefresh(socialAccount *db.SocialAccount) error {
 
 func (c *Connector) seedInitialPosts() {
 	now := time.Now()
-	for i := 0; i < 30; i++ {
+	for i := range 30 {
 		c.appendPost(now.Add(-time.Duration(30-i) * time.Minute))
 	}
 }
@@ -194,8 +195,8 @@ func (c *Connector) SearchRecentByKeyword(ctx context.Context, sa *connector.Soc
 	}
 	posts := c.snapshot()
 	out := make([]*connector.RemotePost, 0)
-	for i := len(posts) - 1; i >= 0; i-- {
-		p := posts[i]
+	for _, p := range slices.Backward(posts) {
+
 		if !since.IsZero() && p.PostedAt.Before(since) {
 			continue
 		}
@@ -235,11 +236,9 @@ func (c *Connector) StartKeywordWatch(ctx context.Context, sa *connector.SocialA
 	}
 	runCtx, cancel := context.WithCancel(ctx)
 	h := &watchHandle{cancel: cancel}
-	h.wg.Add(1)
-	go func() {
-		defer h.wg.Done()
+	h.wg.Go(func() {
 		c.runNativeWatch(runCtx, keywords, sink)
-	}()
+	})
 	return h, nil
 }
 

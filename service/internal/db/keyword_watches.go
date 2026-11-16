@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -103,7 +104,7 @@ func (db *DB) GetKeywordWatch(id uint32) (*KeywordWatch, error) {
 	err := db.ResilientGet(&w, `
 		SELECT id, social_account_id, keyword, keyword_normalized, enabled, created_at, updated_at
 		FROM keyword_watches WHERE id = ?`, id)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -176,7 +177,7 @@ func (db *DB) GetKeywordWatchState(socialAccountID uint32) (*KeywordWatchState, 
 		       last_success_at, last_error_at, last_error, last_poll_at,
 		       emits_this_hour, emits_hour_bucket, updated_at
 		FROM keyword_watch_state WHERE social_account_id = ?`, socialAccountID)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {

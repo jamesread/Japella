@@ -72,7 +72,7 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second) // 1 minute timeout
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		errorMsg := fmt.Sprintf("Failed to create webhook request: %v", err)
 		if logger != nil {
@@ -124,7 +124,7 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 
 		// Extract "output" field from webhook response and emit OutgoingMessage
 		if len(body) > 0 {
-			var responseData map[string]interface{}
+			var responseData map[string]any
 			if err := json.Unmarshal(body, &responseData); err != nil {
 				if logger != nil {
 					logger.Warnf("Hook %d: Failed to parse webhook response JSON: %v", index, err)

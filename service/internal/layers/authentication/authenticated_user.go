@@ -2,6 +2,7 @@ package authentication
 
 import (
 	"context"
+	"maps"
 	"time"
 
 	armlayer "github.com/jamesread/armature-iam/layer"
@@ -82,9 +83,7 @@ func armatureUserToJapella(au *armlayer.AuthenticatedUser) *AuthenticatedUser {
 	}
 	if au.RBAC != nil {
 		perms := make(map[string]bool, len(au.RBAC.Permissions))
-		for k, v := range au.RBAC.Permissions {
-			perms[k] = v
-		}
+		maps.Copy(perms, au.RBAC.Permissions)
 		out.RBAC = &db.EffectiveRBAC{
 			IsSuperuser: au.RBAC.IsSuperuser,
 			Permissions: perms,

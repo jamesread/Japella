@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"strings"
 	"time"
 )
@@ -53,7 +54,7 @@ func (db *DB) SelectPostsForEngagementFetch(maxAge time.Duration, limit int) ([]
 func (db *DB) GetPostEngagement(postID uint32) (*PostEngagement, error) {
 	var pe PostEngagement
 	err := db.ResilientGet(&pe, "SELECT * FROM post_engagement WHERE post_id = ?", postID)
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
@@ -112,10 +113,7 @@ func (db *DB) SelectPostEngagementForPosts(postIDs []uint32) (map[uint32]*PostEn
 	ret := make(map[uint32]*PostEngagement, len(postIDs))
 
 	for start := 0; start < len(postIDs); start += postEngagementLookupChunk {
-		end := start + postEngagementLookupChunk
-		if end > len(postIDs) {
-			end = len(postIDs)
-		}
+		end := min(start+postEngagementLookupChunk, len(postIDs))
 		chunk := postIDs[start:end]
 
 		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(chunk)), ",")

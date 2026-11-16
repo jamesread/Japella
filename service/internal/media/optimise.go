@@ -39,8 +39,8 @@ func postingName(filename, ext string) string {
 func DerivedOf(filename string) (stem, kind string) {
 	base := strings.TrimSuffix(filename, filepath.Ext(filename))
 	for _, k := range []string{KindLossless, KindPosting} {
-		if strings.HasSuffix(base, "."+k) {
-			return strings.TrimSuffix(base, "."+k), k
+		if before, ok := strings.CutSuffix(base, "."+k); ok {
+			return before, k
 		}
 	}
 	return "", ""
@@ -460,7 +460,7 @@ func exifOrientation(tiff []byte) int {
 		return 0
 	}
 	count := int(bo.Uint16(tiff[ifd:]))
-	for i := 0; i < count; i++ {
+	for i := range count {
 		e := ifd + 2 + i*12
 		if e+12 > len(tiff) {
 			return 0
