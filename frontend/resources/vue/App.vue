@@ -1,47 +1,62 @@
 <template>
-	<Header
-		:username="isLoggedIn ? username : ''"
-		@toggleSidebar="toggleSidebar"
-		@logoClick="goToWelcome"
-		@userClick="goToUserControlPanel"
-		title="Japella"
-		:logoUrl="logoUrl"
-		:sidebarEnabled="isLoggedIn && sidebarPreferenceEnabled"
-		:themeToggleEnabled="isLoggedIn && themeColorSchemeSwitcherEnabled"
-		:breadcrumbs="isLoggedIn"
-	>
-		<template #toolbar>
-			<div v-if="isImpersonating" class="impersonation-banner">
-				<Icon icon="mdi:account-switch" width="18" height="18" />
-				<span>Impersonating <strong>{{ username }}</strong> (as {{ impersonatorUsername }})</span>
-				<button type="button" class="impersonation-exit" @click="stopImpersonation" :disabled="impersonationLoading">
-					<Icon icon="mdi:logout" width="16" height="16" />
-					Exit
-				</button>
-			</div>
-			<button
-				v-if="isLoggedIn && route.name !== 'postBox'"
-				type="button"
-				class="header-post-button"
-				title="Write a new post"
-				@click="showPostDialog = true"
-			>
-				<Icon icon="mdi:pencil-plus-outline" width="18" height="18" aria-hidden="true" />
-				<span>Post</span>
-			</button>
-			<QuickSearch
-				v-if="isLoggedIn"
-				placeholder="Search pages..."
-				:search-fields="['title', 'description', 'category']"
-			/>
-		</template>
-	</Header>
-
-	<PostBoxDialog v-if="showPostDialog" @close="showPostDialog = false" />
-
 	<Navigation ref="navigation">
-		<div id="layout">
-			<Sidebar v-if="isLoggedIn && sidebarPreferenceEnabled" ref="sidebar" />
+		<AppShell>
+			<template #header>
+				<Header
+					:username="isLoggedIn ? username : ''"
+					@toggleSidebar="toggleSidebar"
+					@logoClick="goToWelcome"
+					@userClick="goToUserControlPanel"
+					title="Japella"
+					:logoUrl="logoUrl"
+					:sidebarEnabled="isLoggedIn && sidebarPreferenceEnabled"
+					:themeToggleEnabled="isLoggedIn && themeColorSchemeSwitcherEnabled"
+					:breadcrumbs="isLoggedIn"
+				>
+					<template #toolbar>
+						<button
+							v-if="isLoggedIn && route.name !== 'postBox'"
+							type="button"
+							class="header-post-button"
+							title="Write a new post"
+							@click="showPostDialog = true"
+						>
+							<Icon icon="mdi:pencil-plus-outline" width="18" height="18" aria-hidden="true" />
+							<span>Post</span>
+						</button>
+						<QuickSearch
+							v-if="isLoggedIn"
+							placeholder="Search pages..."
+							:search-fields="['title', 'description', 'category']"
+						/>
+					</template>
+				</Header>
+			</template>
+
+			<template #sidebar>
+				<Sidebar v-if="isLoggedIn && sidebarPreferenceEnabled" ref="sidebar" />
+			</template>
+
+			<template #banners>
+				<NotificationBlock v-if="isImpersonating" type="warning" role="status">
+					<span class="impersonation-text">
+						<span>Impersonating <strong>{{ username }}</strong> (as {{ impersonatorUsername }})</span>
+						<button type="button" class="impersonation-exit" @click.stop="stopImpersonation" :disabled="impersonationLoading">
+							<Icon icon="mdi:logout" width="16" height="16" aria-hidden="true" />
+							Exit
+						</button>
+					</span>
+				</NotificationBlock>
+				<NotificationBlock
+					v-for="(message, index) in statusMessages"
+					:key="message.id ?? 'status-' + index"
+					:type="bannerType(message.type)"
+					:role="message.type === 'error' ? 'alert' : 'status'"
+				>
+					{{ message.message }}
+					<a v-if="message.url" :href="message.url" target="_blank" rel="noopener" @click.stop>More info</a>
+				</NotificationBlock>
+			</template>
 
 			<div id="loading" v-if="!clientReady" class="icon-and-text" style="margin: auto; margin-top: 5em;">
 				<Icon icon="eos-icons:loading" width="48" height="48" />
@@ -52,35 +67,24 @@
 					</div>
 				</div>
 			</div>
-			<div id="content" v-else>
-				<main>
-					<div v-if="statusMessages.length > 0" class="messages">
-						<div v-for="message in statusMessages" :key="message.id" :class="message.type + ' notification'">
-							<strong>Server Message: </strong> {{ message.message }}
-							<a v-if="message.url" :href="message.url" target="_blank">More info</a>
-						</div>
-					</div>
+			<template v-else>
+				<LoginForm v-if="!isLoggedIn" @login-success="onLogin" />
+				<router-view v-else />
+				<ErrorDialog ref="errorDialogRef" />
+				<PWAInstallPrompt />
+			</template>
 
-					<div v-if="!isLoggedIn">
-						<LoginForm @login-success="onLogin" />
-					</div>
-					<div v-else>
-						<router-view />
-					</div>
-					<ErrorDialog ref="errorDialogRef" />
-					<PWAInstallPrompt />
-				</main>
-				<footer v-if="!route.meta.hideFooter">
-					<small>
-						<span><a href="https://github.com/jamesread/Japella">Japella on GitHub</a></span>
-						<span><a href="https://jamesread.github.io/Japella/">Documentation</a></span>
-						<span id="currentVersion" v-if="isLoggedIn">{{ currentVersion }}</span>
-					</small>
-				</footer>
-			</div>
-		</div>
+			<template v-if="clientReady && !route.meta.hideFooter" #footer>
+				<small>
+					<span><a href="https://github.com/jamesread/Japella">Japella on GitHub</a></span>
+					<span><a href="https://jamesread.github.io/Japella/">Documentation</a></span>
+					<span id="currentVersion" v-if="isLoggedIn">{{ currentVersion }}</span>
+				</small>
+			</template>
+		</AppShell>
 	</Navigation>
 
+	<PostBoxDialog v-if="showPostDialog" @close="showPostDialog = false" />
 	<NotificationPopupsHost />
 </template>
 
@@ -88,20 +92,6 @@
     footer span {
         display: inline-block;
         margin-right: 10px;
-    }
-
-    .impersonation-banner {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: #e65100;
-        color: white;
-        padding: 0.3rem 0.75rem;
-        border-radius: 4px;
-        font-size: 0.85em;
-        white-space: nowrap;
-        align-self: center;
-        margin-right: 0.25rem;
     }
 
     .header-post-button {
@@ -112,26 +102,19 @@
         white-space: nowrap;
     }
 
-    /* Beat Header header-actions :deep(button) chrome styles */
+    .impersonation-text {
+        display: inline-flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.25rem 0.5rem;
+    }
+
     .impersonation-exit {
         display: inline-flex;
         align-items: center;
         gap: 0.25rem;
-        background: rgba(255,255,255,0.2) !important;
-        color: white !important;
-        border: 1px solid rgba(255,255,255,0.4) !important;
-        border-radius: 3px !important;
-        padding: 0.15rem 0.5rem !important;
-        cursor: pointer;
+        padding: 0.15rem 0.5rem;
         font-size: 0.85em;
-        margin-left: 0.5rem;
-        height: auto !important;
-        align-self: center !important;
-    }
-
-    .impersonation-exit:hover {
-        background: rgba(255,255,255,0.35) !important;
-        color: white !important;
     }
 </style>
 
@@ -153,7 +136,9 @@
 	import LoginForm from './LoginForm.vue';
 	import ErrorDialog from './ErrorDialog.vue';
 	import PWAInstallPrompt from './PWAInstallPrompt.vue';
+    import AppShell from 'picocrank/vue/components/AppShell.vue';
     import Header from 'picocrank/vue/components/Header.vue';
+    import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue';
     import PostBoxDialog from './PostBoxDialog.vue';
     import Navigation from 'picocrank/vue/components/Navigation.vue';
     import Sidebar from 'picocrank/vue/components/Sidebar.vue';
@@ -265,6 +250,13 @@
 	}
 
 	provide('refreshApprovalsNavCount', refreshApprovalsNavCount);
+
+	const BANNER_TYPES = new Set(['info', 'note', 'success', 'good', 'warning', 'severe', 'critical', 'error', 'bad', 'old']);
+
+	// Server status messages carry a free-form type; NotificationBlock accepts a fixed set.
+	function bannerType(type) {
+		return BANNER_TYPES.has(type) ? type : 'info';
+	}
 
 	function checkSecureContext(st) {
 		if (st.usesSecureCookies && !window.isSecureContext) {

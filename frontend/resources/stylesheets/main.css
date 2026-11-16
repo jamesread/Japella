@@ -147,24 +147,6 @@ html[data-theme="dark"] {
 	justify-content: space-between;
 }
 
-.messages .notification {
-	padding: 0.75em;
-	border-radius: 0.25em;
-	margin-bottom: 1em;
-	cursor: pointer;
-}
-
-.messages .notification span {
-	display: block;
-}
-
-.messages .notification a {
-	color: black;
-	display: block;
-	margin-top: 1em;
-	font-weight: bold;
-}
-
 .startup-failure-overlay {
 	min-height: 100vh;
 	display: flex;
@@ -238,7 +220,8 @@ input:disabled {
 	cursor: not-allowed !important;
 }
 
-#app {
+#app,
+#app > .app-shell {
 	display: flex;
 	flex-direction: column;
 	flex-grow: 1;
