@@ -116,7 +116,7 @@ func TestCreateServer_RouteRegistration(t *testing.T) {
 			rr := httptest.NewRecorder()
 			server.Handler.ServeHTTP(rr, req)
 
-			assert.Contains(t, tc.allowedStatuses, rr.Code, "Handler returned unexpected status for %s", tc.path)
+			assert.Contains(t, tc.allowedStatuses, rr.Code, "Handler returned unexpected status for %s (body: %q)", tc.path, rr.Body.String())
 
 			if tc.expectedBody != "" {
 				assert.Equal(t, tc.expectedBody, strings.TrimSpace(rr.Body.String()), "Handler returned unexpected body for %s", tc.path)
@@ -186,14 +186,15 @@ func TestCreateServer_AuthenticationLayer(t *testing.T) {
 
 	// Test that API endpoints are properly protected
 	// The GetStatus endpoint should be accessible without authentication (it's in the allowlist)
-	req, err := http.NewRequest("POST", "/api/japella.controlapi.v1.JapellaControlApiService/GetStatus", nil)
+	// and bypasses the readiness gate, so it succeeds whether or not the database is up.
+	req, err := http.NewRequest("POST", "/api/japella.controlapi.v1.JapellaControlApiService/GetStatus", strings.NewReader("{}"))
 	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
 
 	rr := httptest.NewRecorder()
 	server.Handler.ServeHTTP(rr, req)
 
-	// Readiness gate runs before the Connect handler (no database in unit tests).
-	assert.Equal(t, http.StatusInternalServerError, rr.Code)
+	assert.Equal(t, http.StatusOK, rr.Code, "GetStatus should be reachable unauthenticated (body: %q)", rr.Body.String())
 }
 
 func TestCreateServer_EndpointConfiguration(t *testing.T) {

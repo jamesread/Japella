@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strings"
 
+	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1/controlv1connect"
 	"github.com/jamesread/japella/internal/layers/api"
 	log "github.com/sirupsen/logrus"
 )
@@ -55,7 +56,7 @@ func allowWithoutReady(path string) bool {
 	}
 
 	// Structured status for the frontend startup gate.
-	if strings.HasSuffix(path, "/JapellaControlApiService/GetStatus") {
+	if path == "/api"+controlv1.JapellaControlApiServiceGetStatusProcedure {
 		return true
 	}
 
