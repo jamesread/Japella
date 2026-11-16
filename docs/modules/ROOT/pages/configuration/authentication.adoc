@@ -1,6 +1,6 @@
 = Authentication (`auth`)
 
-Japella uses link:https://github.com/jamesread/httpauthshim[httpauthshim] for HTTP authentication. Place httpauthshim settings under the top-level `auth` key in `config.yaml`.
+Japella uses link:https://github.com/jamesread/armature-httpauthshim[httpauthshim] for HTTP authentication. Place httpauthshim settings under the top-level `auth` key in `config.yaml`.
 
 Primary login remains Japella's own users in the database (web UI username/password → `japella-sid` session cookie, and API keys created in **User settings → API Keys**). The `auth` block adds optional extra providers such as trusted reverse-proxy headers, JWT, or mTLS.
 
@@ -119,7 +119,7 @@ auth:
 
 The `auth` value is an httpauthshim `authpublic.Config`. Additional keys (`oauth2Providers`, `localUsers`, `bearerToken`, `oidcProviders`, `accessControlLists`, and others) follow the library schema. See:
 
-* link:https://github.com/jamesread/httpauthshim[httpauthshim README]
-* link:https://pkg.go.dev/github.com/jamesread/httpauthshim/authpublic#Config[authpublic.Config on pkg.go.dev]
+* link:https://github.com/jamesread/armature-httpauthshim[httpauthshim README]
+* link:https://pkg.go.dev/github.com/jamesread/armature-httpauthshim/authpublic#Config[authpublic.Config on pkg.go.dev]
 
 NOTE: Japella keeps its own sessions in the database. httpauthshim file-based session storage under `auth.baseDir` is unused for Japella UI logins.

@@ -1,6 +1,6 @@
 package runtimeconfig
 
-import "github.com/jamesread/httpauthshim/authpublic"
+import "github.com/jamesread/armature-httpauthshim/authpublic"
 
 type CommonConfig struct {
 	ConfigVersion int `yaml:"configVersion"`

@@ -19,9 +19,9 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.33.0
 	github.com/jamesread/armature-health v1.0.0
+	github.com/jamesread/armature-httpauthshim v0.3.0
 	github.com/jamesread/armature-iam v1.0.2
 	github.com/jamesread/golure v0.0.0-20261111213547-dc225fc15a30
-	github.com/jamesread/httpauthshim v0.2.1
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/mark3labs/mcp-go v1.5.0
 	github.com/mattn/go-isatty v0.0.24
@@ -113,7 +113,6 @@ require (
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
-	github.com/jamesread/armature-httpauthshim v0.3.0 // indirect
 	github.com/jdx/go-netrc v1.0.0 // indirect
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
