@@ -340,8 +340,11 @@ func sendMediaUpload(body io.Reader, contentType, bearerToken string) (*mediaUpl
 	if err := checkMediaUploadStatus(resp); err != nil {
 		return nil, err
 	}
+	// UseNumber keeps 64-bit media IDs exact instead of rounding them to float64.
+	dec := json.NewDecoder(resp.Body)
+	dec.UseNumber()
 	var out mediaUploadResponse
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+	if err := dec.Decode(&out); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 	return &out, nil

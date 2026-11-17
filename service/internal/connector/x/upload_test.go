@@ -97,3 +97,15 @@ func TestUploadMediaErrors(t *testing.T) {
 	assert.Contains(t, err.Error(), "open file: ")
 }
 
+// X media IDs are 64-bit; they must not pass through float64.
+func TestUploadMediaKeepsLargeNumericIDs(t *testing.T) {
+	for body, want := range map[string]string{
+		`{"data":{"media_id":1880028106020515841}}`: "1880028106020515841",
+		`{"media_id":1880028106020515843}`:          "1880028106020515843",
+	} {
+		fakeUpload(t, 200, body)
+		id, err := (&XConnector{}).uploadMedia(mediaFile(t, "a.png"), "tok")
+		require.NoError(t, err)
+		assert.Equal(t, want, id)
+	}
+}
