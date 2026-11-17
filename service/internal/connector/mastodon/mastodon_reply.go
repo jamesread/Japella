@@ -1,6 +1,7 @@
 package mastodon
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jamesread/japella/internal/connector"
@@ -13,32 +14,34 @@ func (c *MastodonConnector) ReplyToPost(socialAccount *connector.SocialAccount, 
 	if err != nil {
 		return nil, err
 	}
-
-	instanceURL := socialAccount.Homeserver
-	if instanceURL == "" {
-		instanceURL = "https://mastodon.social"
+	created, err := c.createReplyStatus(socialAccount, statusID, content)
+	if err != nil {
+		return nil, err
 	}
+	return created.toPostReply(), nil
+}
 
-	client := utils.NewClient(c.Logger()).PostWithJson(instanceURL+"/api/v1/statuses", map[string]any{
+func (c *MastodonConnector) createReplyStatus(socialAccount *connector.SocialAccount, statusID, content string) (*contextStatus, error) {
+	client := utils.NewClient(c.Logger()).PostWithJson(mastodonInstance(socialAccount)+"/api/v1/statuses", map[string]any{
 		"status":         content,
 		"in_reply_to_id": statusID,
 	})
 	if client.Err != nil {
 		return nil, client.Err
 	}
-	client.WithBearerToken(socialAccount.OAuthToken)
-
 	var created contextStatus
-	client.AsJson(&created)
-	if rl := connector.RateLimitedFromResponse(client.Res); rl != nil {
-		return nil, rl
+	if err := c.decodeBearerJSON(client, socialAccount.OAuthToken, &created); err != nil {
+		return nil, replyCreateError(err, client.ResBody)
 	}
-	if client.Err != nil {
-		if len(client.ResBody) > 0 {
-			return nil, fmt.Errorf("failed to post mastodon reply: %w: %s", client.Err, string(client.ResBody))
-		}
-		return nil, fmt.Errorf("failed to post mastodon reply: %w", client.Err)
-	}
+	return &created, nil
+}
 
-	return created.toPostReply(), nil
+func replyCreateError(err error, resBody []byte) error {
+	if _, ok := errors.AsType[*connector.RateLimitedError](err); ok {
+		return err
+	}
+	if len(resBody) > 0 {
+		return fmt.Errorf("failed to post mastodon reply: %w: %s", err, string(resBody))
+	}
+	return fmt.Errorf("failed to post mastodon reply: %w", err)
 }

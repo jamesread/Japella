@@ -12,20 +12,35 @@ import (
 	"github.com/jamesread/japella/internal/layers/authentication"
 )
 
-// authorFollowTarget validates a follow request and loads its account and connector.
-func (s *ControlApi) authorFollowTarget(au *authentication.AuthenticatedUser, socialAccountID uint32, authorID string) (*db.SocialAccount, connector.BaseConnector, error) {
+func requireFollowArgs(au *authentication.AuthenticatedUser, socialAccountID uint32, authorID string) error {
 	if au == nil || au.User == nil {
-		return nil, nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+		return connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
 	}
 	if socialAccountID == 0 || strings.TrimSpace(authorID) == "" {
-		return nil, nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id and author_id are required"))
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id and author_id are required"))
 	}
+	return nil
+}
+
+func (s *ControlApi) readableFollowAccount(au *authentication.AuthenticatedUser, socialAccountID uint32) (*db.SocialAccount, error) {
 	if !s.userCanReadSocialAccount(au, socialAccountID) {
-		return nil, nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
 	}
 	sa, err := s.DB.GetSocialAccount(socialAccountID)
 	if err != nil || sa == nil {
-		return nil, nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found"))
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found"))
+	}
+	return sa, nil
+}
+
+// authorFollowTarget validates a follow request and loads its account and connector.
+func (s *ControlApi) authorFollowTarget(au *authentication.AuthenticatedUser, socialAccountID uint32, authorID string) (*db.SocialAccount, connector.BaseConnector, error) {
+	if err := requireFollowArgs(au, socialAccountID, authorID); err != nil {
+		return nil, nil, err
+	}
+	sa, err := s.readableFollowAccount(au, socialAccountID)
+	if err != nil {
+		return nil, nil, err
 	}
 	if s.cc == nil {
 		return sa, nil, nil

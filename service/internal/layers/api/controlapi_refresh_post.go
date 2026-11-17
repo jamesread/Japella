@@ -9,6 +9,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/feedauthor"
+	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/utils"
 )
 
@@ -69,69 +70,99 @@ func (s *ControlApi) fetchedPostToProto(p *connector.FeedPost, sa *db.SocialAcco
 	return out
 }
 
-// RefreshPost reloads a post from its network: content, likes and comment
-// counts. Stored feed posts are updated in place, and a tagged post's copy
-// is refreshed too.
-func (s *ControlApi) RefreshPost(ctx context.Context, req *connect.Request[controlv1.RefreshPostRequest]) (*connect.Response[controlv1.RefreshPostResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil || au.User == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
+func (s *ControlApi) refreshPostRefetchConnector(au *authentication.AuthenticatedUser, ref *controlv1.PostRef) (*db.SocialAccount, connector.ConnectorWithFeedPostRefetch, error) {
 	if s.cc == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("service initializing"))
+		return nil, nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("service initializing"))
 	}
-
-	ref := req.Msg.GetPost()
 	sa, err := s.postRefAccount(ref)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if !s.userCanReadSocialAccount(au, sa.ID) {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
+		return nil, nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
 	}
-
 	svc := s.cc.Get(sa.Connector)
 	rc, ok := svc.(connector.ConnectorWithFeedPostRefetch)
 	if !ok {
-		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("refreshing posts isn't available for %s", sa.Connector))
+		return nil, nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("refreshing posts isn't available for %s", sa.Connector))
 	}
-	sa = s.freshSocialAccount(sa, svc)
+	return s.freshSocialAccount(sa, svc), rc, nil
+}
 
-	var post *controlv1.FeedPost
+func (s *ControlApi) loadStoredFeedPostForRefresh(sa *db.SocialAccount, feedPostID uint32) (*db.Feed, error) {
+	entry, err := s.DB.GetFeedEntryByID(feedPostID)
+	if err != nil || entry == nil || entry.SocialAccountID != sa.ID {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("feed post not found"))
+	}
+	return entry, nil
+}
+
+func (s *ControlApi) refreshStoredFeedPost(rc connector.ConnectorWithFeedPostRefetch, sa *db.SocialAccount, feedPostID uint32) (*controlv1.FeedPost, error) {
+	entry, err := s.loadStoredFeedPostForRefresh(sa, feedPostID)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.refetchFeedEntry(rc, sa, entry); err != nil {
+		return nil, refreshError(sa, err)
+	}
+	if err := s.DB.UpdateFeedEntry(entry); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update feed post"))
+	}
+	return s.feedEntryToProto(entry), nil
+}
+
+func (s *ControlApi) refreshRemoteFeedPost(rc connector.ConnectorWithFeedPostRefetch, sa *db.SocialAccount, ref *controlv1.PostRef) (*controlv1.FeedPost, error) {
+	fetched, err := rc.FetchFeedPost(toConnectorSA(sa), ref.GetRemoteId(), ref.GetRemoteUrl())
+	if err != nil {
+		return nil, refreshError(sa, err)
+	}
+	post := s.fetchedPostToProto(fetched, sa)
+	// Keep the identity the client knows the post by.
+	if ref.GetRemoteUrl() != "" || ref.GetRemoteId() != "" {
+		post.RemoteUrl, post.RemoteId = ref.GetRemoteUrl(), ref.GetRemoteId()
+	}
+	return post, nil
+}
+
+func (s *ControlApi) annotateRefreshedPost(au *authentication.AuthenticatedUser, sa *db.SocialAccount, post *controlv1.FeedPost) {
+	key := feedauthor.PostKey(post.RemoteUrl, post.RemoteId)
+	if key == "" {
+		return
+	}
+	hash := feedauthor.KeyHash(key)
+	commented, _ := s.DB.SelectCommentedPostHashes([]uint32{sa.ID})
+	post.Commented = commented[sa.ID][hash]
+	if tags := s.userPostTags(au)[hash]; len(tags) > 0 {
+		post.Tags = tags
+		_ = s.saveTaggedPost(au.User.ID, key, sa.ID, post, tags)
+	}
+}
+
+// RefreshPost reloads a post from its network: content, likes and comment
+// counts. Stored feed posts are updated in place, and a tagged post's copy
+// is refreshed too.
+func (s *ControlApi) refreshPostContent(rc connector.ConnectorWithFeedPostRefetch, sa *db.SocialAccount, ref *controlv1.PostRef) (*controlv1.FeedPost, error) {
 	if id := ref.GetFeedPostId(); id != 0 {
-		entry, err := s.DB.GetFeedEntryByID(id)
-		if err != nil || entry == nil || entry.SocialAccountID != sa.ID {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("feed post not found"))
-		}
-		if err := s.refetchFeedEntry(rc, sa, entry); err != nil {
-			return nil, refreshError(sa, err)
-		}
-		if err := s.DB.UpdateFeedEntry(entry); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update feed post"))
-		}
-		post = s.feedEntryToProto(entry)
-	} else {
-		fetched, err := rc.FetchFeedPost(toConnectorSA(sa), ref.GetRemoteId(), ref.GetRemoteUrl())
-		if err != nil {
-			return nil, refreshError(sa, err)
-		}
-		post = s.fetchedPostToProto(fetched, sa)
-		// Keep the identity the client knows the post by.
-		if ref.GetRemoteUrl() != "" || ref.GetRemoteId() != "" {
-			post.RemoteUrl, post.RemoteId = ref.GetRemoteUrl(), ref.GetRemoteId()
-		}
+		return s.refreshStoredFeedPost(rc, sa, id)
 	}
+	return s.refreshRemoteFeedPost(rc, sa, ref)
+}
 
-	if key := feedauthor.PostKey(post.RemoteUrl, post.RemoteId); key != "" {
-		hash := feedauthor.KeyHash(key)
-		commented, _ := s.DB.SelectCommentedPostHashes([]uint32{sa.ID})
-		post.Commented = commented[sa.ID][hash]
-		if tags := s.userPostTags(au)[hash]; len(tags) > 0 {
-			post.Tags = tags
-			_ = s.saveTaggedPost(au.User.ID, key, sa.ID, post, tags)
-		}
+func (s *ControlApi) RefreshPost(ctx context.Context, req *connect.Request[controlv1.RefreshPostRequest]) (*connect.Response[controlv1.RefreshPostResponse], error) {
+	au, err := s.requireAuthenticatedAccount(ctx)
+	if err != nil {
+		return nil, err
 	}
-
+	ref := req.Msg.GetPost()
+	sa, rc, err := s.refreshPostRefetchConnector(au, ref)
+	if err != nil {
+		return nil, err
+	}
+	post, err := s.refreshPostContent(rc, sa, ref)
+	if err != nil {
+		return nil, err
+	}
+	s.annotateRefreshedPost(au, sa, post)
 	return connect.NewResponse(&controlv1.RefreshPostResponse{Post: post}), nil
 }
 

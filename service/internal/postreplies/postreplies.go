@@ -30,38 +30,50 @@ func ToDB(postID uint32, fetched *connector.PostReplies) []*db.PostReply {
 	if fetched == nil {
 		return nil
 	}
-
 	seen := map[string]bool{}
 	rows := make([]*db.PostReply, 0, len(fetched.Replies))
 	for _, r := range fetched.Replies {
-		if r == nil || r.RemoteID == "" || seen[r.RemoteID] || r.RemoteID == fetched.RootRemoteID {
-			continue
-		}
 		if len(rows) >= MaxReplies {
 			break
 		}
-		seen[r.RemoteID] = true
-
-		parent := r.ParentRemoteID
-		if parent == fetched.RootRemoteID {
-			// Store top-level replies with an empty parent so the tree does
-			// not depend on how the platform spells the root id.
-			parent = ""
+		row, ok := replyToDBRow(postID, fetched.RootRemoteID, r, seen)
+		if !ok {
+			continue
 		}
-
-		rows = append(rows, &db.PostReply{
-			PostID:          postID,
-			RemoteID:        r.RemoteID,
-			ParentRemoteID:  parent,
-			RemoteURL:       r.RemoteURL,
-			AuthorName:      truncate(r.AuthorName, 255),
-			AuthorHandle:    truncate(r.AuthorHandle, 255),
-			AuthorAvatarURL: truncate(r.AuthorAvatarURL, 1024),
-			Content:         strings.TrimSpace(r.Content),
-			PostedAt:        db.NullTimeOf(r.PostedDate),
-		})
+		rows = append(rows, row)
 	}
 	return rows
+}
+
+func replyToDBRow(postID uint32, rootRemoteID string, r *connector.PostReply, seen map[string]bool) (*db.PostReply, bool) {
+	if !shouldStoreReply(r, rootRemoteID, seen) {
+		return nil, false
+	}
+	seen[r.RemoteID] = true
+	return &db.PostReply{
+		PostID:          postID,
+		RemoteID:        r.RemoteID,
+		ParentRemoteID:  parentRemoteIDForStore(r.ParentRemoteID, rootRemoteID),
+		RemoteURL:       r.RemoteURL,
+		AuthorName:      truncate(r.AuthorName, 255),
+		AuthorHandle:    truncate(r.AuthorHandle, 255),
+		AuthorAvatarURL: truncate(r.AuthorAvatarURL, 1024),
+		Content:         strings.TrimSpace(r.Content),
+		PostedAt:        db.NullTimeOf(r.PostedDate),
+	}, true
+}
+
+func shouldStoreReply(r *connector.PostReply, rootRemoteID string, seen map[string]bool) bool {
+	return r != nil && r.RemoteID != "" && !seen[r.RemoteID] && r.RemoteID != rootRemoteID
+}
+
+func parentRemoteIDForStore(parent, rootRemoteID string) string {
+	if parent == rootRemoteID {
+		// Store top-level replies with an empty parent so the tree does
+		// not depend on how the platform spells the root id.
+		return ""
+	}
+	return parent
 }
 
 // Node is a reply and the replies to it.

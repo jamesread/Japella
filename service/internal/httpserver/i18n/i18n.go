@@ -37,46 +37,38 @@ func getLanguageDir() string {
 
 func createCombineLanguageContent() *CombinedLanguageContent {
 	languageDir := getLanguageDir()
-
 	output := &CombinedLanguageContent{
 		Messages: make(map[string]map[string]string),
 	}
-
 	files, err := os.ReadDir(languageDir)
-
 	if err != nil {
 		log.Errorf("Error reading language directory %s: %v", languageDir, err)
 		return output
 	}
-
 	for _, file := range files {
-		if !file.IsDir() && strings.HasSuffix(file.Name(), ".json") {
-			languageName := strings.Replace(file.Name(), ".json", "", 1)
-
-			fullPath := filepath.Join(languageDir, file.Name())
-			log.Infof("Loading language file: %s", fullPath)
-
-			content, err := os.ReadFile(fullPath) //nolint:gosec // file name comes from listing the language directory
-
-			if err != nil {
-				log.Errorf("Error reading language file %s: %v", fullPath, err)
-				continue
-			}
-
-			var jsonData LanguageFilev1
-
-			err = json.Unmarshal(content, &jsonData)
-
-			if err != nil {
-				log.Errorf("Error reading language file %s: %v", fullPath, err)
-				continue
-			}
-
-			output.Messages[languageName] = jsonData.Translations
-		}
+		loadLanguageFile(output, languageDir, file)
 	}
-
 	return output
+}
+
+func loadLanguageFile(output *CombinedLanguageContent, languageDir string, file os.DirEntry) {
+	if file.IsDir() || !strings.HasSuffix(file.Name(), ".json") {
+		return
+	}
+	languageName := strings.Replace(file.Name(), ".json", "", 1)
+	fullPath := filepath.Join(languageDir, file.Name())
+	log.Infof("Loading language file: %s", fullPath)
+	content, err := os.ReadFile(fullPath) //nolint:gosec // file name comes from listing the language directory
+	if err != nil {
+		log.Errorf("Error reading language file %s: %v", fullPath, err)
+		return
+	}
+	var jsonData LanguageFilev1
+	if err := json.Unmarshal(content, &jsonData); err != nil {
+		log.Errorf("Error reading language file %s: %v", fullPath, err)
+		return
+	}
+	output.Messages[languageName] = jsonData.Translations
 }
 
 func AvailableLanguageCodes() []string {

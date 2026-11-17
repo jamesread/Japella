@@ -1,7 +1,6 @@
 package mastodon
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/jamesread/japella/internal/connector"
@@ -50,33 +49,31 @@ func (c *MastodonConnector) FetchPostReplies(socialAccount *connector.SocialAcco
 	if err != nil {
 		return nil, err
 	}
-
-	instanceURL := socialAccount.Homeserver
-	if instanceURL == "" {
-		instanceURL = "https://mastodon.social"
+	ctx, err := c.fetchStatusContext(socialAccount, statusID)
+	if err != nil {
+		return nil, err
 	}
+	return &connector.PostReplies{RootRemoteID: statusID, Replies: contextDescendantsToReplies(ctx.Descendants)}, nil
+}
 
-	client := utils.NewClient(c.Logger()).Get(instanceURL + "/api/v1/statuses/" + statusID + "/context")
+func (c *MastodonConnector) fetchStatusContext(socialAccount *connector.SocialAccount, statusID string) (*statusContext, error) {
+	client := utils.NewClient(c.Logger()).Get(mastodonInstance(socialAccount) + "/api/v1/statuses/" + statusID + "/context")
 	if client.Err != nil {
 		return nil, client.Err
 	}
-	client.WithBearerToken(socialAccount.OAuthToken)
-
 	var ctx statusContext
-	client.AsJson(&ctx)
-	if rl := connector.RateLimitedFromResponse(client.Res); rl != nil {
-		return nil, rl
+	if err := c.decodeBearerJSON(client, socialAccount.OAuthToken, &ctx); err != nil {
+		return nil, wrapUnlessRateLimited(err, "failed to fetch mastodon replies for %s", statusID)
 	}
-	if client.Err != nil {
-		return nil, fmt.Errorf("failed to fetch mastodon replies for %s: %w", statusID, client.Err)
-	}
+	return &ctx, nil
+}
 
-	replies := make([]*connector.PostReply, 0, len(ctx.Descendants))
-	for _, d := range ctx.Descendants {
+func contextDescendantsToReplies(descendants []contextStatus) []*connector.PostReply {
+	replies := make([]*connector.PostReply, 0, len(descendants))
+	for _, d := range descendants {
 		if d.ID != "" {
 			replies = append(replies, d.toPostReply())
 		}
 	}
-
-	return &connector.PostReplies{RootRemoteID: statusID, Replies: replies}, nil
+	return replies
 }

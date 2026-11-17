@@ -8,6 +8,7 @@ import (
 
 	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/rbac"
+	"github.com/jmoiron/sqlx"
 )
 
 type RBACPermission struct {
@@ -80,26 +81,57 @@ func (db *DB) ensureSuperuserCoverage() error {
 	return nil
 }
 
-func (db *DB) EnsureRBACBootstrap() error {
-	everyoneID, err := db.ensureSystemGroup(rbac.GroupEveryone)
-	if err != nil {
-		db.Logger().Errorf("RBAC bootstrap (Everyone group): %v", err)
-		return err
-	}
-	administratorsID, err := db.ensureSystemGroup(rbac.GroupAdministrators)
-	if err != nil {
-		db.Logger().Errorf("RBAC bootstrap (Administrators group): %v", err)
-		return err
-	}
-
-	var memberRoleID, superuserRoleID uint32
+func (db *DB) loadSystemRoleIDs() (memberRoleID, superuserRoleID uint32, err error) {
 	if err = db.ResilientGet(&memberRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleMember); err != nil {
-		return err
+		return 0, 0, err
 	}
 	if err = db.ResilientGet(&superuserRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleSuperuser); err != nil {
+		return 0, 0, err
+	}
+	return memberRoleID, superuserRoleID, nil
+}
+
+func (db *DB) addFirstUserToAdministrators(administratorsID uint32) error {
+	var firstUserID uint32
+	if err := db.ResilientGet(&firstUserID, `SELECT MIN(id) FROM user_accounts`); err != nil || firstUserID == 0 {
 		return err
 	}
+	if err := db.ensureUserInGroup(firstUserID, administratorsID); err != nil {
+		db.Logger().Errorf("RBAC bootstrap (first user Administrators): %v", err)
+		return err
+	}
+	return nil
+}
 
+func (db *DB) ensureFirstUserIsAdministrator(administratorsID uint32) error {
+	superCount, err := db.CountUsersWithSuperuserViaGroups()
+	if err != nil {
+		return err
+	}
+	if superCount > 0 {
+		return nil
+	}
+	return db.addFirstUserToAdministrators(administratorsID)
+}
+
+func (db *DB) ensureOrphanUsersInEveryone(everyoneID uint32) error {
+	_, err := db.ResilientExec(`
+		INSERT IGNORE INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at)
+		SELECT u.id, ?, NOW(3), NOW(3) FROM user_accounts u
+		WHERE NOT EXISTS (
+			SELECT 1 FROM user_group_memberships ugm WHERE ugm.user_account_id = u.id
+		)`, everyoneID)
+	if err != nil {
+		db.Logger().Errorf("RBAC bootstrap (Everyone membership): %v", err)
+	}
+	return err
+}
+
+func (db *DB) assignBootstrapGroupRoles(everyoneID, administratorsID uint32) error {
+	memberRoleID, superuserRoleID, err := db.loadSystemRoleIDs()
+	if err != nil {
+		return err
+	}
 	if err = db.ensureGroupHasRole(everyoneID, memberRoleID); err != nil {
 		db.Logger().Errorf("RBAC bootstrap (Everyone member role): %v", err)
 		return err
@@ -108,33 +140,35 @@ func (db *DB) EnsureRBACBootstrap() error {
 		db.Logger().Errorf("RBAC bootstrap (Administrators superuser role): %v", err)
 		return err
 	}
-
-	superCount, err := db.CountUsersWithSuperuserViaGroups()
-	if err != nil {
-		return err
-	}
-	if superCount == 0 {
-		var firstUserID uint32
-		if err = db.ResilientGet(&firstUserID, `SELECT MIN(id) FROM user_accounts`); err == nil && firstUserID > 0 {
-			if err = db.ensureUserInGroup(firstUserID, administratorsID); err != nil {
-				db.Logger().Errorf("RBAC bootstrap (first user Administrators): %v", err)
-				return err
-			}
-		}
-	}
-
-	_, err = db.ResilientExec(`
-		INSERT IGNORE INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at)
-		SELECT u.id, ?, NOW(3), NOW(3) FROM user_accounts u
-		WHERE NOT EXISTS (
-			SELECT 1 FROM user_group_memberships ugm WHERE ugm.user_account_id = u.id
-		)`, everyoneID)
-	if err != nil {
-		db.Logger().Errorf("RBAC bootstrap (Everyone membership): %v", err)
-		return err
-	}
-
 	return nil
+}
+
+func (db *DB) ensureBootstrapGroupsAndRoles() (everyoneID, administratorsID uint32, err error) {
+	everyoneID, err = db.ensureSystemGroup(rbac.GroupEveryone)
+	if err != nil {
+		db.Logger().Errorf("RBAC bootstrap (Everyone group): %v", err)
+		return 0, 0, err
+	}
+	administratorsID, err = db.ensureSystemGroup(rbac.GroupAdministrators)
+	if err != nil {
+		db.Logger().Errorf("RBAC bootstrap (Administrators group): %v", err)
+		return 0, 0, err
+	}
+	if err = db.assignBootstrapGroupRoles(everyoneID, administratorsID); err != nil {
+		return 0, 0, err
+	}
+	return everyoneID, administratorsID, nil
+}
+
+func (db *DB) EnsureRBACBootstrap() error {
+	everyoneID, administratorsID, err := db.ensureBootstrapGroupsAndRoles()
+	if err != nil {
+		return err
+	}
+	if err = db.ensureFirstUserIsAdministrator(administratorsID); err != nil {
+		return err
+	}
+	return db.ensureOrphanUsersInEveryone(everyoneID)
 }
 
 func (db *DB) EnsureUserInEveryoneGroup(userID uint32) error {
@@ -153,6 +187,30 @@ func (db *DB) EnsureUserInEveryoneGroup(userID uint32) error {
 		return err
 	}
 	return db.ensureUserInGroup(userID, everyoneID)
+}
+
+func permissionSet(names []string) map[string]bool {
+	out := make(map[string]bool, len(names))
+	for _, n := range names {
+		out[n] = true
+	}
+	return out
+}
+
+func (db *DB) loadEffectivePermissionNames(userID uint32, isSuperuser bool) ([]string, error) {
+	if isSuperuser {
+		var names []string
+		err := db.ResilientSelect(&names, `SELECT name FROM rbac_permissions`)
+		return names, err
+	}
+	var perms []string
+	err := db.ResilientSelect(&perms, `
+		SELECT DISTINCT p.name FROM rbac_permissions p
+		INNER JOIN rbac_role_permissions rp ON rp.permission_id = p.id
+		INNER JOIN rbac_group_roles gr ON gr.role_id = rp.role_id
+		INNER JOIN user_group_memberships ugm ON ugm.user_group_id = gr.user_group_id
+		WHERE ugm.user_account_id = ?`, userID)
+	return perms, err
 }
 
 func (db *DB) LoadEffectiveRBAC(userID uint32) (*EffectiveRBAC, error) {
@@ -183,31 +241,11 @@ func (db *DB) LoadEffectiveRBAC(userID uint32) (*EffectiveRBAC, error) {
 	}
 	out.RoleNames = roleNames
 
-	if out.IsSuperuser {
-		var names []string
-		err = db.ResilientSelect(&names, `SELECT name FROM rbac_permissions`)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range names {
-			out.Permissions[n] = true
-		}
-		return out, nil
-	}
-
-	var perms []string
-	err = db.ResilientSelect(&perms, `
-		SELECT DISTINCT p.name FROM rbac_permissions p
-		INNER JOIN rbac_role_permissions rp ON rp.permission_id = p.id
-		INNER JOIN rbac_group_roles gr ON gr.role_id = rp.role_id
-		INNER JOIN user_group_memberships ugm ON ugm.user_group_id = gr.user_group_id
-		WHERE ugm.user_account_id = ?`, userID)
+	perms, err := db.loadEffectivePermissionNames(userID, out.IsSuperuser)
 	if err != nil {
 		return nil, err
 	}
-	for _, p := range perms {
-		out.Permissions[p] = true
-	}
+	out.Permissions = permissionSet(perms)
 	return out, nil
 }
 
@@ -288,6 +326,18 @@ func (db *DB) DeleteRBACRole(id uint32) error {
 	return err
 }
 
+func replaceRBACRolePermissions(tx *sqlx.Tx, roleID uint32, permissionIDs []uint32) error {
+	if _, err := tx.ExecContext(context.TODO(), `DELETE FROM rbac_role_permissions WHERE role_id = ?`, roleID); err != nil {
+		return err
+	}
+	for _, pid := range permissionIDs {
+		if _, err := tx.ExecContext(context.TODO(), `INSERT INTO rbac_role_permissions (role_id, permission_id) VALUES (?, ?)`, roleID, pid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (db *DB) SetRBACRolePermissions(roleID uint32, permissionIDs []uint32) error {
 	role := db.GetRBACRoleByID(roleID)
 	if role == nil {
@@ -297,19 +347,14 @@ func (db *DB) SetRBACRolePermissions(roleID uint32, permissionIDs []uint32) erro
 		return fmt.Errorf("cannot change permissions for role %s", rbac.RoleSuperuser)
 	}
 
-	tx, err := db.connx.Beginx()
+	tx, err := db.beginTx()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err = tx.ExecContext(context.TODO(), `DELETE FROM rbac_role_permissions WHERE role_id = ?`, roleID); err != nil {
+	if err = replaceRBACRolePermissions(tx, roleID, permissionIDs); err != nil {
 		return err
-	}
-	for _, pid := range permissionIDs {
-		if _, err = tx.ExecContext(context.TODO(), `INSERT INTO rbac_role_permissions (role_id, permission_id) VALUES (?, ?)`, roleID, pid); err != nil {
-			return err
-		}
 	}
 	return tx.Commit()
 }
@@ -373,6 +418,30 @@ func (db *DB) SelectUserIDsWithRoleViaGroups(roleID uint32) ([]uint32, error) {
 	return ids, err
 }
 
+func replaceRBACGroupRoles(tx *sqlx.Tx, groupID uint32, roleIDs []uint32) error {
+	if _, err := tx.ExecContext(context.TODO(), `DELETE FROM rbac_group_roles WHERE user_group_id = ?`, groupID); err != nil {
+		return err
+	}
+	for _, rid := range roleIDs {
+		if _, err := tx.ExecContext(context.TODO(), `INSERT INTO rbac_group_roles (user_group_id, role_id) VALUES (?, ?)`, groupID, rid); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (db *DB) replaceGroupRolesTx(groupID uint32, roleIDs []uint32) error {
+	tx, err := db.beginTx()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err = replaceRBACGroupRoles(tx, groupID, roleIDs); err != nil {
+		return err
+	}
+	return tx.Commit()
+}
+
 func (db *DB) SetRBACGroupRoles(groupID uint32, roleIDs []uint32) error {
 	if groupID == 0 {
 		return fmt.Errorf("invalid group id")
@@ -380,27 +449,7 @@ func (db *DB) SetRBACGroupRoles(groupID uint32, roleIDs []uint32) error {
 	if db.GetUserGroupByID(groupID) == nil {
 		return sql.ErrNoRows
 	}
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
-	}
-
-	tx, err := db.connx.Beginx()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	if _, err = tx.ExecContext(context.TODO(), `DELETE FROM rbac_group_roles WHERE user_group_id = ?`, groupID); err != nil {
-		return err
-	}
-	for _, rid := range roleIDs {
-		if _, err = tx.ExecContext(context.TODO(), `INSERT INTO rbac_group_roles (user_group_id, role_id) VALUES (?, ?)`, groupID, rid); err != nil {
-			return err
-		}
-	}
-
-	if err = tx.Commit(); err != nil {
+	if err := db.replaceGroupRolesTx(groupID, roleIDs); err != nil {
 		return err
 	}
 	return db.ensureSuperuserCoverage()
@@ -417,6 +466,44 @@ type UserPermissionsAudit struct {
 	RoleNames   []string
 	IsSuperuser bool
 	Rows        []UserPermissionsAuditRow
+}
+
+func (db *DB) loadPermissionGrantingGroups(userID uint32) (map[string][]string, error) {
+	type permGroupRow struct {
+		Permission string `db:"permission"`
+		GroupName  string `db:"group_name"`
+	}
+	var grantRows []permGroupRow
+	err := db.ResilientSelect(&grantRows, `
+		SELECT DISTINCT p.name AS permission, ug.name AS group_name
+		FROM user_group_memberships ugm
+		INNER JOIN user_groups ug ON ug.id = ugm.user_group_id
+		INNER JOIN rbac_group_roles gr ON gr.user_group_id = ug.id
+		INNER JOIN rbac_role_permissions rp ON rp.role_id = gr.role_id
+		INNER JOIN rbac_permissions p ON p.id = rp.permission_id
+		WHERE ugm.user_account_id = ?
+		ORDER BY p.name, ug.name`, userID)
+	if err != nil {
+		return nil, err
+	}
+	grantingByPerm := make(map[string][]string)
+	for _, row := range grantRows {
+		grantingByPerm[row.Permission] = append(grantingByPerm[row.Permission], row.GroupName)
+	}
+	return grantingByPerm, nil
+}
+
+func buildPermissionAuditRows(allPerms []*RBACPermission, grantingByPerm map[string][]string, isSuperuser bool) []UserPermissionsAuditRow {
+	rows := make([]UserPermissionsAuditRow, 0, len(allPerms))
+	for _, p := range allPerms {
+		granting := grantingByPerm[p.Name]
+		rows = append(rows, UserPermissionsAuditRow{
+			Permission:     p.Name,
+			Granted:        isSuperuser || len(granting) > 0,
+			GrantingGroups: granting,
+		})
+	}
+	return rows
 }
 
 func (db *DB) BuildUserPermissionsAudit(userID uint32) (*UserPermissionsAudit, error) {
@@ -440,45 +527,22 @@ func (db *DB) BuildUserPermissionsAudit(userID uint32) (*UserPermissionsAudit, e
 		return nil, err
 	}
 
-	grantingByPerm := make(map[string][]string)
-	if !effective.IsSuperuser {
-		type permGroupRow struct {
-			Permission string `db:"permission"`
-			GroupName  string `db:"group_name"`
-		}
-		var grantRows []permGroupRow
-		err = db.ResilientSelect(&grantRows, `
-			SELECT DISTINCT p.name AS permission, ug.name AS group_name
-			FROM user_group_memberships ugm
-			INNER JOIN user_groups ug ON ug.id = ugm.user_group_id
-			INNER JOIN rbac_group_roles gr ON gr.user_group_id = ug.id
-			INNER JOIN rbac_role_permissions rp ON rp.role_id = gr.role_id
-			INNER JOIN rbac_permissions p ON p.id = rp.permission_id
-			WHERE ugm.user_account_id = ?
-			ORDER BY p.name, ug.name`, userID)
-		if err != nil {
-			return nil, err
-		}
-		for _, row := range grantRows {
-			grantingByPerm[row.Permission] = append(grantingByPerm[row.Permission], row.GroupName)
-		}
-	}
-
-	rows := make([]UserPermissionsAuditRow, 0, len(allPerms))
-	for _, p := range allPerms {
-		granting := grantingByPerm[p.Name]
-		granted := effective.IsSuperuser || len(granting) > 0
-		rows = append(rows, UserPermissionsAuditRow{
-			Permission:     p.Name,
-			Granted:        granted,
-			GrantingGroups: granting,
-		})
+	grantingByPerm, err := db.permissionGrantingForAudit(userID, effective.IsSuperuser)
+	if err != nil {
+		return nil, err
 	}
 
 	return &UserPermissionsAudit{
 		GroupNames:  groupNames,
 		RoleNames:   effective.RoleNames,
 		IsSuperuser: effective.IsSuperuser,
-		Rows:        rows,
+		Rows:        buildPermissionAuditRows(allPerms, grantingByPerm, effective.IsSuperuser),
 	}, nil
+}
+
+func (db *DB) permissionGrantingForAudit(userID uint32, isSuperuser bool) (map[string][]string, error) {
+	if isSuperuser {
+		return map[string][]string{}, nil
+	}
+	return db.loadPermissionGrantingGroups(userID)
 }

@@ -76,11 +76,42 @@ func needsQuoting(text string) bool {
 		return true
 	}
 	for _, ch := range text {
-		if (ch < 'a' || ch > 'z') && (ch < 'A' || ch > 'Z') && (ch < '0' || ch > '9') && ch != '-' && ch != '.' && ch != '_' {
+		if !isUnquotedLogRune(ch) {
 			return true
 		}
 	}
 	return false
+}
+
+func isUnquotedLogRune(ch rune) bool {
+	return isAlnumLogRune(ch) || isExtraUnquotedLogRune(ch)
+}
+
+func isAlnumLogRune(ch rune) bool {
+	return isAZ(ch) || isAZUpper(ch) || isDigit(ch)
+}
+
+func isExtraUnquotedLogRune(ch rune) bool {
+	return ch == '-' || ch == '.' || ch == '_'
+}
+
+func isAZ(ch rune) bool      { return ch >= 'a' && ch <= 'z' }
+func isAZUpper(ch rune) bool { return ch >= 'A' && ch <= 'Z' }
+func isDigit(ch rune) bool   { return ch >= '0' && ch <= '9' }
+
+func openLogFile(logPath string) (*os.File, bool) {
+	if dir := filepath.Dir(logPath); dir != "" && dir != "." {
+		if err := os.MkdirAll(dir, 0o750); err != nil { //nolint:gosec // log path is chosen by the operator
+			fmt.Fprintf(os.Stderr, "japella: failed to create log directory %s: %v\n", dir, err)
+			return nil, false
+		}
+	}
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // log path is chosen by the operator
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "japella: failed to open log file %s: %v\n", logPath, err)
+		return nil, false
+	}
+	return file, true
 }
 
 type fileLogHook struct {
@@ -128,17 +159,8 @@ func SetupLogging() {
 	if logPath == "" {
 		logPath = DefaultLogFile
 	}
-
-	if dir := filepath.Dir(logPath); dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0o750); err != nil { //nolint:gosec // log path is chosen by the operator
-			fmt.Fprintf(os.Stderr, "japella: failed to create log directory %s: %v\n", dir, err)
-			return
-		}
-	}
-
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // log path is chosen by the operator
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "japella: failed to open log file %s: %v\n", logPath, err)
+	file, ok := openLogFile(logPath)
+	if !ok {
 		return
 	}
 

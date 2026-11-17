@@ -68,18 +68,18 @@ func ContainsKeyword(content, keyword string) bool {
 	return strings.Contains(c, k)
 }
 
+func isHashtagRune(r rune) bool {
+	return unicode.IsLetter(r) || unicode.IsDigit(r) || r == '_'
+}
+
 // IsHashtagKeyword reports whether the keyword is a hashtag (optional leading #).
 func IsHashtagKeyword(keyword string) bool {
-	k := strings.TrimSpace(keyword)
-	if k == "" {
-		return false
-	}
-	k = strings.TrimPrefix(k, "#")
+	k := strings.TrimPrefix(strings.TrimSpace(keyword), "#")
 	if k == "" {
 		return false
 	}
 	for _, r := range k {
-		if !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '_' {
+		if !isHashtagRune(r) {
 			return false
 		}
 	}

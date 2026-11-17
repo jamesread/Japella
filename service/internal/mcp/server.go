@@ -119,43 +119,57 @@ func handleSubmitPost(ctx context.Context, srv *api.ControlApi, req mcp.CallTool
 	if denied := rejectReadOnlyMCP(ctx); denied != nil {
 		return denied, nil
 	}
-	content, err := req.RequireString("content")
-	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+	submitReq, errResult := submitPostRequestFromMCP(req)
+	if errResult != nil {
+		return errResult, nil
 	}
-
-	ids, err := req.RequireIntSlice("social_account_ids")
-	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
-	}
-	if len(ids) == 0 {
-		return mcp.NewToolResultError("social_account_ids must contain at least one account ID"), nil
-	}
-
-	socialAccounts := make([]uint32, 0, len(ids))
-	for _, id := range ids {
-		if id < 0 {
-			return mcp.NewToolResultError("social_account_ids must be non-negative"), nil
-		}
-		socialAccounts = append(socialAccounts, intconv.ToUint32(id))
-	}
-
 	ctx = api.WithSubmissionSource(ctx, db.SubmissionSourceMCP)
-	submitReq := &controlv1.SubmitPostRequest{
-		Content:        content,
-		SocialAccounts: socialAccounts,
-		ScheduledAt:    req.GetString("scheduled_at", ""),
-		CampaignId:     intconv.ToUint32(req.GetInt("campaign_id", 0)),
-	}
-
 	res, err := srv.SubmitPost(ctx, connect.NewRequest(submitReq))
 	if err != nil {
 		return mcp.NewToolResultError(err.Error()), nil
 	}
+	return jsonResult(map[string]any{"posts": marshalMCPPosts(res.Msg.GetPosts())})
+}
 
-	posts := make([]map[string]any, 0, len(res.Msg.GetPosts()))
-	for _, p := range res.Msg.GetPosts() {
-		posts = append(posts, map[string]any{
+func submitPostRequestFromMCP(req mcp.CallToolRequest) (*controlv1.SubmitPostRequest, *mcp.CallToolResult) {
+	content, err := req.RequireString("content")
+	if err != nil {
+		return nil, mcp.NewToolResultError(err.Error())
+	}
+	ids, err := req.RequireIntSlice("social_account_ids")
+	if err != nil {
+		return nil, mcp.NewToolResultError(err.Error())
+	}
+	socialAccounts, errResult := parseSocialAccountIDs(ids)
+	if errResult != nil {
+		return nil, errResult
+	}
+	return &controlv1.SubmitPostRequest{
+		Content:        content,
+		SocialAccounts: socialAccounts,
+		ScheduledAt:    req.GetString("scheduled_at", ""),
+		CampaignId:     intconv.ToUint32(req.GetInt("campaign_id", 0)),
+	}, nil
+}
+
+func parseSocialAccountIDs(ids []int) ([]uint32, *mcp.CallToolResult) {
+	if len(ids) == 0 {
+		return nil, mcp.NewToolResultError("social_account_ids must contain at least one account ID")
+	}
+	socialAccounts := make([]uint32, 0, len(ids))
+	for _, id := range ids {
+		if id < 0 {
+			return nil, mcp.NewToolResultError("social_account_ids must be non-negative")
+		}
+		socialAccounts = append(socialAccounts, intconv.ToUint32(id))
+	}
+	return socialAccounts, nil
+}
+
+func marshalMCPPosts(posts []*controlv1.PostStatus) []map[string]any {
+	out := make([]map[string]any, 0, len(posts))
+	for _, p := range posts {
+		out = append(out, map[string]any{
 			"id":                      p.GetId(),
 			"social_account_id":       p.GetSocialAccountId(),
 			"social_account_identity": p.GetSocialAccountIdentity(),
@@ -166,7 +180,7 @@ func handleSubmitPost(ctx context.Context, srv *api.ControlApi, req mcp.CallTool
 			"state":                   p.GetState(),
 		})
 	}
-	return jsonResult(map[string]any{"posts": posts})
+	return out
 }
 
 func handleListPendingApprovals(ctx context.Context, srv *api.ControlApi) (*mcp.CallToolResult, error) {
@@ -205,19 +219,31 @@ func handleApprovePost(ctx context.Context, srv *api.ControlApi, req mcp.CallToo
 	if denied := rejectReadOnlyMCP(ctx); denied != nil {
 		return denied, nil
 	}
+	postID, errResult := requireNonNegativePostID(req)
+	if errResult != nil {
+		return errResult, nil
+	}
+	res, err := srv.ApprovePost(ctx, connect.NewRequest(&controlv1.ApprovePostRequest{PostId: postID}))
+	if err != nil {
+		return mcp.NewToolResultError(err.Error()), nil
+	}
+	return jsonResult(marshalApprovePostResult(res.Msg))
+}
+
+func requireNonNegativePostID(req mcp.CallToolRequest) (uint32, *mcp.CallToolResult) {
 	postID, err := req.RequireInt("post_id")
 	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
+		return 0, mcp.NewToolResultError(err.Error())
 	}
 	if postID < 0 {
-		return mcp.NewToolResultError("post_id must be non-negative"), nil
+		return 0, mcp.NewToolResultError("post_id must be non-negative")
 	}
-	res, err := srv.ApprovePost(ctx, connect.NewRequest(&controlv1.ApprovePostRequest{PostId: intconv.ToUint32(postID)}))
-	if err != nil {
-		return mcp.NewToolResultError(err.Error()), nil
-	}
-	out := map[string]any{"message": res.Msg.GetStandardResponse().GetMessage()}
-	if p := res.Msg.GetPost(); p != nil {
+	return intconv.ToUint32(postID), nil
+}
+
+func marshalApprovePostResult(msg *controlv1.ApprovePostResponse) map[string]any {
+	out := map[string]any{"message": msg.GetStandardResponse().GetMessage()}
+	if p := msg.GetPost(); p != nil {
 		out["post"] = map[string]any{
 			"id":                p.GetId(),
 			"social_account_id": p.GetSocialAccountId(),
@@ -226,7 +252,7 @@ func handleApprovePost(ctx context.Context, srv *api.ControlApi, req mcp.CallToo
 			"post_url":          p.GetPostUrl(),
 		}
 	}
-	return jsonResult(out)
+	return out
 }
 
 func handleRejectPost(ctx context.Context, srv *api.ControlApi, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {

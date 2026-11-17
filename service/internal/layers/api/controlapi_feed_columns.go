@@ -93,50 +93,87 @@ func (s *ControlApi) feedColumnToProto(col *db.FeedColumn, accounts []*db.Social
 	return out
 }
 
+func parseFeedColumnTitle(rawTitle string) (string, error) {
+	title := strings.TrimSpace(rawTitle)
+	if utf8.RuneCountInString(title) > feedColumnTitleMax {
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("title must be at most %d characters", feedColumnTitleMax))
+	}
+	return title, nil
+}
+
+func dedupePositiveIDs(ids []uint32) []uint32 {
+	out := make([]uint32, 0, len(ids))
+	seen := map[uint32]bool{}
+	for _, id := range ids {
+		if id == 0 || seen[id] {
+			continue
+		}
+		seen[id] = true
+		out = append(out, id)
+	}
+	return out
+}
+
+func validateFeedColumnAccountCount(ids []uint32) error {
+	if len(ids) == 0 {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("choose at least one social account"))
+	}
+	if len(ids) > feedColumnMaxAccounts {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("a column can search at most %d accounts", feedColumnMaxAccounts))
+	}
+	return nil
+}
+
+func (s *ControlApi) loadOneReadableFeedAccount(au *authentication.AuthenticatedUser, id uint32) (*db.SocialAccount, error) {
+	if !s.userCanReadSocialAccount(au, id) {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to social account %d is required", id))
+	}
+	sa, err := s.DB.GetSocialAccount(id)
+	if err != nil || sa == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account %d not found", id))
+	}
+	return sa, nil
+}
+
+func (s *ControlApi) loadReadableFeedColumnAccounts(au *authentication.AuthenticatedUser, ids []uint32) ([]*db.SocialAccount, error) {
+	accounts := make([]*db.SocialAccount, 0, len(ids))
+	for _, id := range ids {
+		sa, err := s.loadOneReadableFeedAccount(au, id)
+		if err != nil {
+			return nil, err
+		}
+		accounts = append(accounts, sa)
+	}
+	return accounts, nil
+}
+
+func (s *ControlApi) validateFeedColumnAccounts(au *authentication.AuthenticatedUser, q feedcolumns.Query, title string, socialAccountIDs []uint32) (*db.FeedColumn, []*db.SocialAccount, error) {
+	ids := dedupePositiveIDs(socialAccountIDs)
+	if err := validateFeedColumnAccountCount(ids); err != nil {
+		return nil, nil, err
+	}
+	accounts, err := s.loadReadableFeedColumnAccounts(au, ids)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &db.FeedColumn{SocialAccountIDs: ids, Title: title, Query: q.Text}, accounts, nil
+}
+
 // validateFeedColumnInput checks the query, title and that the user may read every account.
 func (s *ControlApi) validateFeedColumnInput(au *authentication.AuthenticatedUser, rawQuery, rawTitle string, socialAccountIDs []uint32) (*db.FeedColumn, []*db.SocialAccount, error) {
 	q, err := feedcolumns.ParseQuery(rawQuery)
 	if err != nil {
 		return nil, nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	title := strings.TrimSpace(rawTitle)
-	if utf8.RuneCountInString(title) > feedColumnTitleMax {
-		return nil, nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("title must be at most %d characters", feedColumnTitleMax))
+	title, err := parseFeedColumnTitle(rawTitle)
+	if err != nil {
+		return nil, nil, err
 	}
-
 	// Tag columns read the user's own tagged posts, not any network.
 	if q.Tag != "" {
 		return &db.FeedColumn{Title: title, Query: q.Text}, nil, nil
 	}
-
-	ids := make([]uint32, 0, len(socialAccountIDs))
-	seen := map[uint32]bool{}
-	for _, id := range socialAccountIDs {
-		if id != 0 && !seen[id] {
-			seen[id] = true
-			ids = append(ids, id)
-		}
-	}
-	if len(ids) == 0 {
-		return nil, nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("choose at least one social account"))
-	}
-	if len(ids) > feedColumnMaxAccounts {
-		return nil, nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("a column can search at most %d accounts", feedColumnMaxAccounts))
-	}
-
-	accounts := make([]*db.SocialAccount, 0, len(ids))
-	for _, id := range ids {
-		if !s.userCanReadSocialAccount(au, id) {
-			return nil, nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to social account %d is required", id))
-		}
-		sa, err := s.DB.GetSocialAccount(id)
-		if err != nil || sa == nil {
-			return nil, nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account %d not found", id))
-		}
-		accounts = append(accounts, sa)
-	}
-
-	return &db.FeedColumn{SocialAccountIDs: ids, Title: title, Query: q.Text}, accounts, nil
+	return s.validateFeedColumnAccounts(au, q, title, socialAccountIDs)
 }
 
 // ownFeedColumn loads a column, hiding other users' columns as not found.
@@ -172,33 +209,36 @@ func (s *ControlApi) ListFeedColumns(ctx context.Context, req *connect.Request[c
 	return connect.NewResponse(res), nil
 }
 
+func (s *ControlApi) ensureFeedColumnQuota(userID uint32) error {
+	existing, err := s.DB.SelectFeedColumnsForUser(userID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load feed columns"))
+	}
+	if len(existing) >= feedColumnsMaxPerUser {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("at most %d feed columns are allowed", feedColumnsMaxPerUser))
+	}
+	return nil
+}
+
 func (s *ControlApi) CreateFeedColumn(ctx context.Context, req *connect.Request[controlv1.CreateFeedColumnRequest]) (*connect.Response[controlv1.CreateFeedColumnResponse], error) {
 	au := s.getAuthenticatedUser(ctx)
 	userID, err := feedColumnUser(au)
 	if err != nil {
 		return nil, err
 	}
-
-	existing, err := s.DB.SelectFeedColumnsForUser(userID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load feed columns"))
+	if quotaErr := s.ensureFeedColumnQuota(userID); quotaErr != nil {
+		return nil, quotaErr
 	}
-	if len(existing) >= feedColumnsMaxPerUser {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("at most %d feed columns are allowed", feedColumnsMaxPerUser))
-	}
-
 	col, accounts, err := s.validateFeedColumnInput(au, req.Msg.GetQuery(), req.Msg.GetTitle(), req.Msg.GetSocialAccountIds())
 	if err != nil {
 		return nil, err
 	}
 	col.UserAccountID = userID
-
 	id, err := s.DB.CreateFeedColumn(col)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create feed column"))
 	}
 	col.ID = id
-
 	return connect.NewResponse(&controlv1.CreateFeedColumnResponse{Column: s.feedColumnToProto(col, accounts)}), nil
 }
 
@@ -325,32 +365,38 @@ func feedColumnPostToProto(p *connector.RemotePost, sa *db.SocialAccount, icon s
 }
 
 // fetchFeedColumnAccount returns one account's (cached) results for a column.
+func (s *ControlApi) maybeRefreshFeedColumnAccount(sa *db.SocialAccount, svc connector.BaseConnector) *db.SocialAccount {
+	if !socialAccountNeedsTokenRefresh(sa) {
+		return sa
+	}
+	if refreshed, refreshErr := s.refreshSocialAccountToken(sa, svc); refreshErr == nil {
+		return refreshed
+	}
+	return sa
+}
+
+func (s *ControlApi) searchFeedColumnAccount(ctx context.Context, search connector.ConnectorWithKeywordSearch, svc connector.BaseConnector, sa *db.SocialAccount, q feedcolumns.Query) ([]*connector.RemotePost, error) {
+	sa = s.maybeRefreshFeedColumnAccount(sa, svc)
+	fetchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	if tl, ok := svc.(connector.ConnectorWithHashtagTimeline); ok && q.Hashtag != "" {
+		return tl.FetchHashtagTimeline(fetchCtx, toConnectorSA(sa), q.Hashtag, feedColumnPostLimit)
+	}
+	return search.SearchRecentByKeyword(fetchCtx, toConnectorSA(sa), q.Text, time.Time{}, feedColumnPostLimit)
+}
+
 func (s *ControlApi) fetchFeedColumnAccount(ctx context.Context, col *db.FeedColumn, q feedcolumns.Query, sa *db.SocialAccount) feedcolumns.Result {
 	search, svc := s.feedColumnSearch(sa.Connector)
 	if search == nil {
 		return feedcolumns.Result{Err: fmt.Errorf("search isn't available for this network")}
 	}
-
 	return feedColumnCache.Get(col.ID, sa.ID, q.Text, time.Now(), func() (posts []*connector.RemotePost, err error) {
 		defer func() {
 			if r := recover(); r != nil {
 				err = fmt.Errorf("search failed: %v", r)
 			}
 		}()
-
-		if socialAccountNeedsTokenRefresh(sa) {
-			if refreshed, refreshErr := s.refreshSocialAccountToken(sa, svc); refreshErr == nil {
-				sa = refreshed
-			}
-		}
-
-		fetchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		defer cancel()
-
-		if tl, ok := svc.(connector.ConnectorWithHashtagTimeline); ok && q.Hashtag != "" {
-			return tl.FetchHashtagTimeline(fetchCtx, toConnectorSA(sa), q.Hashtag, feedColumnPostLimit)
-		}
-		return search.SearchRecentByKeyword(fetchCtx, toConnectorSA(sa), q.Text, time.Time{}, feedColumnPostLimit)
+		return s.searchFeedColumnAccount(ctx, search, svc, sa, q)
 	})
 }
 
@@ -525,11 +571,4 @@ func (s *ControlApi) feedColumnPost(sp feedcolumns.SourcedPost, sa *db.SocialAcc
 		post.Tags = tagsByHash[hash]
 	}
 	return post
-}
-
-func (s *ControlApi) connectorIcon(connectorName string) string {
-	if _, svc := s.feedColumnSearch(connectorName); svc != nil {
-		return svc.GetIcon()
-	}
-	return "mdi:question-mark-circle"
 }

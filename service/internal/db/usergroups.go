@@ -8,6 +8,7 @@ import (
 
 	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/rbac"
+	"github.com/jmoiron/sqlx"
 )
 
 type UserGroupWithCount struct {
@@ -44,36 +45,41 @@ func (db *DB) CreateUserGroup(name string) (uint32, error) {
 	return intconv.ToUint32(lid), nil
 }
 
-func (db *DB) DeleteUserGroup(id uint32) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
-	}
-
-	g := db.GetUserGroupByID(id)
+func validateUserGroupDeletable(g *UserGroup) error {
 	if g == nil {
 		return sql.ErrNoRows
 	}
 	if g.Name == rbac.GroupEveryone || g.Name == rbac.GroupAdministrators {
 		return fmt.Errorf("cannot delete system group %s", g.Name)
 	}
+	return nil
+}
 
-	tx, err := db.connx.Beginx()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	if _, err = tx.ExecContext(context.TODO(), `DELETE FROM user_group_memberships WHERE user_group_id = ?`, id); err != nil {
+func deleteUserGroupTx(tx *sqlx.Tx, id uint32) error {
+	if _, err := tx.ExecContext(context.TODO(), `DELETE FROM user_group_memberships WHERE user_group_id = ?`, id); err != nil {
 		return err
 	}
 	res, err := tx.ExecContext(context.TODO(), `DELETE FROM user_groups WHERE id = ?`, id)
 	if err != nil {
 		return err
 	}
-	n, _ := res.RowsAffected()
-	if n == 0 {
+	if n, _ := res.RowsAffected(); n == 0 {
 		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (db *DB) DeleteUserGroup(id uint32) error {
+	if err := validateUserGroupDeletable(db.GetUserGroupByID(id)); err != nil {
+		return err
+	}
+	tx, err := db.beginTx()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+	if err = deleteUserGroupTx(tx, id); err != nil {
+		return err
 	}
 	return tx.Commit()
 }
@@ -97,27 +103,29 @@ func (db *DB) AddUserGroupMember(userID, groupID uint32) error {
 	return err
 }
 
-func (db *DB) SetUserGroupMembers(groupID uint32, userIDs []uint32) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
+func replaceUserGroupMembers(tx *sqlx.Tx, groupID uint32, userIDs []uint32) error {
+	if _, err := tx.ExecContext(context.TODO(), `DELETE FROM user_group_memberships WHERE user_group_id = ?`, groupID); err != nil {
+		return err
 	}
+	for _, uid := range userIDs {
+		if _, err := tx.ExecContext(context.TODO(),
+			`INSERT INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at) VALUES (?, ?, NOW(3), NOW(3))`,
+			uid, groupID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
 
-	tx, err := db.connx.Beginx()
+func (db *DB) SetUserGroupMembers(groupID uint32, userIDs []uint32) error {
+	tx, err := db.beginTx()
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	if _, err = tx.ExecContext(context.TODO(), `DELETE FROM user_group_memberships WHERE user_group_id = ?`, groupID); err != nil {
+	if err = replaceUserGroupMembers(tx, groupID, userIDs); err != nil {
 		return err
-	}
-	for _, uid := range userIDs {
-		if _, err = tx.ExecContext(context.TODO(),
-			`INSERT INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at) VALUES (?, ?, NOW(3), NOW(3))`,
-			uid, groupID); err != nil {
-			return err
-		}
 	}
 	if err = tx.Commit(); err != nil {
 		return err

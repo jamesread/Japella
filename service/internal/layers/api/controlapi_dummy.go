@@ -9,11 +9,7 @@ import (
 	"github.com/jamesread/japella/internal/connector/dummy"
 )
 
-func (s *ControlApi) CreateDummySocialAccount(ctx context.Context, req *connect.Request[controlv1.CreateDummySocialAccountRequest]) (*connect.Response[controlv1.CreateDummySocialAccountResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
+func (s *ControlApi) dummyConnector() (*dummy.Connector, error) {
 	if s.cc == nil {
 		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("connectors not ready"))
 	}
@@ -25,18 +21,31 @@ func (s *ControlApi) CreateDummySocialAccount(ctx context.Context, req *connect.
 	if !ok {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("dummy connector type mismatch"))
 	}
+	return d, nil
+}
 
+func (s *ControlApi) dummyAccountIdentity(id uint32, fallback string) string {
+	sa, err := s.DB.GetSocialAccount(id)
+	if err == nil && sa != nil {
+		return sa.Identity
+	}
+	return fallback
+}
+
+func (s *ControlApi) CreateDummySocialAccount(ctx context.Context, req *connect.Request[controlv1.CreateDummySocialAccountRequest]) (*connect.Response[controlv1.CreateDummySocialAccountResponse], error) {
+	au, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	d, err := s.dummyConnector()
+	if err != nil {
+		return nil, err
+	}
 	id, err := d.CreateAccount(req.Msg.Identity, au.User.ID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("create dummy account: %w", err))
 	}
-	sa, err := s.DB.GetSocialAccount(id)
-	identity := req.Msg.Identity
-	if err == nil && sa != nil {
-		identity = sa.Identity
-	}
 	return connect.NewResponse(&controlv1.CreateDummySocialAccountResponse{
-		Id:       id,
-		Identity: identity,
+		Id: id, Identity: s.dummyAccountIdentity(id, req.Msg.Identity),
 	}), nil
 }

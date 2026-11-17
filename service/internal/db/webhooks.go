@@ -88,21 +88,14 @@ func (db *DB) EnabledTargetsForEvent(ctx context.Context, event string) ([]webho
 	return out, nil
 }
 
-func (db *DB) CreateWebhookTarget(url, secret string, events []string, enabled bool) (uint32, error) {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return 0, fmt.Errorf("database connection is not established")
+func boolToTinyInt(v bool) int {
+	if v {
+		return 1
 	}
-	tx, err := db.connx.Beginx()
-	if err != nil {
-		return 0, err
-	}
-	defer func() { _ = tx.Rollback() }()
+	return 0
+}
 
-	enabledInt := 0
-	if enabled {
-		enabledInt = 1
-	}
+func insertWebhookTargetTx(tx *sqlx.Tx, url, secret string, enabledInt int, events []string) (uint32, error) {
 	res, err := tx.ExecContext(context.TODO(), `
 		INSERT INTO webhook_targets (url, secret, enabled, created_at, updated_at)
 		VALUES (?, ?, ?, NOW(3), NOW(3))`, url, secret, enabledInt)
@@ -117,10 +110,48 @@ func (db *DB) CreateWebhookTarget(url, secret string, events []string, enabled b
 	if err := insertWebhookEventsTx(tx, targetID, events); err != nil {
 		return 0, err
 	}
+	return targetID, nil
+}
+
+func (db *DB) CreateWebhookTarget(url, secret string, events []string, enabled bool) (uint32, error) {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+		return 0, fmt.Errorf("database connection is not established")
+	}
+	tx, err := db.connx.Beginx()
+	if err != nil {
+		return 0, err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	targetID, err := insertWebhookTargetTx(tx, url, secret, boolToTinyInt(enabled), events)
+	if err != nil {
+		return 0, err
+	}
 	if err := tx.Commit(); err != nil {
 		return 0, err
 	}
 	return targetID, nil
+}
+
+func updateWebhookTargetRow(tx *sqlx.Tx, id uint32, url, secret string, enabledInt int, keepSecret bool) error {
+	if keepSecret {
+		_, err := tx.ExecContext(context.TODO(), `
+			UPDATE webhook_targets SET url = ?, enabled = ?, updated_at = NOW(3) WHERE id = ?`,
+			url, enabledInt, id)
+		return err
+	}
+	_, err := tx.ExecContext(context.TODO(), `
+		UPDATE webhook_targets SET url = ?, secret = ?, enabled = ?, updated_at = NOW(3) WHERE id = ?`,
+		url, secret, enabledInt, id)
+	return err
+}
+
+func replaceWebhookTargetEvents(tx *sqlx.Tx, id uint32, events []string) error {
+	if _, err := tx.ExecContext(context.TODO(), `DELETE FROM webhook_events WHERE webhook_target_id = ?`, id); err != nil {
+		return err
+	}
+	return insertWebhookEventsTx(tx, id, events)
 }
 
 func (db *DB) UpdateWebhookTarget(id uint32, url, secret string, events []string, enabled bool, keepSecret bool) error {
@@ -134,29 +165,10 @@ func (db *DB) UpdateWebhookTarget(id uint32, url, secret string, events []string
 	}
 	defer func() { _ = tx.Rollback() }()
 
-	enabledInt := 0
-	if enabled {
-		enabledInt = 1
-	}
-
-	if keepSecret {
-		if _, err = tx.ExecContext(context.TODO(), `
-			UPDATE webhook_targets SET url = ?, enabled = ?, updated_at = NOW(3) WHERE id = ?`,
-			url, enabledInt, id); err != nil {
-			return err
-		}
-	} else {
-		if _, err = tx.ExecContext(context.TODO(), `
-			UPDATE webhook_targets SET url = ?, secret = ?, enabled = ?, updated_at = NOW(3) WHERE id = ?`,
-			url, secret, enabledInt, id); err != nil {
-			return err
-		}
-	}
-
-	if _, err = tx.ExecContext(context.TODO(), `DELETE FROM webhook_events WHERE webhook_target_id = ?`, id); err != nil {
+	if err = updateWebhookTargetRow(tx, id, url, secret, boolToTinyInt(enabled), keepSecret); err != nil {
 		return err
 	}
-	if err := insertWebhookEventsTx(tx, id, events); err != nil {
+	if err = replaceWebhookTargetEvents(tx, id, events); err != nil {
 		return err
 	}
 	return tx.Commit()

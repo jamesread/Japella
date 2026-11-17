@@ -33,13 +33,21 @@ func sameHandle(a, b string) bool {
 // the account's identity with the author's handle and, failing that, name.
 // Posts with no author details are treated as the account's own.
 func IsOwnPost(accountIdentity, authorHandle, authorName string) bool {
-	if strings.TrimSpace(authorHandle) == "" && strings.TrimSpace(authorName) == "" {
+	if noAuthor(authorHandle, authorName) {
 		return true
 	}
-	if authorHandle != "" && sameHandle(accountIdentity, authorHandle) {
-		return true
+	return matchesAccount(accountIdentity, authorHandle, authorName)
+}
+
+func noAuthor(handle, name string) bool {
+	return strings.TrimSpace(handle) == "" && strings.TrimSpace(name) == ""
+}
+
+func matchesAccount(identity, handle, name string) bool {
+	if handle != "" {
+		return sameHandle(identity, handle)
 	}
-	return authorHandle == "" && sameHandle(accountIdentity, authorName)
+	return sameHandle(identity, name)
 }
 
 // PostKey identifies a post on its platform: its URL, or its remote id when

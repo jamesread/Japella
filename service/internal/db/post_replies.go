@@ -3,8 +3,9 @@ package db
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // PostReply is a stored reply in the conversation under a published post.
@@ -22,14 +23,30 @@ type PostReply struct {
 	CreatedAt       sql.NullTime `db:"created_at"`
 }
 
+func postedAtOrNil(r *PostReply) any {
+	if r.PostedAt.Valid {
+		return r.PostedAt.Time
+	}
+	return nil
+}
+
+func insertPostReplies(tx *sqlx.Tx, postID uint32, replies []*PostReply) error {
+	for _, r := range replies {
+		if _, err := tx.ExecContext(context.TODO(), `
+			INSERT INTO post_replies
+				(post_id, remote_id, parent_remote_id, remote_url, author_name, author_handle, author_avatar_url, content, posted_at, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))`,
+			postID, r.RemoteID, r.ParentRemoteID, r.RemoteURL, r.AuthorName, r.AuthorHandle, r.AuthorAvatarURL, r.Content, postedAtOrNil(r)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ReplacePostReplies swaps the stored replies for a post with a fresh fetch
 // and records the replies counter they were fetched at.
 func (db *DB) ReplacePostReplies(postID uint32, replies []*PostReply, replyCount uint32) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
-	}
-	tx, err := db.connx.Beginx()
+	tx, err := db.beginTx()
 	if err != nil {
 		return err
 	}
@@ -39,22 +56,10 @@ func (db *DB) ReplacePostReplies(postID uint32, replies []*PostReply, replyCount
 		db.Logger().Errorf("Failed to clear replies for post %d: %v", postID, err)
 		return err
 	}
-
-	for _, r := range replies {
-		var postedAt any
-		if r.PostedAt.Valid {
-			postedAt = r.PostedAt.Time
-		}
-		if _, err = tx.ExecContext(context.TODO(), `
-			INSERT INTO post_replies
-				(post_id, remote_id, parent_remote_id, remote_url, author_name, author_handle, author_avatar_url, content, posted_at, created_at)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3))`,
-			postID, r.RemoteID, r.ParentRemoteID, r.RemoteURL, r.AuthorName, r.AuthorHandle, r.AuthorAvatarURL, r.Content, postedAt); err != nil {
-			db.Logger().Errorf("Failed to store reply for post %d: %v", postID, err)
-			return err
-		}
+	if err = insertPostReplies(tx, postID, replies); err != nil {
+		db.Logger().Errorf("Failed to store reply for post %d: %v", postID, err)
+		return err
 	}
-
 	if _, err = tx.ExecContext(context.TODO(), `
 		INSERT INTO post_engagement (post_id, replies_fetched_at, replies_fetched_count, created_at, updated_at)
 		VALUES (?, NOW(3), ?, NOW(3), NOW(3))

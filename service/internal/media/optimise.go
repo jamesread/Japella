@@ -63,6 +63,61 @@ type OptimiseResult struct {
 	Note string
 }
 
+func optimiseBytes(data []byte) ([]byte, string, error) {
+	switch {
+	case bytes.HasPrefix(data, pngSignature):
+		return optimisePNG(data)
+	case bytes.HasPrefix(data, []byte{0xFF, 0xD8}):
+		return optimiseJPEG(data)
+	default:
+		return nil, "", ErrNotOptimisable
+	}
+}
+
+func alreadySmallEnough(data, out []byte, note string) *OptimiseResult {
+	// A copy that saves under 1% isn't worth a second library item.
+	if len(out) < len(data)-len(data)/100 {
+		return nil
+	}
+	res := &OptimiseResult{
+		OriginalBytes:  int64(len(data)),
+		OptimisedBytes: int64(len(data)),
+		Note:           "This image is already as small as it can be made without losing quality.",
+	}
+	if note == fullColourNote {
+		res.Note += " " + photoNote
+	}
+	return res
+}
+
+func writeOptimisedCopy(dir, filename string, data, out []byte, note string) (*OptimiseResult, error) {
+	name := OptimisedName(filename)
+	if err := writeAtomic(filepath.Join(dir, name), out); err != nil {
+		return nil, err
+	}
+	return &OptimiseResult{
+		Filename:       name,
+		OriginalBytes:  int64(len(data)),
+		OptimisedBytes: int64(len(out)),
+		Note:           note,
+	}, nil
+}
+
+func optimiseFile(path, filename string) (*OptimiseResult, error) {
+	data, err := os.ReadFile(path) //nolint:gosec // path resolved by PathFromURL, confined to the media directory
+	if err != nil {
+		return nil, err
+	}
+	out, note, err := optimiseBytes(data)
+	if err != nil {
+		return nil, err
+	}
+	if res := alreadySmallEnough(data, out, note); res != nil {
+		return res, nil
+	}
+	return writeOptimisedCopy(filepath.Dir(path), filename, data, out, note)
+}
+
 // Optimise writes a smaller copy of a library image that looks identical:
 // PNGs are recompressed (with fewer colour channels or a palette when that
 // loses nothing) and checked pixel for pixel; JPEGs keep their image data
@@ -76,42 +131,7 @@ func Optimise(filename string) (*OptimiseResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(path) //nolint:gosec // path resolved by PathFromURL, confined to the media directory
-	if err != nil {
-		return nil, err
-	}
-
-	var out []byte
-	var note string
-	switch {
-	case bytes.HasPrefix(data, pngSignature):
-		out, note, err = optimisePNG(data)
-	case bytes.HasPrefix(data, []byte{0xFF, 0xD8}):
-		out, note, err = optimiseJPEG(data)
-	default:
-		return nil, ErrNotOptimisable
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	res := &OptimiseResult{OriginalBytes: int64(len(data))}
-	// A copy that saves under 1% isn't worth a second library item.
-	if len(out) >= len(data)-len(data)/100 {
-		res.OptimisedBytes = res.OriginalBytes
-		res.Note = "This image is already as small as it can be made without losing quality."
-		if note == fullColourNote {
-			res.Note += " " + photoNote
-		}
-		return res, nil
-	}
-
-	name := OptimisedName(filename)
-	if err := writeAtomic(filepath.Join(filepath.Dir(path), name), out); err != nil {
-		return nil, err
-	}
-	res.Filename, res.OptimisedBytes, res.Note = name, int64(len(out)), note
-	return res, nil
+	return optimiseFile(path, filename)
 }
 
 func writeAtomic(dst string, data []byte) error {
@@ -161,47 +181,81 @@ func pngChunks(data []byte) ([]pngChunk, error) {
 // Chunks that change how pixels are displayed; kept so the copy looks the same.
 var pngColourChunks = map[string]bool{"iCCP": true, "sRGB": true, "gAMA": true, "cHRM": true, "cICP": true, "pHYs": true}
 
-func optimisePNG(data []byte) ([]byte, string, error) {
-	chunks, err := pngChunks(data)
-	if err != nil {
-		return nil, "", err
-	}
+func colourChunksToKeep(chunks []pngChunk) ([][]byte, error) {
 	var keep [][]byte
 	for _, c := range chunks {
 		if c.typ == "acTL" {
 			// Re-encoding would keep only the first frame.
-			return nil, "", fmt.Errorf("animated PNGs can't be optimised")
+			return nil, fmt.Errorf("animated PNGs can't be optimised")
 		}
 		if pngColourChunks[c.typ] {
 			keep = append(keep, c.raw)
 		}
 	}
+	return keep, nil
+}
 
-	img, err := png.Decode(bytes.NewReader(data))
-	if err != nil {
-		return nil, "", fmt.Errorf("failed to read PNG: %w", err)
+func pngOptimiseNote(how string) string {
+	if how == "" {
+		return fullColourNote
 	}
+	return "Recompressed" + how + "; every pixel is identical to the original."
+}
 
+func encodeReducedPNG(img image.Image, keep [][]byte) ([]byte, string, error) {
 	reduced, how := reducePNG(img)
 	var buf bytes.Buffer
 	enc := png.Encoder{CompressionLevel: pngCompressionLevel(reduced)}
-	if err = enc.Encode(&buf, reduced); err != nil {
+	if err := enc.Encode(&buf, reduced); err != nil {
 		return nil, "", err
 	}
 	out, err := insertPNGChunks(buf.Bytes(), keep)
 	if err != nil {
 		return nil, "", err
 	}
+	return out, how, nil
+}
 
-	// Never hand back a copy that differs from the original.
+func verifyPNGMatch(original image.Image, out []byte) error {
 	check, err := png.Decode(bytes.NewReader(out))
-	if err != nil || !samePixels(img, check) {
-		return nil, "", fmt.Errorf("optimised PNG didn't match the original; nothing was saved")
+	if err != nil {
+		return fmt.Errorf("optimised PNG didn't match the original; nothing was saved")
 	}
-	if how == "" {
-		return out, fullColourNote, nil
+	if !samePixels(original, check) {
+		return fmt.Errorf("optimised PNG didn't match the original; nothing was saved")
 	}
-	return out, "Recompressed" + how + "; every pixel is identical to the original.", nil
+	return nil
+}
+
+func preparePNG(data []byte) (img image.Image, keep [][]byte, err error) {
+	chunks, err := pngChunks(data)
+	if err != nil {
+		return nil, nil, err
+	}
+	keep, err = colourChunksToKeep(chunks)
+	if err != nil {
+		return nil, nil, err
+	}
+	img, err = png.Decode(bytes.NewReader(data))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read PNG: %w", err)
+	}
+	return img, keep, nil
+}
+
+func optimisePNG(data []byte) ([]byte, string, error) {
+	img, keep, err := preparePNG(data)
+	if err != nil {
+		return nil, "", err
+	}
+	out, how, err := encodeReducedPNG(img, keep)
+	if err != nil {
+		return nil, "", err
+	}
+	if err := verifyPNGMatch(img, out); err != nil {
+		return nil, "", err
+	}
+	return out, pngOptimiseNote(how), nil
 }
 
 // Maximum compression takes ~7x longer than the default; on large full-colour
@@ -243,6 +297,82 @@ func nrgbaFunc(img image.Image) func(x, y int) color.NRGBA {
 	}
 }
 
+type pngScan struct {
+	colours map[color.NRGBA]bool
+	grey    bool
+	opaque  bool
+	at      func(x, y int) color.NRGBA
+	bounds  image.Rectangle
+}
+
+// recordPixel updates the scan; returns false when a full-colour image can stop early.
+func recordPixel(s *pngScan, c color.NRGBA) bool {
+	if c.A != 0xff {
+		s.opaque = false
+	}
+	if c.R != c.G || c.G != c.B {
+		s.grey = false
+	}
+	if len(s.colours) <= 256 {
+		s.colours[c] = true
+		return true
+	}
+	return s.grey // stop early when neither reduction applies
+}
+
+func scanPNGPixels(img image.Image) pngScan {
+	b := img.Bounds()
+	at := nrgbaFunc(img)
+	s := pngScan{colours: map[color.NRGBA]bool{}, grey: true, opaque: true, at: at, bounds: b}
+	for y := b.Min.Y; y < b.Max.Y; y++ {
+		for x := b.Min.X; x < b.Max.X; x++ {
+			if !recordPixel(&s, at(x, y)) {
+				return s
+			}
+		}
+	}
+	return s
+}
+
+func asGreyscale(s pngScan) *image.Gray {
+	g := image.NewGray(s.bounds)
+	for y := s.bounds.Min.Y; y < s.bounds.Max.Y; y++ {
+		for x := s.bounds.Min.X; x < s.bounds.Max.X; x++ {
+			g.SetGray(x, y, color.Gray{Y: s.at(x, y).R})
+		}
+	}
+	return g
+}
+
+func paletteLess(a, b color.NRGBA) bool {
+	if a.A != b.A {
+		return a.A < b.A
+	}
+	return uint32(a.R)<<16|uint32(a.G)<<8|uint32(a.B) < uint32(b.R)<<16|uint32(b.G)<<8|uint32(b.B)
+}
+
+func asPaletted(s pngScan) *image.Paletted {
+	palette := make(color.Palette, 0, len(s.colours))
+	for c := range s.colours {
+		palette = append(palette, c)
+	}
+	// Transparent entries first keeps the tRNS chunk short.
+	sort.Slice(palette, func(i, j int) bool {
+		return paletteLess(palette[i].(color.NRGBA), palette[j].(color.NRGBA))
+	})
+	index := make(map[color.NRGBA]uint8, len(palette))
+	for i, c := range palette {
+		index[c.(color.NRGBA)] = uint8(i) //nolint:gosec // palette length ≤ 256
+	}
+	p := image.NewPaletted(s.bounds, palette)
+	for y := s.bounds.Min.Y; y < s.bounds.Max.Y; y++ {
+		for x := s.bounds.Min.X; x < s.bounds.Max.X; x++ {
+			p.SetColorIndex(x, y, index[s.at(x, y)])
+		}
+	}
+	return p
+}
+
 // reducePNG returns the smallest lossless representation of an 8-bit image:
 // greyscale, or a palette of up to 256 colours.
 func reducePNG(img image.Image) (image.Image, string) {
@@ -252,93 +382,56 @@ func reducePNG(img image.Image) (image.Image, string) {
 		return img, "" // already paletted or greyscale, or 16-bit
 	}
 
-	b := img.Bounds()
-	at := nrgbaFunc(img)
-	colours := map[color.NRGBA]bool{}
-	grey, opaque := true, true
-scan:
-	for y := b.Min.Y; y < b.Max.Y; y++ {
-		for x := b.Min.X; x < b.Max.X; x++ {
-			c := at(x, y)
-			if c.A != 0xff {
-				opaque = false
-			}
-			if c.R != c.G || c.G != c.B {
-				grey = false
-			}
-			if len(colours) <= 256 {
-				colours[c] = true
-			} else if !grey {
-				break scan // a full-colour image: neither reduction applies
-			}
-		}
+	s := scanPNGPixels(img)
+	if s.grey && s.opaque {
+		return asGreyscale(s), " as greyscale"
 	}
-
-	if grey && opaque {
-		g := image.NewGray(b)
-		for y := b.Min.Y; y < b.Max.Y; y++ {
-			for x := b.Min.X; x < b.Max.X; x++ {
-				g.SetGray(x, y, color.Gray{Y: at(x, y).R})
-			}
-		}
-		return g, " as greyscale"
-	}
-
-	if len(colours) <= 256 {
-		palette := make(color.Palette, 0, len(colours))
-		for c := range colours {
-			palette = append(palette, c)
-		}
-		// Transparent entries first keeps the tRNS chunk short.
-		sort.Slice(palette, func(i, j int) bool {
-			a, b := palette[i].(color.NRGBA), palette[j].(color.NRGBA)
-			if a.A != b.A {
-				return a.A < b.A
-			}
-			return uint32(a.R)<<16|uint32(a.G)<<8|uint32(a.B) < uint32(b.R)<<16|uint32(b.G)<<8|uint32(b.B)
-		})
-		index := make(map[color.NRGBA]uint8, len(palette))
-		for i, c := range palette {
-			index[c.(color.NRGBA)] = uint8(i)
-		}
-		p := image.NewPaletted(b, palette)
-		for y := b.Min.Y; y < b.Max.Y; y++ {
-			for x := b.Min.X; x < b.Max.X; x++ {
-				p.SetColorIndex(x, y, index[at(x, y)])
-			}
-		}
-		return p, fmt.Sprintf(" with a %d-colour palette", len(palette))
+	if len(s.colours) <= 256 {
+		p := asPaletted(s)
+		return p, fmt.Sprintf(" with a %d-colour palette", len(p.Palette))
 	}
 	return img, ""
 }
 
-func samePixels(a, b image.Image) bool {
-	if a.Bounds() != b.Bounds() {
-		return false
+func sameRGBAPix(a, b image.Image) (same bool, ok bool) {
+	ra, okA := a.(*image.RGBA)
+	rb, okB := b.(*image.RGBA)
+	if !okA || !okB || ra.Stride != rb.Stride {
+		return false, false
 	}
-	// Unchanged representation (the common case for photos): compare bytes.
-	if ra, ok := a.(*image.RGBA); ok {
-		if rb, ok := b.(*image.RGBA); ok && ra.Stride == rb.Stride {
-			return bytes.Equal(ra.Pix, rb.Pix)
-		}
+	return bytes.Equal(ra.Pix, rb.Pix), true
+}
+
+func sameNRGBAPix(a, b image.Image) (same bool, ok bool) {
+	na, okA := a.(*image.NRGBA)
+	nb, okB := b.(*image.NRGBA)
+	if !okA || !okB || na.Stride != nb.Stride {
+		return false, false
 	}
-	if na, ok := a.(*image.NRGBA); ok {
-		if nb, ok := b.(*image.NRGBA); ok && na.Stride == nb.Stride {
-			return bytes.Equal(na.Pix, nb.Pix)
-		}
+	return bytes.Equal(na.Pix, nb.Pix), true
+}
+
+func samePixBytes(a, b image.Image) (same bool, ok bool) {
+	if same, ok := sameRGBAPix(a, b); ok {
+		return same, true
 	}
-	if is8Bit(a) && is8Bit(b) {
-		atA, atB := nrgbaFunc(a), nrgbaFunc(b)
-		r := a.Bounds()
-		for y := r.Min.Y; y < r.Max.Y; y++ {
-			for x := r.Min.X; x < r.Max.X; x++ {
-				if atA(x, y) != atB(x, y) {
-					return false
-				}
+	return sameNRGBAPix(a, b)
+}
+
+func sameNRGBAPixels(a, b image.Image) bool {
+	atA, atB := nrgbaFunc(a), nrgbaFunc(b)
+	r := a.Bounds()
+	for y := r.Min.Y; y < r.Max.Y; y++ {
+		for x := r.Min.X; x < r.Max.X; x++ {
+			if atA(x, y) != atB(x, y) {
+				return false
 			}
 		}
-		return true
 	}
+	return true
+}
+
+func sameNRGBA64Pixels(a, b image.Image) bool {
 	r := a.Bounds()
 	for y := r.Min.Y; y < r.Max.Y; y++ {
 		for x := r.Min.X; x < r.Max.X; x++ {
@@ -348,6 +441,20 @@ func samePixels(a, b image.Image) bool {
 		}
 	}
 	return true
+}
+
+func samePixels(a, b image.Image) bool {
+	if a.Bounds() != b.Bounds() {
+		return false
+	}
+	// Unchanged representation (the common case for photos): compare bytes.
+	if same, ok := samePixBytes(a, b); ok {
+		return same
+	}
+	if is8Bit(a) && is8Bit(b) {
+		return sameNRGBAPixels(a, b)
+	}
+	return sameNRGBA64Pixels(a, b)
 }
 
 func is8Bit(img image.Image) bool {
@@ -376,50 +483,102 @@ func insertPNGChunks(data []byte, chunks [][]byte) ([]byte, error) {
 
 // --- JPEG ---
 
+func jpegMarkerAt(data []byte, p int) (byte, error) {
+	if p+4 > len(data) {
+		return 0, fmt.Errorf("unexpected JPEG layout")
+	}
+	if data[p] != 0xFF {
+		return 0, fmt.Errorf("unexpected JPEG layout")
+	}
+	return data[p+1], nil
+}
+
+func jpegSegmentEnd(data []byte, p int) (int, error) {
+	n := int(binary.BigEndian.Uint16(data[p+2:]))
+	end := p + 2 + n
+	if n < 2 {
+		return 0, fmt.Errorf("truncated JPEG")
+	}
+	if end > len(data) {
+		return 0, fmt.Errorf("truncated JPEG")
+	}
+	return end, nil
+}
+
+func jpegSegmentBounds(data []byte, p int) (marker byte, end int, err error) {
+	marker, err = jpegMarkerAt(data, p)
+	if err != nil {
+		return 0, 0, err
+	}
+	if marker == 0xFF { // fill byte
+		return marker, p + 1, nil
+	}
+	end, err = jpegSegmentEnd(data, p)
+	return marker, end, err
+}
+
+func applyJPEGSegment(out []byte, data []byte, p, end int, marker byte, orientation int) ([]byte, int, bool) {
+	if marker == 0xDA { // start of scan: the image data follows, copied untouched
+		return append(out, data[p:]...), orientation, true
+	}
+	seg, payload := data[p:end], data[p+4:end]
+	if keepJPEGSegment(marker, payload) {
+		return append(out, seg...), orientation, false
+	}
+	if marker == 0xE1 && bytes.HasPrefix(payload, []byte("Exif\x00\x00")) {
+		orientation = exifOrientation(payload[6:])
+	}
+	return out, orientation, false
+}
+
+func stripJPEGMetadata(data []byte) ([]byte, int, error) {
+	out := []byte{0xFF, 0xD8}
+	orientation := 0
+	for p := 2; ; {
+		marker, end, err := jpegSegmentBounds(data, p)
+		if err != nil {
+			return nil, 0, err
+		}
+		if marker == 0xFF { // fill byte
+			p = end
+			continue
+		}
+		var done bool
+		out, orientation, done = applyJPEGSegment(out, data, p, end, marker, orientation)
+		if done {
+			return out, orientation, nil
+		}
+		p = end
+	}
+}
+
+func withJPEGOrientation(out []byte, orientation int) []byte {
+	if orientation <= 1 {
+		return out
+	}
+	// Keep only the rotation, so the image isn't shown sideways.
+	return append(out[:2], append(orientationEXIF(orientation), out[2:]...)...)
+}
+
+func jpegDimsMatch(cfg image.Config, out []byte) bool {
+	check, err := jpeg.DecodeConfig(bytes.NewReader(out))
+	if err != nil {
+		return false
+	}
+	return check.Width == cfg.Width && check.Height == cfg.Height
+}
+
 func optimiseJPEG(data []byte) ([]byte, string, error) {
 	cfg, err := jpeg.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to read JPEG: %w", err)
 	}
-
-	out := []byte{0xFF, 0xD8}
-	orientation := 0
-	p := 2
-	for {
-		if p+4 > len(data) || data[p] != 0xFF {
-			return nil, "", fmt.Errorf("unexpected JPEG layout")
-		}
-		marker := data[p+1]
-		if marker == 0xFF { // fill byte
-			p++
-			continue
-		}
-		n := int(binary.BigEndian.Uint16(data[p+2:]))
-		end := p + 2 + n
-		if n < 2 || end > len(data) {
-			return nil, "", fmt.Errorf("truncated JPEG")
-		}
-		seg, payload := data[p:end], data[p+4:end]
-
-		if marker == 0xDA { // start of scan: the image data follows, copied untouched
-			out = append(out, data[p:]...)
-			break
-		}
-		if keepJPEGSegment(marker, payload) {
-			out = append(out, seg...)
-		} else if marker == 0xE1 && bytes.HasPrefix(payload, []byte("Exif\x00\x00")) {
-			orientation = exifOrientation(payload[6:])
-		}
-		p = end
+	out, orientation, err := stripJPEGMetadata(data)
+	if err != nil {
+		return nil, "", err
 	}
-
-	if orientation > 1 {
-		// Keep only the rotation, so the image isn't shown sideways.
-		out = append(out[:2], append(orientationEXIF(orientation), out[2:]...)...)
-	}
-
-	check, err := jpeg.DecodeConfig(bytes.NewReader(out))
-	if err != nil || check.Width != cfg.Width || check.Height != cfg.Height {
+	out = withJPEGOrientation(out, orientation)
+	if !jpegDimsMatch(cfg, out) {
 		return nil, "", fmt.Errorf("optimised JPEG didn't match the original; nothing was saved")
 	}
 	return out, "Removed metadata (camera details, location, embedded thumbnails); the image data is untouched.", nil
@@ -441,38 +600,64 @@ func keepJPEGSegment(marker byte, payload []byte) bool {
 	}
 }
 
+func tiffByteOrder(tiff []byte) binary.ByteOrder {
+	switch string(tiff[:2]) {
+	case "II":
+		return binary.LittleEndian
+	case "MM":
+		return binary.BigEndian
+	default:
+		return nil
+	}
+}
+
+func isOrientationTag(tiff []byte, bo binary.ByteOrder, e int) bool {
+	return bo.Uint16(tiff[e:]) == 0x0112 && bo.Uint16(tiff[e+2:]) == 3
+}
+
+func validOrientation(v int) bool {
+	return v >= 1 && v <= 8
+}
+
+func orientationTagValue(tiff []byte, bo binary.ByteOrder, e int) (int, bool) {
+	if e+12 > len(tiff) {
+		return 0, true // stop
+	}
+	if !isOrientationTag(tiff, bo, e) {
+		return 0, false
+	}
+	v := int(bo.Uint16(tiff[e+8:]))
+	if validOrientation(v) {
+		return v, true
+	}
+	return 0, true
+}
+
+func orientationFromIFD(tiff []byte, bo binary.ByteOrder, ifd int) int {
+	count := int(bo.Uint16(tiff[ifd:]))
+	for i := range count {
+		v, done := orientationTagValue(tiff, bo, ifd+2+i*12)
+		if done {
+			return v
+		}
+	}
+	return 0
+}
+
 // exifOrientation reads the Orientation tag from a TIFF-format EXIF block, or 0.
 func exifOrientation(tiff []byte) int {
 	if len(tiff) < 8 {
 		return 0
 	}
-	var bo binary.ByteOrder
-	switch string(tiff[:2]) {
-	case "II":
-		bo = binary.LittleEndian
-	case "MM":
-		bo = binary.BigEndian
-	default:
+	bo := tiffByteOrder(tiff)
+	if bo == nil {
 		return 0
 	}
 	ifd := int(bo.Uint32(tiff[4:]))
 	if ifd < 8 || ifd+2 > len(tiff) {
 		return 0
 	}
-	count := int(bo.Uint16(tiff[ifd:]))
-	for i := range count {
-		e := ifd + 2 + i*12
-		if e+12 > len(tiff) {
-			return 0
-		}
-		if bo.Uint16(tiff[e:]) == 0x0112 && bo.Uint16(tiff[e+2:]) == 3 {
-			if v := int(bo.Uint16(tiff[e+8:])); v >= 1 && v <= 8 {
-				return v
-			}
-			return 0
-		}
-	}
-	return 0
+	return orientationFromIFD(tiff, bo, ifd)
 }
 
 // orientationEXIF is an APP1 segment holding only an Orientation tag.

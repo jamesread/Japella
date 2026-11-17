@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 
 	"github.com/jamesread/japella/internal/intconv"
 )
@@ -95,11 +94,7 @@ func (db *DB) GetAccountPolicySocialAccountIDs(policyID uint32) ([]uint32, error
 }
 
 func (db *DB) SetAccountPolicySocialAccounts(policyID uint32, socialAccountIDs []uint32) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
-	}
-	tx, err := db.connx.Beginx()
+	tx, err := db.beginTx()
 	if err != nil {
 		return err
 	}
@@ -135,11 +130,7 @@ func (db *DB) GetAccountPolicyApprovalStages(policyID uint32) ([]*AccountPolicyA
 }
 
 func (db *DB) SetAccountPolicyApprovalStages(policyID uint32, stages []*AccountPolicyApprovalStage) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
-	}
-	tx, err := db.connx.Beginx()
+	tx, err := db.beginTx()
 	if err != nil {
 		return err
 	}

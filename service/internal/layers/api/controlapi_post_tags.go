@@ -20,6 +20,10 @@ import (
 
 const tagColumnPostLimit = 100
 
+func isHTTPSnapshotURL(u *url.URL, err error) bool {
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https") && u.Host != ""
+}
+
 // safeSnapshotURL keeps only http(s) URLs, since the UI uses them as links and images.
 func safeSnapshotURL(raw string) string {
 	raw = strings.TrimSpace(raw)
@@ -27,7 +31,7 @@ func safeSnapshotURL(raw string) string {
 		return ""
 	}
 	u, err := url.Parse(raw)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+	if !isHTTPSnapshotURL(u, err) {
 		return ""
 	}
 	return raw
@@ -90,18 +94,7 @@ func (s *ControlApi) tagSnapshot(ref *controlv1.PostRef, sa *db.SocialAccount, s
 
 // SetPostTags replaces the caller's internal tags on a post. Tags are private
 // to the user and nothing is sent to the post's network.
-func (s *ControlApi) SetPostTags(ctx context.Context, req *connect.Request[controlv1.SetPostTagsRequest]) (*connect.Response[controlv1.SetPostTagsResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil || au.User == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-
-	tags, err := posttags.NormaliseList(req.Msg.GetTags())
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, err)
-	}
-
-	ref := req.Msg.GetPost()
+func (s *ControlApi) authorizeTaggablePost(au *authentication.AuthenticatedUser, ref *controlv1.PostRef) (*db.SocialAccount, error) {
 	sa, err := s.postRefAccount(ref)
 	if err != nil {
 		return nil, err
@@ -109,15 +102,45 @@ func (s *ControlApi) SetPostTags(ctx context.Context, req *connect.Request[contr
 	if !s.userCanReadSocialAccount(au, sa.ID) {
 		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
 	}
+	return sa, nil
+}
 
-	snap, key, err := s.tagSnapshot(ref, sa, req.Msg.GetSnapshot())
+func (s *ControlApi) requireTagSnapshot(ref *controlv1.PostRef, sa *db.SocialAccount, sent *controlv1.FeedPost) (*controlv1.FeedPost, string, error) {
+	snap, key, err := s.tagSnapshot(ref, sa, sent)
+	if err != nil {
+		return nil, "", err
+	}
+	if key == "" {
+		return nil, "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("post remote id or url is required"))
+	}
+	return snap, key, nil
+}
+
+func (s *ControlApi) prepareSetPostTags(au *authentication.AuthenticatedUser, msg *controlv1.SetPostTagsRequest) ([]string, *db.SocialAccount, error) {
+	tags, err := posttags.NormaliseList(msg.GetTags())
+	if err != nil {
+		return nil, nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+	sa, err := s.authorizeTaggablePost(au, msg.GetPost())
+	if err != nil {
+		return nil, nil, err
+	}
+	return tags, sa, nil
+}
+
+func (s *ControlApi) SetPostTags(ctx context.Context, req *connect.Request[controlv1.SetPostTagsRequest]) (*connect.Response[controlv1.SetPostTagsResponse], error) {
+	au, err := s.requireAuthenticatedAccount(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if key == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("post remote id or url is required"))
+	tags, sa, err := s.prepareSetPostTags(au, req.Msg)
+	if err != nil {
+		return nil, err
 	}
-
+	snap, key, err := s.requireTagSnapshot(req.Msg.GetPost(), sa, req.Msg.GetSnapshot())
+	if err != nil {
+		return nil, err
+	}
 	if err := s.saveTaggedPost(au.User.ID, key, sa.ID, snap, tags); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to save tags"))
 	}
@@ -163,16 +186,10 @@ func (s *ControlApi) userPostTags(au *authentication.AuthenticatedUser) map[stri
 }
 
 // tagColumnPosts lists the caller's posts with tag, from their snapshots.
-func (s *ControlApi) tagColumnPosts(au *authentication.AuthenticatedUser, tag string) (*controlv1.GetFeedColumnPostsResponse, error) {
-	tagged, err := s.DB.SelectTaggedPosts(au.User.ID, tag, tagColumnPostLimit)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load tagged posts"))
-	}
-	tagsByHash := s.userPostTags(au)
-
-	accountIDs := make([]uint32, 0)
+func (s *ControlApi) tagColumnReadableAccounts(au *authentication.AuthenticatedUser, tagged []*db.TaggedPost) (map[uint32]*db.SocialAccount, map[uint32]bool, []uint32) {
 	accounts := map[uint32]*db.SocialAccount{}
 	readable := map[uint32]bool{}
+	accountIDs := make([]uint32, 0)
 	for _, tp := range tagged {
 		if _, ok := readable[tp.SocialAccountID]; ok {
 			continue
@@ -183,37 +200,50 @@ func (s *ControlApi) tagColumnPosts(au *authentication.AuthenticatedUser, tag st
 			accountIDs = append(accountIDs, tp.SocialAccountID)
 		}
 	}
-	commented, _ := s.DB.SelectCommentedPostHashes(accountIDs)
+	return accounts, readable, accountIDs
+}
 
+func (s *ControlApi) hydrateTaggedColumnPost(tp *db.TaggedPost, sa *db.SocialAccount, commented map[uint32]map[string]bool, tagsByHash map[string][]string) *controlv1.FeedPost {
+	post := &controlv1.FeedPost{}
+	if err := protojson.Unmarshal([]byte(tp.Snapshot), post); err != nil {
+		return nil
+	}
+	post.Id = 0
+	post.SocialAccountId = sa.ID
+	post.SocialAccountIdentity = sa.Identity
+	post.SocialAccountConnector = sa.Connector
+	post.SocialAccountIcon = s.connectorIcon(sa.Connector)
+	post.FromExternalAuthor = !feedauthor.IsOwnPost(sa.Identity, post.AuthorHandle, post.AuthorName)
+	post.CanLike = s.connectorSupportsLikes(sa.Connector)
+	post.CanViewComments = s.connectorSupportsReplies(sa.Connector)
+	post.CanComment = s.connectorSupportsReplying(sa.Connector)
+	post.CanRefresh = s.connectorSupportsRefetch(sa.Connector)
+	post.Commented = commented[sa.ID][tp.PostKeyHash]
+	post.Tags = tagsByHash[tp.PostKeyHash]
+	return post
+}
+
+func (s *ControlApi) taggedColumnPostOrNil(tp *db.TaggedPost, accounts map[uint32]*db.SocialAccount, readable map[uint32]bool, commented map[uint32]map[string]bool, tagsByHash map[string][]string) *controlv1.FeedPost {
+	sa := accounts[tp.SocialAccountID]
+	if !readable[tp.SocialAccountID] || sa == nil {
+		return nil
+	}
+	return s.hydrateTaggedColumnPost(tp, sa, commented, tagsByHash)
+}
+
+func (s *ControlApi) tagColumnPosts(au *authentication.AuthenticatedUser, tag string) (*controlv1.GetFeedColumnPostsResponse, error) {
+	tagged, err := s.DB.SelectTaggedPosts(au.User.ID, tag, tagColumnPostLimit)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load tagged posts"))
+	}
+	tagsByHash := s.userPostTags(au)
+	accounts, readable, accountIDs := s.tagColumnReadableAccounts(au, tagged)
+	commented, _ := s.DB.SelectCommentedPostHashes(accountIDs)
 	res := &controlv1.GetFeedColumnPostsResponse{}
 	for _, tp := range tagged {
-		sa := accounts[tp.SocialAccountID]
-		// Sharing may have been revoked since the post was tagged.
-		if !readable[tp.SocialAccountID] || sa == nil {
-			continue
+		if post := s.taggedColumnPostOrNil(tp, accounts, readable, commented, tagsByHash); post != nil {
+			res.Posts = append(res.Posts, post)
 		}
-		post := &controlv1.FeedPost{}
-		if err := protojson.Unmarshal([]byte(tp.Snapshot), post); err != nil {
-			continue
-		}
-		// Stored feed posts get pruned, so tag column posts are always
-		// addressed by their platform identity.
-		post.Id = 0
-		post.SocialAccountId = sa.ID
-		post.SocialAccountIdentity = sa.Identity
-		post.SocialAccountConnector = sa.Connector
-		post.SocialAccountIcon = "mdi:question-mark-circle"
-		if svc := s.cc.Get(sa.Connector); svc != nil {
-			post.SocialAccountIcon = svc.GetIcon()
-		}
-		post.FromExternalAuthor = !feedauthor.IsOwnPost(sa.Identity, post.AuthorHandle, post.AuthorName)
-		post.CanLike = s.connectorSupportsLikes(sa.Connector)
-		post.CanViewComments = s.connectorSupportsReplies(sa.Connector)
-		post.CanComment = s.connectorSupportsReplying(sa.Connector)
-		post.CanRefresh = s.connectorSupportsRefetch(sa.Connector)
-		post.Commented = commented[sa.ID][tp.PostKeyHash]
-		post.Tags = tagsByHash[tp.PostKeyHash]
-		res.Posts = append(res.Posts, post)
 	}
 	return res, nil
 }

@@ -65,34 +65,43 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event string, payload map[str
 	if d == nil || d.Store == nil {
 		return
 	}
+	event, targets, raw, ok := d.prepareDispatch(ctx, event, payload)
+	if !ok {
+		return
+	}
+	client := d.httpClient(2 * time.Second)
+	for _, target := range targets {
+		go d.deliver(context.Background(), client, target, event, raw) //nolint:gosec // deliveries must outlive the request that triggered them
+	}
+}
+
+func (d *Dispatcher) prepareDispatch(ctx context.Context, event string, payload map[string]any) (string, []Target, []byte, bool) {
 	event, err := NormalizeEvent(event)
 	if err != nil {
 		log.Warnf("webhook dispatch: %v", err)
-		return
+		return "", nil, nil, false
 	}
 	targets, err := d.Store.EnabledTargetsForEvent(ctx, event)
 	if err != nil {
 		log.Warnf("webhook dispatch: list targets for %s: %v", event, err)
-		return
+		return "", nil, nil, false
 	}
 	if len(targets) == 0 {
-		return
+		return "", nil, nil, false
 	}
-
 	raw, err := d.marshalBody(event, payload)
 	if err != nil {
 		log.Warnf("webhook dispatch: marshal payload: %v", err)
-		return
+		return "", nil, nil, false
 	}
+	return event, targets, raw, true
+}
 
-	client := d.Client
-	if client == nil {
-		client = &http.Client{Timeout: 2 * time.Second}
+func (d *Dispatcher) httpClient(fallbackTimeout time.Duration) *http.Client {
+	if d.Client != nil {
+		return d.Client
 	}
-
-	for _, target := range targets {
-		go d.deliver(context.Background(), client, target, event, raw) //nolint:gosec // deliveries must outlive the request that triggered them
-	}
+	return &http.Client{Timeout: fallbackTimeout}
 }
 
 // DeliverOne POSTs a signed event payload to a single target and returns the HTTP status.
@@ -108,20 +117,21 @@ func (d *Dispatcher) DeliverOne(ctx context.Context, target Target, event string
 	if err != nil {
 		return 0, err
 	}
+	return d.deliverSync(ctx, d.clientForContext(ctx, 10*time.Second), target, event, raw)
+}
 
-	client := d.Client
-	if client == nil {
-		client = &http.Client{Timeout: 10 * time.Second}
+func (d *Dispatcher) clientForContext(ctx context.Context, fallbackTimeout time.Duration) *http.Client {
+	client := d.httpClient(fallbackTimeout)
+	if ctx == nil {
+		return client
 	}
-	if ctx != nil {
-		if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) > 0 {
-			c := *client
-			c.Timeout = time.Until(deadline)
-			client = &c
-		}
+	deadline, ok := ctx.Deadline()
+	if !ok || time.Until(deadline) <= 0 {
+		return client
 	}
-
-	return d.deliverSync(ctx, client, target, event, raw)
+	c := *client
+	c.Timeout = time.Until(deadline)
+	return &c
 }
 
 func (d *Dispatcher) marshalBody(event string, payload map[string]any) ([]byte, error) {
@@ -142,17 +152,12 @@ func (d *Dispatcher) deliverSync(ctx context.Context, client *http.Client, targe
 	if ctx == nil {
 		ctx = context.Background()
 	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target.URL, bytes.NewReader(raw))
+	req, err := d.newSignedRequest(ctx, target, event, raw)
 	if err != nil {
 		d.record(ctx, target.ID, event, false, 0, err.Error(), started)
 		log.Warnf("webhook target %d: create request: %v", target.ID, err)
 		return 0, err
 	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set(HeaderEvent, event)
-	req.Header.Set(HeaderSignature, fmt.Sprintf("sha256=%s", Signature(string(raw), target.Secret)))
-
 	resp, err := client.Do(req)
 	if err != nil {
 		d.record(ctx, target.ID, event, false, 0, err.Error(), started)
@@ -160,15 +165,29 @@ func (d *Dispatcher) deliverSync(ctx context.Context, client *http.Client, targe
 		return 0, err
 	}
 	defer func() { _ = resp.Body.Close() }()
+	d.recordDeliveryStatus(ctx, target, event, resp.StatusCode, started)
+	return resp.StatusCode, nil
+}
 
-	ok := resp.StatusCode >= 200 && resp.StatusCode < 300
+func (d *Dispatcher) newSignedRequest(ctx context.Context, target Target, event string, raw []byte) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, target.URL, bytes.NewReader(raw))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set(HeaderEvent, event)
+	req.Header.Set(HeaderSignature, fmt.Sprintf("sha256=%s", Signature(string(raw), target.Secret)))
+	return req, nil
+}
+
+func (d *Dispatcher) recordDeliveryStatus(ctx context.Context, target Target, event string, status int, started time.Time) {
+	ok := status >= 200 && status < 300
 	errMsg := ""
 	if !ok {
-		errMsg = fmt.Sprintf("HTTP %d", resp.StatusCode)
-		log.Warnf("webhook target %d: POST %s returned %d", target.ID, target.URL, resp.StatusCode)
+		errMsg = fmt.Sprintf("HTTP %d", status)
+		log.Warnf("webhook target %d: POST %s returned %d", target.ID, target.URL, status)
 	}
-	d.record(ctx, target.ID, event, ok, resp.StatusCode, errMsg, started)
-	return resp.StatusCode, nil
+	d.record(ctx, target.ID, event, ok, status, errMsg, started)
 }
 
 func (d *Dispatcher) record(ctx context.Context, targetID uint32, event string, success bool, httpStatus int, errMsg string, started time.Time) {

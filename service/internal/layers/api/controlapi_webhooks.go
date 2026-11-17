@@ -73,15 +73,9 @@ func webhookDeliveryLogToProto(l *db.WebhookDeliveryLog) *controlv1.WebhookDeliv
 
 func (s *ControlApi) GetWebhook(ctx context.Context, req *connect.Request[controlv1.GetWebhookRequest]) (*connect.Response[controlv1.GetWebhookResponse], error) {
 	_ = ctx
-	if req.Msg.Id == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("webhook id is required"))
-	}
-	existing, err := s.DB.GetWebhookTarget(req.Msg.Id)
+	existing, err := s.requireWebhookTarget(req.Msg.Id)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("load webhook"))
-	}
-	if existing == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("webhook not found"))
+		return nil, err
 	}
 	limit := int(req.Msg.LogLimit)
 	if limit == 0 {
@@ -99,6 +93,20 @@ func (s *ControlApi) GetWebhook(ctx context.Context, req *connect.Request[contro
 		Webhook:      webhookTargetToProto(existing),
 		DeliveryLogs: outLogs,
 	}), nil
+}
+
+func (s *ControlApi) requireWebhookTarget(id uint32) (*db.WebhookTarget, error) {
+	if id == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("webhook id is required"))
+	}
+	existing, err := s.DB.GetWebhookTarget(id)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("load webhook"))
+	}
+	if existing == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("webhook not found"))
+	}
+	return existing, nil
 }
 
 func (s *ControlApi) CreateWebhook(ctx context.Context, req *connect.Request[controlv1.CreateWebhookRequest]) (*connect.Response[controlv1.CreateWebhookResponse], error) {
@@ -122,17 +130,18 @@ func (s *ControlApi) CreateWebhook(ctx context.Context, req *connect.Request[con
 	return connect.NewResponse(&controlv1.CreateWebhookResponse{Id: id}), nil
 }
 
+func (s *ControlApi) updateWebhookTargetFields(id uint32, existing *db.WebhookTarget, url string, events []string, enabled bool, secret string) error {
+	if secret == "" {
+		return s.DB.UpdateWebhookTarget(id, url, existing.Secret, events, enabled, true)
+	}
+	return s.DB.UpdateWebhookTarget(id, url, secret, events, enabled, false)
+}
+
 func (s *ControlApi) UpdateWebhook(ctx context.Context, req *connect.Request[controlv1.UpdateWebhookRequest]) (*connect.Response[controlv1.UpdateWebhookResponse], error) {
 	_ = ctx
-	if req.Msg.Id == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("webhook id is required"))
-	}
-	existing, err := s.DB.GetWebhookTarget(req.Msg.Id)
+	existing, err := s.requireWebhookTarget(req.Msg.Id)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("load webhook"))
-	}
-	if existing == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("webhook not found"))
+		return nil, err
 	}
 	url, err := webhook.NormalizeURL(req.Msg.Url)
 	if err != nil {
@@ -142,14 +151,7 @@ func (s *ControlApi) UpdateWebhook(ctx context.Context, req *connect.Request[con
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-	secret := strings.TrimSpace(req.Msg.Secret)
-	keepSecret := secret == ""
-	if keepSecret {
-		err = s.DB.UpdateWebhookTarget(req.Msg.Id, url, existing.Secret, events, req.Msg.Enabled, true)
-	} else {
-		err = s.DB.UpdateWebhookTarget(req.Msg.Id, url, secret, events, req.Msg.Enabled, false)
-	}
-	if err != nil {
+	if err := s.updateWebhookTargetFields(req.Msg.Id, existing, url, events, req.Msg.Enabled, strings.TrimSpace(req.Msg.Secret)); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("update webhook"))
 	}
 	return connect.NewResponse(&controlv1.UpdateWebhookResponse{}), nil
@@ -157,15 +159,8 @@ func (s *ControlApi) UpdateWebhook(ctx context.Context, req *connect.Request[con
 
 func (s *ControlApi) DeleteWebhook(ctx context.Context, req *connect.Request[controlv1.DeleteWebhookRequest]) (*connect.Response[controlv1.DeleteWebhookResponse], error) {
 	_ = ctx
-	if req.Msg.Id == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("webhook id is required"))
-	}
-	existing, err := s.DB.GetWebhookTarget(req.Msg.Id)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("load webhook"))
-	}
-	if existing == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("webhook not found"))
+	if _, err := s.requireWebhookTarget(req.Msg.Id); err != nil {
+		return nil, err
 	}
 	if err := s.DB.DeleteWebhookTarget(req.Msg.Id); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("delete webhook"))
@@ -174,21 +169,31 @@ func (s *ControlApi) DeleteWebhook(ctx context.Context, req *connect.Request[con
 }
 
 func (s *ControlApi) TestWebhook(ctx context.Context, req *connect.Request[controlv1.TestWebhookRequest]) (*connect.Response[controlv1.TestWebhookResponse], error) {
-	if req.Msg.Id == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("webhook id is required"))
-	}
-	existing, err := s.DB.GetWebhookTarget(req.Msg.Id)
+	existing, err := s.requireWebhookTarget(req.Msg.Id)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("load webhook"))
-	}
-	if existing == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("webhook not found"))
+		return nil, err
 	}
 
 	deliverCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	payload := map[string]any{
+	status, err := s.webhookDispatcher().DeliverOne(deliverCtx, webhook.Target{
+		ID:     existing.ID,
+		URL:    existing.URL,
+		Secret: existing.Secret,
+	}, webhook.EventWebhookTest, testWebhookPayload(existing))
+	if err != nil {
+		return connect.NewResponse(&controlv1.TestWebhookResponse{
+			Success:    false,
+			Message:    err.Error(),
+			HttpStatus: 0,
+		}), nil
+	}
+	return connect.NewResponse(testWebhookResponse(status)), nil
+}
+
+func testWebhookPayload(existing *db.WebhookTarget) map[string]any {
+	return map[string]any{
 		"test": map[string]any{
 			"message": "This is a Japella webhook.test event.",
 			"webhook": map[string]any{
@@ -197,29 +202,19 @@ func (s *ControlApi) TestWebhook(ctx context.Context, req *connect.Request[contr
 			},
 		},
 	}
-	status, err := s.webhookDispatcher().DeliverOne(deliverCtx, webhook.Target{
-		ID:     existing.ID,
-		URL:    existing.URL,
-		Secret: existing.Secret,
-	}, webhook.EventWebhookTest, payload)
+}
 
-	if err != nil {
-		return connect.NewResponse(&controlv1.TestWebhookResponse{
-			Success:    false,
-			Message:    err.Error(),
-			HttpStatus: 0,
-		}), nil
-	}
+func testWebhookResponse(status int) *controlv1.TestWebhookResponse {
 	ok := status >= 200 && status < 300
 	msg := fmt.Sprintf("Endpoint returned HTTP %d", status)
 	if !ok {
 		msg = fmt.Sprintf("Endpoint returned non-success HTTP %d", status)
 	}
-	return connect.NewResponse(&controlv1.TestWebhookResponse{
+	return &controlv1.TestWebhookResponse{
 		Success:    ok,
 		Message:    msg,
 		HttpStatus: intconv.ToInt32(status),
-	}), nil
+	}
 }
 
 func (s *ControlApi) webhookDispatcher() *webhook.Dispatcher {
@@ -286,6 +281,45 @@ func (s *ControlApi) dispatchApprovalRequested(ctx context.Context, post *db.Pos
 	s.webhookDispatcher().Dispatch(ctx, webhook.EventApprovalRequested, payload)
 }
 
+func (s *ControlApi) botDisplayNameByKey() map[string]string {
+	nameByBot := map[string]string{}
+	instances, err := s.DB.SelectChatBotInstances()
+	if err != nil {
+		return nameByBot
+	}
+	for _, inst := range instances {
+		name := strings.TrimSpace(inst.DisplayName)
+		if name == "" {
+			name = inst.BotID
+		}
+		nameByBot[inst.Protocol+"\x00"+inst.BotID] = name
+	}
+	return nameByBot
+}
+
+func botWebhookDisplayName(nameByBot map[string]string, protocol, botID, identity string) string {
+	if name := nameByBot[protocol+"\x00"+botID]; name != "" {
+		return name
+	}
+	if identity != "" {
+		return identity
+	}
+	return botID
+}
+
+func botWebhookToProto(hook *db.WebhookHook, nameByBot map[string]string) *controlv1.BotWebhook {
+	protocol := strings.TrimSpace(hook.Connector)
+	botID := strings.TrimSpace(hook.BotID)
+	return &controlv1.BotWebhook{
+		Id:       hook.ID,
+		Protocol: protocol,
+		BotId:    botID,
+		BotName:  botWebhookDisplayName(nameByBot, protocol, botID, hook.Identity),
+		Url:      hook.URL,
+		Enabled:  hook.Enabled,
+	}
+}
+
 func (s *ControlApi) ListBotWebhooks(ctx context.Context, req *connect.Request[controlv1.ListBotWebhooksRequest]) (*connect.Response[controlv1.ListBotWebhooksResponse], error) {
 	_ = ctx
 	_ = s.DB.DeleteOrphanedWebhookHooks()
@@ -295,39 +329,10 @@ func (s *ControlApi) ListBotWebhooks(ctx context.Context, req *connect.Request[c
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list bot webhooks"))
 	}
 
-	nameByBot := map[string]string{}
-	instances, err := s.DB.SelectChatBotInstances()
-	if err == nil {
-		for _, inst := range instances {
-			key := inst.Protocol + "\x00" + inst.BotID
-			name := strings.TrimSpace(inst.DisplayName)
-			if name == "" {
-				name = inst.BotID
-			}
-			nameByBot[key] = name
-		}
-	}
-
+	nameByBot := s.botDisplayNameByKey()
 	out := make([]*controlv1.BotWebhook, 0, len(hooks))
 	for _, hook := range hooks {
-		protocol := strings.TrimSpace(hook.Connector)
-		botID := strings.TrimSpace(hook.BotID)
-		key := protocol + "\x00" + botID
-		botName := nameByBot[key]
-		if botName == "" {
-			botName = hook.Identity
-		}
-		if botName == "" {
-			botName = botID
-		}
-		out = append(out, &controlv1.BotWebhook{
-			Id:       hook.ID,
-			Protocol: protocol,
-			BotId:    botID,
-			BotName:  botName,
-			Url:      hook.URL,
-			Enabled:  hook.Enabled,
-		})
+		out = append(out, botWebhookToProto(hook, nameByBot))
 	}
 	return connect.NewResponse(&controlv1.ListBotWebhooksResponse{Webhooks: out}), nil
 }

@@ -84,6 +84,62 @@ type oauth2State struct {
 	userID    uint32
 }
 
+func (s *ControlApi) recordJobRun(jobName string) {
+	s.jobRunMutex.Lock()
+	defer s.jobRunMutex.Unlock()
+	s.lastJobRunTimes[jobName] = time.Now()
+}
+
+func (s *ControlApi) startTickerJob(interval time.Duration, jobName string, run func()) {
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			s.recordJobRun(jobName)
+			run()
+		}
+	}()
+}
+
+func (s *ControlApi) startFeedFetchingJob() {
+	go func() {
+		s.recordJobRun("feed_fetching")
+		s.processFeedFetching()
+		ticker := time.NewTicker(5 * time.Minute)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			s.recordJobRun("feed_fetching")
+			s.processFeedFetching()
+		}
+	}()
+}
+
+func (s *ControlApi) startKeywordWatchSearchJob() {
+	go func() {
+		for s.keywordWatch == nil {
+			time.Sleep(200 * time.Millisecond)
+		}
+		interval := s.keywordWatchSearchInterval()
+		s.recordJobRun("keyword_watch_search")
+		s.processKeywordWatchSearch()
+
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			<-ticker.C
+			next := s.keywordWatchSearchInterval()
+			if next != interval {
+				ticker.Reset(next)
+				interval = next
+			}
+			s.recordJobRun("keyword_watch_search")
+			s.processKeywordWatchSearch()
+		}
+	}()
+}
+
 func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 	s.statusMessages = make([]*controlv1.StatusMessage, 0)
 
@@ -101,94 +157,13 @@ func (s *ControlApi) Start(cfg *runtimeconfig.CommonConfig) {
 
 	log.Infof("ControlAPI started")
 
-	// Helper function to record job execution time
-	recordJobRun := func(jobName string) {
-		s.jobRunMutex.Lock()
-		defer s.jobRunMutex.Unlock()
-		s.lastJobRunTimes[jobName] = time.Now()
-	}
-
-	// Start background scheduler for due posts
-	go func() {
-		ticker := time.NewTicker(1 * time.Minute)
-		defer ticker.Stop()
-		for {
-			<-ticker.C
-			recordJobRun("scheduled_posts")
-			s.processDueScheduledPosts()
-		}
-	}()
-
-	// Start background scheduler for fetching recent posts
-	go func() {
-		recordJobRun("feed_fetching")
-		s.processFeedFetching()
-
-		ticker := time.NewTicker(5 * time.Minute) // Fetch every 5 minutes
-		defer ticker.Stop()
-		for {
-			<-ticker.C
-			recordJobRun("feed_fetching")
-			s.processFeedFetching()
-		}
-	}()
-
-	// Start background scheduler for cleaning up old feed posts
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour) // Cleanup every hour
-		defer ticker.Stop()
-		for {
-			<-ticker.C
-			recordJobRun("feed_cleanup")
-			s.processFeedCleanup()
-		}
-	}()
-
-	// Start background scheduler for refreshing expiring social account tokens
-	go func() {
-		ticker := time.NewTicker(15 * time.Minute) // Run every 15 minutes
-		defer ticker.Stop()
-		for {
-			<-ticker.C
-			recordJobRun("token_refresh")
-			s.processTokenRefresh()
-		}
-	}()
-
-	// Keyword watch search poll + match retention (interval from cvar)
-	go func() {
-		for s.keywordWatch == nil {
-			time.Sleep(200 * time.Millisecond)
-		}
-		interval := s.keywordWatchSearchInterval()
-		recordJobRun("keyword_watch_search")
-		s.processKeywordWatchSearch()
-
-		ticker := time.NewTicker(interval)
-		defer ticker.Stop()
-		for {
-			<-ticker.C
-			next := s.keywordWatchSearchInterval()
-			if next != interval {
-				ticker.Reset(next)
-				interval = next
-			}
-			recordJobRun("keyword_watch_search")
-			s.processKeywordWatchSearch()
-		}
-	}()
-
-	go func() {
-		ticker := time.NewTicker(1 * time.Hour)
-		defer ticker.Stop()
-		for {
-			<-ticker.C
-			recordJobRun("keyword_watch_cleanup")
-			s.processKeywordWatchCleanup()
-		}
-	}()
-	// Fetch likes/reposts/replies for recently published posts (interval from cvar)
-	go s.startPostEngagementJob(recordJobRun)
+	s.startTickerJob(1*time.Minute, "scheduled_posts", s.processDueScheduledPosts)
+	s.startFeedFetchingJob()
+	s.startTickerJob(1*time.Hour, "feed_cleanup", s.processFeedCleanup)
+	s.startTickerJob(15*time.Minute, "token_refresh", s.processTokenRefresh)
+	s.startKeywordWatchSearchJob()
+	s.startTickerJob(1*time.Hour, "keyword_watch_cleanup", s.processKeywordWatchCleanup)
+	go s.startPostEngagementJob(s.recordJobRun)
 }
 
 func (s *ControlApi) IsReady() bool {
@@ -218,16 +193,20 @@ func (s *ControlApi) ReadinessErrorMessage() string {
 	return ""
 }
 
+func readinessDBClientMessage(msg string) string {
+	if strings.HasPrefix(msg, "unsupported database server:") {
+		return msg
+	}
+	return "Cannot connect to database"
+}
+
 // ReadinessClientMessage is safe to send in HTTP responses (no SQL or internal details).
 func (s *ControlApi) ReadinessClientMessage() string {
 	if s == nil || s.DB == nil {
 		return "Service is not available."
 	}
 	if msg := s.DB.GetErrorMessage(); msg != "" {
-		if strings.HasPrefix(msg, "unsupported database server:") {
-			return msg
-		}
-		return "Cannot connect to database"
+		return readinessDBClientMessage(msg)
 	}
 	if s.cc == nil {
 		return "Service is starting"
@@ -252,6 +231,35 @@ func (s *ControlApi) initConnectorControllerWhenReady() {
 	s.keywordWatch.StartNativeAll(context.Background())
 }
 
+func (s *ControlApi) completeScheduledPost(p *db.Post, sa *db.SocialAccount, status *controlv1.PostStatus) {
+	if status.Success {
+		if err := s.DB.MarkPostCompleted(p.ID, status.PostUrl, true); err != nil {
+			log.Errorf("Scheduler: failed to mark post %d completed: %v", p.ID, err)
+			return
+		}
+		s.dispatchPostOutcome(context.Background(), p, sa, true, status.PostUrl)
+		return
+	}
+	// Mark failed posts as error state to prevent infinite retries
+	if err := s.DB.MarkPostCompleted(p.ID, "", false); err != nil {
+		log.Errorf("Scheduler: failed to mark post %d as error: %v", p.ID, err)
+		return
+	}
+	s.dispatchPostOutcome(context.Background(), p, sa, false, "")
+	log.Warnf("Scheduler: posting failed for post %d, marked as error", p.ID)
+}
+
+func (s *ControlApi) processOneDueScheduledPost(p *db.Post) {
+	sa, err := s.DB.GetSocialAccount(p.SocialAccountIDUint())
+	if err != nil || sa == nil {
+		log.Errorf("Scheduler: failed to load social account %d for post %d: %v", p.SocialAccountIDUint(), p.ID, err)
+		return
+	}
+	status := &controlv1.PostStatus{SocialAccountId: p.SocialAccountIDUint(), Content: p.Content}
+	s.tryPostStatus(p.Content, s.postMediaURLs(p.ID), sa, status)
+	s.completeScheduledPost(p, sa, status)
+}
+
 func (s *ControlApi) processDueScheduledPosts() {
 	if s.cc == nil {
 		return
@@ -261,33 +269,117 @@ func (s *ControlApi) processDueScheduledPosts() {
 		log.Errorf("Scheduler: failed to load due posts: %v", err)
 		return
 	}
-
 	for _, p := range due {
-		sa, err := s.DB.GetSocialAccount(p.SocialAccountIDUint())
-		if err != nil || sa == nil {
-			log.Errorf("Scheduler: failed to load social account %d for post %d: %v", p.SocialAccountIDUint(), p.ID, err)
-			continue
-		}
+		s.processOneDueScheduledPost(p)
+	}
+}
 
-		status := &controlv1.PostStatus{SocialAccountId: p.SocialAccountIDUint(), Content: p.Content}
-		s.tryPostStatus(p.Content, s.postMediaURLs(p.ID), sa, status)
+func feedPostToDBEntry(sa *db.SocialAccount, post *connector.FeedPost) *db.Feed {
+	return &db.Feed{
+		SocialAccountID:          sa.ID,
+		Content:                  post.Content,
+		PostedDate:               post.PostedDate,
+		AuthorID:                 post.AuthorID,
+		AuthorName:               post.AuthorName,
+		AuthorAvatarURL:          post.AuthorAvatarURL,
+		OriginalAuthorID:         post.OriginalAuthorID,
+		OriginalAuthorName:       post.OriginalAuthorName,
+		OriginalAuthorAvatarURL:  post.OriginalAuthorAvatarURL,
+		RemoteURL:                post.RemoteURL,
+		RemoteID:                 post.RemoteID,
+		PreviewURL:               post.PreviewURL,
+		PreviewTitle:             post.PreviewTitle,
+		PreviewDescription:       post.PreviewDescription,
+		PreviewImageURL:          post.PreviewImageURL,
+		Language:                 post.Language,
+		AuthorHandle:             post.AuthorHandle,
+		AuthorProfileURL:         post.AuthorProfileURL,
+		OriginalAuthorHandle:     post.OriginalAuthorHandle,
+		OriginalAuthorProfileURL: post.OriginalAuthorProfileURL,
+		InteractionRemoteID:      post.InteractionRemoteID,
+		Liked:                    post.Liked,
+		LikeCount:                post.LikeCount,
+		ReplyCount:               post.ReplyCount,
+	}
+}
 
-		if status.Success {
-			if err := s.DB.MarkPostCompleted(p.ID, status.PostUrl, true); err != nil {
-				log.Errorf("Scheduler: failed to mark post %d completed: %v", p.ID, err)
-			} else {
-				s.dispatchPostOutcome(context.Background(), p, sa, true, status.PostUrl)
-			}
-		} else {
-			// Mark failed posts as error state to prevent infinite retries
-			if err := s.DB.MarkPostCompleted(p.ID, "", false); err != nil {
-				log.Errorf("Scheduler: failed to mark post %d as error: %v", p.ID, err)
-			} else {
-				s.dispatchPostOutcome(context.Background(), p, sa, false, "")
-			}
-			log.Warnf("Scheduler: posting failed for post %d, marked as error", p.ID)
+func (s *ControlApi) insertFetchedFeedPosts(sa *db.SocialAccount, posts []*connector.FeedPost) {
+	for _, post := range posts {
+		inserted, err := s.DB.InsertFeedEntry(feedPostToDBEntry(sa, post))
+		switch {
+		case err != nil:
+			feedFetcherLog(sa).WithField("remote_id", post.RemoteID).Errorf("failed to insert feed entry: %v", err)
+		case inserted:
+			debuglog.Feedf("inserted feed entry remote_id=%s account=%d", post.RemoteID, sa.ID)
+		default:
+			debuglog.Feedf("skipped duplicate feed entry remote_id=%s account=%d", post.RemoteID, sa.ID)
 		}
 	}
+}
+
+func (s *ControlApi) fetchRecentPostsWithRetry(sa *db.SocialAccount, wallConnector connector.ConnectorWithWall, connectorService connector.BaseConnector) ([]*connector.FeedPost, error) {
+	posts, err := wallConnector.FetchRecentPosts(toConnectorSA(sa))
+	if !isHTTPUnauthorized(err) || sa.OAuth2RefreshToken == "" {
+		return posts, err
+	}
+	feedFetcherLog(sa).Info("retrying after unauthorized response")
+	refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
+	if refreshErr != nil {
+		feedFetcherLog(sa).Errorf("failed to refresh token after 401: %v", refreshErr)
+		return posts, err
+	}
+	sa = refreshed
+	return wallConnector.FetchRecentPosts(toConnectorSA(sa))
+}
+
+func (s *ControlApi) handleFeedFetchError(sa *db.SocialAccount, err error) {
+	feedFetcherLog(sa).Errorf("failed to fetch posts: %v", err)
+	if !isHTTPUnauthorized(err) {
+		return
+	}
+	s.DB.InsertTableLog(
+		fmt.Sprintf("Feed fetch unauthorized for %s account %d — try refreshing or reconnecting the account", sa.Connector, sa.ID),
+		"error",
+		&sa.ID,
+	)
+}
+
+func (s *ControlApi) maybeRefreshBeforeFeedFetch(sa *db.SocialAccount, connectorService connector.BaseConnector) *db.SocialAccount {
+	if !socialAccountNeedsTokenRefresh(sa) {
+		return sa
+	}
+	refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
+	if refreshErr != nil {
+		feedFetcherLog(sa).Warnf("failed to refresh token before fetch: %v", refreshErr)
+		return sa
+	}
+	return refreshed
+}
+
+func (s *ControlApi) fetchWallForAccount(sa *db.SocialAccount, connectorService connector.BaseConnector) {
+	wallConnector, ok := connectorService.(connector.ConnectorWithWall)
+	if !ok {
+		debuglog.Feedf("connector %s does not support wall operations", sa.Connector)
+		return
+	}
+
+	debuglog.Feedf("fetching recent posts for account %d (%s/%s)", sa.ID, sa.Connector, sa.Identity)
+	sa = s.maybeRefreshBeforeFeedFetch(sa, connectorService)
+
+	defer func() {
+		if r := recover(); r != nil {
+			feedFetcherLog(sa).Errorf("panic while fetching posts: %v", r)
+		}
+	}()
+
+	posts, err := s.fetchRecentPostsWithRetry(sa, wallConnector, connectorService)
+	if err != nil {
+		s.handleFeedFetchError(sa, err)
+		return
+	}
+
+	debuglog.Feedf("fetched %d posts for account %d", len(posts), sa.ID)
+	s.insertFetchedFeedPosts(sa, posts)
 }
 
 func (s *ControlApi) processFeedFetching() {
@@ -296,108 +388,13 @@ func (s *ControlApi) processFeedFetching() {
 	}
 	debuglog.Feedf("starting feed fetch cycle")
 
-	// Get all social accounts
-	socialAccounts := s.DB.SelectSocialAccounts(true) // Only active accounts
-
-	for _, sa := range socialAccounts {
+	for _, sa := range s.DB.SelectSocialAccounts(true) {
 		connectorService := s.cc.Get(sa.Connector)
-
 		if connectorService == nil {
 			feedFetcherLog(sa).Warn("no connector service found")
 			continue
 		}
-
-		// Check if connector supports wall operations
-		if wallConnector, ok := connectorService.(connector.ConnectorWithWall); ok {
-			debuglog.Feedf("fetching recent posts for account %d (%s/%s)", sa.ID, sa.Connector, sa.Identity)
-
-			if socialAccountNeedsTokenRefresh(sa) {
-				refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
-				if refreshErr != nil {
-					feedFetcherLog(sa).Warnf("failed to refresh token before fetch: %v", refreshErr)
-				} else {
-					sa = refreshed
-				}
-			}
-
-			// Fetch recent posts with panic recovery
-			func() {
-				defer func() {
-					if r := recover(); r != nil {
-						feedFetcherLog(sa).Errorf("panic while fetching posts: %v", r)
-					}
-				}()
-
-				posts, err := wallConnector.FetchRecentPosts(toConnectorSA(sa))
-				if isHTTPUnauthorized(err) && sa.OAuth2RefreshToken != "" {
-					feedFetcherLog(sa).Info("retrying after unauthorized response")
-					refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
-					if refreshErr != nil {
-						feedFetcherLog(sa).Errorf("failed to refresh token after 401: %v", refreshErr)
-					} else {
-						sa = refreshed
-						posts, err = wallConnector.FetchRecentPosts(toConnectorSA(sa))
-					}
-				}
-				if err != nil {
-					feedFetcherLog(sa).Errorf("failed to fetch posts: %v", err)
-					if isHTTPUnauthorized(err) {
-						s.DB.InsertTableLog(
-							fmt.Sprintf("Feed fetch unauthorized for %s account %d — try refreshing or reconnecting the account", sa.Connector, sa.ID),
-							"error",
-							&sa.ID,
-						)
-					}
-					return
-				}
-
-				debuglog.Feedf("fetched %d posts for account %d", len(posts), sa.ID)
-
-				// Insert posts into feed table
-				for _, post := range posts {
-					feedEntry := &db.Feed{
-						SocialAccountID:         sa.ID,
-						Content:                 post.Content,
-						PostedDate:              post.PostedDate,
-						AuthorID:                post.AuthorID,
-						AuthorName:              post.AuthorName,
-						AuthorAvatarURL:         post.AuthorAvatarURL,
-						OriginalAuthorID:        post.OriginalAuthorID,
-						OriginalAuthorName:      post.OriginalAuthorName,
-						OriginalAuthorAvatarURL: post.OriginalAuthorAvatarURL,
-						RemoteURL:               post.RemoteURL,
-						RemoteID:                post.RemoteID,
-						PreviewURL:              post.PreviewURL,
-						PreviewTitle:            post.PreviewTitle,
-						PreviewDescription:      post.PreviewDescription,
-						PreviewImageURL:         post.PreviewImageURL,
-						Language:                post.Language,
-
-						AuthorHandle:             post.AuthorHandle,
-						AuthorProfileURL:         post.AuthorProfileURL,
-						OriginalAuthorHandle:     post.OriginalAuthorHandle,
-						OriginalAuthorProfileURL: post.OriginalAuthorProfileURL,
-
-						InteractionRemoteID: post.InteractionRemoteID,
-						Liked:               post.Liked,
-						LikeCount:           post.LikeCount,
-						ReplyCount:          post.ReplyCount,
-					}
-
-					inserted, err := s.DB.InsertFeedEntry(feedEntry)
-					switch {
-					case err != nil:
-						feedFetcherLog(sa).WithField("remote_id", post.RemoteID).Errorf("failed to insert feed entry: %v", err)
-					case inserted:
-						debuglog.Feedf("inserted feed entry remote_id=%s account=%d", post.RemoteID, sa.ID)
-					default:
-						debuglog.Feedf("skipped duplicate feed entry remote_id=%s account=%d", post.RemoteID, sa.ID)
-					}
-				}
-			}()
-		} else {
-			debuglog.Feedf("connector %s does not support wall operations", sa.Connector)
-		}
+		s.fetchWallForAccount(sa, connectorService)
 	}
 
 	debuglog.Feedf("completed feed fetch cycle")
@@ -427,18 +424,41 @@ func (s *ControlApi) processKeywordWatchCleanup() {
 	s.keywordWatch.CleanupMatches()
 }
 
+func (s *ControlApi) refreshOneExpiringAccount(sa *db.SocialAccount) (refreshed bool) {
+	log.Infof("TokenRefresh: refreshing account %d (%s) - expires at %v", sa.ID, sa.Identity, sa.OAuth2TokenExpiry)
+	connectorService := s.cc.Get(sa.Connector)
+	if connectorService == nil {
+		log.Warnf("TokenRefresh: no connector found for %s account %d", sa.Connector, sa.ID)
+		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: connector service not found (%s)", sa.Connector), "error", &sa.ID)
+		return false
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Errorf("TokenRefresh: panic while refreshing %s account %d: %v", sa.Connector, sa.ID, r)
+			s.DB.InsertTableLog(fmt.Sprintf("Panic while refreshing social account: %v", r), "error", &sa.ID)
+			refreshed = false
+		}
+	}()
+
+	if err := connectorService.OnRefresh(sa); err != nil {
+		log.Errorf("TokenRefresh: failed to refresh %s account %d: %v", sa.Connector, sa.ID, err)
+		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: %v", err), "error", &sa.ID)
+		return false
+	}
+	log.Infof("TokenRefresh: successfully refreshed %s account %d", sa.Connector, sa.ID)
+	s.DB.InsertTableLog("Social account refreshed successfully", "info", &sa.ID)
+	return true
+}
+
 func (s *ControlApi) processTokenRefresh() {
 	if s.cc == nil {
 		return
 	}
 	log.Infof("TokenRefresh: starting token refresh cycle")
-
-	// Log that the job is running
 	s.DB.InsertTableLog("Token refresh job started", "info", nil)
 
-	// Get social accounts expiring within 1 hour
 	expiringAccounts := s.DB.SelectSocialAccountsExpiringSoon(1)
-
 	if len(expiringAccounts) == 0 {
 		log.Infof("TokenRefresh: no accounts expiring within 1 hour")
 		s.DB.InsertTableLog("Token refresh job completed: no accounts need refreshing", "info", nil)
@@ -446,42 +466,13 @@ func (s *ControlApi) processTokenRefresh() {
 	}
 
 	log.Infof("TokenRefresh: found %d account(s) expiring within 1 hour", len(expiringAccounts))
-
-	refreshedCount := 0
-	failedCount := 0
-
+	refreshedCount, failedCount := 0, 0
 	for _, sa := range expiringAccounts {
-		log.Infof("TokenRefresh: refreshing account %d (%s) - expires at %v", sa.ID, sa.Identity, sa.OAuth2TokenExpiry)
-
-		connectorService := s.cc.Get(sa.Connector)
-		if connectorService == nil {
-			log.Warnf("TokenRefresh: no connector found for %s account %d", sa.Connector, sa.ID)
-			s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: connector service not found (%s)", sa.Connector), "error", &sa.ID)
+		if s.refreshOneExpiringAccount(sa) {
+			refreshedCount++
+		} else {
 			failedCount++
-			continue
 		}
-
-		// Refresh the account with panic recovery
-		func() {
-			defer func() {
-				if r := recover(); r != nil {
-					log.Errorf("TokenRefresh: panic while refreshing %s account %d: %v", sa.Connector, sa.ID, r)
-					s.DB.InsertTableLog(fmt.Sprintf("Panic while refreshing social account: %v", r), "error", &sa.ID)
-					failedCount++
-				}
-			}()
-
-			err := connectorService.OnRefresh(sa)
-			if err != nil {
-				log.Errorf("TokenRefresh: failed to refresh %s account %d: %v", sa.Connector, sa.ID, err)
-				s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: %v", err), "error", &sa.ID)
-				failedCount++
-			} else {
-				log.Infof("TokenRefresh: successfully refreshed %s account %d", sa.Connector, sa.ID)
-				s.DB.InsertTableLog("Social account refreshed successfully", "info", &sa.ID)
-				refreshedCount++
-			}
-		}()
 	}
 
 	log.Infof("TokenRefresh: completed token refresh cycle - refreshed: %d, failed: %d", refreshedCount, failedCount)
@@ -542,6 +533,35 @@ func (s *ControlApi) GetCannedPost(ctx context.Context, req *connect.Request[con
 
 func (s *ControlApi) getAuthenticatedUser(ctx context.Context) *authentication.AuthenticatedUser {
 	return authentication.FromContext(ctx)
+}
+
+// requireAuthenticatedUser returns the caller or Unauthenticated.
+func (s *ControlApi) requireAuthenticatedUser(ctx context.Context) (*authentication.AuthenticatedUser, error) {
+	au := s.getAuthenticatedUser(ctx)
+	if au == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+	return au, nil
+}
+
+// requireAuthenticatedAccount requires a logged-in user with a loaded User row.
+func (s *ControlApi) requireAuthenticatedAccount(ctx context.Context) (*authentication.AuthenticatedUser, error) {
+	au, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if au.User == nil {
+		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	}
+	return au, nil
+}
+
+// rateLimitedOrUnavailable maps connector rate-limit errors to ResourceExhausted.
+func rateLimitedOrUnavailable(connectorName string, err error, fallback string) error {
+	if rl := connector.AsRateLimited(err); rl != nil {
+		return connect.NewError(connect.CodeResourceExhausted, fmt.Errorf("rate limited by %s; try again in %s", connectorName, rl.RetryAfter))
+	}
+	return connect.NewError(connect.CodeUnavailable, fmt.Errorf("%s: %w", fallback, err))
 }
 
 func (s *ControlApi) extractSessionID(req http.Header) string {
@@ -701,83 +721,92 @@ func hideDiagnosticsFrom(msg *controlv1.GetStatusResponse, au *authentication.Au
 	msg.Nanoservices = nil
 }
 
-func (s *ControlApi) marshalSocialAccountsForUser(au *authentication.AuthenticatedUser, onlyActive bool) []*controlv1.SocialAccount {
-	var dbAccounts []*db.SocialAccount
+func canViewAllSocialAccounts(au *authentication.AuthenticatedUser) bool {
+	return au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
+}
 
-	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
-
+func (s *ControlApi) selectSocialAccountsForUser(au *authentication.AuthenticatedUser, onlyActive, canViewAll bool) []*db.SocialAccount {
 	if !canViewAll && au != nil {
-		dbAccounts = s.DB.SelectSocialAccountsForUser(au.User.ID, onlyActive)
-	} else {
-		dbAccounts = s.DB.SelectSocialAccounts(onlyActive)
+		return s.DB.SelectSocialAccountsForUser(au.User.ID, onlyActive)
 	}
+	return s.DB.SelectSocialAccounts(onlyActive)
+}
 
+func (s *ControlApi) socialAccountIcon(socialAccount *db.SocialAccount) string {
+	connectorService := s.cc.Get(socialAccount.Connector)
+	if connectorService != nil {
+		return connectorService.GetIcon()
+	}
+	log.Warnf("SocialAccounts: connector service not found for connector '%s' (account ID: %d)", socialAccount.Connector, socialAccount.ID)
+	return "mdi:question-mark-circle"
+}
+
+func socialAccountTokenExpiry(socialAccount *db.SocialAccount) string {
+	if socialAccount.OAuth2TokenExpiry.IsZero() {
+		return ""
+	}
+	return socialAccount.OAuth2TokenExpiry.Format(time.RFC3339)
+}
+
+func (s *ControlApi) socialAccountOwnerInfo(socialAccount *db.SocialAccount) (ownerUserID uint32, ownerUsername string) {
+	if !socialAccount.OwnerUserID.Valid {
+		return 0, ""
+	}
+	ownerUserID = intconv.ToUint32(socialAccount.OwnerUserID.Int32)
+	if owner := s.DB.GetUserByID(ownerUserID); owner != nil {
+		ownerUsername = owner.Username
+	}
+	return ownerUserID, ownerUsername
+}
+
+func socialAccountIsOwner(au *authentication.AuthenticatedUser, socialAccount *db.SocialAccount) bool {
+	return au != nil && socialAccount.OwnerUserID.Valid && intconv.ToUint32(socialAccount.OwnerUserID.Int32) == au.User.ID
+}
+
+func (s *ControlApi) socialAccountSharedAccess(au *authentication.AuthenticatedUser, socialAccountID uint32, access string, already bool) bool {
+	if already || au == nil {
+		return already
+	}
+	return s.DB.CanUserAccessSocialAccount(au.User.ID, socialAccountID, access)
+}
+
+func (s *ControlApi) socialAccountAccessFlags(au *authentication.AuthenticatedUser, socialAccount *db.SocialAccount, canViewAll bool) (isOwner, canPost, canManage bool) {
+	isOwner = socialAccountIsOwner(au, socialAccount)
+	canPost = s.socialAccountSharedAccess(au, socialAccount.ID, "post", isOwner || canViewAll)
+	canManage = s.socialAccountSharedAccess(au, socialAccount.ID, "manage", isOwner || canViewAll)
+	return isOwner, canPost, canManage
+}
+
+func (s *ControlApi) marshalOneSocialAccount(au *authentication.AuthenticatedUser, socialAccount *db.SocialAccount, canViewAll bool) *controlv1.SocialAccount {
+	ownerUserID, ownerUsername := s.socialAccountOwnerInfo(socialAccount)
+	isOwner, canPost, canManage := s.socialAccountAccessFlags(au, socialAccount, canViewAll)
+	return &controlv1.SocialAccount{
+		Id:                 socialAccount.ID,
+		Connector:          socialAccount.Connector,
+		Identity:           socialAccount.Identity,
+		Icon:               s.socialAccountIcon(socialAccount),
+		Active:             socialAccount.Active,
+		TokenExpiry:        socialAccountTokenExpiry(socialAccount),
+		OwnerUserId:        ownerUserID,
+		IsOwner:            isOwner,
+		OwnerUsername:      ownerUsername,
+		CanPost:            canPost,
+		CanManage:          canManage,
+		PreferredLanguages: languages.Split(socialAccount.PreferredLanguages),
+	}
+}
+
+func (s *ControlApi) marshalSocialAccountsForUser(au *authentication.AuthenticatedUser, onlyActive bool) []*controlv1.SocialAccount {
+	canViewAll := canViewAllSocialAccounts(au)
+	dbAccounts := s.selectSocialAccountsForUser(au, onlyActive, canViewAll)
 	accounts := make([]*controlv1.SocialAccount, 0, len(dbAccounts))
-
 	for _, socialAccount := range dbAccounts {
-		connectorService := s.cc.Get(socialAccount.Connector)
-
-		icon := "mdi:question-mark-circle"
-		if connectorService != nil {
-			icon = connectorService.GetIcon()
-		} else {
-			log.Warnf("SocialAccounts: connector service not found for connector '%s' (account ID: %d)", socialAccount.Connector, socialAccount.ID)
-		}
-
-		tokenExpiry := ""
-		if !socialAccount.OAuth2TokenExpiry.IsZero() {
-			tokenExpiry = socialAccount.OAuth2TokenExpiry.Format(time.RFC3339)
-		}
-
-		isOwner := au != nil && socialAccount.OwnerUserID.Valid && intconv.ToUint32(socialAccount.OwnerUserID.Int32) == au.User.ID
-		ownerUserID := uint32(0)
-		ownerUsername := ""
-		if socialAccount.OwnerUserID.Valid {
-			ownerUserID = intconv.ToUint32(socialAccount.OwnerUserID.Int32)
-			if owner := s.DB.GetUserByID(ownerUserID); owner != nil {
-				ownerUsername = owner.Username
-			}
-		}
-
-		canPost := isOwner || canViewAll
-		canManage := isOwner || canViewAll
-		if !canPost && au != nil {
-			canPost = s.DB.CanUserAccessSocialAccount(au.User.ID, socialAccount.ID, "post")
-		}
-		if !canManage && au != nil {
-			canManage = s.DB.CanUserAccessSocialAccount(au.User.ID, socialAccount.ID, "manage")
-		}
-
-		accounts = append(accounts, &controlv1.SocialAccount{
-			Id:            socialAccount.ID,
-			Connector:     socialAccount.Connector,
-			Identity:      socialAccount.Identity,
-			Icon:          icon,
-			Active:        socialAccount.Active,
-			TokenExpiry:   tokenExpiry,
-			OwnerUserId:   ownerUserID,
-			IsOwner:       isOwner,
-			OwnerUsername: ownerUsername,
-			CanPost:       canPost,
-			CanManage:     canManage,
-
-			PreferredLanguages: languages.Split(socialAccount.PreferredLanguages),
-		})
+		accounts = append(accounts, s.marshalOneSocialAccount(au, socialAccount, canViewAll))
 	}
-
 	return accounts
 }
 
-func (s *ControlApi) userCanReadSocialAccount(au *authentication.AuthenticatedUser, socialAccountID uint32) bool {
-	if au == nil || au.User == nil || socialAccountID == 0 {
-		return false
-	}
-	if au.RBAC != nil && au.RBAC.IsSuperuser {
-		return true
-	}
-	if au.HasPermission(rbac.PermissionSocialAccountsViewAll) {
-		return true
-	}
+func (s *ControlApi) userOwnsOrSharedSocialAccount(au *authentication.AuthenticatedUser, socialAccountID uint32) bool {
 	socialAccount, err := s.DB.GetSocialAccount(socialAccountID)
 	if err != nil || socialAccount == nil {
 		return false
@@ -788,22 +817,38 @@ func (s *ControlApi) userCanReadSocialAccount(au *authentication.AuthenticatedUs
 	return s.DB.CanUserAccessSocialAccount(au.User.ID, socialAccountID, "read")
 }
 
+func authenticatedAccountViewer(au *authentication.AuthenticatedUser, socialAccountID uint32) bool {
+	return au != nil && au.User != nil && socialAccountID != 0
+}
+
+func (s *ControlApi) userCanReadSocialAccount(au *authentication.AuthenticatedUser, socialAccountID uint32) bool {
+	if !authenticatedAccountViewer(au, socialAccountID) {
+		return false
+	}
+	if canViewAllSocialAccounts(au) {
+		return true
+	}
+	return s.userOwnsOrSharedSocialAccount(au, socialAccountID)
+}
+
+func policyAppliesToSource(policy *db.AccountPolicy, source string) bool {
+	switch source {
+	case db.SubmissionSourceMCP:
+		return policy.ApplyToMCP
+	case db.SubmissionSourceUI:
+		return policy.ApplyToUI
+	default:
+		return true
+	}
+}
+
 func (s *ControlApi) shouldHoldForApproval(socialAccountID uint32, source string) bool {
 	policy, err := s.DB.GetAccountPolicyForSocialAccount(socialAccountID)
-	if err != nil || policy == nil {
-		return false
-	}
-	if source == db.SubmissionSourceMCP && !policy.ApplyToMCP {
-		return false
-	}
-	if source == db.SubmissionSourceUI && !policy.ApplyToUI {
+	if err != nil || policy == nil || !policyAppliesToSource(policy, source) {
 		return false
 	}
 	n, err := s.DB.CountApprovalStages(policy.ID)
-	if err != nil || n < 1 {
-		return false
-	}
-	return true
+	return err == nil && n >= 1
 }
 
 // releaseApprovedPost posts or schedules a post after all approval stages pass.
@@ -901,17 +946,21 @@ func resolveMediaPaths(mediaURLs []string) []string {
 	return paths
 }
 
+func (s *ControlApi) saveOnePostMedia(postID uint32, u string) {
+	if u == "" {
+		return
+	}
+	if err := s.DB.CreatePostMedia(postID, u); err != nil {
+		log.Warnf("Failed to save media %s for post %d: %v", u, postID, err)
+	}
+}
+
 func (s *ControlApi) savePostMedia(postID uint32, mediaURLs []string) {
 	if postID == 0 || len(mediaURLs) == 0 {
 		return
 	}
 	for _, u := range mediaURLs {
-		if u == "" {
-			continue
-		}
-		if err := s.DB.CreatePostMedia(postID, u); err != nil {
-			log.Warnf("Failed to save media %s for post %d: %v", u, postID, err)
-		}
+		s.saveOnePostMedia(postID, u)
 	}
 }
 
@@ -923,46 +972,52 @@ func (s *ControlApi) postMediaURLs(postID uint32) []string {
 	return urls
 }
 
-func (s *ControlApi) postToPostStatus(post *db.Post) *controlv1.PostStatus {
-	socialAccountIcon := "mdi:question-mark-circle"
-	socialAccountIdentity := "Unknown"
+func (s *ControlApi) draftOrUnknownIdentity(post *db.Post) string {
+	if !post.SocialAccountID.Valid && post.State == db.PostStateDraft {
+		return "Draft"
+	}
+	return "Unknown"
+}
 
+func (s *ControlApi) postStatusAccountInfo(post *db.Post) (icon, identity string) {
+	icon = "mdi:question-mark-circle"
 	sa, err := s.DB.GetSocialAccount(post.SocialAccountIDUint())
-	if err == nil && sa != nil {
-		socialAccountIdentity = sa.Identity
-		if svc := s.cc.Get(sa.Connector); svc != nil {
-			socialAccountIcon = svc.GetIcon()
-		}
-	} else if !post.SocialAccountID.Valid && post.State == db.PostStateDraft {
-		socialAccountIdentity = "Draft"
+	if err != nil || sa == nil {
+		return icon, s.draftOrUnknownIdentity(post)
 	}
-
-	postedDate := post.CreatedAt
-	if post.ScheduledAt.Valid {
-		postedDate = post.ScheduledAt.Time
+	identity = sa.Identity
+	if svc := s.cc.Get(sa.Connector); svc != nil {
+		icon = svc.GetIcon()
 	}
+	return icon, identity
+}
 
+func (s *ControlApi) attachPostStatusEngagement(status *controlv1.PostStatus, postID uint32) {
+	if postID == 0 || s.DB == nil {
+		return
+	}
+	if pe, err := s.DB.GetPostEngagement(postID); err == nil {
+		status.Engagement = engagementToProto(pe)
+	}
+}
+
+func (s *ControlApi) postToPostStatus(post *db.Post) *controlv1.PostStatus {
+	icon, identity := s.postStatusAccountInfo(post)
 	status := &controlv1.PostStatus{
 		Id:                    post.ID,
 		Created:               post.CreatedAt.Format("2006-01-02 15:04:05"),
 		SocialAccountId:       post.SocialAccountIDUint(),
-		SocialAccountIcon:     socialAccountIcon,
-		SocialAccountIdentity: socialAccountIdentity,
+		SocialAccountIcon:     icon,
+		SocialAccountIdentity: identity,
 		Content:               post.Content,
 		Success:               post.Status,
 		PostUrl:               post.PostURL.String,
 		CampaignId:            intconv.ToUint32(post.CampaignID.Int32),
 		CampaignName:          post.CampaignName.String,
 		State:                 post.State,
-		PostedDate:            postedDate.Format("2006-01-02 15:04:05"),
+		PostedDate:            timelinePostedDate(post).Format("2006-01-02 15:04:05"),
 	}
-
-	if post.ID != 0 && s.DB != nil {
-		if pe, err := s.DB.GetPostEngagement(post.ID); err == nil {
-			status.Engagement = engagementToProto(pe)
-		}
-	}
-
+	s.attachPostStatusEngagement(status, post.ID)
 	return status
 }
 
@@ -1150,73 +1205,72 @@ func (s *ControlApi) StopService(ctx context.Context, req *connect.Request[contr
 	}), nil
 }
 
+func connectorDisplayName(svc connector.BaseConnector) string {
+	protocolName := svc.GetProtocol()
+	displayName := protocolName
+	if withName, ok := svc.(connector.ConnectorWithDisplayName); ok {
+		if name := withName.GetDisplayName(); name != "" {
+			return name
+		}
+	}
+	return displayName
+}
+
+func connectorSupportsSocialAccounts(svc connector.BaseConnector, isOAuth bool) bool {
+	if _, ok := svc.(connector.ConnectorWithWall); ok {
+		return true
+	}
+	return isOAuth
+}
+
+func appendConnectorConfigIssues(srv *controlv1.Connector, svc connector.BaseConnector) {
+	cfgProvider, ok := svc.(connector.ConfigProvider)
+	if !ok {
+		return
+	}
+	for _, issue := range cfgProvider.CheckConfiguration().Issues {
+		srv.Issues = append(srv.Issues, &controlv1.ConnectorIssue{
+			Message:   issue.Message,
+			FixPath:   issue.FixPath,
+			FixHash:   issue.FixHash,
+			FixLabel:  issue.FixLabel,
+			FixAction: issue.FixAction,
+		})
+	}
+}
+
+func marshalOneConnector(id string, svc connector.BaseConnector, onlyWantOauth bool) *controlv1.Connector {
+	_, isOAuth := svc.(connector.OAuth2Connector)
+	if !isOAuth && onlyWantOauth {
+		log.Infof("Skipping connector %s as it does not support OAuth", id)
+		return nil
+	}
+	_, usesYamlConfig := svc.(connector.ConnectorWithYamlConfig)
+	_, supportsChatBot := svc.(connector.ConnectorWithChatBot)
+	_, supportsClientRegistration := svc.(connector.OAuth2ConnectorWithClientRegistration)
+	srv := &controlv1.Connector{
+		Name:                       connectorDisplayName(svc),
+		Protocol:                   svc.GetProtocol(),
+		Icon:                       svc.GetIcon(),
+		HasOauth:                   isOAuth,
+		IsRegistered:               isOAuthRegistered(svc),
+		UsesYamlConfig:             usesYamlConfig,
+		SupportsSocialAccounts:     connectorSupportsSocialAccounts(svc, isOAuth),
+		SupportsChatbot:            supportsChatBot,
+		SupportsClientRegistration: supportsClientRegistration,
+	}
+	appendConnectorConfigIssues(srv, svc)
+	return srv
+}
+
 func marshalConnectors(cc *connectorcontroller.ConnectionController, onlyWantOauth bool) []*controlv1.Connector {
 	services := make([]*controlv1.Connector, 0)
-
 	for id, svc := range cc.GetServices() {
-		_, isOAuth := svc.(connector.OAuth2Connector)
-
-		if !isOAuth && onlyWantOauth {
-			log.Infof("Skipping connector %s as it does not support OAuth", id)
-			continue
+		if srv := marshalOneConnector(id, svc, onlyWantOauth); srv != nil {
+			services = append(services, srv)
 		}
-
-		// Get protocol name and display name
-		protocolName := svc.GetProtocol()
-		displayName := protocolName
-
-		// Get display name if connector supports it, otherwise use protocol name
-		if connectorWithDisplayName, ok := svc.(connector.ConnectorWithDisplayName); ok {
-			if name := connectorWithDisplayName.GetDisplayName(); name != "" {
-				displayName = name
-			}
-		}
-
-		// Check if connector uses YAML configuration
-		_, usesYamlConfig := svc.(connector.ConnectorWithYamlConfig)
-
-		// Check if connector supports social accounts (OAuth connectors or connectors with wall support)
-		_, supportsSocialAccounts := svc.(connector.ConnectorWithWall)
-		if !supportsSocialAccounts {
-			supportsSocialAccounts = isOAuth
-		}
-
-		// Check if connector supports chatbot functionality
-		_, supportsChatBot := svc.(connector.ConnectorWithChatBot)
-
-		_, supportsClientRegistration := svc.(connector.OAuth2ConnectorWithClientRegistration)
-
-		srv := &controlv1.Connector{
-			Name:                       displayName,
-			Protocol:                   protocolName,
-			Icon:                       svc.GetIcon(),
-			HasOauth:                   isOAuth,
-			IsRegistered:               isOAuthRegistered(svc),
-			UsesYamlConfig:             usesYamlConfig,
-			SupportsSocialAccounts:     supportsSocialAccounts,
-			SupportsChatbot:            supportsChatBot,
-			SupportsClientRegistration: supportsClientRegistration,
-		}
-
-		cfgProvider, isConfigProvider := svc.(connector.ConfigProvider)
-
-		if isConfigProvider {
-			for _, issue := range cfgProvider.CheckConfiguration().Issues {
-				srv.Issues = append(srv.Issues, &controlv1.ConnectorIssue{
-					Message:   issue.Message,
-					FixPath:   issue.FixPath,
-					FixHash:   issue.FixHash,
-					FixLabel:  issue.FixLabel,
-					FixAction: issue.FixAction,
-				})
-			}
-		}
-
-		services = append(services, srv)
 	}
-
 	log.Infof("Marshalled connectors: %+v", len(services))
-
 	return services
 }
 
@@ -1273,27 +1327,67 @@ func (s *ControlApi) StartOAuth(ctx context.Context, req *connect.Request[contro
 	return res, nil
 }
 
-func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Request) {
-	log.Infof("Received OAuth2 callback with URL: %s", r.URL.String())
+func (s *ControlApi) oauth2CallbackError(w http.ResponseWriter, baseUrl, errText string, r *http.Request) {
+	errDesc := r.URL.Query().Get("error_description")
+	stateKey := r.URL.Query().Get("state")
+	log.Errorf("OAuth2 callback error: error=%s error_description=%s state=%s url=%s", errText, errDesc, stateKey, r.URL.RawQuery)
+	s.DB.InsertTableLog(fmt.Sprintf("OAuth2 callback error: %s — %s", errText, errDesc), "error", nil)
+	redirect(baseUrl, w, fmt.Sprintf("OAuth2 error: %v", errText), "bad")
+}
 
-	baseUrl := s.DB.GetCvarString(db.CvarKeys.BaseUrl)
+func requestHeaderMap(r *http.Request) map[string]string {
+	headers := make(map[string]string)
+	for name, values := range r.Header {
+		for _, value := range values {
+			headers[name] = value
+		}
+	}
+	return headers
+}
 
-	errText := r.URL.Query().Get("error")
-
-	if errText != "" {
-		errDesc := r.URL.Query().Get("error_description")
-		stateKey := r.URL.Query().Get("state")
-		log.Errorf("OAuth2 callback error: error=%s error_description=%s state=%s url=%s", errText, errDesc, stateKey, r.URL.RawQuery)
-		s.DB.InsertTableLog(fmt.Sprintf("OAuth2 callback error: %s — %s", errText, errDesc), "error", nil)
-		redirect(baseUrl, w, fmt.Sprintf("OAuth2 error: %v", errText), "bad")
+func (s *ControlApi) maybeSetOAuthAccountOwner(sa *db.SocialAccount, protocol string, userID uint32) {
+	if sa.Connector != protocol || sa.OwnerUserID.Valid {
 		return
 	}
+	if setErr := s.DB.SetSocialAccountOwner(sa.ID, userID); setErr != nil {
+		log.Errorf("Failed to set owner for social account %d: %v", sa.ID, setErr)
+		return
+	}
+	log.Infof("Set owner_user_id=%d on social account %d", userID, sa.ID)
+}
 
+func (s *ControlApi) assignOAuthAccountOwners(state *oauth2State) {
+	if state.userID == 0 {
+		return
+	}
+	protocol := state.connector.GetProtocol()
+	for _, sa := range s.DB.SelectSocialAccounts(false) {
+		s.maybeSetOAuthAccountOwner(sa, protocol, state.userID)
+	}
+}
+
+func (s *ControlApi) completeOAuth2Callback(w http.ResponseWriter, baseUrl string, state *oauth2State, code string, headers map[string]string) {
+	err := state.connector.OnOAuth2Callback(code, state.verifier, headers)
+	if err != nil {
+		msg := fmt.Sprintf("Error registering account (%s): %v", state.connector.GetProtocol(), err)
+		log.Error(msg)
+		s.DB.InsertTableLog(msg, "error", nil)
+		redirect(baseUrl, w, fmt.Sprintf("Error registering account: %v", err), "bad")
+		return
+	}
+	s.assignOAuthAccountOwners(state)
+	redirect(baseUrl, w, fmt.Sprintf("Successfully registered account for connector: %s", state.connector.GetProtocol()), "good")
+}
+
+func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Request) {
+	log.Infof("Received OAuth2 callback with URL: %s", r.URL.String())
+	baseUrl := s.DB.GetCvarString(db.CvarKeys.BaseUrl)
+	if errText := r.URL.Query().Get("error"); errText != "" {
+		s.oauth2CallbackError(w, baseUrl, errText, r)
+		return
+	}
 	stateKey := r.URL.Query().Get("state")
-	code := r.URL.Query().Get("code")
-
 	state := s.oauth2states[stateKey]
-
 	if state == nil {
 		msg := fmt.Sprintf("OAuth2 callback: state not found: %v", stateKey)
 		log.Error(msg)
@@ -1301,36 +1395,7 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 		redirect(baseUrl, w, fmt.Sprintf("state not found: %v", stateKey), "bad")
 		return
 	}
-
-	headers := make(map[string]string)
-	for name, values := range r.Header {
-		for _, value := range values {
-			headers[name] = value
-		}
-	}
-
-	err := state.connector.OnOAuth2Callback(code, state.verifier, headers)
-
-	if err != nil {
-		msg := fmt.Sprintf("Error registering account (%s): %v", state.connector.GetProtocol(), err)
-		log.Error(msg)
-		s.DB.InsertTableLog(msg, "error", nil)
-		redirect(baseUrl, w, fmt.Sprintf("Error registering account: %v", err), "bad")
-	} else {
-		if state.userID != 0 {
-			accounts := s.DB.SelectSocialAccounts(false)
-			for _, sa := range accounts {
-				if sa.Connector == state.connector.GetProtocol() && !sa.OwnerUserID.Valid {
-					if setErr := s.DB.SetSocialAccountOwner(sa.ID, state.userID); setErr != nil {
-						log.Errorf("Failed to set owner for social account %d: %v", sa.ID, setErr)
-					} else {
-						log.Infof("Set owner_user_id=%d on social account %d", state.userID, sa.ID)
-					}
-				}
-			}
-		}
-		redirect(baseUrl, w, fmt.Sprintf("Successfully registered account for connector: %s", state.connector.GetProtocol()), "good")
-	}
+	s.completeOAuth2Callback(w, baseUrl, state, r.URL.Query().Get("code"), requestHeaderMap(r))
 }
 
 // The message can come from OAuth2 callback query parameters, so it is untrusted.
@@ -1357,189 +1422,269 @@ func redirect(redirectUrl string, w http.ResponseWriter, message string, msgType
 	log.Infof("Redirecting with message: %v", message)
 }
 
-func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Request[controlv1.DeleteSocialAccountRequest]) (*connect.Response[controlv1.DeleteSocialAccountResponse], error) {
-	log.Infof("Deleting social account with ID: %v", req.Msg.Id)
-
-	au := s.getAuthenticatedUser(ctx)
-	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
-	if au != nil && !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, req.Msg.Id, "manage") {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", req.Msg.Id))
+func (s *ControlApi) requirePostSocialAccount(au *authentication.AuthenticatedUser, id uint32) error {
+	if au == nil {
+		return nil
 	}
-
-	err := s.DB.DeleteSocialAccount(req.Msg.Id)
-
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete social account: %w", err))
-	} else {
-		res := connect.NewResponse(&controlv1.DeleteSocialAccountResponse{
-			StandardResponse: &controlv1.StandardResponse{
-				Success: true,
-				Message: "OK",
-			},
-		})
-
-		return res, nil
+	if canViewAllSocialAccounts(au) {
+		return nil
 	}
+	if s.DB.CanUserAccessSocialAccount(au.User.ID, id, "post") {
+		return nil
+	}
+	return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no post access to social account %d", id))
 }
 
-func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Request[controlv1.RefreshSocialAccountRequest]) (*connect.Response[controlv1.RefreshSocialAccountResponse], error) {
-	log.Infof("Refreshing social account with ID: %v", req.Msg.Id)
-
-	au := s.getAuthenticatedUser(ctx)
-	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
-	if au != nil && !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, req.Msg.Id, "manage") {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", req.Msg.Id))
+func (s *ControlApi) requireManageSocialAccount(au *authentication.AuthenticatedUser, id uint32) error {
+	if au == nil {
+		return nil
 	}
-
-	socialAccount, _ := s.DB.GetSocialAccount(req.Msg.Id)
-
-	if socialAccount == nil {
-		log.Errorf("Social account not found: %v", req.Msg.Id)
-		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: account not found (ID: %v)", req.Msg.Id), "error", &req.Msg.Id)
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %v", req.Msg.Id))
+	if canViewAllSocialAccounts(au) {
+		return nil
 	}
+	if s.DB.CanUserAccessSocialAccount(au.User.ID, id, "manage") {
+		return nil
+	}
+	return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", id))
+}
 
+func (s *ControlApi) DeleteSocialAccount(ctx context.Context, req *connect.Request[controlv1.DeleteSocialAccountRequest]) (*connect.Response[controlv1.DeleteSocialAccountResponse], error) {
+	log.Infof("Deleting social account with ID: %v", req.Msg.Id)
+	if err := s.requireManageSocialAccount(s.getAuthenticatedUser(ctx), req.Msg.Id); err != nil {
+		return nil, err
+	}
+	if err := s.DB.DeleteSocialAccount(req.Msg.Id); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete social account: %w", err))
+	}
+	return connect.NewResponse(&controlv1.DeleteSocialAccountResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "OK"},
+	}), nil
+}
+
+func (s *ControlApi) loadSocialAccountForRefresh(id uint32) (*db.SocialAccount, error) {
+	socialAccount, _ := s.DB.GetSocialAccount(id)
+	if socialAccount != nil {
+		return socialAccount, nil
+	}
+	log.Errorf("Social account not found: %v", id)
+	s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: account not found (ID: %v)", id), "error", &id)
+	return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found: %v", id))
+}
+
+func (s *ControlApi) refreshSocialAccountService(id uint32, socialAccount *db.SocialAccount) (*connect.Response[controlv1.RefreshSocialAccountResponse], error) {
 	connectorService := s.cc.Get(socialAccount.Connector)
-
 	if connectorService == nil {
 		log.Errorf("Connector service not found for connector: %s", socialAccount.Connector)
-		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: connector service not found (%s)", socialAccount.Connector), "error", &req.Msg.Id)
+		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: connector service not found (%s)", socialAccount.Connector), "error", &id)
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("connector service not found for connector: %s", socialAccount.Connector))
 	}
-
 	errMsg := "OK"
 	err := connectorService.OnRefresh(socialAccount)
 	if err != nil {
 		log.Errorf("Error refreshing social account: %v", err)
 		errMsg = fmt.Sprintf("Error refreshing social account: %v", err)
-		// Log the failure to table_logs
-		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: %v", err), "error", &req.Msg.Id)
+		s.DB.InsertTableLog(fmt.Sprintf("Failed to refresh social account: %v", err), "error", &id)
 	} else {
-		log.Infof("Social account refreshed successfully: %v", req.Msg.Id)
-		// Log the success to table_logs
-		s.DB.InsertTableLog("Social account refreshed successfully", "info", &req.Msg.Id)
+		log.Infof("Social account refreshed successfully: %v", id)
+		s.DB.InsertTableLog("Social account refreshed successfully", "info", &id)
 	}
+	return connect.NewResponse(&controlv1.RefreshSocialAccountResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: err == nil, Message: errMsg},
+	}), nil
+}
 
-	res := connect.NewResponse(&controlv1.RefreshSocialAccountResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: err == nil,
-			Message: errMsg,
-		},
-	})
+func (s *ControlApi) RefreshSocialAccount(ctx context.Context, req *connect.Request[controlv1.RefreshSocialAccountRequest]) (*connect.Response[controlv1.RefreshSocialAccountResponse], error) {
+	log.Infof("Refreshing social account with ID: %v", req.Msg.Id)
+	if err := s.requireManageSocialAccount(s.getAuthenticatedUser(ctx), req.Msg.Id); err != nil {
+		return nil, err
+	}
+	socialAccount, err := s.loadSocialAccountForRefresh(req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+	return s.refreshSocialAccountService(req.Msg.Id, socialAccount)
+}
 
-	return res, nil
+func (s *ControlApi) selectTimelinePosts(page, pageSize uint32) ([]*db.Post, int, error) {
+	if page == 0 && pageSize == 0 {
+		posts, err := s.DB.SelectPosts()
+		if err != nil {
+			log.Errorf("Error selecting posts: %v", err)
+			return nil, 0, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve posts: %w", err))
+		}
+		return posts, len(posts), nil
+	}
+	return s.selectTimelinePostsPaginated(page, pageSize)
+}
+
+func (s *ControlApi) selectTimelinePostsPaginated(page, pageSize uint32) ([]*db.Post, int, error) {
+	if page == 0 {
+		page = 1
+	}
+	if pageSize == 0 {
+		pageSize = 10
+	}
+	const maxPageSize = 100
+	if pageSize > maxPageSize {
+		pageSize = maxPageSize
+	}
+	offset := int((page - 1) * pageSize)
+	posts, total, err := s.DB.SelectPostsPaginated(int(pageSize), offset)
+	if err != nil {
+		log.Errorf("Error selecting paginated posts: %v", err)
+		return nil, 0, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve posts: %w", err))
+	}
+	return posts, total, nil
+}
+
+func (s *ControlApi) timelinePostSocialAccount(post *db.Post) (icon, identity string) {
+	icon, identity = "mdi:question-mark-circle", "Unknown"
+	sa := s.resolveTimelineSocialAccount(post, &identity)
+	if sa == nil {
+		return icon, identity
+	}
+	identity = sa.Identity
+	if svc := s.cc.Get(sa.Connector); svc != nil {
+		return svc.GetIcon(), identity
+	}
+	log.Warnf("Timeline: connector service not found for connector '%s' (account ID: %d)", sa.Connector, sa.ID)
+	return icon, identity
+}
+
+func (s *ControlApi) resolveTimelineSocialAccount(post *db.Post, identity *string) *db.SocialAccount {
+	if post.SocialAccount != nil {
+		return post.SocialAccount
+	}
+	if post.SocialAccountID.Valid {
+		fetched, ferr := s.DB.GetSocialAccount(post.SocialAccountIDUint())
+		if ferr == nil {
+			return fetched
+		}
+		log.Warnf("Failed to load social account %d for post %d: %v", post.SocialAccountIDUint(), post.ID, ferr)
+		return nil
+	}
+	if post.State == db.PostStateDraft {
+		*identity = "Draft"
+	}
+	return nil
+}
+
+func timelinePostedDate(post *db.Post) time.Time {
+	if post.ScheduledAt.Valid {
+		return post.ScheduledAt.Time
+	}
+	return post.CreatedAt
+}
+
+func (s *ControlApi) timelinePostStatus(post *db.Post) *controlv1.PostStatus {
+	icon, identity := s.timelinePostSocialAccount(post)
+	return &controlv1.PostStatus{
+		Id:                    post.ID,
+		Created:               post.CreatedAt.Format("2006-01-02 15:04:05"),
+		SocialAccountId:       post.SocialAccountIDUint(),
+		SocialAccountIcon:     icon,
+		SocialAccountIdentity: identity,
+		Content:               post.Content,
+		Success:               post.Status,
+		PostUrl:               post.PostURL.String,
+		CampaignId:            intconv.ToUint32(post.CampaignID.Int32),
+		CampaignName:          post.CampaignName.String,
+		State:                 post.State,
+		PostedDate:            timelinePostedDate(post).Format("2006-01-02 15:04:05"),
+	}
 }
 
 func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[controlv1.GetTimelineRequest]) (*connect.Response[controlv1.GetTimelineResponse], error) {
-	// If no pagination parameters are provided, preserve existing behavior (return all posts).
-	page := req.Msg.GetPage()
-	pageSize := req.Msg.GetPageSize()
-
-	var (
-		posts []*db.Post
-		total int
-		err   error
-	)
-
-	if page == 0 && pageSize == 0 {
-		// Legacy behavior: return the full timeline.
-		posts, err = s.DB.SelectPosts()
-		if err != nil {
-			log.Errorf("Error selecting posts: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve posts: %w", err))
-		}
-		total = len(posts)
-	} else {
-		// Paginated behavior.
-		if page == 0 {
-			page = 1
-		}
-		if pageSize == 0 {
-			pageSize = 10
-		}
-
-		// Apply sane upper bound to page size.
-		const maxPageSize = 100
-		if pageSize > maxPageSize {
-			pageSize = maxPageSize
-		}
-
-		offset := int((page - 1) * pageSize)
-		posts, total, err = s.DB.SelectPostsPaginated(int(pageSize), offset)
-		if err != nil {
-			log.Errorf("Error selecting paginated posts: %v", err)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve posts: %w", err))
-		}
+	posts, total, err := s.selectTimelinePosts(req.Msg.GetPage(), req.Msg.GetPageSize())
+	if err != nil {
+		return nil, err
 	}
 
 	timeline := make([]*controlv1.PostStatus, 0, len(posts))
-
 	for _, post := range posts {
-		socialAccountIcon := "mdi:question-mark-circle"
-		socialAccountIdentity := "Unknown"
-
-		var sa *db.SocialAccount
-		switch {
-		case post.SocialAccount != nil:
-			sa = post.SocialAccount
-		case post.SocialAccountID.Valid:
-			fetched, ferr := s.DB.GetSocialAccount(post.SocialAccountIDUint())
-			if ferr == nil {
-				sa = fetched
-			} else {
-				log.Warnf("Failed to load social account %d for post %d: %v", post.SocialAccountIDUint(), post.ID, ferr)
-			}
-		case post.State == db.PostStateDraft:
-			socialAccountIdentity = "Draft"
-		}
-
-		if sa != nil {
-			socialAccountIdentity = sa.Identity
-			if svc := s.cc.Get(sa.Connector); svc != nil {
-				socialAccountIcon = svc.GetIcon()
-			} else {
-				log.Warnf("Timeline: connector service not found for connector '%s' (account ID: %d)", sa.Connector, sa.ID)
-			}
-		}
-
-		// Determine posted date: use ScheduledAt if set, otherwise use CreatedAt
-		postedDate := post.CreatedAt
-		if post.ScheduledAt.Valid {
-			postedDate = post.ScheduledAt.Time
-		}
-
-		timeline = append(timeline, &controlv1.PostStatus{
-			Id:                    post.ID,
-			Created:               post.CreatedAt.Format("2006-01-02 15:04:05"),
-			SocialAccountId:       post.SocialAccountIDUint(),
-			SocialAccountIcon:     socialAccountIcon,
-			SocialAccountIdentity: socialAccountIdentity,
-			Content:               post.Content,
-			Success:               post.Status,
-			PostUrl:               post.PostURL.String,
-			CampaignId:            intconv.ToUint32(post.CampaignID.Int32),
-			CampaignName:          post.CampaignName.String,
-			State:                 post.State,
-			PostedDate:            postedDate.Format("2006-01-02 15:04:05"),
-		})
+		timeline = append(timeline, s.timelinePostStatus(post))
 	}
-
 	s.attachEngagement(timeline)
 
-	res := connect.NewResponse(&controlv1.GetTimelineResponse{
+	return connect.NewResponse(&controlv1.GetTimelineResponse{
 		Posts: timeline,
 		Total: intconv.ToUint32(total),
-	})
+	}), nil
+}
 
-	return res, nil
+func (s *ControlApi) loadFeedReadMaps(au *authentication.AuthenticatedUser) (read map[uint32]bool, readRemote map[string]bool, err error) {
+	read, readRemote = map[uint32]bool{}, map[string]bool{}
+	if au.User == nil {
+		return read, readRemote, nil
+	}
+	if read, err = s.DB.SelectReadFeedPostIDs(au.User.ID); err != nil {
+		return nil, nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve read feed posts"))
+	}
+	if readRemote, err = s.DB.SelectReadRemotePostHashes(au.User.ID); err != nil {
+		return nil, nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve read feed posts"))
+	}
+	return read, readRemote, nil
+}
+
+func uniqueFeedAccountIDs(entries []*db.Feed) []uint32 {
+	accountIDs := make([]uint32, 0)
+	seen := map[uint32]bool{}
+	for _, entry := range entries {
+		if seen[entry.SocialAccountID] {
+			continue
+		}
+		seen[entry.SocialAccountID] = true
+		accountIDs = append(accountIDs, entry.SocialAccountID)
+	}
+	return accountIDs
+}
+
+func feedEntryIsHidden(entry *db.Feed, read map[uint32]bool, readRemote map[string]bool, filters map[uint32]languages.Filter) bool {
+	if read[entry.ID] {
+		return true
+	}
+	if key := feedauthor.PostKey(entry.RemoteURL, entry.RemoteID); key != "" && readRemote[feedauthor.KeyHash(key)] {
+		return true
+	}
+	filter, ok := filters[entry.SocialAccountID]
+	if !ok {
+		filter = languages.NewFilter(entry.SocialAccountPreferredLanguages)
+		filters[entry.SocialAccountID] = filter
+	}
+	return !filter.Allows(entry.Language)
+}
+
+func (s *ControlApi) decorateFeedPost(entry *db.Feed, post *controlv1.FeedPost, commented map[uint32]map[string]bool, tagsByHash map[string][]string) {
+	key := feedauthor.PostKey(entry.RemoteURL, entry.RemoteID)
+	if key == "" {
+		return
+	}
+	hash := feedauthor.KeyHash(key)
+	post.Commented = commented[entry.SocialAccountID][hash]
+	post.Tags = tagsByHash[hash]
+}
+
+func (s *ControlApi) buildFeedPosts(entries []*db.Feed, au *authentication.AuthenticatedUser, read map[uint32]bool, readRemote map[string]bool) []*controlv1.FeedPost {
+	commented, _ := s.DB.SelectCommentedPostHashes(uniqueFeedAccountIDs(entries))
+	tagsByHash := s.userPostTags(au)
+	feed := make([]*controlv1.FeedPost, 0, len(entries))
+	filters := map[uint32]languages.Filter{}
+	for _, entry := range entries {
+		if feedEntryIsHidden(entry, read, readRemote, filters) {
+			continue
+		}
+		post := s.feedEntryToProto(entry)
+		s.decorateFeedPost(entry, post, commented, tagsByHash)
+		feed = append(feed, post)
+	}
+	return feed
 }
 
 func (s *ControlApi) GetFeed(ctx context.Context, req *connect.Request[controlv1.GetFeedRequest]) (*connect.Response[controlv1.GetFeedResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	authenticatedUser, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
 	}
-
 	log.Infof("GetFeed called by user: %s", authenticatedUser.User.Username)
 
 	feedEntries, err := s.DB.SelectFeedEntries()
@@ -1548,63 +1693,14 @@ func (s *ControlApi) GetFeed(ctx context.Context, req *connect.Request[controlv1
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve feed entries: %w", err))
 	}
 
-	read := map[uint32]bool{}
-	readRemote := map[string]bool{}
-	if authenticatedUser.User != nil {
-		if read, err = s.DB.SelectReadFeedPostIDs(authenticatedUser.User.ID); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve read feed posts"))
-		}
-		// Posts marked read in a feed column are hidden here too.
-		if readRemote, err = s.DB.SelectReadRemotePostHashes(authenticatedUser.User.ID); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve read feed posts"))
-		}
+	read, readRemote, err := s.loadFeedReadMaps(authenticatedUser)
+	if err != nil {
+		return nil, err
 	}
 
-	accountIDs := make([]uint32, 0)
-	seenAccount := map[uint32]bool{}
-	for _, entry := range feedEntries {
-		if !seenAccount[entry.SocialAccountID] {
-			seenAccount[entry.SocialAccountID] = true
-			accountIDs = append(accountIDs, entry.SocialAccountID)
-		}
-	}
-	commented, _ := s.DB.SelectCommentedPostHashes(accountIDs)
-	tagsByHash := s.userPostTags(authenticatedUser)
-
-	feed := make([]*controlv1.FeedPost, 0, len(feedEntries))
-	filters := map[uint32]languages.Filter{}
-
-	for _, entry := range feedEntries {
-		if read[entry.ID] {
-			continue
-		}
-		if key := feedauthor.PostKey(entry.RemoteURL, entry.RemoteID); key != "" && readRemote[feedauthor.KeyHash(key)] {
-			continue
-		}
-
-		// Hide posts outside the account's preferred languages; read-time
-		// filtering means a preference change applies to stored posts too.
-		filter, ok := filters[entry.SocialAccountID]
-		if !ok {
-			filter = languages.NewFilter(entry.SocialAccountPreferredLanguages)
-			filters[entry.SocialAccountID] = filter
-		}
-		if !filter.Allows(entry.Language) {
-			continue
-		}
-		post := s.feedEntryToProto(entry)
-		if key := feedauthor.PostKey(entry.RemoteURL, entry.RemoteID); key != "" {
-			post.Commented = commented[entry.SocialAccountID][feedauthor.KeyHash(key)]
-			post.Tags = tagsByHash[feedauthor.KeyHash(key)]
-		}
-		feed = append(feed, post)
-	}
-
-	res := connect.NewResponse(&controlv1.GetFeedResponse{
-		Posts: feed,
-	})
-
-	return res, nil
+	return connect.NewResponse(&controlv1.GetFeedResponse{
+		Posts: s.buildFeedPosts(feedEntries, authenticatedUser, read, readRemote),
+	}), nil
 }
 
 func (s *ControlApi) feedEntryToProto(entry *db.Feed) *controlv1.FeedPost {
@@ -1659,34 +1755,45 @@ func (s *ControlApi) feedEntryToProto(entry *db.Feed) *controlv1.FeedPost {
 }
 
 // MarkFeedPostRead hides a feed post from the caller's feed.
-func (s *ControlApi) MarkFeedPostRead(ctx context.Context, req *connect.Request[controlv1.MarkFeedPostReadRequest]) (*connect.Response[controlv1.MarkFeedPostReadResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil || au.User == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+func (s *ControlApi) markStoredFeedPostRead(userID, id uint32) (remoteURL, remoteID string, err error) {
+	entry, err := s.DB.GetFeedEntryByID(id)
+	if err != nil || entry == nil {
+		return "", "", connect.NewError(connect.CodeNotFound, fmt.Errorf("feed post not found"))
 	}
-	remoteURL, remoteID := req.Msg.GetRemoteUrl(), req.Msg.GetRemoteId()
-
-	if id := req.Msg.GetId(); id != 0 {
-		entry, err := s.DB.GetFeedEntryByID(id)
-		if err != nil || entry == nil {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("feed post not found"))
-		}
-		if err := s.DB.MarkFeedPostRead(au.User.ID, entry.ID); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark feed post read"))
-		}
-		// Also remember it by platform identity, so feed columns hide it too.
-		remoteURL, remoteID = entry.RemoteURL, entry.RemoteID
+	if err := s.DB.MarkFeedPostRead(userID, entry.ID); err != nil {
+		return "", "", connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark feed post read"))
 	}
+	return entry.RemoteURL, entry.RemoteID, nil
+}
 
+func (s *ControlApi) markRemoteFeedPostRead(userID uint32, remoteURL, remoteID string, allowEmpty bool) error {
 	key := feedauthor.PostKey(remoteURL, remoteID)
 	if key == "" {
-		if req.Msg.GetId() != 0 {
-			return connect.NewResponse(&controlv1.MarkFeedPostReadResponse{}), nil
+		if allowEmpty {
+			return nil
 		}
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("id, remote_url or remote_id is required"))
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("id, remote_url or remote_id is required"))
 	}
-	if err := s.DB.MarkRemotePostRead(au.User.ID, feedauthor.KeyHash(key), key); err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark post read"))
+	if err := s.DB.MarkRemotePostRead(userID, feedauthor.KeyHash(key), key); err != nil {
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to mark post read"))
+	}
+	return nil
+}
+
+func (s *ControlApi) MarkFeedPostRead(ctx context.Context, req *connect.Request[controlv1.MarkFeedPostReadRequest]) (*connect.Response[controlv1.MarkFeedPostReadResponse], error) {
+	au, err := s.requireAuthenticatedAccount(ctx)
+	if err != nil {
+		return nil, err
+	}
+	remoteURL, remoteID := req.Msg.GetRemoteUrl(), req.Msg.GetRemoteId()
+	if id := req.Msg.GetId(); id != 0 {
+		remoteURL, remoteID, err = s.markStoredFeedPostRead(au.User.ID, id)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err := s.markRemoteFeedPostRead(au.User.ID, remoteURL, remoteID, req.Msg.GetId() != 0); err != nil {
+		return nil, err
 	}
 	return connect.NewResponse(&controlv1.MarkFeedPostReadResponse{}), nil
 }
@@ -1726,62 +1833,93 @@ func (s *ControlApi) refetchFeedEntry(rc connector.ConnectorWithFeedPostRefetch,
 	return nil
 }
 
-func (s *ControlApi) RefetchFeedPost(ctx context.Context, req *connect.Request[controlv1.RefetchFeedPostRequest]) (*connect.Response[controlv1.RefetchFeedPostResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-
-	if s.cc == nil {
-		return nil, connect.NewError(connect.CodeUnavailable, fmt.Errorf("service initializing"))
-	}
-
-	entry, err := s.DB.GetFeedEntryByID(req.Msg.Id)
+func (s *ControlApi) loadFeedEntryForRefetch(id uint32) (*db.Feed, error) {
+	entry, err := s.DB.GetFeedEntryByID(id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("feed post not found"))
 		}
-		log.Errorf("RefetchFeedPost: failed to load feed entry %d: %v", req.Msg.Id, err)
+		log.Errorf("RefetchFeedPost: failed to load feed entry %d: %v", id, err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load feed post: %w", err))
 	}
+	return entry, nil
+}
 
-	sa, err := s.DB.GetSocialAccount(entry.SocialAccountID)
-	if err != nil || sa == nil {
-		log.Errorf("RefetchFeedPost: failed to load social account %d: %v", entry.SocialAccountID, err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load social account"))
-	}
-
+func (s *ControlApi) refetchConnectorForAccount(sa *db.SocialAccount) (connector.ConnectorWithFeedPostRefetch, error) {
 	connectorService := s.cc.Get(sa.Connector)
 	if connectorService == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("connector %s is not available", sa.Connector))
 	}
-
 	refetchConnector, ok := connectorService.(connector.ConnectorWithFeedPostRefetch)
 	if !ok {
 		return nil, connect.NewError(connect.CodeUnimplemented, fmt.Errorf("connector %s does not support refetching feed posts", sa.Connector))
 	}
+	return refetchConnector, nil
+}
 
-	if err := s.refetchFeedEntry(refetchConnector, sa, entry); err != nil {
+func (s *ControlApi) refetchAndSaveFeedEntry(entry *db.Feed, sa *db.SocialAccount, rc connector.ConnectorWithFeedPostRefetch) error {
+	if err := s.refetchFeedEntry(rc, sa, entry); err != nil {
 		log.Errorf("RefetchFeedPost: failed to refetch feed entry %d from %s: %v", entry.ID, sa.Connector, err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch post from %s: %w", sa.Connector, err))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to refetch post from %s: %w", sa.Connector, err))
 	}
-
 	if err := s.DB.UpdateFeedEntry(entry); err != nil {
 		log.Errorf("RefetchFeedPost: failed to update feed entry %d: %v", entry.ID, err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update feed post: %w", err))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update feed post: %w", err))
 	}
+	return nil
+}
 
+func (s *ControlApi) socialAccountForFeedRefetch(socialAccountID uint32) (*db.SocialAccount, error) {
+	sa, err := s.DB.GetSocialAccount(socialAccountID)
+	if err != nil || sa == nil {
+		log.Errorf("RefetchFeedPost: failed to load social account %d: %v", socialAccountID, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load social account"))
+	}
+	return sa, nil
+}
+
+func (s *ControlApi) requireAuthAndConnectors(ctx context.Context) error {
+	if _, err := s.requireAuthenticatedUser(ctx); err != nil {
+		return err
+	}
+	if s.cc == nil {
+		return connect.NewError(connect.CodeUnavailable, fmt.Errorf("service initializing"))
+	}
+	return nil
+}
+
+func (s *ControlApi) prepareFeedRefetch(id uint32) (*db.Feed, *db.SocialAccount, connector.ConnectorWithFeedPostRefetch, error) {
+	entry, err := s.loadFeedEntryForRefetch(id)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	sa, err := s.socialAccountForFeedRefetch(entry.SocialAccountID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	rc, err := s.refetchConnectorForAccount(sa)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	return entry, sa, rc, nil
+}
+
+func (s *ControlApi) RefetchFeedPost(ctx context.Context, req *connect.Request[controlv1.RefetchFeedPostRequest]) (*connect.Response[controlv1.RefetchFeedPostResponse], error) {
+	if err := s.requireAuthAndConnectors(ctx); err != nil {
+		return nil, err
+	}
+	entry, sa, rc, err := s.prepareFeedRefetch(req.Msg.Id)
+	if err != nil {
+		return nil, err
+	}
+	if err := s.refetchAndSaveFeedEntry(entry, sa, rc); err != nil {
+		return nil, err
+	}
 	log.Infof("RefetchFeedPost: refreshed feed entry %d from %s", entry.ID, sa.Connector)
-
-	res := connect.NewResponse(&controlv1.RefetchFeedPostResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "Feed post refreshed",
-		},
-		Post: s.feedEntryToProto(entry),
-	})
-
-	return res, nil
+	return connect.NewResponse(&controlv1.RefetchFeedPostResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Feed post refreshed"},
+		Post:             s.feedEntryToProto(entry),
+	}), nil
 }
 
 func (s *ControlApi) UpdatePostCampaign(ctx context.Context, req *connect.Request[controlv1.UpdatePostCampaignRequest]) (*connect.Response[controlv1.UpdatePostCampaignResponse], error) {
@@ -1838,87 +1976,87 @@ func (s *ControlApi) ForgetPost(ctx context.Context, req *connect.Request[contro
 	return res, nil
 }
 
-func (s *ControlApi) RetryPost(ctx context.Context, req *connect.Request[controlv1.RetryPostRequest]) (*connect.Response[controlv1.RetryPostResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-
-	log.Infof("Retrying post ID: %d", req.Msg.PostId)
-
-	// Get the post from database
-	post, err := s.DB.GetPost(req.Msg.PostId)
+func (s *ControlApi) loadErrorPostForRetry(postID uint32) (*db.Post, error) {
+	post, err := s.DB.GetPost(postID)
 	if err != nil {
 		log.Errorf("Error getting post: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get post: %w", err))
 	}
-
 	if post == nil {
-		log.Errorf("Post not found: %d", req.Msg.PostId)
+		log.Errorf("Post not found: %d", postID)
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("post not found"))
 	}
-
-	// Only allow retrying posts in error state
 	if post.State != "error" {
-		log.Warnf("Cannot retry post %d with state: %s", req.Msg.PostId, post.State)
+		log.Warnf("Cannot retry post %d with state: %s", postID, post.State)
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("can only retry posts in error state"))
 	}
+	return post, nil
+}
 
-	// Get the social account
-	socialAccount, err := s.DB.GetSocialAccount(post.SocialAccountIDUint())
-	if err != nil || socialAccount == nil {
-		log.Errorf("Error getting social account %d for post %d: %v", post.SocialAccountIDUint(), req.Msg.PostId, err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get social account: %w", err))
-	}
-
-	// Create post status for retry attempt
-	postStatus := &controlv1.PostStatus{
-		Id:              post.ID,
-		SocialAccountId: post.SocialAccountIDUint(),
-		Content:         post.Content,
-		Success:         false,
-	}
-
-	// Try to post again
-	s.tryPostStatus(post.Content, s.postMediaURLs(post.ID), socialAccount, postStatus)
-
-	// Update the post with the retry result
-	state := "completed"
-	if !postStatus.Success {
-		state = "error"
-	}
-
-	err = s.DB.MarkPostCompleted(post.ID, postStatus.PostUrl, postStatus.Success)
-	if err != nil {
-		log.Errorf("Error updating post after retry: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update post: %w", err))
-	}
-	s.dispatchPostOutcome(ctx, post, socialAccount, postStatus.Success, postStatus.PostUrl)
-
-	// Set the post status fields for response
+func (s *ControlApi) fillRetryPostStatus(post *db.Post, socialAccount *db.SocialAccount, postStatus *controlv1.PostStatus, state string) {
 	postStatus.Id = post.ID
 	postStatus.Created = post.CreatedAt.Format("2006-01-02 15:04:05")
 	postStatus.CampaignId = intconv.ToUint32(post.CampaignID.Int32)
 	postStatus.CampaignName = post.CampaignName.String
-
-	// Get social account info for response
 	if svc := s.cc.Get(socialAccount.Connector); svc != nil {
 		postStatus.SocialAccountIcon = svc.GetIcon()
 	}
 	postStatus.SocialAccountIdentity = socialAccount.Identity
 	postStatus.State = state
+}
 
+func (s *ControlApi) completeRetriedPost(ctx context.Context, post *db.Post, socialAccount *db.SocialAccount, postStatus *controlv1.PostStatus) error {
+	if err := s.DB.MarkPostCompleted(post.ID, postStatus.PostUrl, postStatus.Success); err != nil {
+		log.Errorf("Error updating post after retry: %v", err)
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update post: %w", err))
+	}
+	s.dispatchPostOutcome(ctx, post, socialAccount, postStatus.Success, postStatus.PostUrl)
+	return nil
+}
+
+func (s *ControlApi) socialAccountForPostRetry(post *db.Post) (*db.SocialAccount, error) {
+	socialAccount, err := s.DB.GetSocialAccount(post.SocialAccountIDUint())
+	if err != nil || socialAccount == nil {
+		log.Errorf("Error getting social account %d for post %d: %v", post.SocialAccountIDUint(), post.ID, err)
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get social account: %w", err))
+	}
+	return socialAccount, nil
+}
+
+func retryPostState(success bool) string {
+	if success {
+		return "completed"
+	}
+	return "error"
+}
+
+func (s *ControlApi) RetryPost(ctx context.Context, req *connect.Request[controlv1.RetryPostRequest]) (*connect.Response[controlv1.RetryPostResponse], error) {
+	if _, err := s.requireAuthenticatedUser(ctx); err != nil {
+		return nil, err
+	}
+	log.Infof("Retrying post ID: %d", req.Msg.PostId)
+	post, err := s.loadErrorPostForRetry(req.Msg.PostId)
+	if err != nil {
+		return nil, err
+	}
+	socialAccount, err := s.socialAccountForPostRetry(post)
+	if err != nil {
+		return nil, err
+	}
+	postStatus := &controlv1.PostStatus{Id: post.ID, SocialAccountId: post.SocialAccountIDUint(), Content: post.Content, Success: false}
+	s.tryPostStatus(post.Content, s.postMediaURLs(post.ID), socialAccount, postStatus)
+	if err = s.completeRetriedPost(ctx, post, socialAccount, postStatus); err != nil {
+		return nil, err
+	}
+	s.fillRetryPostStatus(post, socialAccount, postStatus, retryPostState(postStatus.Success))
 	log.Infof("Post retry completed for post ID: %d, success: %v", req.Msg.PostId, postStatus.Success)
-
-	res := connect.NewResponse(&controlv1.RetryPostResponse{
+	return connect.NewResponse(&controlv1.RetryPostResponse{
 		StandardResponse: &controlv1.StandardResponse{
 			Success: true,
 			Message: fmt.Sprintf("Post retry %s", map[bool]string{true: "succeeded", false: "failed"}[postStatus.Success]),
 		},
 		PostStatus: postStatus,
-	})
-
-	return res, nil
+	}), nil
 }
 
 func (s *ControlApi) CleanupFeedPosts(ctx context.Context, req *connect.Request[controlv1.CleanupFeedPostsRequest]) (*connect.Response[controlv1.CleanupFeedPostsResponse], error) {
@@ -1948,65 +2086,84 @@ func (s *ControlApi) CleanupFeedPosts(ctx context.Context, req *connect.Request[
 	return res, nil
 }
 
-func (s *ControlApi) GetLogs(ctx context.Context, req *connect.Request[controlv1.GetLogsRequest]) (*connect.Response[controlv1.GetLogsResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+func logsLimit(requested uint32) int {
+	limit := int(requested)
+	if limit <= 0 || limit > 1000 {
+		return 100
 	}
+	return limit
+}
 
+func canViewSystemLogs(au *authentication.AuthenticatedUser) bool {
+	if au.HasPermission(rbac.PermissionSystemLogs) {
+		return true
+	}
+	return au.RBAC != nil && au.RBAC.IsSuperuser
+}
+
+func (s *ControlApi) authorizeGetLogs(au *authentication.AuthenticatedUser, relatedSocialAccountID uint32) error {
+	if relatedSocialAccountID != 0 {
+		if !s.userCanReadSocialAccount(au, relatedSocialAccountID) {
+			return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: cannot view logs for this social account"))
+		}
+		return nil
+	}
+	if canViewSystemLogs(au) {
+		return nil
+	}
+	return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: system.logs required"))
+}
+
+func (s *ControlApi) tableLogToProto(entry *db.TableLog) *controlv1.LogEntry {
+	logEntry := &controlv1.LogEntry{
+		Id:        entry.ID,
+		Message:   entry.Message,
+		Level:     entry.Level,
+		CreatedAt: entry.CreatedAt.Format(time.RFC3339),
+	}
+	if !entry.RelatedSocialAccountID.Valid {
+		return logEntry
+	}
+	logEntry.RelatedSocialAccountId = intconv.ToUint32(entry.RelatedSocialAccountID.Int32)
+	if entry.RelatedSocialAccountIdentity.Valid {
+		logEntry.RelatedSocialAccountIdentity = entry.RelatedSocialAccountIdentity.String
+	}
+	s.fillLogEntryIcon(logEntry, entry)
+	return logEntry
+}
+
+func (s *ControlApi) fillLogEntryIcon(logEntry *controlv1.LogEntry, entry *db.TableLog) {
+	if !entry.RelatedSocialAccountConnector.Valid {
+		return
+	}
+	if svc := s.cc.Get(entry.RelatedSocialAccountConnector.String); svc != nil {
+		logEntry.RelatedSocialAccountIcon = svc.GetIcon()
+	}
+}
+
+func (s *ControlApi) GetLogs(ctx context.Context, req *connect.Request[controlv1.GetLogsRequest]) (*connect.Response[controlv1.GetLogsResponse], error) {
+	authenticatedUser, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 	log.Infof("GetLogs called by user: %s", authenticatedUser.User.Username)
 
-	limit := int(req.Msg.Limit)
-	if limit <= 0 || limit > 1000 {
-		limit = 100 // Default limit
-	}
-
 	relatedSocialAccountID := req.Msg.RelatedSocialAccountId
-	if relatedSocialAccountID == 0 {
-		if !authenticatedUser.HasPermission(rbac.PermissionSystemLogs) &&
-			(authenticatedUser.RBAC == nil || !authenticatedUser.RBAC.IsSuperuser) {
-			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: system.logs required"))
-		}
-	} else if !s.userCanReadSocialAccount(authenticatedUser, relatedSocialAccountID) {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: cannot view logs for this social account"))
+	if authErr := s.authorizeGetLogs(authenticatedUser, relatedSocialAccountID); authErr != nil {
+		return nil, authErr
 	}
 
-	logEntries, err := s.DB.SelectTableLogs(limit, relatedSocialAccountID)
+	logEntries, err := s.DB.SelectTableLogs(logsLimit(req.Msg.Limit), relatedSocialAccountID)
 	if err != nil {
 		log.Errorf("Error selecting table logs: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve logs: %w", err))
 	}
 
 	logs := make([]*controlv1.LogEntry, 0, len(logEntries))
-
 	for _, entry := range logEntries {
-		logEntry := &controlv1.LogEntry{
-			Id:        entry.ID,
-			Message:   entry.Message,
-			Level:     entry.Level,
-			CreatedAt: entry.CreatedAt.Format(time.RFC3339),
-		}
-
-		if entry.RelatedSocialAccountID.Valid {
-			logEntry.RelatedSocialAccountId = intconv.ToUint32(entry.RelatedSocialAccountID.Int32)
-			if entry.RelatedSocialAccountIdentity.Valid {
-				logEntry.RelatedSocialAccountIdentity = entry.RelatedSocialAccountIdentity.String
-			}
-			if entry.RelatedSocialAccountConnector.Valid {
-				if svc := s.cc.Get(entry.RelatedSocialAccountConnector.String); svc != nil {
-					logEntry.RelatedSocialAccountIcon = svc.GetIcon()
-				}
-			}
-		}
-
-		logs = append(logs, logEntry)
+		logs = append(logs, s.tableLogToProto(entry))
 	}
-
-	res := connect.NewResponse(&controlv1.GetLogsResponse{
-		Logs: logs,
-	})
-
-	return res, nil
+	return connect.NewResponse(&controlv1.GetLogsResponse{Logs: logs}), nil
 }
 
 func (s *ControlApi) GetJobsStatus(ctx context.Context, req *connect.Request[controlv1.GetJobsStatusRequest]) (*connect.Response[controlv1.GetJobsStatusResponse], error) {
@@ -2094,10 +2251,27 @@ func (s *ControlApi) getJobLastRun(jobName string) string {
 	return ""
 }
 
+func (s *ControlApi) mediaItemFromListed(it media.Item, networks []mediaNetwork) *controlv1.MediaItem {
+	item := &controlv1.MediaItem{
+		Filename:         it.Filename,
+		Url:              it.URL,
+		SizeBytes:        intconv.ToUint64(it.SizeBytes),
+		OptimisedOf:      it.OptimisedOf,
+		OptimisedKind:    it.OptimisedKind,
+		OptimisedVersion: it.OptimisedVersion,
+		PostingVersion:   it.PostingVersion,
+	}
+	if info, err := media.Inspect(it.Filename); err == nil {
+		item.Width, item.Height = intconv.ToUint32(info.Width), intconv.ToUint32(info.Height)
+		item.Suitability = s.mediaSuitability(networks, info)
+	}
+	return item
+}
+
 func (s *ControlApi) ListMedia(ctx context.Context, req *connect.Request[controlv1.ListMediaRequest]) (*connect.Response[controlv1.ListMediaResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	authenticatedUser, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
 	}
 	list, err := media.List()
 	if err != nil {
@@ -2110,46 +2284,43 @@ func (s *ControlApi) ListMedia(ctx context.Context, req *connect.Request[control
 	}
 	items := make([]*controlv1.MediaItem, 0, len(list))
 	for _, it := range list {
-		item := &controlv1.MediaItem{
-			Filename:         it.Filename,
-			Url:              it.URL,
-			SizeBytes:        intconv.ToUint64(it.SizeBytes),
-			OptimisedOf:      it.OptimisedOf,
-			OptimisedKind:    it.OptimisedKind,
-			OptimisedVersion: it.OptimisedVersion,
-			PostingVersion:   it.PostingVersion,
-		}
-		// Only image headers are read, so this stays cheap for a whole library.
-		if info, err := media.Inspect(it.Filename); err == nil {
-			item.Width, item.Height = intconv.ToUint32(info.Width), intconv.ToUint32(info.Height)
-			item.Suitability = s.mediaSuitability(networks, info)
-		}
-		items = append(items, item)
+		items = append(items, s.mediaItemFromListed(it, networks))
 	}
 	return connect.NewResponse(&controlv1.ListMediaResponse{Items: items}), nil
 }
 
-func (s *ControlApi) GetMediaPosts(ctx context.Context, req *connect.Request[controlv1.GetMediaPostsRequest]) (*connect.Response[controlv1.GetMediaPostsResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-
-	filename := strings.TrimSpace(req.Msg.GetFilename())
+func validateMediaFilename(filename string) (string, error) {
+	filename = strings.TrimSpace(filename)
 	if filename == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
 	}
 	if strings.Contains(filename, "/") || strings.Contains(filename, "..") {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filename"))
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filename"))
 	}
+	return filename, nil
+}
 
-	mediaURL := "/media/files/" + filename
-	posts, err := s.DB.SelectPostsByMediaURL(mediaURL)
+func mapMediaDeleteError(err error) error {
+	if os.IsNotExist(err) {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("media file not found"))
+	}
+	log.Errorf("DeleteMedia: %v", err)
+	return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete media: %w", err))
+}
+
+func (s *ControlApi) GetMediaPosts(ctx context.Context, req *connect.Request[controlv1.GetMediaPostsRequest]) (*connect.Response[controlv1.GetMediaPostsResponse], error) {
+	if _, err := s.requireAuthenticatedUser(ctx); err != nil {
+		return nil, err
+	}
+	filename, err := validateMediaFilename(req.Msg.GetFilename())
+	if err != nil {
+		return nil, err
+	}
+	posts, err := s.DB.SelectPostsByMediaURL("/media/files/" + filename)
 	if err != nil {
 		log.Errorf("GetMediaPosts: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load posts for media: %w", err))
 	}
-
 	items := make([]*controlv1.PostStatus, 0, len(posts))
 	for _, post := range posts {
 		items = append(items, s.postToPostStatus(post))
@@ -2158,249 +2329,224 @@ func (s *ControlApi) GetMediaPosts(ctx context.Context, req *connect.Request[con
 }
 
 func (s *ControlApi) DeleteMedia(ctx context.Context, req *connect.Request[controlv1.DeleteMediaRequest]) (*connect.Response[controlv1.DeleteMediaResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	if _, err := s.requireAuthenticatedUser(ctx); err != nil {
+		return nil, err
 	}
-
-	filename := strings.TrimSpace(req.Msg.GetFilename())
-	if filename == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("filename is required"))
+	filename, err := validateMediaFilename(req.Msg.GetFilename())
+	if err != nil {
+		return nil, err
 	}
-	if strings.Contains(filename, "/") || strings.Contains(filename, "..") {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid filename"))
-	}
-
 	mediaURL := "/media/files/" + filename
 	if err := s.DB.DeletePostMediaByURL(mediaURL); err != nil {
 		log.Errorf("DeleteMedia: failed to remove post_media rows for %s: %v", mediaURL, err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to remove media references: %w", err))
 	}
 	if err := media.Delete(filename); err != nil {
-		if os.IsNotExist(err) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("media file not found"))
-		}
-		log.Errorf("DeleteMedia: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete media: %w", err))
+		return nil, mapMediaDeleteError(err)
 	}
-
 	return connect.NewResponse(&controlv1.DeleteMediaResponse{Message: "OK"}), nil
 }
 
 func (s *ControlApi) SetSocialAccountActive(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountActiveRequest]) (*connect.Response[controlv1.SetSocialAccountActiveResponse], error) {
 	log.Infof("Setting social account active state for ID: %v to %v", req.Msg.Id, req.Msg.Active)
-
-	au := s.getAuthenticatedUser(ctx)
-	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
-	if au != nil && !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, req.Msg.Id, "manage") {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", req.Msg.Id))
+	if err := s.requireManageSocialAccount(s.getAuthenticatedUser(ctx), req.Msg.Id); err != nil {
+		return nil, err
 	}
-
-	err := s.DB.SetSocialAccountActive(req.Msg.Id, req.Msg.Active)
-
-	if err != nil {
+	if err := s.DB.SetSocialAccountActive(req.Msg.Id, req.Msg.Active); err != nil {
 		log.Errorf("Error setting social account active state: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set social account active state: %w", err))
 	}
-
-	res := connect.NewResponse(&controlv1.SetSocialAccountActiveResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "OK",
-		},
-	})
-
-	return res, nil
+	return connect.NewResponse(&controlv1.SetSocialAccountActiveResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "OK"},
+	}), nil
 }
 
 // SetSocialAccountPreferredLanguages sets which languages feed posts fetched
 // through this account may be in. It needs manage access to the account.
-func (s *ControlApi) SetSocialAccountPreferredLanguages(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountPreferredLanguagesRequest]) (*connect.Response[controlv1.SetSocialAccountPreferredLanguagesResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil || au.User == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-
-	id := req.Msg.GetSocialAccountId()
+func (s *ControlApi) requireManageSocialAccountID(au *authentication.AuthenticatedUser, id uint32) error {
 	if id == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id is required"))
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id is required"))
 	}
+	return s.requireManageSocialAccount(au, id)
+}
 
-	canViewAll := au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser)
-	if !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, id, "manage") {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", id))
+func (s *ControlApi) SetSocialAccountPreferredLanguages(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountPreferredLanguagesRequest]) (*connect.Response[controlv1.SetSocialAccountPreferredLanguagesResponse], error) {
+	au, err := s.requireAuthenticatedAccount(ctx)
+	if err != nil {
+		return nil, err
 	}
-
+	if manageErr := s.requireManageSocialAccountID(au, req.Msg.GetSocialAccountId()); manageErr != nil {
+		return nil, manageErr
+	}
 	codes, err := languages.ParsePreferred(req.Msg.GetLanguages())
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-
-	if err := s.DB.SetSocialAccountPreferredLanguages(id, languages.Join(codes)); err != nil {
+	if err := s.DB.SetSocialAccountPreferredLanguages(req.Msg.GetSocialAccountId(), languages.Join(codes)); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to save preferred languages"))
 	}
-
 	return connect.NewResponse(&controlv1.SetSocialAccountPreferredLanguagesResponse{Languages: codes}), nil
+}
+
+func (s *ControlApi) authenticatePasswordLogin(username, password string) (*db.UserAccount, *connect.Response[controlv1.LoginWithUsernameAndPasswordResponse], error) {
+	user := s.DB.GetUserByUsername(username)
+	if user == nil {
+		log.Warnf("User not found: %s", username)
+		return nil, nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found: %s", username))
+	}
+	if user.PasswordHash == "" {
+		log.Warnf("User has no password set: %s", username)
+		return nil, nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("user has no password set: %s", username))
+	}
+	res := connect.NewResponse(&controlv1.LoginWithUsernameAndPasswordResponse{})
+	if !passwordMatches(user.PasswordHash, password) {
+		res.Msg.StandardResponse = &controlv1.StandardResponse{Success: false, Message: "Invalid username or password"}
+		return nil, res, nil
+	}
+	res.Msg.StandardResponse = &controlv1.StandardResponse{Success: true, Message: "Login successful"}
+	res.Msg.Username = user.Username
+	return user, res, nil
+}
+
+func passwordMatches(hash, password string) bool {
+	match, err := utils.VerifyPassword(hash, password)
+	return err == nil && match
+}
+
+func (s *ControlApi) attachLoginSession(res *connect.Response[controlv1.LoginWithUsernameAndPasswordResponse], user *db.UserAccount, username string) error {
+	sid := uuid.New().String()
+	log.Infof("Creating session for user: %s with session ID: %s", user.Username, sid)
+	if err := s.DB.CreateSession(sid, user.ID); err != nil {
+		log.Errorf("Error creating session: %v", err)
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create session: %w", err))
+	}
+	if err := s.DB.TouchUserLastLogin(user.ID); err != nil {
+		log.Warnf("Failed to update last login for user %s: %v", user.Username, err)
+	}
+	s.setLoginSessionCookie(res, sid, username)
+	return nil
+}
+
+func (s *ControlApi) setLoginSessionCookie(res *connect.Response[controlv1.LoginWithUsernameAndPasswordResponse], sid, username string) {
+	log.Infof("Setting session cookie for %s", username)
+	if s.Auth != nil {
+		c := s.Auth.NewSessionCookie(sid)
+		res.Header().Add("Set-Cookie", c.String())
+		return
+	}
+	c := http.Cookie{ //nolint:gosec // Secure is on unless JAPELLA_SECURE_COOKIES=false for plain-HTTP setups
+		Name: iam.CookieName, Value: sid, HttpOnly: true, Path: "/",
+		SameSite: http.SameSiteStrictMode, Secure: os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
+	}
+	res.Header().Add("Set-Cookie", (&c).String())
 }
 
 func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *connect.Request[controlv1.LoginWithUsernameAndPasswordRequest]) (*connect.Response[controlv1.LoginWithUsernameAndPasswordResponse], error) {
 	log.Infof("Login with username and password for user: %s", req.Msg.Username)
-
-	user := s.DB.GetUserByUsername(req.Msg.Username)
-
-	if user == nil {
-		log.Warnf("User not found: %s", req.Msg.Username)
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found: %s", req.Msg.Username))
-	}
-
-	if user.PasswordHash == "" {
-		log.Warnf("User has no password set: %s", req.Msg.Username)
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("user has no password set: %s", req.Msg.Username))
-	}
-
-	res := connect.NewResponse(&controlv1.LoginWithUsernameAndPasswordResponse{})
-
-	match, err := utils.VerifyPassword(user.PasswordHash, req.Msg.Password)
-
-	if err != nil || !match {
-		res.Msg.StandardResponse = &controlv1.StandardResponse{
-			Success: false,
-			Message: "Invalid username or password",
-		}
-
-		return res, nil //nolint:nilerr // a failed login is reported in the response, not as an RPC error
-	} else {
-		res.Msg.StandardResponse = &controlv1.StandardResponse{
-			Success: true,
-			Message: "Login successful",
-		}
-		res.Msg.Username = user.Username
-	}
-
-	sid := uuid.New().String()
-	log.Infof("Creating session for user: %s with session ID: %s", user.Username, sid)
-
-	// Create a session in the database
-	err = s.DB.CreateSession(sid, user.ID)
-
+	user, res, err := s.authenticatePasswordLogin(req.Msg.Username, req.Msg.Password)
 	if err != nil {
-		log.Errorf("Error creating session: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create session: %w", err))
+		return nil, err
 	}
-
-	if err := s.DB.TouchUserLastLogin(user.ID); err != nil {
-		log.Warnf("Failed to update last login for user %s: %v", user.Username, err)
+	if user == nil {
+		return res, nil
 	}
-
-	if s.Auth != nil {
-		c := s.Auth.NewSessionCookie(sid)
-		log.Infof("Setting session cookie for %s", req.Msg.Username)
-		res.Header().Add("Set-Cookie", c.String())
-	} else {
-		c := http.Cookie{ //nolint:gosec // Secure is on unless JAPELLA_SECURE_COOKIES=false for plain-HTTP setups
-			Name:     iam.CookieName,
-			Value:    sid,
-			HttpOnly: true,
-			Path:     "/",
-			SameSite: http.SameSiteStrictMode,
-			Secure:   os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
-		}
-		log.Infof("Setting session cookie for %s", req.Msg.Username)
-		res.Header().Add("Set-Cookie", c.String())
+	if err := s.attachLoginSession(res, user, req.Msg.Username); err != nil {
+		return nil, err
 	}
-
 	return res, nil
+}
+
+func verifyCurrentPassword(user *db.UserAccount, currentPassword string) error {
+	if user.PasswordHash == "" {
+		log.Warnf("User has no password set: %s", user.Username)
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user has no password set"))
+	}
+	match, err := utils.VerifyPassword(user.PasswordHash, currentPassword)
+	if err != nil || !match {
+		log.Warnf("Invalid current password for user: %s", user.Username)
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid current password"))
+	}
+	return nil
+}
+
+func hashNewPassword(username, newPassword string) (string, error) {
+	if len(newPassword) < 8 {
+		log.Warnf("New password too short for user: %s", username)
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("new password must be at least 8 characters long"))
+	}
+	newPasswordHash, err := utils.HashPassword(newPassword)
+	if err != nil {
+		log.Errorf("Error hashing new password for user %s: %v", username, err)
+		return "", connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash new password"))
+	}
+	return newPasswordHash, nil
 }
 
 func (s *ControlApi) ChangePassword(ctx context.Context, req *connect.Request[controlv1.ChangePasswordRequest]) (*connect.Response[controlv1.ChangePasswordResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	au, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
 	}
-
-	user := authenticatedUser.User
+	user := au.User
 	log.Infof("Password change requested for user: %s", user.Username)
-
-	// Verify current password
-	if user.PasswordHash == "" {
-		log.Warnf("User has no password set: %s", user.Username)
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user has no password set"))
+	if pwErr := verifyCurrentPassword(user, req.Msg.CurrentPassword); pwErr != nil {
+		return nil, pwErr
 	}
-
-	match, err := utils.VerifyPassword(user.PasswordHash, req.Msg.CurrentPassword)
-	if err != nil || !match {
-		log.Warnf("Invalid current password for user: %s", user.Username)
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid current password"))
-	}
-
-	// Validate new password
-	if len(req.Msg.NewPassword) < 8 {
-		log.Warnf("New password too short for user: %s", user.Username)
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("new password must be at least 8 characters long"))
-	}
-
-	// Hash new password
-	newPasswordHash, err := utils.HashPassword(req.Msg.NewPassword)
+	newPasswordHash, err := hashNewPassword(user.Username, req.Msg.NewPassword)
 	if err != nil {
-		log.Errorf("Error hashing new password for user %s: %v", user.Username, err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash new password"))
+		return nil, err
 	}
-
-	// Update password in database
-	err = s.DB.UpdateUserPassword(user.ID, newPasswordHash)
-	if err != nil {
+	if err := s.DB.UpdateUserPassword(user.ID, newPasswordHash); err != nil {
 		log.Errorf("Error updating password for user %s: %v", user.Username, err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update password"))
 	}
-
 	log.Infof("Password successfully changed for user: %s", user.Username)
+	return connect.NewResponse(&controlv1.ChangePasswordResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Password changed successfully"},
+	}), nil
+}
 
-	res := connect.NewResponse(&controlv1.ChangePasswordResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "Password changed successfully",
-		},
-	})
+func validateResetPasswordRequest(userID uint32, newPassword string) error {
+	if userID == 0 {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user_id is required"))
+	}
+	if len(newPassword) < 8 {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("password must be at least 8 characters long"))
+	}
+	return nil
+}
 
-	return res, nil
+func (s *ControlApi) resetUserPasswordHash(target *db.UserAccount, newPassword string) error {
+	newHash, err := utils.HashPassword(newPassword)
+	if err != nil {
+		log.Errorf("ResetUserPassword: hash error: %v", err)
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash password"))
+	}
+	if err := s.DB.UpdateUserPassword(target.ID, newHash); err != nil {
+		log.Errorf("ResetUserPassword: update error: %v", err)
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update password"))
+	}
+	return nil
 }
 
 func (s *ControlApi) ResetUserPassword(ctx context.Context, req *connect.Request[controlv1.ResetUserPasswordRequest]) (*connect.Response[controlv1.ResetUserPasswordResponse], error) {
-	if req.Msg.UserId == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user_id is required"))
+	if err := validateResetPasswordRequest(req.Msg.UserId, req.Msg.NewPassword); err != nil {
+		return nil, err
 	}
-	if len(req.Msg.NewPassword) < 8 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("password must be at least 8 characters long"))
-	}
-
 	target := s.DB.GetUserByID(req.Msg.UserId)
 	if target == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
 	}
-
-	newHash, err := utils.HashPassword(req.Msg.NewPassword)
-	if err != nil {
-		log.Errorf("ResetUserPassword: hash error: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash password"))
+	if err := s.resetUserPasswordHash(target, req.Msg.NewPassword); err != nil {
+		return nil, err
 	}
-
-	if err := s.DB.UpdateUserPassword(target.ID, newHash); err != nil {
-		log.Errorf("ResetUserPassword: update error: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to update password"))
-	}
-
-	au := s.getAuthenticatedUser(ctx)
 	who := "<unknown>"
-	if au != nil {
+	if au := s.getAuthenticatedUser(ctx); au != nil {
 		who = au.User.Username
 	}
 	log.Infof("Password reset for user %q (id %d) by %s", target.Username, target.ID, who)
-
 	return connect.NewResponse(&controlv1.ResetUserPasswordResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "Password reset successfully",
-		},
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Password reset successfully"},
 	}), nil
 }
 
@@ -2453,17 +2599,11 @@ func (s *ControlApi) Logout(ctx context.Context, req *connect.Request[controlv1.
 	return res, nil
 }
 
-func (s *ControlApi) ImpersonateUser(ctx context.Context, req *connect.Request[controlv1.ImpersonateUserRequest]) (*connect.Response[controlv1.ImpersonateUserResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
-	}
-
-	sid := s.extractSessionID(req.Header())
+func (s *ControlApi) sessionForImpersonation(header http.Header) (*db.Session, error) {
+	sid := s.extractSessionID(header)
 	if sid == "" {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("no session found"))
 	}
-
 	sess := s.DB.GetSessionByID(sid)
 	if sess == nil {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("session not found"))
@@ -2471,18 +2611,26 @@ func (s *ControlApi) ImpersonateUser(ctx context.Context, req *connect.Request[c
 	if sess.ImpersonatorUserID.Valid {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("already impersonating — exit current impersonation first"))
 	}
+	return sess, nil
+}
 
+func (s *ControlApi) ImpersonateUser(ctx context.Context, req *connect.Request[controlv1.ImpersonateUserRequest]) (*connect.Response[controlv1.ImpersonateUserResponse], error) {
+	au, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sess, err := s.sessionForImpersonation(req.Header())
+	if err != nil {
+		return nil, err
+	}
 	target := s.DB.GetUserByID(req.Msg.UserId)
 	if target == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("target user not found"))
 	}
-
-	if err := s.DB.ImpersonateSession(sid, target.ID, au.User.ID); err != nil {
+	if err := s.DB.ImpersonateSession(sess.SID, target.ID, au.User.ID); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to impersonate: %w", err))
 	}
-
 	log.Infof("User %q (id %d) started impersonating %q (id %d)", au.User.Username, au.User.ID, target.Username, target.ID)
-
 	return connect.NewResponse(&controlv1.ImpersonateUserResponse{
 		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Now impersonating " + target.Username},
 		Username:         target.Username,
@@ -2562,97 +2710,138 @@ func (s *ControlApi) GetUser(ctx context.Context, req *connect.Request[controlv1
 	}), nil
 }
 
-func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[controlv1.CreateUserRequest]) (*connect.Response[controlv1.CreateUserResponse], error) {
-	username := strings.TrimSpace(req.Msg.Username)
+func validateNewUsername(username string) error {
 	if username == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("username is required"))
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("username is required"))
 	}
-	// Password is optional. When omitted, the user cannot log in interactively until an
-	// admin sets one via ResetUserPassword. If provided, it must be at least 8 characters.
-	password := req.Msg.Password
+	return nil
+}
+
+func validateOptionalPassword(password string) error {
 	if password != "" && len(password) < 8 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("password must be at least 8 characters long"))
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("password must be at least 8 characters long"))
 	}
+	return nil
+}
 
-	if s.DB.GetUserByUsername(username) != nil {
-		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("username already taken: %s", username))
+func hashOptionalPassword(username, password string) (string, error) {
+	if password == "" {
+		return "", nil
 	}
+	passwordHash, err := utils.HashPassword(password)
+	if err != nil {
+		log.Errorf("Error hashing password for new user %s: %v", username, err)
+		return "", connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash password"))
+	}
+	return passwordHash, nil
+}
 
-	passwordHash := ""
-	if password != "" {
-		var err error
-		passwordHash, err = utils.HashPassword(password)
-		if err != nil {
-			log.Errorf("Error hashing password for new user %s: %v", username, err)
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to hash password"))
+func (s *ControlApi) ensureNewUserInEveryone(ctx context.Context, userID uint32) {
+	if s.IAM != nil {
+		if err := s.IAM.EnsureUserInEveryoneGroup(ctx, int(userID)); err != nil {
+			log.Warnf("Could not add new user %d to Everyone group: %v", userID, err)
 		}
+		return
 	}
+	if err := s.DB.EnsureUserInEveryoneGroup(userID); err != nil {
+		log.Warnf("Could not add new user %d to Everyone group: %v", userID, err)
+	}
+}
 
+func createUserSuccessMessage(password string) string {
+	if password == "" {
+		return "User created successfully without a password; interactive login is disabled until a password is set"
+	}
+	return "User created successfully"
+}
+
+func (s *ControlApi) createAndLoadUser(username, passwordHash string) (*db.UserAccount, error) {
 	created, err := s.DB.CreateUserAccount(username, passwordHash, db.UserCreatedByAdmin)
 	if err != nil {
 		log.Errorf("Error creating user account %s: %v", username, err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create user"))
 	}
-
 	user := s.DB.GetUserByID(created.ID)
 	if user == nil {
 		log.Errorf("Created user %s (id %d) but could not reload from database", username, created.ID)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load new user"))
 	}
+	return user, nil
+}
 
+func validateCreateUserInput(username, password string) error {
+	if err := validateNewUsername(username); err != nil {
+		return err
+	}
+	return validateOptionalPassword(password)
+}
+
+func (s *ControlApi) ensureUsernameAvailable(username string) error {
+	if s.DB.GetUserByUsername(username) != nil {
+		return connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("username already taken: %s", username))
+	}
+	return nil
+}
+
+func (s *ControlApi) CreateUser(ctx context.Context, req *connect.Request[controlv1.CreateUserRequest]) (*connect.Response[controlv1.CreateUserResponse], error) {
+	username := strings.TrimSpace(req.Msg.Username)
+	password := req.Msg.Password
+	if err := validateCreateUserInput(username, password); err != nil {
+		return nil, err
+	}
+	if err := s.ensureUsernameAvailable(username); err != nil {
+		return nil, err
+	}
+	passwordHash, err := hashOptionalPassword(username, password)
+	if err != nil {
+		return nil, err
+	}
+	user, err := s.createAndLoadUser(username, passwordHash)
+	if err != nil {
+		return nil, err
+	}
 	log.Infof("Created user account: %s (id %d)", username, user.ID)
-
-	if s.IAM != nil {
-		if err := s.IAM.EnsureUserInEveryoneGroup(ctx, int(user.ID)); err != nil {
-			log.Warnf("Could not add new user %d to Everyone group: %v", user.ID, err)
-		}
-	} else if err := s.DB.EnsureUserInEveryoneGroup(user.ID); err != nil {
-		log.Warnf("Could not add new user %d to Everyone group: %v", user.ID, err)
-	}
-
-	message := "User created successfully"
-	if password == "" {
-		message = "User created successfully without a password; interactive login is disabled until a password is set"
-	}
-
-	res := connect.NewResponse(&controlv1.CreateUserResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: message,
-		},
+	s.ensureNewUserInEveryone(ctx, user.ID)
+	return connect.NewResponse(&controlv1.CreateUserResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: createUserSuccessMessage(password)},
 		User: &controlv1.UserAccount{
-			Id:        user.ID,
-			Username:  user.Username,
-			CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"),
-			CreatedBy: user.CreatedBy,
+			Id: user.ID, Username: user.Username,
+			CreatedAt: user.CreatedAt.Format("2006-01-02 15:04:05"), CreatedBy: user.CreatedBy,
 		},
-	})
+	}), nil
+}
 
-	return res, nil
+func validateDeleteUserTarget(authenticatedUserID, targetID uint32) error {
+	if targetID == 0 {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user_id is required"))
+	}
+	if targetID == authenticatedUserID {
+		return connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cannot delete your own account"))
+	}
+	return nil
+}
+
+func mapDeleteUserError(targetID uint32, err error) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
+	}
+	log.Errorf("Error deleting user %d: %v", targetID, err)
+	return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete user"))
 }
 
 func (s *ControlApi) DeleteUser(ctx context.Context, req *connect.Request[controlv1.DeleteUserRequest]) (*connect.Response[controlv1.DeleteUserResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+	authenticatedUser, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	targetID := req.Msg.UserId
-	if targetID == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("user_id is required"))
+	if err := validateDeleteUserTarget(authenticatedUser.User.ID, targetID); err != nil {
+		return nil, err
 	}
 
-	if targetID == authenticatedUser.User.ID {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cannot delete your own account"))
-	}
-
-	err := s.DB.DeleteUserAccount(targetID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
-		}
-		log.Errorf("Error deleting user %d: %v", targetID, err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to delete user"))
+	if err := s.DB.DeleteUserAccount(targetID); err != nil {
+		return nil, mapDeleteUserError(targetID, err)
 	}
 
 	log.Infof("Deleted user account id %d (requested by %s)", targetID, authenticatedUser.User.Username)
@@ -2703,52 +2892,49 @@ func (s *ControlApi) GetApiKeys(ctx context.Context, req *connect.Request[contro
 	return res, nil
 }
 
+func shouldSkipCvar(cvar *db.Cvar) bool {
+	return chatbot.IsBotCvarKey(cvar.KeyName) || cvar.Category == chatbot.CvarCategory
+}
+
+func cvarCategoryName(cvar *db.Cvar) string {
+	if cvar.Category == "" {
+		return "Uncategorized"
+	}
+	return cvar.Category
+}
+
+func cvarToProto(cvar *db.Cvar) *controlv1.Cvar {
+	return &controlv1.Cvar{
+		KeyName: cvar.KeyName, ValueString: cvar.ValueString, ValueInt: cvar.ValueInt,
+		Description: cvar.Description, DocsUrl: cvar.DocsUrl, ExternalUrl: cvar.ExternalUrl,
+		Type: cvar.Type, Title: cvar.Title,
+	}
+}
+
+func appendCvarToCategories(categories map[string]*controlv1.CvarCategory, cvar *db.Cvar) {
+	name := cvarCategoryName(cvar)
+	category, exists := categories[name]
+	if !exists {
+		category = &controlv1.CvarCategory{Name: name, Cvars: make([]*controlv1.Cvar, 0)}
+		categories[name] = category
+	}
+	category.Cvars = append(category.Cvars, cvarToProto(cvar))
+}
+
 func (s *ControlApi) GetCvars(ctx context.Context, req *connect.Request[controlv1.GetCvarsRequest]) (*connect.Response[controlv1.GetCvarsResponse], error) {
 	log.Infof("Fetching cvars")
-
 	cvars, err := s.DB.SelectCvars()
-
 	if err != nil {
 		log.Errorf("Error selecting cvars: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve cvars: %w", err))
 	}
-
-	res := connect.NewResponse(&controlv1.GetCvarsResponse{
-		CvarCategories: make(map[string]*controlv1.CvarCategory),
-	})
-
+	res := connect.NewResponse(&controlv1.GetCvarsResponse{CvarCategories: make(map[string]*controlv1.CvarCategory)})
 	for _, cvar := range cvars {
-		if chatbot.IsBotCvarKey(cvar.KeyName) || cvar.Category == chatbot.CvarCategory {
+		if shouldSkipCvar(cvar) {
 			continue
 		}
-		if cvar.Category == "" {
-			cvar.Category = "Uncategorized"
-		}
-
-		category, exists := res.Msg.CvarCategories[cvar.Category]
-
-		if !exists {
-			category = &controlv1.CvarCategory{
-				Cvars: make([]*controlv1.Cvar, 0),
-			}
-
-			category.Name = cvar.Category
-
-			res.Msg.CvarCategories[cvar.Category] = category
-		}
-
-		category.Cvars = append(category.Cvars, &controlv1.Cvar{
-			KeyName:     cvar.KeyName,
-			ValueString: cvar.ValueString,
-			ValueInt:    cvar.ValueInt,
-			Description: cvar.Description,
-			DocsUrl:     cvar.DocsUrl,
-			ExternalUrl: cvar.ExternalUrl,
-			Type:        cvar.Type,
-			Title:       cvar.Title,
-		})
+		appendCvarToCategories(res.Msg.CvarCategories, cvar)
 	}
-
 	return res, nil
 }
 
@@ -2807,60 +2993,89 @@ func (s *ControlApi) SaveUserPreferences(ctx context.Context, req *connect.Reque
 	return res, nil
 }
 
-func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[controlv1.CreateApiKeyRequest]) (*connect.Response[controlv1.CreateApiKeyResponse], error) {
-	authenticatedUser := s.getAuthenticatedUser(ctx)
-	if authenticatedUser == nil || authenticatedUser.User == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+func (s *ControlApi) apiKeyTargetUser(au *authentication.AuthenticatedUser, userID uint32) (*db.UserAccount, error) {
+	if userID == 0 || userID == au.User.ID {
+		return au.User, nil
 	}
-
-	targetUser := authenticatedUser.User
-	if req.Msg.UserId != 0 && req.Msg.UserId != authenticatedUser.User.ID {
-		if !authenticatedUser.HasPermission(rbac.PermissionUsersView) {
-			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: cannot create API keys for other users"))
-		}
-		targetUser = s.DB.GetUserByID(req.Msg.UserId)
-		if targetUser == nil {
-			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
-		}
+	if !au.HasPermission(rbac.PermissionUsersView) {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("permission denied: cannot create API keys for other users"))
 	}
+	targetUser := s.DB.GetUserByID(userID)
+	if targetUser == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
+	}
+	return targetUser, nil
+}
 
-	log.Infof("Creating API key for user: %s (requested by %s)", targetUser.Username, authenticatedUser.User.Username)
-
-	name := strings.TrimSpace(req.Msg.Name)
+func validateAPIKeyName(name string) (string, error) {
+	name = strings.TrimSpace(name)
 	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("API key name is required"))
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("API key name is required"))
 	}
 	if len(name) > 128 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("API key name must be 128 characters or fewer"))
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("API key name must be 128 characters or fewer"))
 	}
+	return name, nil
+}
 
-	newKeyValue, err := password.GenerateAPIKey("")
-	if err != nil {
-		log.Errorf("Error generating API key: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to generate API key: %w", err))
-	}
-
-	readOnly := req.Msg.GetReadOnly()
+func (s *ControlApi) storeAPIKey(ctx context.Context, targetUser *db.UserAccount, name, key string, readOnly bool) error {
+	var err error
 	if s.IAM != nil {
-		_, err = s.IAM.CreateAPIKey(ctx, int(targetUser.ID), name, newKeyValue, readOnly)
+		_, err = s.IAM.CreateAPIKey(ctx, int(targetUser.ID), name, key, readOnly)
 	} else {
-		_, err = s.DB.CreateApiKey(targetUser, name, newKeyValue, readOnly)
+		_, err = s.DB.CreateApiKey(targetUser, name, key, readOnly)
 	}
 	if err != nil {
 		log.Errorf("Error creating API key: %v", err)
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create API key: %w", err))
+		return connect.NewError(connect.CodeInternal, fmt.Errorf("failed to create API key: %w", err))
 	}
+	return nil
+}
 
-	res := connect.NewResponse(&controlv1.CreateApiKeyResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-		},
-		NewKeyValue: newKeyValue,
-	})
+func (s *ControlApi) generateAndStoreAPIKey(ctx context.Context, targetUser *db.UserAccount, name string, readOnly bool) (string, error) {
+	newKeyValue, err := generateAPIKeyValue()
+	if err != nil {
+		return "", err
+	}
+	if err := s.storeAPIKey(ctx, targetUser, name, newKeyValue, readOnly); err != nil {
+		return "", err
+	}
+	return newKeyValue, nil
+}
 
+func generateAPIKeyValue() (string, error) {
+	newKeyValue, err := password.GenerateAPIKey("")
+	if err != nil {
+		log.Errorf("Error generating API key: %v", err)
+		return "", connect.NewError(connect.CodeInternal, fmt.Errorf("failed to generate API key: %w", err))
+	}
+	return newKeyValue, nil
+}
+
+func (s *ControlApi) CreateApiKey(ctx context.Context, req *connect.Request[controlv1.CreateApiKeyRequest]) (*connect.Response[controlv1.CreateApiKeyResponse], error) {
+	au, err := s.requireAuthenticatedAccount(ctx)
+	if err != nil {
+		return nil, err
+	}
+	targetUser, err := s.apiKeyTargetUser(au, req.Msg.UserId)
+	if err != nil {
+		return nil, err
+	}
+	log.Infof("Creating API key for user: %s (requested by %s)", targetUser.Username, au.User.Username)
+	name, err := validateAPIKeyName(req.Msg.Name)
+	if err != nil {
+		return nil, err
+	}
+	readOnly := req.Msg.GetReadOnly()
+	newKeyValue, err := s.generateAndStoreAPIKey(ctx, targetUser, name, readOnly)
+	if err != nil {
+		return nil, err
+	}
 	log.Infof("API key created successfully for user=%s read_only=%v", targetUser.Username, readOnly)
-
-	return res, nil
+	return connect.NewResponse(&controlv1.CreateApiKeyResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true},
+		NewKeyValue:      newKeyValue,
+	}), nil
 }
 
 func (s *ControlApi) RevokeApiKey(ctx context.Context, req *connect.Request[controlv1.RevokeApiKeyRequest]) (*connect.Response[controlv1.RevokeApiKeyResponse], error) {
@@ -2881,67 +3096,71 @@ func (s *ControlApi) RevokeApiKey(ctx context.Context, req *connect.Request[cont
 	return res, nil
 }
 
-func validateThemeCvar(keyName, valueString string, catalog []string) error {
-	switch keyName {
-	case db.CvarKeys.ThemeControl:
-		value := strings.TrimSpace(valueString)
-		if value != db.ThemeControlSystem && value != db.ThemeControlUser {
-			return fmt.Errorf("theme_control must be %q or %q", db.ThemeControlSystem, db.ThemeControlUser)
-		}
-	case db.CvarKeys.ThemeName:
-		if !themes.IsValidThemeName(strings.TrimSpace(valueString), catalog) {
-			return fmt.Errorf("theme_name is not in the available theme catalog")
-		}
+func validateThemeControlCvar(valueString string) error {
+	value := strings.TrimSpace(valueString)
+	if value != db.ThemeControlSystem && value != db.ThemeControlUser {
+		return fmt.Errorf("theme_control must be %q or %q", db.ThemeControlSystem, db.ThemeControlUser)
 	}
 	return nil
 }
 
+func validateThemeNameCvar(valueString string, catalog []string) error {
+	if !themes.IsValidThemeName(strings.TrimSpace(valueString), catalog) {
+		return fmt.Errorf("theme_name is not in the available theme catalog")
+	}
+	return nil
+}
+
+func validateThemeCvar(keyName, valueString string, catalog []string) error {
+	switch keyName {
+	case db.CvarKeys.ThemeControl:
+		return validateThemeControlCvar(valueString)
+	case db.CvarKeys.ThemeName:
+		return validateThemeNameCvar(valueString, catalog)
+	}
+	return nil
+}
+
+func (s *ControlApi) setCvarValue(cvar *db.Cvar, valueString string, valueInt int32) error {
+	switch cvar.Type {
+	case "password", "text":
+		log.Infof("Setting cvar %s to string value: %s", cvar.KeyName, valueString)
+		return s.DB.SetCvarString(cvar.KeyName, valueString)
+	case "bool", "int":
+		return s.DB.SetCvarInt(cvar.KeyName, valueInt)
+	default:
+		return fmt.Errorf("unsupported cvar type: %s", cvar.Type)
+	}
+}
+
+func applyDebugCvar(cvar *db.Cvar, valueInt int32) {
+	if !debuglog.IsDebugCvar(cvar.KeyName) {
+		return
+	}
+	if cvar.Type != "bool" && cvar.Type != "int" {
+		return
+	}
+	debuglog.Set(cvar.KeyName, valueInt == 1)
+	log.Infof("Updated debug log flag %s=%v", cvar.KeyName, valueInt == 1)
+}
+
 func (s *ControlApi) SetCvar(ctx context.Context, req *connect.Request[controlv1.SetCvarRequest]) (*connect.Response[controlv1.SetCvarResponse], error) {
 	cvar := s.DB.GetCvar(req.Msg.KeyName)
-
 	if cvar == nil {
 		log.Warnf("cvar not found: %s", req.Msg.KeyName)
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("cvar not found: %s", req.Msg.KeyName))
 	}
-
 	if err := validateThemeCvar(cvar.KeyName, req.Msg.ValueString, themes.AvailableThemeNames()); err != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
-
-	var err error
-
-	switch cvar.Type {
-	case "password":
-		fallthrough
-	case "text":
-		log.Infof("Setting cvar %s to string value: %s", cvar.KeyName, req.Msg.ValueString)
-		err = s.DB.SetCvarString(cvar.KeyName, req.Msg.ValueString)
-	case "bool":
-		fallthrough
-	case "int":
-		err = s.DB.SetCvarInt(cvar.KeyName, req.Msg.ValueInt)
-	default:
-		err = fmt.Errorf("unsupported cvar type: %s", cvar.Type)
-	}
-
-	if err != nil {
+	if err := s.setCvarValue(cvar, req.Msg.ValueString, req.Msg.ValueInt); err != nil {
 		log.Errorf("Error setting cvar: %v", err)
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set cvar: %w", err))
 	}
-
-	if debuglog.IsDebugCvar(cvar.KeyName) && (cvar.Type == "bool" || cvar.Type == "int") {
-		debuglog.Set(cvar.KeyName, req.Msg.ValueInt == 1)
-		log.Infof("Updated debug log flag %s=%v", cvar.KeyName, req.Msg.ValueInt == 1)
-	}
-
-	res := connect.NewResponse(&controlv1.SetCvarResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "cvar set successfully",
-		},
-	})
-
-	return res, nil
+	applyDebugCvar(cvar, req.Msg.ValueInt)
+	return connect.NewResponse(&controlv1.SetCvarResponse{
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "cvar set successfully"},
+	}), nil
 }
 
 type OAuthClientMetadata struct {
@@ -3129,20 +3348,15 @@ func (s *ControlApi) DeleteCampaign(ctx context.Context, req *connect.Request[co
 }
 
 func (s *ControlApi) AddSocialAccountToCampaign(ctx context.Context, req *connect.Request[controlv1.AddSocialAccountToCampaignRequest]) (*connect.Response[controlv1.AddSocialAccountToCampaignResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
-	if au != nil && !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, req.Msg.SocialAccountId, "post") {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no post access to social account %d", req.Msg.SocialAccountId))
+	if err := s.requirePostSocialAccount(s.getAuthenticatedUser(ctx), req.Msg.SocialAccountId); err != nil {
+		return nil, err
 	}
-
-	err := s.DB.AddSocialAccountToCampaign(req.Msg.CampaignId, req.Msg.SocialAccountId)
-	if err != nil {
+	if err := s.DB.AddSocialAccountToCampaign(req.Msg.CampaignId, req.Msg.SocialAccountId); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to add social account to campaign: %w", err))
 	}
-	res := connect.NewResponse(&controlv1.AddSocialAccountToCampaignResponse{
+	return connect.NewResponse(&controlv1.AddSocialAccountToCampaignResponse{
 		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "OK"},
-	})
-	return res, nil
+	}), nil
 }
 
 func (s *ControlApi) RemoveSocialAccountFromCampaign(ctx context.Context, req *connect.Request[controlv1.RemoveSocialAccountFromCampaignRequest]) (*connect.Response[controlv1.RemoveSocialAccountFromCampaignResponse], error) {
@@ -3165,18 +3379,7 @@ func (s *ControlApi) GetCampaignSocialAccounts(ctx context.Context, req *connect
 	return res, nil
 }
 
-func (s *ControlApi) GetSocialAccountShares(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountSharesRequest]) (*connect.Response[controlv1.GetSocialAccountSharesResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
-	if au != nil && !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, req.Msg.SocialAccountId, "manage") {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", req.Msg.SocialAccountId))
-	}
-
-	rows, err := s.DB.GetSocialAccountShares(req.Msg.SocialAccountId)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get social account shares: %w", err))
-	}
-
+func socialAccountShareEntries(rows []db.SocialAccountShare) []*controlv1.SocialAccountShareEntry {
 	shares := make([]*controlv1.SocialAccountShareEntry, 0, len(rows))
 	for _, row := range rows {
 		shares = append(shares, &controlv1.SocialAccountShareEntry{
@@ -3187,19 +3390,23 @@ func (s *ControlApi) GetSocialAccountShares(ctx context.Context, req *connect.Re
 			CanManage:   row.CanManage,
 		})
 	}
-
-	return connect.NewResponse(&controlv1.GetSocialAccountSharesResponse{Shares: shares}), nil
+	return shares
 }
 
-func (s *ControlApi) SetSocialAccountShares(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountSharesRequest]) (*connect.Response[controlv1.SetSocialAccountSharesResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
-	if au != nil && !canViewAll && !s.DB.CanUserAccessSocialAccount(au.User.ID, req.Msg.SocialAccountId, "manage") {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("no manage access to social account %d", req.Msg.SocialAccountId))
+func (s *ControlApi) GetSocialAccountShares(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountSharesRequest]) (*connect.Response[controlv1.GetSocialAccountSharesResponse], error) {
+	if err := s.requireManageSocialAccount(s.getAuthenticatedUser(ctx), req.Msg.SocialAccountId); err != nil {
+		return nil, err
 	}
+	rows, err := s.DB.GetSocialAccountShares(req.Msg.SocialAccountId)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to get social account shares: %w", err))
+	}
+	return connect.NewResponse(&controlv1.GetSocialAccountSharesResponse{Shares: socialAccountShareEntries(rows)}), nil
+}
 
-	dbShares := make([]db.SocialAccountShare, 0, len(req.Msg.Shares))
-	for _, share := range req.Msg.Shares {
+func protoSharesToDB(shares []*controlv1.SocialAccountShareEntry) []db.SocialAccountShare {
+	dbShares := make([]db.SocialAccountShare, 0, len(shares))
+	for _, share := range shares {
 		dbShares = append(dbShares, db.SocialAccountShare{
 			UserGroupID: share.UserGroupId,
 			CanRead:     share.CanRead,
@@ -3207,16 +3414,18 @@ func (s *ControlApi) SetSocialAccountShares(ctx context.Context, req *connect.Re
 			CanManage:   share.CanManage,
 		})
 	}
+	return dbShares
+}
 
-	if err := s.DB.SetSocialAccountShares(req.Msg.SocialAccountId, dbShares); err != nil {
+func (s *ControlApi) SetSocialAccountShares(ctx context.Context, req *connect.Request[controlv1.SetSocialAccountSharesRequest]) (*connect.Response[controlv1.SetSocialAccountSharesResponse], error) {
+	if err := s.requireManageSocialAccount(s.getAuthenticatedUser(ctx), req.Msg.SocialAccountId); err != nil {
+		return nil, err
+	}
+	if err := s.DB.SetSocialAccountShares(req.Msg.SocialAccountId, protoSharesToDB(req.Msg.Shares)); err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to set social account shares: %w", err))
 	}
-
 	return connect.NewResponse(&controlv1.SetSocialAccountSharesResponse{
-		StandardResponse: &controlv1.StandardResponse{
-			Success: true,
-			Message: "Shares updated successfully",
-		},
+		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Shares updated successfully"},
 	}), nil
 }
 

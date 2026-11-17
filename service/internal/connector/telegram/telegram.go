@@ -67,34 +67,37 @@ func (c *TelegramConnector) GetDisplayName() string {
 }
 
 func (c *TelegramConnector) GetChatBot() *connector.ChatBot {
-	name := c.GetDisplayName()
-	if name == c.GetProtocol() && c.nickname != "" {
-		// If no custom display name is set, use the bot's username
-		name = c.nickname
-	}
-
-	statusMsg := ""
-	switch {
-	case c.isRunning:
-		statusMsg = "Bot is running and connected"
-	case c.errorMessage != "":
-		statusMsg = c.errorMessage
-	case c.statusMessage != "":
-		statusMsg = c.statusMessage
-	default:
-		statusMsg = "Stopped (not connected)"
-	}
-
 	return &connector.ChatBot{
 		BotID:               c.botID,
 		Connector:           c.GetProtocol(),
-		Name:                name,
+		Name:                c.chatBotName(),
 		Identity:            c.nickname,
 		Icon:                c.GetIcon(),
 		IsRunning:           c.isRunning,
-		StatusMessage:       statusMsg,
+		StatusMessage:       chatBotStatusMessage(c.isRunning, c.errorMessage, c.statusMessage),
 		ErrorMessage:        c.errorMessage,
 		ProtocolDisplayName: c.protocolDisplayName,
+	}
+}
+
+func (c *TelegramConnector) chatBotName() string {
+	name := c.GetDisplayName()
+	if name == c.GetProtocol() && c.nickname != "" {
+		return c.nickname
+	}
+	return name
+}
+
+func chatBotStatusMessage(isRunning bool, errorMessage, statusMessage string) string {
+	switch {
+	case isRunning:
+		return "Bot is running and connected"
+	case errorMessage != "":
+		return errorMessage
+	case statusMessage != "":
+		return statusMessage
+	default:
+		return "Stopped (not connected)"
 	}
 }
 
@@ -141,23 +144,34 @@ func (c *TelegramConnector) StartChatBot() error {
 	if c.isRunning {
 		return fmt.Errorf("telegram bot is already running")
 	}
-	if c.botToken == "" {
-		c.botToken = c.db.GetCvarString(chatbot.TelegramBotTokenKey(c.botID))
-	}
-	if c.botToken == "" {
-		return fmt.Errorf("telegram bot token is not configured")
+	if err := c.ensureBotToken(); err != nil {
+		return err
 	}
 
 	c.SetPrefix("Telegram-new")
 	c.Logger().Infof("japella-bot-telegram")
 	c.startBot(c.botToken)
 	if !c.isRunning {
-		if c.errorMessage != "" {
-			return fmt.Errorf("%s", c.errorMessage)
-		}
-		return fmt.Errorf("failed to start telegram bot")
+		return c.startFailureError("failed to start telegram bot")
 	}
 	return nil
+}
+
+func (c *TelegramConnector) ensureBotToken() error {
+	if c.botToken == "" {
+		c.botToken = c.db.GetCvarString(chatbot.TelegramBotTokenKey(c.botID))
+	}
+	if c.botToken == "" {
+		return fmt.Errorf("telegram bot token is not configured")
+	}
+	return nil
+}
+
+func (c *TelegramConnector) startFailureError(fallback string) error {
+	if c.errorMessage != "" {
+		return fmt.Errorf("%s", c.errorMessage)
+	}
+	return fmt.Errorf("%s", fallback)
 }
 
 func (c *TelegramConnector) StopChatBot() error {
@@ -190,54 +204,56 @@ func (c *TelegramConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 
 func (c *TelegramConnector) startBot(botToken string) {
 	c.Logger().Infof("Starting Telegram bot with token (length: %d)", len(botToken))
-
-	// Initialize channels map
-	if c.channels == nil {
-		c.channels = make(map[int64]*TelegramChannel)
-	}
-
-	// Create a handler wrapper to add debugging
-	handlerWrapper := func(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Update) {
-		c.Logger().Infof("=== MESSAGE HANDLER CALLED ===")
-		c.Logger().Infof("Update type: Message=%v, CallbackQuery=%v, ChannelPost=%v",
-			update.Message != nil,
-			update.CallbackQuery != nil,
-			update.ChannelPost != nil)
-
-		if update.Message != nil {
-			text := ""
-			if update.Message.Text != "" {
-				text = update.Message.Text
-			}
-			c.Logger().Infof("Message details - ChatID: %d, From: %+v, Text: %s",
-				update.Message.Chat.ID,
-				update.Message.From,
-				text)
-		}
-
-		// Call the actual handler
-		c.messageHandler(update)
-	}
+	c.ensureChannelsMap()
 
 	opts := []tgbotapi.Option{
-		tgbotapi.WithDefaultHandler(handlerWrapper),
+		tgbotapi.WithDefaultHandler(c.debugHandlerWrapper),
 	}
-
 	c.Logger().Infof("Creating bot instance with %d options", len(opts))
 
 	var err error
-
 	c.botInstance, err = tgbotapi.New(botToken, opts...)
-
 	if err != nil {
 		c.Logger().Errorf("Error creating bot: %v", err)
 		c.failStartup("Failed to initialize bot connection", "Failed to create bot instance: "+err.Error())
 		return
 	}
-
 	c.Logger().Infof("Bot instance created successfully")
 
-	// Use a separate context for GetMe to avoid cancellation issues
+	me, err := c.verifyBotIdentity()
+	if err != nil {
+		return
+	}
+	c.markBotRunning(me)
+	c.startAMQPReplierIfEnabled()
+	c.loadHooksFromDB()
+	c.sendDebugStartupIfConfigured(me.Username)
+	c.startPollingLoop()
+	c.Logger().Infof("Bot startup complete - isRunning: %v", c.isRunning)
+}
+
+func (c *TelegramConnector) ensureChannelsMap() {
+	if c.channels == nil {
+		c.channels = make(map[int64]*TelegramChannel)
+	}
+}
+
+func (c *TelegramConnector) debugHandlerWrapper(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Update) {
+	c.Logger().Infof("=== MESSAGE HANDLER CALLED ===")
+	c.Logger().Infof("Update type: Message=%v, CallbackQuery=%v, ChannelPost=%v",
+		update.Message != nil,
+		update.CallbackQuery != nil,
+		update.ChannelPost != nil)
+	if update.Message != nil {
+		c.Logger().Infof("Message details - ChatID: %d, From: %+v, Text: %s",
+			update.Message.Chat.ID,
+			update.Message.From,
+			update.Message.Text)
+	}
+	c.messageHandler(update)
+}
+
+func (c *TelegramConnector) verifyBotIdentity() (*tgbotmdl.User, error) {
 	getMeCtx, getMeCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer getMeCancel()
 
@@ -246,45 +262,56 @@ func (c *TelegramConnector) startBot(botToken string) {
 	if err != nil {
 		c.Logger().Errorf("Error getting bot info: %v", err)
 		c.failStartup("Bot token validation failed", "Failed to verify bot token: "+err.Error())
-		return
+		return nil, err
 	}
+	return me, nil
+}
 
+func (c *TelegramConnector) markBotRunning(me *tgbotmdl.User) {
 	c.nickname = me.Username
-	c.protocolDisplayName = me.FirstName // Store FirstName as protocol display name
+	c.protocolDisplayName = me.FirstName
 	c.isRunning = true
 	c.statusMessage = "Bot is running and connected"
-	c.errorMessage = "" // Clear any previous error messages
-
+	c.errorMessage = ""
 	c.SetPrefix("Telegram-" + c.nickname)
 	c.Logger().Infof("Bot verified successfully - Username: %s, ID: %d, FirstName: %s, CanJoinGroups: %v, CanReadAllGroupMessages: %v",
 		me.Username, me.ID, me.FirstName, me.CanJoinGroups, me.CanReadAllGroupMessages)
+}
 
-	// Start AMQP replier after nickname is set so it can bind to the correct identity-specific routing key
-	if runtimeconfig.Get().Amqp.Enabled {
-		c.Logger().Infof("Starting AMQP replier with identity: %s", c.nickname)
-		go c.Replier()
+func (c *TelegramConnector) startAMQPReplierIfEnabled() {
+	if !runtimeconfig.Get().Amqp.Enabled {
+		return
 	}
+	c.Logger().Infof("Starting AMQP replier with identity: %s", c.nickname)
+	go c.Replier()
+}
 
-	// Load hooks from database now that we have the nickname
-	if c.db != nil {
-		dbHooks, err := c.db.SelectWebhookHooks("telegram", c.botID)
-		if err == nil && len(dbHooks) > 0 {
-			c.hooks = hooks.FromDB(dbHooks)
-			c.Logger().Infof("Loaded %d incoming message hook(s) from database", len(c.hooks))
-		} else if err != nil {
-			c.Logger().Warnf("Failed to load hooks from database: %v, using config hooks", err)
-		}
+func (c *TelegramConnector) loadHooksFromDB() {
+	if c.db == nil {
+		return
 	}
+	dbHooks, err := c.db.SelectWebhookHooks("telegram", c.botID)
+	if err != nil {
+		c.Logger().Warnf("Failed to load hooks from database: %v, using config hooks", err)
+		return
+	}
+	if len(dbHooks) > 0 {
+		c.hooks = hooks.FromDB(dbHooks)
+		c.Logger().Infof("Loaded %d incoming message hook(s) from database", len(c.hooks))
+	}
+}
 
-	// Send debug message if configured
+func (c *TelegramConnector) sendDebugStartupIfConfigured(botUsername string) {
 	debugChatId := runtimeconfig.Get().TelegramDebugChatId
-	if debugChatId != "" {
-		debugCtx, debugCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer debugCancel()
-		c.sendDebugStartupMessage(debugCtx, debugChatId, me.Username)
+	if debugChatId == "" {
+		return
 	}
+	debugCtx, debugCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer debugCancel()
+	c.sendDebugStartupMessage(debugCtx, debugChatId, botUsername)
+}
 
-	// Create a context for Start that will be cancelled on stop
+func (c *TelegramConnector) startPollingLoop() {
 	startCtx, startCancel := context.WithCancel(context.Background())
 	c.runCancel = startCancel
 
@@ -302,8 +329,6 @@ func (c *TelegramConnector) startBot(botToken string) {
 		c.botInstance = nil
 		c.runCancel = nil
 	}()
-
-	c.Logger().Infof("Bot startup complete - isRunning: %v", c.isRunning)
 }
 
 // GetBotInstance returns the bot instance (for internal use)
@@ -338,18 +363,34 @@ func (c *TelegramConnector) sendDebugStartupMessage(ctx context.Context, chatIdS
 
 func (c *TelegramConnector) messageHandler(update *tgbotmdl.Update) {
 	c.Logger().Infof("=== messageHandler ENTERED ===")
+	c.dispatchUpdate(update)
+	c.Logger().Infof("=== messageHandler EXITING ===")
+}
 
-	// Log all update types
+func (c *TelegramConnector) dispatchUpdate(update *tgbotmdl.Update) {
+	if msg := firstMessageInUpdate(update); msg != nil {
+		c.Logger().Infof("Processing message-like update")
+		c.handleMessage(msg)
+		return
+	}
+	c.logNonMessageUpdate(update)
+}
+
+func firstMessageInUpdate(update *tgbotmdl.Update) *tgbotmdl.Message {
 	switch {
 	case update.Message != nil:
-		c.Logger().Infof("Processing Message update")
-		c.handleMessage(update.Message)
+		return update.Message
 	case update.ChannelPost != nil:
-		c.Logger().Infof("Processing ChannelPost update")
-		c.handleMessage(update.ChannelPost)
+		return update.ChannelPost
 	case update.EditedMessage != nil:
-		c.Logger().Infof("Processing EditedMessage update")
-		c.handleMessage(update.EditedMessage)
+		return update.EditedMessage
+	default:
+		return nil
+	}
+}
+
+func (c *TelegramConnector) logNonMessageUpdate(update *tgbotmdl.Update) {
+	switch {
 	case update.CallbackQuery != nil:
 		c.Logger().Infof("Processing CallbackQuery update (ID: %s)", update.CallbackQuery.ID)
 	case update.InlineQuery != nil:
@@ -358,117 +399,131 @@ func (c *TelegramConnector) messageHandler(update *tgbotmdl.Update) {
 		c.Logger().Warnf("Received update with unknown type")
 		c.Logger().Infof("Full update structure: %+v", update)
 	}
-
-	c.Logger().Infof("=== messageHandler EXITING ===")
 }
 
 func (c *TelegramConnector) handleMessage(message *tgbotmdl.Message) {
 	c.Logger().Infof("handleMessage called - ChatID: %d", message.Chat.ID)
-
-	// Track the channel/chat
-	chat := message.Chat
-	channel := &TelegramChannel{
-		ID:       chat.ID,
-		Title:    chat.Title,
-		Type:     string(chat.Type),
-		Username: chat.Username,
-	}
-	// If title is empty, try to get it from the chat
-	if channel.Title == "" && chat.FirstName != "" {
-		channel.Title = chat.FirstName
-		if chat.LastName != "" {
-			channel.Title += " " + chat.LastName
-		}
-	}
-	if channel.Title == "" && channel.Username != "" {
-		channel.Title = "@" + channel.Username
-	}
-	if channel.Title == "" {
-		channel.Title = "Chat " + strconv.FormatInt(chat.ID, 10)
-	}
-	if c.channels == nil {
-		c.channels = make(map[int64]*TelegramChannel)
-	}
-	c.channels[chat.ID] = channel
-	c.Logger().Infof("Tracked channel: %s (ID: %d, Type: %s)", channel.Title, channel.ID, channel.Type)
-
-	// Process message content
+	channel := c.trackChannelFromChat(message.Chat)
 	messageText := message.Text
 	if messageText == "" {
 		messageText = message.Caption
 	}
-
 	c.Logger().Infof("Message text: %q", messageText)
 	c.Logger().Infof("Message from: %+v", message.From)
 	c.Logger().Infof("AMQP enabled: %v", runtimeconfig.Get().Amqp.Enabled)
 
-	author := "unknown"
-	if message.From != nil {
-		if message.From.Username != "" {
-			author = message.From.Username
-		} else if message.From.FirstName != "" {
-			author = message.From.FirstName
-		}
-	}
-
-	messageIDStr := ""
-	if message.ID != 0 {
-		messageIDStr = strconv.Itoa(message.ID)
-	}
+	author := telegramMessageAuthor(message)
 	incomingMsg := &msgs.IncomingMessage{
 		Author:    author,
 		Content:   messageText,
-		Channel:   strconv.FormatInt(chat.ID, 10),
+		Channel:   strconv.FormatInt(message.Chat.ID, 10),
 		Protocol:  "telegram",
-		MessageId: messageIDStr,
+		MessageId: telegramMessageID(message.ID),
 		Timestamp: time.Now().Unix(),
-		Identity:  c.nickname, // Include bot identity so hooks can route responses correctly
+		Identity:  c.nickname,
 	}
+	c.logIncomingTelegramMessage(incomingMsg, channel.Title, author)
+	c.executeTelegramHooks(incomingMsg)
+	c.publishIncomingIfEnabled(incomingMsg, author, messageText, message.Chat.ID)
+}
 
-	if c.db != nil {
-		convTitle := channel.Title
-		if convTitle == "" {
-			convTitle = "Chat " + incomingMsg.Channel
-		}
-		_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
-			Connector:         "telegram",
-			Identity:          c.nickname,
-			BotID:             c.botID,
-			ConversationKey:   db.BuildConversationKey(incomingMsg.Channel, ""),
-			ConversationTitle: convTitle,
-			Channel:           incomingMsg.Channel,
-			Author:            author,
-			Content:           incomingMsg.Content,
-			Direction:         "incoming",
-			MessageID:         incomingMsg.MessageId,
-			TimestampUnix:     incomingMsg.Timestamp,
-		})
+func (c *TelegramConnector) trackChannelFromChat(chat tgbotmdl.Chat) *TelegramChannel {
+	channel := &TelegramChannel{
+		ID:       chat.ID,
+		Title:    resolveChatTitle(chat.ID, chat.Title, chat.FirstName, chat.LastName, chat.Username),
+		Type:     string(chat.Type),
+		Username: chat.Username,
 	}
+	c.ensureChannelsMap()
+	c.channels[chat.ID] = channel
+	c.Logger().Infof("Tracked channel: %s (ID: %d, Type: %s)", channel.Title, channel.ID, channel.Type)
+	return channel
+}
 
-	// Execute hooks if configured
-	if len(c.hooks) > 0 {
-		c.Logger().Debugf("Executing %d hook(s) for incoming message", len(c.hooks))
-		hooks.ExecuteHooks(c.hooks, incomingMsg, c.Logger())
+func resolveChatTitle(id int64, title, firstName, lastName, username string) string {
+	if title != "" {
+		return title
 	}
+	if firstName != "" {
+		return joinPersonName(firstName, lastName)
+	}
+	if username != "" {
+		return "@" + username
+	}
+	return "Chat " + strconv.FormatInt(id, 10)
+}
 
-	// Publish to AMQP if enabled
-	if runtimeconfig.Get().Amqp.Enabled {
-		c.Logger().Infof("Publishing message to AMQP - Author: %s, Content: %q, Channel: %d",
-			author, messageText, chat.ID)
+func joinPersonName(firstName, lastName string) string {
+	if lastName == "" {
+		return firstName
+	}
+	return firstName + " " + lastName
+}
 
-		amqp.PublishPb(incomingMsg)
+func telegramMessageAuthor(message *tgbotmdl.Message) string {
+	if message.From == nil {
+		return "unknown"
+	}
+	if message.From.Username != "" {
+		return message.From.Username
+	}
+	if message.From.FirstName != "" {
+		return message.From.FirstName
+	}
+	return "unknown"
+}
 
-		c.Logger().Infof("Message published to AMQP successfully")
-	} else {
+func telegramMessageID(id int) string {
+	if id == 0 {
+		return ""
+	}
+	return strconv.Itoa(id)
+}
+
+func (c *TelegramConnector) logIncomingTelegramMessage(msg *msgs.IncomingMessage, channelTitle, author string) {
+	if c.db == nil {
+		return
+	}
+	convTitle := channelTitle
+	if convTitle == "" {
+		convTitle = "Chat " + msg.Channel
+	}
+	_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
+		Connector:         "telegram",
+		Identity:          c.nickname,
+		BotID:             c.botID,
+		ConversationKey:   db.BuildConversationKey(msg.Channel, ""),
+		ConversationTitle: convTitle,
+		Channel:           msg.Channel,
+		Author:            author,
+		Content:           msg.Content,
+		Direction:         "incoming",
+		MessageID:         msg.MessageId,
+		TimestampUnix:     msg.Timestamp,
+	})
+}
+
+func (c *TelegramConnector) executeTelegramHooks(msg *msgs.IncomingMessage) {
+	if len(c.hooks) == 0 {
+		return
+	}
+	c.Logger().Debugf("Executing %d hook(s) for incoming message", len(c.hooks))
+	hooks.ExecuteHooks(c.hooks, msg, c.Logger())
+}
+
+func (c *TelegramConnector) publishIncomingIfEnabled(msg *msgs.IncomingMessage, author, messageText string, chatID int64) {
+	if !runtimeconfig.Get().Amqp.Enabled {
 		c.Logger().Warnf("AMQP is disabled - message not published")
+		return
 	}
+	c.Logger().Infof("Publishing message to AMQP - Author: %s, Content: %q, Channel: %d",
+		author, messageText, chatID)
+	amqp.PublishPb(msg)
+	c.Logger().Infof("Message published to AMQP successfully")
 }
 
 func (c *TelegramConnector) Replier() {
 	ctx := context.Background()
-
-	// Use identity-specific routing key so this bot only receives messages intended for it
-	// Note: nickname must be set before Replier() is called
 	if c.nickname == "" {
 		c.Logger().Errorf("Replier() called but nickname is not set! Cannot bind to identity-specific routing key.")
 		return
@@ -477,62 +532,67 @@ func (c *TelegramConnector) Replier() {
 	routingKey := amqp.GetOutgoingMessageRoutingKey("telegram", c.nickname)
 	c.Logger().Infof("Starting Replier for routing key: %s (bot identity: %s)", routingKey, c.nickname)
 
-	// Consume from identity-specific routing key
 	amqp.ConsumeForever(routingKey, func(d amqp.Delivery) {
-		reply := msgs.OutgoingMessage{}
+		c.handleOutgoingDelivery(ctx, d)
+	})
+}
 
-		if err := amqp.Decode(d.Message.Body, &reply); err != nil {
-			c.Logger().Errorf("decode OutgoingMessage: %v", err)
-			return
-		}
+func (c *TelegramConnector) handleOutgoingDelivery(ctx context.Context, d amqp.Delivery) {
+	reply := msgs.OutgoingMessage{}
+	if err := amqp.Decode(d.Message.Body, &reply); err != nil {
+		c.Logger().Errorf("decode OutgoingMessage: %v", err)
+		return
+	}
+	c.Logger().Infof("Received OutgoingMessage - Protocol: %s, Identity: %s, Channel: %s, Content: %s",
+		reply.Protocol, reply.Identity, reply.Channel, reply.Content)
+	if reply.Protocol != "telegram" {
+		c.Logger().Debugf("Ignoring message for protocol: %s", reply.Protocol)
+		return
+	}
+	c.sendOutgoingReply(ctx, &reply)
+}
 
-		c.Logger().Infof("Received OutgoingMessage - Protocol: %s, Identity: %s, Channel: %s, Content: %s",
-			reply.Protocol, reply.Identity, reply.Channel, reply.Content)
+func (c *TelegramConnector) sendOutgoingReply(ctx context.Context, reply *msgs.OutgoingMessage) {
+	channelID, err := strconv.ParseInt(reply.Channel, 10, 64)
+	if err != nil {
+		c.Logger().Errorf("OutgoingMessage has invalid channel %q: %v", reply.Channel, err)
+		return
+	}
+	if c.botInstance == nil {
+		c.Logger().Warnf("Bot instance is nil, cannot send message")
+		return
+	}
+	_, sendErr := c.botInstance.SendMessage(ctx, &tgbotapi.SendMessageParams{
+		ChatID: channelID,
+		Text:   reply.Content,
+	})
+	if sendErr != nil {
+		c.Logger().Errorf("SendMessage failed (chat_id=%d): %v", channelID, sendErr)
+		return
+	}
+	c.logOutgoingTelegramMessage(reply)
+}
 
-		// Only process messages for this protocol
-		// Note: AMQP binding should already filter by identity via routing key, but we keep this check for safety
-		if reply.Protocol != "telegram" {
-			c.Logger().Debugf("Ignoring message for protocol: %s", reply.Protocol)
-			return
-		}
-
-		channelID, err := strconv.ParseInt(reply.Channel, 10, 64)
-		if err != nil {
-			c.Logger().Errorf("OutgoingMessage has invalid channel %q: %v", reply.Channel, err)
-			return
-		}
-		if c.botInstance != nil {
-			_, sendErr := c.botInstance.SendMessage(ctx, &tgbotapi.SendMessageParams{
-				ChatID: channelID,
-				Text:   reply.Content,
-			})
-			if sendErr != nil {
-				c.Logger().Errorf("SendMessage failed (chat_id=%d): %v", channelID, sendErr)
-				return
-			}
-
-			if c.db != nil {
-				conversationKey, conversationTitle := c.db.ResolveOutgoingConversationForLog(
-					"telegram", c.botID, reply.Channel,
-					reply.GetConversationKey(), reply.GetIncommingMessageId(),
-				)
-				_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
-					Connector:         "telegram",
-					Identity:          c.nickname,
-					BotID:             c.botID,
-					ConversationKey:   conversationKey,
-					ConversationTitle: conversationTitle,
-					Channel:           reply.Channel,
-					Author:            "bot",
-					Content:           reply.Content,
-					Direction:         "outgoing",
-					MessageID:         "",
-					TimestampUnix:     time.Now().Unix(),
-				})
-			}
-		} else {
-			c.Logger().Warnf("Bot instance is nil, cannot send message")
-		}
+func (c *TelegramConnector) logOutgoingTelegramMessage(reply *msgs.OutgoingMessage) {
+	if c.db == nil {
+		return
+	}
+	conversationKey, conversationTitle := c.db.ResolveOutgoingConversationForLog(
+		"telegram", c.botID, reply.Channel,
+		reply.GetConversationKey(), reply.GetIncommingMessageId(),
+	)
+	_ = c.db.InsertChatBotMessage(&db.ChatBotMessage{
+		Connector:         "telegram",
+		Identity:          c.nickname,
+		BotID:             c.botID,
+		ConversationKey:   conversationKey,
+		ConversationTitle: conversationTitle,
+		Channel:           reply.Channel,
+		Author:            "bot",
+		Content:           reply.Content,
+		Direction:         "outgoing",
+		MessageID:         "",
+		TimestampUnix:     time.Now().Unix(),
 	})
 }
 
@@ -598,28 +658,12 @@ func (c *TelegramConnector) RefreshChannelInfo(ctx context.Context, chatID int64
 		return fmt.Errorf("failed to get chat info: %w", err)
 	}
 
-	channel := &TelegramChannel{
+	c.ensureChannelsMap()
+	c.channels[chatID] = &TelegramChannel{
 		ID:       chat.ID,
-		Title:    chat.Title,
+		Title:    resolveChatTitle(chat.ID, chat.Title, chat.FirstName, chat.LastName, chat.Username),
 		Type:     string(chat.Type),
 		Username: chat.Username,
 	}
-	if channel.Title == "" && chat.FirstName != "" {
-		channel.Title = chat.FirstName
-		if chat.LastName != "" {
-			channel.Title += " " + chat.LastName
-		}
-	}
-	if channel.Title == "" && channel.Username != "" {
-		channel.Title = "@" + channel.Username
-	}
-	if channel.Title == "" {
-		channel.Title = "Chat " + strconv.FormatInt(chat.ID, 10)
-	}
-
-	if c.channels == nil {
-		c.channels = make(map[int64]*TelegramChannel)
-	}
-	c.channels[chatID] = channel
 	return nil
 }

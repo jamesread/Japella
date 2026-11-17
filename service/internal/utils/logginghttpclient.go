@@ -62,36 +62,12 @@ func (l *ChainingHttpClient) logResponseHeaders(resp *http.Response) {
 
 func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error) {
 	debuglog.HTTPf("Request: %s %s", req.Method, req.URL.String())
-
 	l.logRequestHeaders(req)
-
-	if req.Body != nil {
-		contentType := req.Header.Get("Content-Type")
-		buf := new(bytes.Buffer)
-		n, err := buf.ReadFrom(req.Body)
-		_ = req.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("read request body: %w", err)
-		}
-		bodyBytes := buf.Bytes()
-		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-
-		// Don't log binary bodies (images, octet-stream, multipart) or large payloads
-		skipBody := n > 1024 ||
-			strings.HasPrefix(contentType, "image/") ||
-			strings.HasPrefix(contentType, "application/octet-stream") ||
-			strings.HasPrefix(contentType, "multipart/")
-		if debuglog.HTTPEnabled() {
-			if skipBody {
-				debuglog.HTTPf("Request body: %d bytes (Content-Type: %s), omitted from log", n, contentType)
-			} else {
-				debuglog.HTTPf("Request Body Content:\n%s", string(bodyBytes))
-			}
-		}
+	if err := l.replayAndLogRequestBody(req); err != nil {
+		return nil, err
 	}
 
 	resp, err := l.rt.RoundTrip(req)
-
 	if err != nil {
 		l.logger.Errorf("Error during request: %v", err)
 		return nil, err
@@ -102,22 +78,52 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 		"url":    req.URL.String(),
 		"method": req.Method,
 	}, "HTTP Response")
-
 	l.logResponseHeaders(resp)
 
 	// use strings.Contains here because some servers include the charset in the Content-Type, so it does not exactly match "application/json"
 	isJson := strings.Contains(resp.Header.Get("Content-Type"), "application/json")
-
 	bodyString, err := ReadBody(resp)
-
 	if err != nil {
 		l.logger.Errorf("Error reading response body: %v", err)
 		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
-
 	l.logBodyContent(isJson, bodyString)
-
 	return resp, nil
+}
+
+func (l *ChainingHttpClient) replayAndLogRequestBody(req *http.Request) error {
+	if req.Body == nil {
+		return nil
+	}
+	contentType := req.Header.Get("Content-Type")
+	buf := new(bytes.Buffer)
+	n, err := buf.ReadFrom(req.Body)
+	_ = req.Body.Close()
+	if err != nil {
+		return fmt.Errorf("read request body: %w", err)
+	}
+	bodyBytes := buf.Bytes()
+	req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	logRequestBody(contentType, n, bodyBytes)
+	return nil
+}
+
+func logRequestBody(contentType string, n int64, bodyBytes []byte) {
+	if !debuglog.HTTPEnabled() {
+		return
+	}
+	if shouldOmitRequestBodyLog(contentType, n) {
+		debuglog.HTTPf("Request body: %d bytes (Content-Type: %s), omitted from log", n, contentType)
+		return
+	}
+	debuglog.HTTPf("Request Body Content:\n%s", string(bodyBytes))
+}
+
+func shouldOmitRequestBodyLog(contentType string, n int64) bool {
+	return n > 1024 ||
+		strings.HasPrefix(contentType, "image/") ||
+		strings.HasPrefix(contentType, "application/octet-stream") ||
+		strings.HasPrefix(contentType, "multipart/")
 }
 
 func ReadBody(r *http.Response) (string, error) {
@@ -204,24 +210,29 @@ func NewClient(logger *logp.Entry) *ChainingHttpClient {
 
 func (c *ChainingHttpClient) AsJson(v any) {
 	c.Res, c.Err = c.client.Do(c.req) //nolint:bodyclose // closed by the defer below once Err is checked
-
 	if c.Err != nil {
 		c.Err = fmt.Errorf("error making request: %w", c.Err)
 		return
 	}
-
 	defer func() { _ = c.Res.Body.Close() }()
-
-	if c.Res.StatusCode < 200 || c.Res.StatusCode >= 300 {
+	if !isHTTPSuccess(c.Res.StatusCode) {
 		c.ResBody, _ = io.ReadAll(c.Res.Body)
 		c.Err = fmt.Errorf("unexpected status code: %d", c.Res.StatusCode)
 		return
 	}
+	c.decodeJSONBody(v)
+}
 
-	if v != nil {
-		if err := json.NewDecoder(c.Res.Body).Decode(v); err != nil {
-			c.Err = fmt.Errorf("error decoding JSON response: %w", err)
-		}
+func isHTTPSuccess(status int) bool {
+	return status >= 200 && status < 300
+}
+
+func (c *ChainingHttpClient) decodeJSONBody(v any) {
+	if v == nil {
+		return
+	}
+	if err := json.NewDecoder(c.Res.Body).Decode(v); err != nil {
+		c.Err = fmt.Errorf("error decoding JSON response: %w", err)
 	}
 }
 

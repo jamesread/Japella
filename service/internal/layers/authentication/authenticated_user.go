@@ -3,6 +3,7 @@ package authentication
 import (
 	"context"
 	"maps"
+	"slices"
 	"time"
 
 	armlayer "github.com/jamesread/armature-iam/layer"
@@ -27,33 +28,39 @@ func (a *AuthenticatedUser) HasPermission(p string) bool {
 
 // CanAccessControlPanel is true when the user may use the admin control panel (any linked capability).
 func (a *AuthenticatedUser) CanAccessControlPanel() bool {
-	if a == nil || a.RBAC == nil {
-		return false
-	}
-	if a.RBAC.IsSuperuser {
-		return true
-	}
-	return a.HasPermission(rbac.PermissionUsersView) ||
-		a.HasPermission(rbac.PermissionRbacView) ||
-		a.HasPermission(rbac.PermissionUserGroupsView) ||
-		a.HasPermission(rbac.PermissionAccountPoliciesManage) ||
-		a.HasPermission(rbac.PermissionSystemConnectors) ||
-		a.HasPermission(rbac.PermissionSystemSettings) ||
-		a.HasPermission(rbac.PermissionSystemLogs) ||
-		a.HasPermission(rbac.PermissionSystemImpersonate)
+	return a.hasAnyPermission(
+		rbac.PermissionUsersView,
+		rbac.PermissionRbacView,
+		rbac.PermissionUserGroupsView,
+		rbac.PermissionAccountPoliciesManage,
+		rbac.PermissionSystemConnectors,
+		rbac.PermissionSystemSettings,
+		rbac.PermissionSystemLogs,
+		rbac.PermissionSystemImpersonate,
+	)
 }
 
 // CanViewSystemDiagnostics is true when GetStatus may include infrastructure and host details.
 func (a *AuthenticatedUser) CanViewSystemDiagnostics() bool {
+	return a.hasAnyPermission(
+		rbac.PermissionSystemConnectors,
+		rbac.PermissionSystemSettings,
+		rbac.PermissionSystemLogs,
+	)
+}
+
+func (a *AuthenticatedUser) hasAnyPermission(perms ...string) bool {
 	if a == nil || a.RBAC == nil {
 		return false
 	}
 	if a.RBAC.IsSuperuser {
 		return true
 	}
-	return a.HasPermission(rbac.PermissionSystemConnectors) ||
-		a.HasPermission(rbac.PermissionSystemSettings) ||
-		a.HasPermission(rbac.PermissionSystemLogs)
+	return a.hasPermissionAmong(perms)
+}
+
+func (a *AuthenticatedUser) hasPermissionAmong(perms []string) bool {
+	return slices.ContainsFunc(perms, a.HasPermission)
 }
 
 // FromContext returns the Japella authenticated user from a Connect request context.

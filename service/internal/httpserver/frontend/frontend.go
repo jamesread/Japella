@@ -22,29 +22,30 @@ func findWebuiDir() string {
 	return dir
 }
 
+var nonSPAExactPaths = map[string]bool{
+	"/api":            true,
+	"/oauth2callback": true,
+	"/lang":           true,
+	"/upload":         true,
+	"/readyz":         true,
+	"/healthz":        true,
+	"/metrics":        true,
+}
+
 // spaHandler serves the SPA by serving index.html for non-API routes that don't exist as files
 func spaHandler(webuiDir string) http.Handler {
 	fileServer := http.FileServer(http.Dir(webuiDir))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if !webuiFileExists(webuiDir, r.URL.Path) {
-			// Check if this is an API route or other non-SPA route
-			if r.URL.Path == "/api" ||
-				r.URL.Path == "/oauth2callback" ||
-				r.URL.Path == "/lang" ||
-				r.URL.Path == "/upload" ||
-				r.URL.Path == "/readyz" ||
-				r.URL.Path == "/healthz" ||
-				r.URL.Path == "/metrics" {
+			if nonSPAExactPaths[r.URL.Path] {
 				// Let the main server handle these routes
 				http.NotFound(w, r)
 				return
 			}
-
 			// For all other routes, serve index.html to enable client-side routing
 			r.URL.Path = "/"
 		}
-
 		fileServer.ServeHTTP(w, r)
 	})
 }

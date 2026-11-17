@@ -7,6 +7,7 @@ import (
 
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/utils"
+	log "github.com/sirupsen/logrus"
 )
 
 // Public AppView: post views (including counts) don't require auth.
@@ -42,26 +43,34 @@ func (p bskyPostView) toPostEngagement() *connector.PostEngagement {
 // either an at:// URI or a https://bsky.app/profile/<repo>/post/<rkey> URL.
 func parseBlueskyPostRef(ref string) (repo string, rkey string, err error) {
 	ref = strings.TrimSpace(ref)
-
 	if after, ok := strings.CutPrefix(ref, "at://"); ok {
-		parts := strings.Split(after, "/")
-		if len(parts) == 3 && parts[1] == "app.bsky.feed.post" && parts[0] != "" && parts[2] != "" {
-			return parts[0], parts[2], nil
-		}
-		return "", "", fmt.Errorf("unsupported bluesky at-uri %q", ref)
+		return parseBlueskyATURI(after, ref)
 	}
+	return parseBlueskyWebURL(ref)
+}
 
+func parseBlueskyATURI(after, original string) (repo string, rkey string, err error) {
+	parts := strings.Split(after, "/")
+	if len(parts) == 3 && parts[1] == "app.bsky.feed.post" && parts[0] != "" && parts[2] != "" {
+		return parts[0], parts[2], nil
+	}
+	return "", "", fmt.Errorf("unsupported bluesky at-uri %q", original)
+}
+
+func parseBlueskyWebURL(ref string) (repo string, rkey string, err error) {
 	u, parseErr := url.Parse(ref)
 	if parseErr != nil {
 		return "", "", fmt.Errorf("invalid bluesky post url %q: %w", ref, parseErr)
 	}
-
 	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
-	if len(parts) == 4 && parts[0] == "profile" && parts[2] == "post" && parts[1] != "" && parts[3] != "" {
+	if isBlueskyProfilePostPath(parts) {
 		return parts[1], parts[3], nil
 	}
-
 	return "", "", fmt.Errorf("cannot determine bluesky post from %q", ref)
+}
+
+func isBlueskyProfilePostPath(parts []string) bool {
+	return len(parts) == 4 && parts[0] == "profile" && parts[2] == "post" && parts[1] != "" && parts[3] != ""
 }
 
 // publishedPostATURI resolves the at:// URI of a post from either its remote
@@ -72,28 +81,35 @@ func (b *BlueskyConnector) publishedPostATURI(socialAccount *connector.SocialAcc
 	if ref == "" {
 		ref = postURL
 	}
-
 	repo, rkey, err := parseBlueskyPostRef(ref)
 	if err != nil {
 		return "", err
 	}
-
-	did := repo
-	if !strings.HasPrefix(did, "did:") {
-		// Our own post URLs are built from the account's handle; prefer the
-		// stored DID so a later handle change doesn't break lookups. Anyone
-		// else's handle must be resolved.
-		if socialAccount != nil && strings.HasPrefix(socialAccount.Did, "did:") && strings.EqualFold(strings.TrimPrefix(repo, "@"), strings.TrimPrefix(socialAccount.Identity, "@")) {
-			did = socialAccount.Did
-		} else {
-			did, err = b.resolveHandleToDID(repo)
-			if err != nil {
-				return "", err
-			}
-		}
+	did, err := b.resolvePostRepoDID(socialAccount, repo)
+	if err != nil {
+		return "", err
 	}
-
 	return "at://" + did + "/app.bsky.feed.post/" + rkey, nil
+}
+
+func (b *BlueskyConnector) resolvePostRepoDID(socialAccount *connector.SocialAccount, repo string) (string, error) {
+	if strings.HasPrefix(repo, "did:") {
+		return repo, nil
+	}
+	if did := didFromMatchingAccount(socialAccount, repo); did != "" {
+		return did, nil
+	}
+	return b.resolveHandleToDID(repo)
+}
+
+func didFromMatchingAccount(socialAccount *connector.SocialAccount, repo string) string {
+	if socialAccount == nil || !strings.HasPrefix(socialAccount.Did, "did:") {
+		return ""
+	}
+	if !strings.EqualFold(strings.TrimPrefix(repo, "@"), strings.TrimPrefix(socialAccount.Identity, "@")) {
+		return ""
+	}
+	return socialAccount.Did
 }
 
 // FetchPostEngagement loads like/repost/reply/quote counts for a post this account published.
@@ -102,15 +118,23 @@ func (b *BlueskyConnector) FetchPostEngagement(socialAccount *connector.SocialAc
 	if err != nil {
 		return nil, err
 	}
+	response, err := getPostsFromAppView(atURI, b.Logger())
+	if err != nil {
+		return nil, err
+	}
+	if len(response.Posts) == 0 {
+		return nil, fmt.Errorf("bluesky post %s not found", atURI)
+	}
+	return response.Posts[0].toPostEngagement(), nil
+}
 
+func getPostsFromAppView(atURI string, logger *log.Entry) (*bskyGetPostsResponse, error) {
 	q := url.Values{}
 	q.Set("uris", atURI)
-
-	client := utils.NewClient(b.Logger()).Get(bskyPublicAppView + "/xrpc/app.bsky.feed.getPosts?" + q.Encode())
+	client := utils.NewClient(logger).Get(bskyPublicAppView + "/xrpc/app.bsky.feed.getPosts?" + q.Encode())
 	if client.Err != nil {
 		return nil, client.Err
 	}
-
 	var response bskyGetPostsResponse
 	client.AsJson(&response)
 	if rl := connector.RateLimitedFromResponse(client.Res); rl != nil {
@@ -119,10 +143,5 @@ func (b *BlueskyConnector) FetchPostEngagement(socialAccount *connector.SocialAc
 	if client.Err != nil {
 		return nil, fmt.Errorf("failed to fetch bluesky post %s: %w", atURI, client.Err)
 	}
-
-	if len(response.Posts) == 0 {
-		return nil, fmt.Errorf("bluesky post %s not found", atURI)
-	}
-
-	return response.Posts[0].toPostEngagement(), nil
+	return &response, nil
 }

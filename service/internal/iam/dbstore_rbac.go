@@ -10,6 +10,34 @@ import (
 	"github.com/jamesread/japella/internal/intconv"
 )
 
+func (s *DBStore) loadAllPermissionNames(out *rbac.EffectiveRBAC) error {
+	var names []string
+	if err := s.DB.ResilientSelect(&names, `SELECT name FROM rbac_permissions ORDER BY name`); err != nil {
+		return err
+	}
+	for _, n := range names {
+		out.Permissions[n] = true
+	}
+	return nil
+}
+
+func (s *DBStore) loadGrantedPermissionNames(userID int, out *rbac.EffectiveRBAC) error {
+	var perms []string
+	err := s.DB.ResilientSelect(&perms, `
+		SELECT DISTINCT p.name FROM rbac_permissions p
+		INNER JOIN rbac_role_permissions rp ON rp.permission_id = p.id
+		INNER JOIN rbac_group_roles gr ON gr.role_id = rp.role_id
+		INNER JOIN user_group_memberships ugm ON ugm.user_group_id = gr.user_group_id
+		WHERE ugm.user_account_id = ?`, userID)
+	if err != nil {
+		return err
+	}
+	for _, p := range perms {
+		out.Permissions[p] = true
+	}
+	return nil
+}
+
 func (s *DBStore) LoadEffectiveRBAC(ctx context.Context, userID int) (*rbac.EffectiveRBAC, error) {
 	var superCount int
 	err := s.DB.ResilientGet(&superCount, `
@@ -39,31 +67,38 @@ func (s *DBStore) LoadEffectiveRBAC(ctx context.Context, userID int) (*rbac.Effe
 	out.RoleNames = roleNames
 
 	if out.IsSuperuser {
-		var names []string
-		err = s.DB.ResilientSelect(&names, `SELECT name FROM rbac_permissions ORDER BY name`)
-		if err != nil {
-			return nil, err
-		}
-		for _, n := range names {
-			out.Permissions[n] = true
-		}
-		return out, nil
+		return out, s.loadAllPermissionNames(out)
 	}
+	return out, s.loadGrantedPermissionNames(userID, out)
+}
 
-	var perms []string
-	err = s.DB.ResilientSelect(&perms, `
-		SELECT DISTINCT p.name FROM rbac_permissions p
-		INNER JOIN rbac_role_permissions rp ON rp.permission_id = p.id
-		INNER JOIN rbac_group_roles gr ON gr.role_id = rp.role_id
-		INNER JOIN user_group_memberships ugm ON ugm.user_group_id = gr.user_group_id
-		WHERE ugm.user_account_id = ?`, userID)
+func (s *DBStore) ensureBootstrapRoles(everyoneID, administratorsID int) error {
+	var memberRoleID, superuserRoleID int
+	if err := s.DB.ResilientGet(&memberRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleMember); err != nil {
+		return err
+	}
+	if err := s.DB.ResilientGet(&superuserRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleSuperuser); err != nil {
+		return err
+	}
+	if err := s.ensureGroupHasRole(everyoneID, memberRoleID); err != nil {
+		return err
+	}
+	return s.ensureGroupHasRole(administratorsID, superuserRoleID)
+}
+
+func (s *DBStore) ensureFirstSuperuserMember(ctx context.Context, administratorsID int) error {
+	count, err := s.CountUsersWithSuperuserViaGroups(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	for _, p := range perms {
-		out.Permissions[p] = true
+	if count > 0 {
+		return nil
 	}
-	return out, nil
+	_, err = s.DB.ResilientExec(`
+		INSERT IGNORE INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at)
+		SELECT u.id, ?, NOW(3), NOW(3) FROM user_accounts u
+		ORDER BY u.id LIMIT 1`, administratorsID)
+	return err
 }
 
 func (s *DBStore) EnsureRBACBootstrap(ctx context.Context) error {
@@ -75,36 +110,12 @@ func (s *DBStore) EnsureRBACBootstrap(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-
-	var memberRoleID, superuserRoleID int
-	if err = s.DB.ResilientGet(&memberRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleMember); err != nil {
+	if err = s.ensureBootstrapRoles(everyoneID, administratorsID); err != nil {
 		return err
 	}
-	if err = s.DB.ResilientGet(&superuserRoleID, `SELECT id FROM rbac_roles WHERE name = ? LIMIT 1`, rbac.RoleSuperuser); err != nil {
+	if err = s.ensureFirstSuperuserMember(ctx, administratorsID); err != nil {
 		return err
 	}
-
-	if err = s.ensureGroupHasRole(everyoneID, memberRoleID); err != nil {
-		return err
-	}
-	if err = s.ensureGroupHasRole(administratorsID, superuserRoleID); err != nil {
-		return err
-	}
-
-	count, err := s.CountUsersWithSuperuserViaGroups(ctx)
-	if err != nil {
-		return err
-	}
-	if count == 0 {
-		_, err = s.DB.ResilientExec(`
-			INSERT IGNORE INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at)
-			SELECT u.id, ?, NOW(3), NOW(3) FROM user_accounts u
-			ORDER BY u.id LIMIT 1`, administratorsID)
-		if err != nil {
-			return err
-		}
-	}
-
 	_, err = s.DB.ResilientExec(`
 		INSERT IGNORE INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at)
 		SELECT u.id, ?, NOW(3), NOW(3) FROM user_accounts u
@@ -220,13 +231,20 @@ func (s *DBStore) CreateRBACRole(ctx context.Context, name, description string, 
 	return int(id), nil
 }
 
+func validateRBACRoleRename(curName, newName string) error {
+	if rbac.IsSystemRole(curName) && newName != curName {
+		return fmt.Errorf("%w %q", store.ErrRenameSystemRole, curName)
+	}
+	return nil
+}
+
 func (s *DBStore) UpdateRBACRole(ctx context.Context, id int, name, description string, permissionIDs []int) error {
 	cur := s.DB.GetRBACRoleByID(intconv.ToUint32(id))
 	if cur == nil {
 		return sql.ErrNoRows
 	}
-	if rbac.IsSystemRole(cur.Name) && name != cur.Name {
-		return fmt.Errorf("%w %q", store.ErrRenameSystemRole, cur.Name)
+	if err := validateRBACRoleRename(cur.Name, name); err != nil {
+		return err
 	}
 	if err := s.DB.UpdateRBACRole(intconv.ToUint32(id), name, description); err != nil {
 		return err

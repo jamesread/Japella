@@ -133,17 +133,24 @@ func ConversationTitleFromConversationKey(conversationKey, channelFallback strin
 	return channelFallback
 }
 
+func conversationRefOrEmpty(ref *ChatBotMessage, err error) (key, title string, ok bool) {
+	if err != nil || ref == nil {
+		return "", "", false
+	}
+	return ref.ConversationKey, ref.ConversationTitle, true
+}
+
 func (db *DB) ResolveOutgoingConversationForLog(connector, botID, channel, explicitConversationKey, incomingMessageID string) (conversationKey, conversationTitle string) {
 	if k := strings.TrimSpace(explicitConversationKey); k != "" {
 		return k, ConversationTitleFromConversationKey(k, channel)
 	}
 	if incomingMessageID != "" {
-		if ref, err := db.GetChatBotMessageByExternalID(connector, botID, incomingMessageID); err == nil && ref != nil {
-			return ref.ConversationKey, ref.ConversationTitle
+		if key, title, ok := conversationRefOrEmpty(db.GetChatBotMessageByExternalID(connector, botID, incomingMessageID)); ok {
+			return key, title
 		}
 	}
-	if ref, err := db.GetLatestIncomingChatBotMessageForChannel(connector, botID, channel); err == nil && ref != nil {
-		return ref.ConversationKey, ref.ConversationTitle
+	if key, title, ok := conversationRefOrEmpty(db.GetLatestIncomingChatBotMessageForChannel(connector, botID, channel)); ok {
+		return key, title
 	}
 	return BuildConversationKey(channel, ""), channel
 }

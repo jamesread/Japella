@@ -60,16 +60,19 @@ func readThemeNamesFromIndex(webuiDir, relativePath string, seen map[string]stru
 	}
 
 	for _, entry := range idx.Themes {
-		id := parseThemeID(entry)
-		if id == "" {
-			continue
-		}
-		if _, ok := seen[id]; ok {
-			continue
-		}
-		seen[id] = struct{}{}
-		*names = append(*names, id)
+		appendThemeName(parseThemeID(entry), seen, names)
 	}
+}
+
+func appendThemeName(id string, seen map[string]struct{}, names *[]string) {
+	if id == "" {
+		return
+	}
+	if _, ok := seen[id]; ok {
+		return
+	}
+	seen[id] = struct{}{}
+	*names = append(*names, id)
 }
 
 // AvailableThemeNames returns drop-in theme ids from webui/themes and bundled supplemental themes.

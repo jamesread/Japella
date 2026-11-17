@@ -107,21 +107,38 @@ const CFG_MASTODON_CLIENT_ID = "mastodon.client_id"
 const CFG_MASTODON_CLIENT_SECRET = "mastodon.client_secret"
 
 func (c *MastodonConnector) RegisterClient() error {
+	redirectURL, instanceURL, website, err := c.registrationInputs()
+	if err != nil {
+		return err
+	}
+	resp, err := c.registerMastodonApp(instanceURL, website, redirectURL)
+	if err != nil {
+		return err
+	}
+	if err := c.persistMastodonCredentials(resp); err != nil {
+		return err
+	}
+	c.Logger().Infof("Registered Mastodon OAuth app on %s with redirect URI %s", instanceURL, redirectURL)
+	return nil
+}
+
+func (c *MastodonConnector) registrationInputs() (redirectURL, instanceURL, website string, err error) {
 	if c.db == nil {
-		return fmt.Errorf("mastodon connector database is not configured")
+		return "", "", "", fmt.Errorf("mastodon connector database is not configured")
 	}
-
-	redirectURL := c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL)
+	redirectURL = c.db.GetCvarString(db.CvarKeys.OAuth2RedirectURL)
 	if redirectURL == "" {
-		return fmt.Errorf("OAuth2 redirect URL is not configured")
+		return "", "", "", fmt.Errorf("OAuth2 redirect URL is not configured")
 	}
-
-	instanceURL := c.defaultInstanceURL()
-	website := c.db.GetCvarString(db.CvarKeys.BaseUrl)
+	instanceURL = c.defaultInstanceURL()
+	website = c.db.GetCvarString(db.CvarKeys.BaseUrl)
 	if website == "" {
 		website = "https://jamesread.github.io/Japella"
 	}
+	return redirectURL, instanceURL, website, nil
+}
 
+func (c *MastodonConnector) registerMastodonApp(instanceURL, website, redirectURL string) (*RegistrationResponse, error) {
 	appConfig := &AppConfig{
 		Server:       instanceURL,
 		ClientName:   "Japella",
@@ -129,35 +146,27 @@ func (c *MastodonConnector) RegisterClient() error {
 		Website:      website,
 		RedirectURIs: redirectURL,
 	}
-
 	client := utils.NewClient(c.Logger())
 	client.PostWithJson(instanceURL+"/api/v1/apps", appConfig)
-
 	if client.Err != nil {
-		return fmt.Errorf("mastodon app registration request failed: %w", client.Err)
+		return nil, fmt.Errorf("mastodon app registration request failed: %w", client.Err)
 	}
-
 	resp := &RegistrationResponse{}
 	client.AsJson(resp)
-
 	if client.Err != nil {
-		return fmt.Errorf("mastodon app registration response invalid: %w", client.Err)
+		return nil, fmt.Errorf("mastodon app registration response invalid: %w", client.Err)
 	}
-
 	if resp.ClientID == "" || resp.ClientSecret == "" {
-		body := string(client.ResBody)
-		return fmt.Errorf("mastodon app registration returned empty credentials: %s", body)
+		return nil, fmt.Errorf("mastodon app registration returned empty credentials: %s", string(client.ResBody))
 	}
+	return resp, nil
+}
 
+func (c *MastodonConnector) persistMastodonCredentials(resp *RegistrationResponse) error {
 	if err := c.db.SetCvarString(CFG_MASTODON_CLIENT_ID, resp.ClientID); err != nil {
 		return err
 	}
-	if err := c.db.SetCvarString(CFG_MASTODON_CLIENT_SECRET, resp.ClientSecret); err != nil {
-		return err
-	}
-
-	c.Logger().Infof("Registered Mastodon OAuth app on %s with redirect URI %s", instanceURL, redirectURL)
-	return nil
+	return c.db.SetCvarString(CFG_MASTODON_CLIENT_SECRET, resp.ClientSecret)
 }
 
 func (c *MastodonConnector) GetCvars() map[string]*db.Cvar {
@@ -238,47 +247,61 @@ func (c *MastodonConnector) Start() {
 const mediaUploadTimeout = 2 * time.Minute
 
 func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (string, error) {
-	f, err := os.Open(path) //nolint:gosec // media path resolved by media.PathFromURL
+	body, contentType, err := buildMediaMultipart(path)
 	if err != nil {
-		return "", fmt.Errorf("open file: %w", err)
+		return "", err
 	}
-	defer func() { _ = f.Close() }()
-
-	body := &bytes.Buffer{}
-	w := multipart.NewWriter(body)
-	part, err := w.CreateFormFile("file", filepath.Base(path))
-	if err != nil {
-		return "", fmt.Errorf("create form file: %w", err)
-	}
-	if _, err = io.Copy(part, f); err != nil {
-		return "", fmt.Errorf("write file to form: %w", err)
-	}
-	contentType := w.FormDataContentType()
-	if err = w.Close(); err != nil {
-		return "", fmt.Errorf("close multipart writer: %w", err)
-	}
-
 	ctx, cancel := context.WithTimeout(context.Background(), mediaUploadTimeout)
 	defer cancel()
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, instanceURL+"/api/v2/media", body)
+	req, err := newMediaUploadRequest(ctx, instanceURL, bearerToken, body, contentType)
 	if err != nil {
-		return "", fmt.Errorf("create request: %w", err)
+		return "", err
 	}
-	req.Header.Set("Authorization", "Bearer "+bearerToken)
-	req.Header.Set("Content-Type", contentType)
-
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("do request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
+	return decodeMediaUploadResponse(resp)
+}
 
+func buildMediaMultipart(path string) (*bytes.Buffer, string, error) {
+	f, err := os.Open(path) //nolint:gosec // media path resolved by media.PathFromURL
+	if err != nil {
+		return nil, "", fmt.Errorf("open file: %w", err)
+	}
+	defer func() { _ = f.Close() }()
+	body := &bytes.Buffer{}
+	w := multipart.NewWriter(body)
+	part, err := w.CreateFormFile("file", filepath.Base(path))
+	if err != nil {
+		return nil, "", fmt.Errorf("create form file: %w", err)
+	}
+	if _, err = io.Copy(part, f); err != nil {
+		return nil, "", fmt.Errorf("write file to form: %w", err)
+	}
+	contentType := w.FormDataContentType()
+	if err = w.Close(); err != nil {
+		return nil, "", fmt.Errorf("close multipart writer: %w", err)
+	}
+	return body, contentType, nil
+}
+
+func newMediaUploadRequest(ctx context.Context, instanceURL, bearerToken string, body *bytes.Buffer, contentType string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, instanceURL+"/api/v2/media", body)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+	req.Header.Set("Content-Type", contentType)
+	return req, nil
+}
+
+func decodeMediaUploadResponse(resp *http.Response) (string, error) {
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return "", fmt.Errorf("media upload returned %d: %s", resp.StatusCode, string(respBody))
 	}
-
 	var out mastodonMediaAttachment
 	if err := json.Unmarshal(respBody, &out); err != nil {
 		return "", fmt.Errorf("decode response: %w", err)
@@ -291,178 +314,198 @@ func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (
 
 func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, content string, mediaPaths []string) *connector.PostResult {
 	res := &connector.PostResult{}
-
 	log.Infof("Posting to wall: %s", content)
-
-	toot := &Toot{
-		Status: content,
+	toot := &Toot{Status: content}
+	instanceURL := mastodonInstance(socialAccount)
+	if err := c.attachTootMedia(toot, socialAccount, instanceURL, mediaPaths); err != nil {
+		res.Err = err
+		return res
 	}
-
-	instanceURL := socialAccount.Homeserver
-	if instanceURL == "" {
-		instanceURL = "https://mastodon.social"
-	}
-
-	// Upload attached media and collect media_ids (Mastodon accepts multiple)
-	if len(mediaPaths) > 0 {
-		var mediaIDs []string
-		for _, p := range mediaPaths {
-			mediaID, err := c.uploadMedia(instanceURL, p, socialAccount.OAuthToken)
-			if err != nil {
-				c.Logger().Errorf("Mastodon media upload failed for %s: %v", p, err)
-				c.db.InsertTableLog(
-					fmt.Sprintf("Mastodon media upload failed for account %d: %v", socialAccount.Id, err),
-					"error",
-					&socialAccount.Id,
-				)
-				res.Err = err
-				return res
-			}
-			mediaIDs = append(mediaIDs, mediaID)
-		}
-		if len(mediaIDs) > 0 {
-			toot.MediaIds = mediaIDs
-		}
-	}
-
 	client := utils.NewClient(c.Logger()).PostWithJson(instanceURL+"/api/v1/statuses", toot).WithBearerToken(socialAccount.OAuthToken)
-
 	if client.Err != nil {
 		res.Err = client.Err
 		return res
 	}
-
 	postResult := &Status{}
-
 	client.AsJson(postResult)
-
 	if client.Err != nil {
-		c.Logger().Errorf("Error parsing Mastodon API response: %v", client.Err)
-		if len(client.ResBody) > 0 {
-			c.Logger().Errorf("Mastodon API response body: %s", string(client.ResBody))
-		}
-		msg := fmt.Sprintf("Error parsing Mastodon API response for account %d: %v", socialAccount.Id, client.Err)
-		if len(client.ResBody) > 0 {
-			msg += " | response: " + string(client.ResBody)
-		}
-		c.db.InsertTableLog(msg, "error", &socialAccount.Id)
+		c.logPostParseError(socialAccount.Id, client)
 		res.Err = client.Err
 		return res
 	}
-
 	res.URL = postResult.URI
-
 	return res
+}
+
+func (c *MastodonConnector) attachTootMedia(toot *Toot, socialAccount *connector.SocialAccount, instanceURL string, mediaPaths []string) error {
+	if len(mediaPaths) == 0 {
+		return nil
+	}
+	mediaIDs, err := c.uploadAllMedia(instanceURL, socialAccount, mediaPaths)
+	if err != nil {
+		return err
+	}
+	if len(mediaIDs) > 0 {
+		toot.MediaIds = mediaIDs
+	}
+	return nil
+}
+
+func (c *MastodonConnector) uploadAllMedia(instanceURL string, socialAccount *connector.SocialAccount, mediaPaths []string) ([]string, error) {
+	var mediaIDs []string
+	for _, p := range mediaPaths {
+		mediaID, err := c.uploadMedia(instanceURL, p, socialAccount.OAuthToken)
+		if err != nil {
+			c.Logger().Errorf("Mastodon media upload failed for %s: %v", p, err)
+			c.db.InsertTableLog(
+				fmt.Sprintf("Mastodon media upload failed for account %d: %v", socialAccount.Id, err),
+				"error",
+				&socialAccount.Id,
+			)
+			return nil, err
+		}
+		mediaIDs = append(mediaIDs, mediaID)
+	}
+	return mediaIDs, nil
+}
+
+func (c *MastodonConnector) logPostParseError(accountID uint32, client *utils.ChainingHttpClient) {
+	c.Logger().Errorf("Error parsing Mastodon API response: %v", client.Err)
+	if len(client.ResBody) > 0 {
+		c.Logger().Errorf("Mastodon API response body: %s", string(client.ResBody))
+	}
+	msg := fmt.Sprintf("Error parsing Mastodon API response for account %d: %v", accountID, client.Err)
+	if len(client.ResBody) > 0 {
+		msg += " | response: " + string(client.ResBody)
+	}
+	c.db.InsertTableLog(msg, "error", &accountID)
 }
 
 func (c *MastodonConnector) FetchRecentPosts(socialAccount *connector.SocialAccount) ([]*connector.FeedPost, error) {
 	log.Infof("Fetching recent posts for Mastodon account %d", socialAccount.Id)
-
 	posts := make([]*connector.FeedPost, 0)
-
-	instanceURL := socialAccount.Homeserver
-	if instanceURL == "" {
-		instanceURL = "https://mastodon.social"
-	}
-
+	instanceURL := mastodonInstance(socialAccount)
 	const pageLimit = 40
 	const maxPages = 5
 	maxID := ""
-
 	for range maxPages {
-		timelineURL := fmt.Sprintf("%s/api/v1/timelines/home?limit=%d", instanceURL, pageLimit)
-		if maxID != "" {
-			timelineURL += "&max_id=" + url.QueryEscape(maxID)
+		pagePosts, nextMaxID, done, err := c.fetchTimelinePage(socialAccount, instanceURL, pageLimit, maxID)
+		if err != nil {
+			return posts, err
 		}
-
-		client := utils.NewClient(c.Logger()).Get(timelineURL).WithBearerToken(socialAccount.OAuthToken)
-		if client.Err != nil {
-			log.Errorf("Error creating request for Mastodon timeline: %v", client.Err)
-			return posts, client.Err
-		}
-
-		var timelineStatuses []TimelineStatus
-		client.AsJson(&timelineStatuses)
-		if client.Err != nil {
-			log.Errorf("Error parsing Mastodon timeline response: %v", client.Err)
-			return posts, client.Err
-		}
-
-		if len(timelineStatuses) == 0 {
+		posts = append(posts, pagePosts...)
+		if done {
 			break
 		}
-
-		for _, status := range timelineStatuses {
-			feedPost, ok := timelineStatusToFeedPost(status)
-			if !ok {
-				continue
-			}
-			posts = append(posts, feedPost)
-		}
-
-		maxID = timelineStatuses[len(timelineStatuses)-1].ID
-		if len(timelineStatuses) < pageLimit {
-			break
-		}
+		maxID = nextMaxID
 	}
-
 	log.Infof("Fetched %d recent posts from Mastodon timeline", len(posts))
 	return posts, nil
+}
+
+func (c *MastodonConnector) fetchTimelinePage(socialAccount *connector.SocialAccount, instanceURL string, pageLimit int, maxID string) ([]*connector.FeedPost, string, bool, error) {
+	timelineURL := fmt.Sprintf("%s/api/v1/timelines/home?limit=%d", instanceURL, pageLimit)
+	if maxID != "" {
+		timelineURL += "&max_id=" + url.QueryEscape(maxID)
+	}
+	client := utils.NewClient(c.Logger()).Get(timelineURL).WithBearerToken(socialAccount.OAuthToken)
+	if client.Err != nil {
+		log.Errorf("Error creating request for Mastodon timeline: %v", client.Err)
+		return nil, "", true, client.Err
+	}
+	var timelineStatuses []TimelineStatus
+	client.AsJson(&timelineStatuses)
+	if client.Err != nil {
+		log.Errorf("Error parsing Mastodon timeline response: %v", client.Err)
+		return nil, "", true, client.Err
+	}
+	if len(timelineStatuses) == 0 {
+		return nil, "", true, nil
+	}
+	posts := feedPostsFromTimeline(timelineStatuses)
+	nextMaxID := timelineStatuses[len(timelineStatuses)-1].ID
+	return posts, nextMaxID, len(timelineStatuses) < pageLimit, nil
+}
+
+func feedPostsFromTimeline(timelineStatuses []TimelineStatus) []*connector.FeedPost {
+	posts := make([]*connector.FeedPost, 0, len(timelineStatuses))
+	for _, status := range timelineStatuses {
+		feedPost, ok := timelineStatusToFeedPost(status)
+		if !ok {
+			continue
+		}
+		posts = append(posts, feedPost)
+	}
+	return posts
 }
 
 func timelineStatusToFeedPost(status TimelineStatus) (*connector.FeedPost, bool) {
 	if status.Account.ID == "" {
 		return nil, false
 	}
+	contentStatus, remoteID, card := timelineContentParts(status)
+	feedPost := &connector.FeedPost{
+		Content:          contentStatus.Content,
+		PostedDate:       status.CreatedAt,
+		AuthorID:         status.Account.ID,
+		AuthorName:       status.Account.Username,
+		AuthorAvatarURL:  status.Account.Avatar,
+		RemoteURL:        status.URI,
+		RemoteID:         remoteID,
+		AuthorHandle:     status.Account.handle(),
+		AuthorProfileURL: status.Account.profileURL(),
+	}
+	applyTimelineInteractions(feedPost, contentStatus)
+	applyTimelineReblogAuthors(feedPost, status)
+	applyTimelineCard(feedPost, card)
+	return feedPost, true
+}
 
-	contentStatus := status
-	remoteID := status.ID
-	card := status.Card
-
+func timelineContentParts(status TimelineStatus) (contentStatus TimelineStatus, remoteID string, card *PreviewCard) {
+	contentStatus = status
+	remoteID = status.ID
+	card = status.Card
 	if status.Reblog != nil {
 		contentStatus = *status.Reblog
 		card = status.Reblog.Card
 		remoteID = mastodonAnnounceRemoteID(status)
 	}
+	return contentStatus, remoteID, card
+}
 
-	feedPost := &connector.FeedPost{
-		Content:         contentStatus.Content,
-		PostedDate:      status.CreatedAt,
-		AuthorID:        status.Account.ID,
-		AuthorName:      status.Account.Username,
-		AuthorAvatarURL: status.Account.Avatar,
-		RemoteURL:       status.URI,
-		RemoteID:        remoteID,
-
-		AuthorHandle:     status.Account.handle(),
-		AuthorProfileURL: status.Account.profileURL(),
-	}
-
-	// For a boost, the language, likes and thread that matter are the boosted post's.
+func applyTimelineInteractions(feedPost *connector.FeedPost, contentStatus TimelineStatus) {
 	if contentStatus.Language != nil {
 		feedPost.Language = *contentStatus.Language
 	}
 	feedPost.InteractionRemoteID = contentStatus.ID
-	feedPost.Liked = contentStatus.Favourited != nil && *contentStatus.Favourited
+	feedPost.Liked = favouritedBool(contentStatus.Favourited)
 	feedPost.LikeCount = contentStatus.FavouritesCount
 	feedPost.ReplyCount = contentStatus.RepliesCount
+}
 
-	if status.Reblog != nil {
-		feedPost.OriginalAuthorID = status.Reblog.Account.ID
-		feedPost.OriginalAuthorName = status.Reblog.Account.Username
-		feedPost.OriginalAuthorAvatarURL = status.Reblog.Account.Avatar
-		feedPost.OriginalAuthorHandle = status.Reblog.Account.handle()
-		feedPost.OriginalAuthorProfileURL = status.Reblog.Account.profileURL()
+func favouritedBool(favourited *bool) bool {
+	return favourited != nil && *favourited
+}
+
+func applyTimelineReblogAuthors(feedPost *connector.FeedPost, status TimelineStatus) {
+	if status.Reblog == nil {
+		return
 	}
+	feedPost.OriginalAuthorID = status.Reblog.Account.ID
+	feedPost.OriginalAuthorName = status.Reblog.Account.Username
+	feedPost.OriginalAuthorAvatarURL = status.Reblog.Account.Avatar
+	feedPost.OriginalAuthorHandle = status.Reblog.Account.handle()
+	feedPost.OriginalAuthorProfileURL = status.Reblog.Account.profileURL()
+}
 
-	if card != nil {
-		feedPost.PreviewURL = card.URL
-		feedPost.PreviewTitle = card.Title
-		feedPost.PreviewDescription = card.Description
-		feedPost.PreviewImageURL = card.Image
+func applyTimelineCard(feedPost *connector.FeedPost, card *PreviewCard) {
+	if card == nil {
+		return
 	}
-
-	return feedPost, true
+	feedPost.PreviewURL = card.URL
+	feedPost.PreviewTitle = card.Title
+	feedPost.PreviewDescription = card.Description
+	feedPost.PreviewImageURL = card.Image
 }
 
 func mastodonAnnounceRemoteID(status TimelineStatus) string {
@@ -513,29 +556,28 @@ func (c *MastodonConnector) FetchFeedPost(socialAccount *connector.SocialAccount
 	if err != nil {
 		return nil, err
 	}
-
-	instanceURL := socialAccount.Homeserver
-	if instanceURL == "" {
-		instanceURL = "https://mastodon.social"
+	status, err := c.fetchTimelineStatus(socialAccount, statusID)
+	if err != nil {
+		return nil, err
 	}
+	feedPost, ok := timelineStatusToFeedPost(*status)
+	if !ok {
+		return nil, fmt.Errorf("mastodon status %s has no author", statusID)
+	}
+	return feedPost, nil
+}
 
-	client := utils.NewClient(c.Logger()).Get(instanceURL + "/api/v1/statuses/" + statusID).WithBearerToken(socialAccount.OAuthToken)
+func (c *MastodonConnector) fetchTimelineStatus(socialAccount *connector.SocialAccount, statusID string) (*TimelineStatus, error) {
+	client := utils.NewClient(c.Logger()).Get(mastodonInstance(socialAccount) + "/api/v1/statuses/" + statusID).WithBearerToken(socialAccount.OAuthToken)
 	if client.Err != nil {
 		return nil, client.Err
 	}
-
 	var status TimelineStatus
 	client.AsJson(&status)
 	if client.Err != nil {
 		return nil, fmt.Errorf("failed to fetch mastodon status %s: %w", statusID, client.Err)
 	}
-
-	feedPost, ok := timelineStatusToFeedPost(status)
-	if !ok {
-		return nil, fmt.Errorf("mastodon status %s has no author", statusID)
-	}
-
-	return feedPost, nil
+	return &status, nil
 }
 
 func (c *MastodonConnector) GetIcon() string {

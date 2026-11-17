@@ -2,9 +2,10 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"strings"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // TaggedPost is a post a user has tagged, with the copy of it kept for tag columns.
@@ -23,60 +24,83 @@ type TagCount struct {
 	Posts uint32 `db:"posts"`
 }
 
-// SetPostTags replaces a user's tags on a post, identified by its platform
-// key (see feedauthor.PostKey). The snapshot is refreshed; with no tags the
-// post is forgotten.
-func (db *DB) SetPostTags(userID uint32, keyHash, key string, socialAccountID uint32, snapshot string, tags []string) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
-	}
+func truncatePostKey(key string) string {
 	if len(key) > 1024 {
-		key = key[:1024]
+		return key[:1024]
 	}
+	return key
+}
 
-	tx, err := db.connx.Beginx()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
+func clearTaggedPost(tx *sqlx.Tx, userID uint32, keyHash string) error {
+	_, err := tx.ExecContext(context.TODO(), `DELETE FROM tagged_posts WHERE user_account_id = ? AND post_key_hash = ?`, userID, keyHash)
+	return err
+}
 
-	if len(tags) == 0 {
-		if _, err := tx.ExecContext(context.TODO(), `DELETE FROM tagged_posts WHERE user_account_id = ? AND post_key_hash = ?`, userID, keyHash); err != nil {
-			db.Logger().Errorf("Failed to untag post for user %d: %v", userID, err)
-			return err
-		}
-		return tx.Commit()
-	}
-
+func upsertTaggedPost(tx *sqlx.Tx, userID uint32, keyHash, key string, socialAccountID uint32, snapshot string) (uint32, error) {
 	if _, err := tx.ExecContext(context.TODO(), `
 		INSERT INTO tagged_posts (user_account_id, post_key_hash, post_key, social_account_id, snapshot, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3))
 		ON DUPLICATE KEY UPDATE social_account_id = VALUES(social_account_id), snapshot = VALUES(snapshot), updated_at = NOW(3)`,
 		userID, keyHash, key, socialAccountID, snapshot); err != nil {
-		db.Logger().Errorf("Failed to save tagged post for user %d: %v", userID, err)
-		return err
+		return 0, err
 	}
-
 	var id uint32
 	if err := tx.Get(&id, `SELECT id FROM tagged_posts WHERE user_account_id = ? AND post_key_hash = ?`, userID, keyHash); err != nil {
-		return err
+		return 0, err
 	}
+	return id, nil
+}
 
-	args := []any{id}
+func replacePostTagRows(tx *sqlx.Tx, taggedPostID uint32, tags []string) error {
+	args := []any{taggedPostID}
 	for _, t := range tags {
 		args = append(args, t)
 	}
 	if _, err := tx.ExecContext(context.TODO(), `DELETE FROM post_tags WHERE tagged_post_id = ? AND tag NOT IN (`+placeholders(len(tags))+`)`, args...); err != nil {
-		db.Logger().Errorf("Failed to remove post tags: %v", err)
 		return err
 	}
 	// INSERT IGNORE keeps when each existing tag was first added, which orders tag columns.
 	for _, t := range tags {
-		if _, err := tx.ExecContext(context.TODO(), `INSERT IGNORE INTO post_tags (tagged_post_id, tag, created_at) VALUES (?, ?, NOW(3))`, id, t); err != nil {
-			db.Logger().Errorf("Failed to add post tag: %v", err)
+		if _, err := tx.ExecContext(context.TODO(), `INSERT IGNORE INTO post_tags (tagged_post_id, tag, created_at) VALUES (?, ?, NOW(3))`, taggedPostID, t); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+func (db *DB) applyPostTags(tx *sqlx.Tx, userID uint32, keyHash, key string, socialAccountID uint32, snapshot string, tags []string) error {
+	if len(tags) == 0 {
+		if err := clearTaggedPost(tx, userID, keyHash); err != nil {
+			db.Logger().Errorf("Failed to untag post for user %d: %v", userID, err)
+			return err
+		}
+		return nil
+	}
+	id, err := upsertTaggedPost(tx, userID, keyHash, key, socialAccountID, snapshot)
+	if err != nil {
+		db.Logger().Errorf("Failed to save tagged post for user %d: %v", userID, err)
+		return err
+	}
+	if err := replacePostTagRows(tx, id, tags); err != nil {
+		db.Logger().Errorf("Failed to update post tags: %v", err)
+		return err
+	}
+	return nil
+}
+
+// SetPostTags replaces a user's tags on a post, identified by its platform
+// key (see feedauthor.PostKey). The snapshot is refreshed; with no tags the
+// post is forgotten.
+func (db *DB) SetPostTags(userID uint32, keyHash, key string, socialAccountID uint32, snapshot string, tags []string) error {
+	key = truncatePostKey(key)
+	tx, err := db.beginTx()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if err = db.applyPostTags(tx, userID, keyHash, key, socialAccountID, snapshot, tags); err != nil {
+		return err
 	}
 	return tx.Commit()
 }

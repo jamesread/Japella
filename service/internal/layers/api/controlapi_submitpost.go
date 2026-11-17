@@ -11,7 +11,6 @@ import (
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/layers/authentication"
-	"github.com/jamesread/japella/internal/rbac"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -136,10 +135,6 @@ func (s *ControlApi) submitToAccounts(ctx context.Context, au *authentication.Au
 		posts = append(posts, s.submitToAccount(ctx, sub, accountID))
 	}
 	return posts, nil
-}
-
-func canViewAllSocialAccounts(au *authentication.AuthenticatedUser) bool {
-	return au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
 }
 
 func (s *ControlApi) canPostToAccount(au *authentication.AuthenticatedUser, canViewAll bool, accountID uint32) bool {

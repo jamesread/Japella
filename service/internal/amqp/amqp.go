@@ -203,19 +203,13 @@ func publishMandatoryWithReturn(c *amqp.Channel, routingKey string, msg amqp.Pub
 	}
 
 	log.Infof("Publishing to %v", routingKey)
-
-	err := c.Publish(
-		"ex_japella",
-		routingKey,
-		true,  // mandatory
-		false, // immediate
-		msg,
-	)
-
-	if err != nil {
+	if err := c.Publish("ex_japella", routingKey, true, false, msg); err != nil {
 		return err
 	}
+	return waitForMandatoryReturn(retCh, routingKey)
+}
 
+func waitForMandatoryReturn(retCh <-chan amqp.Return, routingKey string) error {
 	deadline := time.After(500 * time.Millisecond)
 	for {
 		select {

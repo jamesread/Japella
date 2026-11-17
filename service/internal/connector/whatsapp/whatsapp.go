@@ -51,35 +51,39 @@ func (conn WhatsAppConnector) connect() {
 	client.AddEventHandler(eventHandler)
 
 	if client.Store.ID == nil {
-		// No ID stored, new login
-		qrChan, _ := client.GetQRChannel(context.Background())
-		err = client.Connect()
-		if err != nil {
-			panic(err)
-		}
-		for evt := range qrChan {
-			if evt.Event == "code" {
-				// Render the QR code here
-				// e.g. qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
-				// or just manually `echo 2@... | qrencode -t ansiutf8` in a terminal
-				fmt.Println("QR code:", evt.Code)
-			} else {
-				fmt.Println("Login event:", evt.Event)
-			}
-		}
+		connectWithQR(client)
 	} else {
-		// Already logged in, just connect
-		err = client.Connect()
-		if err != nil {
-			panic(err)
-		}
+		mustConnect(client)
 	}
 
-	// Listen to Ctrl+C (you can also do something else that prevents the program from exiting)
+	waitForInterruptThenDisconnect(client)
+}
+
+func connectWithQR(client *whatsmeow.Client) {
+	qrChan, _ := client.GetQRChannel(context.Background())
+	mustConnect(client)
+	for evt := range qrChan {
+		if evt.Event == "code" {
+			// Render the QR code here
+			// e.g. qrterminal.GenerateHalfBlock(evt.Code, qrterminal.L, os.Stdout)
+			// or just manually `echo 2@... | qrencode -t ansiutf8` in a terminal
+			fmt.Println("QR code:", evt.Code)
+		} else {
+			fmt.Println("Login event:", evt.Event)
+		}
+	}
+}
+
+func mustConnect(client *whatsmeow.Client) {
+	if err := client.Connect(); err != nil {
+		panic(err)
+	}
+}
+
+func waitForInterruptThenDisconnect(client *whatsmeow.Client) {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
-
 	client.Disconnect()
 }
 

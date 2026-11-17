@@ -55,15 +55,10 @@ func (x *XConnector) FetchPostEngagement(socialAccount *connector.SocialAccount,
 		return engagement, err
 	}
 
-	dbAccount, getErr := x.db.GetSocialAccount(socialAccount.Id)
-	if getErr != nil || dbAccount == nil {
+	dbAccount, refreshErr := x.refreshAccountAfterUnauthorized(socialAccount.Id, err)
+	if refreshErr != nil {
 		return nil, err
 	}
-
-	if refreshErr := x.RefreshToken(dbAccount); refreshErr != nil {
-		return nil, err
-	}
-
 	return x.fetchPostEngagementWithToken(dbAccount.OAuth2Token, tweetID)
 }
 

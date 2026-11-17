@@ -14,6 +14,12 @@ const MaxPreferred = 20
 
 var codeRe = regexp.MustCompile(`^[a-z]{2,3}$`)
 
+var nonLanguageBases = map[string]bool{
+	"und": true,
+	"zxx": true,
+	"mul": true,
+}
+
 // Base reduces a language tag ("en", "EN", "pt-BR", "zh_Hant") to its
 // lowercase base language. It returns "" for missing or non-language codes,
 // such as X's "und" (undetermined), "zxx" (no linguistic content) and its
@@ -23,35 +29,59 @@ func Base(tag string) string {
 	if i := strings.IndexAny(tag, "-_"); i >= 0 {
 		tag = tag[:i]
 	}
-	if !codeRe.MatchString(tag) || tag == "und" || tag == "zxx" || tag == "mul" || tag[0] == 'q' {
+	if isInvalidLanguageBase(tag) {
 		return ""
 	}
 	return tag
 }
 
+func isInvalidLanguageBase(tag string) bool {
+	if !codeRe.MatchString(tag) {
+		return true
+	}
+	return nonLanguageBases[tag] || tag[0] == 'q'
+}
+
 // ParsePreferred validates a list of language codes, returning them
 // normalised, de-duplicated and sorted.
 func ParsePreferred(codes []string) ([]string, error) {
-	seen := map[string]bool{}
-	out := make([]string, 0, len(codes))
-	for _, raw := range codes {
-		if strings.TrimSpace(raw) == "" {
-			continue
-		}
-		code := Base(raw)
-		if code == "" {
-			return nil, fmt.Errorf("%q is not a language code; use ISO 639 codes like en, de or pt", strings.TrimSpace(raw))
-		}
-		if !seen[code] {
-			seen[code] = true
-			out = append(out, code)
-		}
+	out, err := collectPreferredCodes(codes)
+	if err != nil {
+		return nil, err
 	}
 	if len(out) > MaxPreferred {
 		return nil, fmt.Errorf("at most %d preferred languages are allowed", MaxPreferred)
 	}
 	sort.Strings(out)
 	return out, nil
+}
+
+func collectPreferredCodes(codes []string) ([]string, error) {
+	seen := map[string]bool{}
+	out := make([]string, 0, len(codes))
+	for _, raw := range codes {
+		code, skip, err := normalizePreferredCode(raw)
+		if err != nil {
+			return nil, err
+		}
+		if skip || seen[code] {
+			continue
+		}
+		seen[code] = true
+		out = append(out, code)
+	}
+	return out, nil
+}
+
+func normalizePreferredCode(raw string) (code string, skip bool, err error) {
+	if strings.TrimSpace(raw) == "" {
+		return "", true, nil
+	}
+	code = Base(raw)
+	if code == "" {
+		return "", false, fmt.Errorf("%q is not a language code; use ISO 639 codes like en, de or pt", strings.TrimSpace(raw))
+	}
+	return code, false, nil
 }
 
 // Join stores a parsed list as a comma-separated string.

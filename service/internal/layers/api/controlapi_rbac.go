@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
+	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/rbac"
 	log "github.com/sirupsen/logrus"
 )
@@ -61,12 +62,9 @@ func (s *ControlApi) ListRbacRoles(ctx context.Context, req *connect.Request[con
 }
 
 func (s *ControlApi) CreateRbacRole(ctx context.Context, req *connect.Request[controlv1.CreateRbacRoleRequest]) (*connect.Response[controlv1.CreateRbacRoleResponse], error) {
-	name := strings.TrimSpace(req.Msg.Name)
-	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is required"))
-	}
-	if name == rbac.RoleSuperuser || name == rbac.RoleMember {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("reserved role name"))
+	name, err := validateNewRbacRoleName(req.Msg.Name)
+	if err != nil {
+		return nil, err
 	}
 
 	id, err := s.DB.CreateRBACRole(name, strings.TrimSpace(req.Msg.Description))
@@ -85,25 +83,22 @@ func (s *ControlApi) CreateRbacRole(ctx context.Context, req *connect.Request[co
 	}), nil
 }
 
-func (s *ControlApi) UpdateRbacRole(ctx context.Context, req *connect.Request[controlv1.UpdateRbacRoleRequest]) (*connect.Response[controlv1.UpdateRbacRoleResponse], error) {
-	if req.Msg.RoleId == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("role_id is required"))
-	}
-	name := strings.TrimSpace(req.Msg.Name)
+func validateNewRbacRoleName(raw string) (string, error) {
+	name := strings.TrimSpace(raw)
 	if name == "" {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is required"))
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is required"))
 	}
-	role := s.DB.GetRBACRoleByID(req.Msg.RoleId)
-	if role == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("role not found"))
+	if name == rbac.RoleSuperuser || name == rbac.RoleMember {
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("reserved role name"))
 	}
-	if role.Name == rbac.RoleSuperuser {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cannot modify system role %s", rbac.RoleSuperuser))
-	}
-	if name == rbac.RoleSuperuser || (role.Name != rbac.RoleMember && name == rbac.RoleMember) {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("reserved role name"))
-	}
+	return name, nil
+}
 
+func (s *ControlApi) UpdateRbacRole(ctx context.Context, req *connect.Request[controlv1.UpdateRbacRoleRequest]) (*connect.Response[controlv1.UpdateRbacRoleResponse], error) {
+	name, err := s.validateUpdateRbacRole(req.Msg.RoleId, req.Msg.Name)
+	if err != nil {
+		return nil, err
+	}
 	if err := s.DB.UpdateRBACRole(req.Msg.RoleId, name, strings.TrimSpace(req.Msg.Description)); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("role not found"))
@@ -118,6 +113,50 @@ func (s *ControlApi) UpdateRbacRole(ctx context.Context, req *connect.Request[co
 	return connect.NewResponse(&controlv1.UpdateRbacRoleResponse{
 		StandardResponse: &controlv1.StandardResponse{Success: true, Message: "Role updated"},
 	}), nil
+}
+
+func requireRbacRoleIDAndName(roleID uint32, rawName string) (string, error) {
+	if roleID == 0 {
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("role_id is required"))
+	}
+	name := strings.TrimSpace(rawName)
+	if name == "" {
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("name is required"))
+	}
+	return name, nil
+}
+
+func (s *ControlApi) loadEditableRbacRole(roleID uint32) (*db.RBACRole, error) {
+	role := s.DB.GetRBACRoleByID(roleID)
+	if role == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("role not found"))
+	}
+	if role.Name == rbac.RoleSuperuser {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("cannot modify system role %s", rbac.RoleSuperuser))
+	}
+	return role, nil
+}
+
+func (s *ControlApi) validateUpdateRbacRole(roleID uint32, rawName string) (string, error) {
+	name, err := requireRbacRoleIDAndName(roleID, rawName)
+	if err != nil {
+		return "", err
+	}
+	role, err := s.loadEditableRbacRole(roleID)
+	if err != nil {
+		return "", err
+	}
+	if isReservedRbacRoleRename(role.Name, name) {
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("reserved role name"))
+	}
+	return name, nil
+}
+
+func isReservedRbacRoleRename(currentName, newName string) bool {
+	if newName == rbac.RoleSuperuser {
+		return true
+	}
+	return currentName != rbac.RoleMember && newName == rbac.RoleMember
 }
 
 func (s *ControlApi) DeleteRbacRole(ctx context.Context, req *connect.Request[controlv1.DeleteRbacRoleRequest]) (*connect.Response[controlv1.DeleteRbacRoleResponse], error) {

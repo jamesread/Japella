@@ -67,17 +67,28 @@ func (b *BlueskyConnector) FetchPostReplies(socialAccount *connector.SocialAccou
 	if err != nil {
 		return nil, err
 	}
+	thread, err := b.fetchPostThread(atURI)
+	if err != nil {
+		return nil, err
+	}
+	if thread.Post == nil {
+		return nil, fmt.Errorf("bluesky post %s not found", atURI)
+	}
+	return &connector.PostReplies{
+		RootRemoteID: thread.Post.URI,
+		Replies:      flattenBlueskyThread(*thread, thread.Post.URI, nil),
+	}, nil
+}
 
+func (b *BlueskyConnector) fetchPostThread(atURI string) (*bskyThreadNode, error) {
 	q := url.Values{}
 	q.Set("uri", atURI)
 	q.Set("depth", strconv.Itoa(bskyThreadDepth))
 	q.Set("parentHeight", "0")
-
 	client := utils.NewClient(b.Logger()).Get(bskyPublicAppView + "/xrpc/app.bsky.feed.getPostThread?" + q.Encode())
 	if client.Err != nil {
 		return nil, client.Err
 	}
-
 	var response bskyGetPostThreadResponse
 	client.AsJson(&response)
 	if rl := connector.RateLimitedFromResponse(client.Res); rl != nil {
@@ -86,13 +97,5 @@ func (b *BlueskyConnector) FetchPostReplies(socialAccount *connector.SocialAccou
 	if client.Err != nil {
 		return nil, fmt.Errorf("failed to fetch bluesky thread %s: %w", atURI, client.Err)
 	}
-
-	if response.Thread.Post == nil {
-		return nil, fmt.Errorf("bluesky post %s not found", atURI)
-	}
-
-	return &connector.PostReplies{
-		RootRemoteID: response.Thread.Post.URI,
-		Replies:      flattenBlueskyThread(response.Thread, response.Thread.Post.URI, nil),
-	}, nil
+	return &response.Thread, nil
 }

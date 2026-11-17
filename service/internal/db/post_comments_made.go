@@ -17,6 +17,21 @@ func (db *DB) RecordPostCommented(socialAccountID uint32, keyHash, key string) e
 	return err
 }
 
+func uint32Args(ids []uint32) []any {
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	return args
+}
+
+func addCommentedHash(out map[uint32]map[string]bool, socialAccountID uint32, hash string) {
+	if out[socialAccountID] == nil {
+		out[socialAccountID] = map[string]bool{}
+	}
+	out[socialAccountID][hash] = true
+}
+
 // SelectCommentedPostHashes returns, per social account, the key hashes of
 // posts it has commented on.
 func (db *DB) SelectCommentedPostHashes(socialAccountIDs []uint32) (map[uint32]map[string]bool, error) {
@@ -25,10 +40,7 @@ func (db *DB) SelectCommentedPostHashes(socialAccountIDs []uint32) (map[uint32]m
 		return out, nil
 	}
 
-	args := make([]any, len(socialAccountIDs))
-	for i, id := range socialAccountIDs {
-		args[i] = id
-	}
+	args := uint32Args(socialAccountIDs)
 	rows := make([]struct {
 		SocialAccountID uint32 `db:"social_account_id"`
 		PostKeyHash     string `db:"post_key_hash"`
@@ -41,10 +53,7 @@ func (db *DB) SelectCommentedPostHashes(socialAccountIDs []uint32) (map[uint32]m
 		return out, err
 	}
 	for _, r := range rows {
-		if out[r.SocialAccountID] == nil {
-			out[r.SocialAccountID] = map[string]bool{}
-		}
-		out[r.SocialAccountID][r.PostKeyHash] = true
+		addCommentedHash(out, r.SocialAccountID, r.PostKeyHash)
 	}
 	return out, nil
 }

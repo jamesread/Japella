@@ -30,30 +30,24 @@ func (c *MastodonConnector) FetchPostEngagement(socialAccount *connector.SocialA
 	if err != nil {
 		return nil, err
 	}
-
-	instanceURL := socialAccount.Homeserver
-	if instanceURL == "" {
-		instanceURL = "https://mastodon.social"
+	status, err := c.fetchStatusEngagement(socialAccount, statusID)
+	if err != nil {
+		return nil, err
 	}
-
-	client := utils.NewClient(c.Logger()).Get(instanceURL + "/api/v1/statuses/" + statusID)
-	if client.Err != nil {
-		return nil, client.Err
-	}
-	client.WithBearerToken(socialAccount.OAuthToken)
-
-	var status statusEngagement
-	client.AsJson(&status)
-	if rl := connector.RateLimitedFromResponse(client.Res); rl != nil {
-		return nil, rl
-	}
-	if client.Err != nil {
-		return nil, fmt.Errorf("failed to fetch mastodon status %s: %w", statusID, client.Err)
-	}
-
 	if status.ID == "" {
 		return nil, fmt.Errorf("mastodon status %s not found", statusID)
 	}
-
 	return status.toPostEngagement(), nil
+}
+
+func (c *MastodonConnector) fetchStatusEngagement(socialAccount *connector.SocialAccount, statusID string) (*statusEngagement, error) {
+	client := utils.NewClient(c.Logger()).Get(mastodonInstance(socialAccount) + "/api/v1/statuses/" + statusID)
+	if client.Err != nil {
+		return nil, client.Err
+	}
+	var status statusEngagement
+	if err := c.decodeBearerJSON(client, socialAccount.OAuthToken, &status); err != nil {
+		return nil, wrapUnlessRateLimited(err, "failed to fetch mastodon status %s", statusID)
+	}
+	return &status, nil
 }

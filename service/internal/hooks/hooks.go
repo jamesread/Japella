@@ -50,24 +50,19 @@ func ExecuteHooks(hooks []runtimeconfig.IncomingMessageHook, msg *msgs.IncomingM
 	if len(hooks) == 0 {
 		return
 	}
-
-	// Prepare payload - send the full IncomingMessage structure as JSON
 	jsonData, err := json.Marshal(msg)
 	if err != nil {
-		if logger != nil {
-			logger.Errorf("Failed to marshal IncomingMessage to JSON for hooks: %v", err)
-		} else {
-			log.Errorf("Failed to marshal IncomingMessage to JSON for hooks: %v", err)
-		}
+		orStandardLogger(logger).Errorf("Failed to marshal IncomingMessage to JSON for hooks: %v", err)
 		return
 	}
+	startEnabledHooks(hooks, jsonData, msg, logger)
+}
 
-	// Execute each enabled hook
+func startEnabledHooks(hooks []runtimeconfig.IncomingMessageHook, jsonData []byte, msg *msgs.IncomingMessage, logger log.FieldLogger) {
 	for i, hook := range hooks {
 		if !hook.Enabled || hook.URL == "" {
 			continue
 		}
-
 		go executeHook(hook, jsonData, i, msg, logger)
 	}
 }
@@ -230,36 +225,43 @@ func FromDB(dbHooks []*db.WebhookHook) []runtimeconfig.IncomingMessageHook {
 // GetHooksForConnector returns the hooks configured for a specific connector
 // It first tries to load from database, then falls back to config for backward compatibility
 func GetHooksForConnector(connectorType string, identity string, dbInstance *db.DB) []runtimeconfig.IncomingMessageHook {
-	// Try to load from database first
-	if dbInstance != nil {
-		dbHooks, err := dbInstance.SelectWebhookHooks(connectorType, identity)
-		if err == nil && len(dbHooks) > 0 {
-			return FromDB(dbHooks)
-		}
+	if hooks, ok := hooksFromDB(connectorType, identity, dbInstance); ok {
+		return hooks
 	}
+	return hooksFromConfig(connectorType, identity)
+}
 
-	// Fall back to config for backward compatibility
-	cfg := runtimeconfig.Get()
+func hooksFromDB(connectorType, identity string, dbInstance *db.DB) ([]runtimeconfig.IncomingMessageHook, bool) {
+	if dbInstance == nil {
+		return nil, false
+	}
+	dbHooks, err := dbInstance.SelectWebhookHooks(connectorType, identity)
+	if err != nil || len(dbHooks) == 0 {
+		return nil, false
+	}
+	return FromDB(dbHooks), true
+}
 
-	for _, wrapper := range cfg.Connectors {
+func hooksFromConfig(connectorType, identity string) []runtimeconfig.IncomingMessageHook {
+	for _, wrapper := range runtimeconfig.Get().Connectors {
 		if wrapper.ConnectorType != connectorType {
 			continue
 		}
-
-		// Check if this is the right connector instance
-		if tgConfig, ok := wrapper.ConnectorConfig.(*runtimeconfig.TelegramConfig); ok {
-			// For Telegram, match by name if provided, or by identity
-			configName := tgConfig.Name
-			if configName != "" && configName == identity {
-				return tgConfig.IncomingMessageHooks
-			}
-			// If no name is set, return hooks for the first matching connector type
-			// (This is a limitation - we'd need better instance identification)
-			if configName == "" {
-				return tgConfig.IncomingMessageHooks
-			}
+		if hooks, ok := telegramHooksForIdentity(wrapper.ConnectorConfig, identity); ok {
+			return hooks
 		}
 	}
-
 	return []runtimeconfig.IncomingMessageHook{}
+}
+
+func telegramHooksForIdentity(cfg any, identity string) ([]runtimeconfig.IncomingMessageHook, bool) {
+	tgConfig, ok := cfg.(*runtimeconfig.TelegramConfig)
+	if !ok {
+		return nil, false
+	}
+	// Match by name when set; otherwise first matching connector type (legacy).
+	if tgConfig.Name != "" && tgConfig.Name != identity {
+		return nil, false
+	}
+	return tgConfig.IncomingMessageHooks, true
 }

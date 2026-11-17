@@ -70,11 +70,8 @@ func (a *DiscordConnector) StartChatBot() error {
 	if a.isRunning {
 		return fmt.Errorf("discord bot is already running")
 	}
-	if a.botToken == "" {
-		a.botToken = a.db.GetCvarString(chatbot.DiscordTokenKey(a.botID))
-	}
-	if a.botToken == "" {
-		return fmt.Errorf("discord bot token is not configured")
+	if err := a.ensureBotToken(); err != nil {
+		return err
 	}
 
 	a.SetPrefix("Discord")
@@ -82,10 +79,7 @@ func (a *DiscordConnector) StartChatBot() error {
 
 	session := a.startActual(a.botToken)
 	if session == nil {
-		if a.errorMessage != "" {
-			return fmt.Errorf("%s", a.errorMessage)
-		}
-		return fmt.Errorf("failed to start discord bot")
+		return a.startFailureError("failed to start discord bot")
 	}
 
 	if runtimeconfig.Get().Amqp.Enabled {
@@ -94,6 +88,23 @@ func (a *DiscordConnector) StartChatBot() error {
 
 	a.Logger().Infof("Discord connector started successfully")
 	return nil
+}
+
+func (a *DiscordConnector) ensureBotToken() error {
+	if a.botToken == "" {
+		a.botToken = a.db.GetCvarString(chatbot.DiscordTokenKey(a.botID))
+	}
+	if a.botToken == "" {
+		return fmt.Errorf("discord bot token is not configured")
+	}
+	return nil
+}
+
+func (a *DiscordConnector) startFailureError(fallback string) error {
+	if a.errorMessage != "" {
+		return fmt.Errorf("%s", a.errorMessage)
+	}
+	return fmt.Errorf("%s", fallback)
 }
 
 func (a *DiscordConnector) StopChatBot() error {

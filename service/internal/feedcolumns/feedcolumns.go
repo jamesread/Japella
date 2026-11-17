@@ -39,6 +39,25 @@ func TagQuery(tag string) string {
 	return TagQueryPrefix + tag
 }
 
+func parseTagQuery(q string) (Query, bool, error) {
+	if len(q) < len(TagQueryPrefix) || !strings.EqualFold(q[:len(TagQueryPrefix)], TagQueryPrefix) {
+		return Query{}, false, nil
+	}
+	tag, err := posttags.Normalise(q[len(TagQueryPrefix):])
+	if err != nil {
+		return Query{}, true, err
+	}
+	return Query{Text: TagQuery(tag), Tag: tag}, true, nil
+}
+
+func parseHashtagQuery(q string) (Query, error) {
+	m := hashtagRe.FindStringSubmatch(q)
+	if m == nil {
+		return Query{}, fmt.Errorf("hashtag may only contain letters, numbers and underscores")
+	}
+	return Query{Text: "#" + m[1], Hashtag: m[1]}, nil
+}
+
 // ParseQuery validates and normalises a column query. "tag:<tag>" is an
 // internal tag, a single word starting with '#' is a hashtag, and anything
 // else is a free-text search.
@@ -47,22 +66,14 @@ func ParseQuery(raw string) (Query, error) {
 	if q == "" {
 		return Query{}, fmt.Errorf("query is required")
 	}
-	if len(q) >= len(TagQueryPrefix) && strings.EqualFold(q[:len(TagQueryPrefix)], TagQueryPrefix) {
-		tag, err := posttags.Normalise(q[len(TagQueryPrefix):])
-		if err != nil {
-			return Query{}, err
-		}
-		return Query{Text: TagQuery(tag), Tag: tag}, nil
+	if parsed, ok, err := parseTagQuery(q); ok {
+		return parsed, err
 	}
 	if utf8.RuneCountInString(q) > MaxQueryLength {
 		return Query{}, fmt.Errorf("query must be at most %d characters", MaxQueryLength)
 	}
 	if strings.HasPrefix(q, "#") {
-		m := hashtagRe.FindStringSubmatch(q)
-		if m == nil {
-			return Query{}, fmt.Errorf("hashtag may only contain letters, numbers and underscores")
-		}
-		return Query{Text: "#" + m[1], Hashtag: m[1]}, nil
+		return parseHashtagQuery(q)
 	}
 	return Query{Text: q}, nil
 }
@@ -108,6 +119,36 @@ func NewCache(ttl time.Duration) *Cache {
 	return &Cache{TTL: ttl, entries: map[entryID]*cacheEntry{}}
 }
 
+func cacheFresh(r Result, ttl time.Duration, now time.Time) bool {
+	if now.Before(r.RetryAfter) {
+		return true
+	}
+	return r.Err == nil && now.Sub(r.FetchedAt) < ttl
+}
+
+func (c *Cache) cachedEntry(id entryID, key string) *cacheEntry {
+	entry := c.entries[id]
+	if entry != nil && entry.key != key {
+		return nil
+	}
+	return entry
+}
+
+func resultFromFetch(posts []*connector.RemotePost, err error, now time.Time, entry *cacheEntry) Result {
+	if err == nil {
+		return Result{Posts: posts, FetchedAt: now}
+	}
+	result := Result{Err: err, FetchedAt: now}
+	if entry != nil {
+		result.Posts = entry.result.Posts
+		result.FetchedAt = entry.result.FetchedAt
+	}
+	if rl := connector.AsRateLimited(err); rl != nil {
+		result.RetryAfter = now.Add(rl.RetryAfter)
+	}
+	return result
+}
+
 // Get returns the result for one account of a column, calling fetch when the
 // cached one is stale. key identifies what was fetched (the query) so an
 // edited column is not served old posts.
@@ -115,16 +156,11 @@ func (c *Cache) Get(columnID, accountID uint32, key string, now time.Time, fetch
 	id := entryID{column: columnID, account: accountID}
 
 	c.mu.Lock()
-	entry := c.entries[id]
-	if entry != nil && entry.key != key {
-		entry = nil
-	}
-	if entry != nil {
+	entry := c.cachedEntry(id, key)
+	if entry != nil && cacheFresh(entry.result, c.TTL, now) {
 		r := entry.result
-		if now.Before(r.RetryAfter) || (r.Err == nil && now.Sub(r.FetchedAt) < c.TTL) {
-			c.mu.Unlock()
-			return r
-		}
+		c.mu.Unlock()
+		return r
 	}
 	c.mu.Unlock()
 
@@ -132,18 +168,7 @@ func (c *Cache) Get(columnID, accountID uint32, key string, now time.Time, fetch
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
-
-	result := Result{Posts: posts, FetchedAt: now}
-	if err != nil {
-		result = Result{Err: err, FetchedAt: now}
-		if entry != nil {
-			result.Posts = entry.result.Posts
-			result.FetchedAt = entry.result.FetchedAt
-		}
-		if rl := connector.AsRateLimited(err); rl != nil {
-			result.RetryAfter = now.Add(rl.RetryAfter)
-		}
-	}
+	result := resultFromFetch(posts, err, now, entry)
 	c.entries[id] = &cacheEntry{key: key, result: result}
 	return result
 }
@@ -172,24 +197,8 @@ func Merge(byAccount map[uint32][]*connector.RemotePost, accountOrder []uint32, 
 	seen := map[string]bool{}
 	out := make([]SourcedPost, 0)
 	for _, accountID := range accountOrder {
-		for _, p := range byAccount[accountID] {
-			if p == nil {
-				continue
-			}
-			key := p.RemoteURL
-			if key == "" {
-				key = p.RemoteID
-			}
-			if key != "" {
-				if seen[key] {
-					continue
-				}
-				seen[key] = true
-			}
-			out = append(out, SourcedPost{Post: p, AccountID: accountID})
-		}
+		out = appendAccountPosts(out, seen, accountID, byAccount[accountID])
 	}
-
 	sort.SliceStable(out, func(i, j int) bool {
 		return out[i].Post.PostedAt.After(out[j].Post.PostedAt)
 	})
@@ -197,4 +206,29 @@ func Merge(byAccount map[uint32][]*connector.RemotePost, accountOrder []uint32, 
 		out = out[:limit]
 	}
 	return out
+}
+
+func appendAccountPosts(out []SourcedPost, seen map[string]bool, accountID uint32, posts []*connector.RemotePost) []SourcedPost {
+	for _, p := range posts {
+		if p == nil || alreadySeenRemotePost(seen, p) {
+			continue
+		}
+		out = append(out, SourcedPost{Post: p, AccountID: accountID})
+	}
+	return out
+}
+
+func alreadySeenRemotePost(seen map[string]bool, p *connector.RemotePost) bool {
+	key := p.RemoteURL
+	if key == "" {
+		key = p.RemoteID
+	}
+	if key == "" {
+		return false
+	}
+	if seen[key] {
+		return true
+	}
+	seen[key] = true
+	return false
 }

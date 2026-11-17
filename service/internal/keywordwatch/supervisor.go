@@ -63,46 +63,41 @@ func (sup *Supervisor) StopAll() {
 	}
 }
 
-// EnsureAccount starts or restarts native watch when PreferNativeWatch is true.
-func (sup *Supervisor) EnsureAccount(ctx context.Context, accountID uint32, watches []*db.KeywordWatch) {
-	if sup.service == nil || sup.service.DB == nil || sup.service.Connectors == nil {
-		return
-	}
-	sa, err := sup.service.DB.GetSocialAccount(accountID)
-	if err != nil || sa == nil || !sa.Active {
-		sup.StopAccount(accountID)
-		return
-	}
-	c := sup.service.Connectors.Get(sa.Connector)
-	if c == nil {
-		sup.fallbackSearch(accountID, db.WatchFidelitySearchOnly, "connector not available")
-		return
-	}
-	watcher, ok := c.(connector.ConnectorWithKeywordWatch)
-	if !ok {
-		sup.fallbackSearch(accountID, db.WatchFidelitySearchOnly, "native watch unsupported")
-		return
-	}
-
+func watchKeywords(watches []*db.KeywordWatch) []string {
 	keywords := make([]string, 0, len(watches))
 	for _, w := range watches {
 		keywords = append(keywords, w.Keyword)
 	}
-	csa := toConnectorSA(sa)
-	fidelity := watcher.NativeWatchFidelity(csa, keywords)
-	if !watcher.PreferNativeWatch(csa, keywords) {
-		sup.fallbackSearch(accountID, fidelity, "")
-		return
+	return keywords
+}
+
+func (sup *Supervisor) asKeywordWatcher(accountID uint32, c connector.BaseConnector) (connector.ConnectorWithKeywordWatch, bool) {
+	if c == nil {
+		sup.fallbackSearch(accountID, db.WatchFidelitySearchOnly, "connector not available")
+		return nil, false
 	}
-
-	sup.StopAccount(accountID)
-
-	watchCopy := append([]*db.KeywordWatch(nil), watches...)
-	sink := func(post *connector.RemotePost, matched []string) {
-		sup.service.HandleNativeMatch(sa, watchCopy, post, matched)
+	watcher, ok := c.(connector.ConnectorWithKeywordWatch)
+	if !ok {
+		sup.fallbackSearch(accountID, db.WatchFidelitySearchOnly, "native watch unsupported")
+		return nil, false
 	}
+	return watcher, true
+}
 
-	handle, err := watcher.StartKeywordWatch(ctx, csa, keywords, sink)
+func (sup *Supervisor) nativeWatcher(accountID uint32) (*db.SocialAccount, connector.ConnectorWithKeywordWatch, bool) {
+	sa, err := sup.service.DB.GetSocialAccount(accountID)
+	if err != nil || sa == nil || !sa.Active {
+		sup.StopAccount(accountID)
+		return nil, nil, false
+	}
+	watcher, ok := sup.asKeywordWatcher(accountID, sup.service.Connectors.Get(sa.Connector))
+	if !ok {
+		return nil, nil, false
+	}
+	return sa, watcher, true
+}
+
+func (sup *Supervisor) handleNativeStartError(accountID uint32, fidelity string, err error) bool {
 	if rl := connector.AsRateLimited(err); rl != nil {
 		st := &db.KeywordWatchState{
 			SocialAccountID: accountID,
@@ -114,14 +109,17 @@ func (sup *Supervisor) EnsureAccount(ctx context.Context, accountID uint32, watc
 		sup.mu.Lock()
 		sup.modes[accountID] = db.WatchModeDegraded
 		sup.mu.Unlock()
-		return
+		return true
 	}
 	if err != nil {
 		log.Warnf("keyword watch native start account=%d: %v", accountID, err)
 		sup.fallbackSearch(accountID, fidelity, err.Error())
-		return
+		return true
 	}
+	return false
+}
 
+func (sup *Supervisor) markNativeRunning(accountID uint32, fidelity string, handle connector.WatchHandle) {
 	_ = sup.service.DB.EnsureKeywordWatchState(accountID)
 	st, _ := sup.service.DB.GetKeywordWatchState(accountID)
 	if st == nil {
@@ -138,6 +136,43 @@ func (sup *Supervisor) EnsureAccount(ctx context.Context, accountID uint32, watc
 	sup.handles[accountID] = handle
 	sup.modes[accountID] = db.WatchModeNative
 	sup.mu.Unlock()
+}
+
+func (sup *Supervisor) startNativeWatch(ctx context.Context, sa *db.SocialAccount, watcher connector.ConnectorWithKeywordWatch, watches []*db.KeywordWatch, fidelity string, keywords []string) {
+	csa := toConnectorSA(sa)
+	sup.StopAccount(sa.ID)
+	watchCopy := append([]*db.KeywordWatch(nil), watches...)
+	sink := func(post *connector.RemotePost, matched []string) {
+		sup.service.HandleNativeMatch(sa, watchCopy, post, matched)
+	}
+	handle, err := watcher.StartKeywordWatch(ctx, csa, keywords, sink)
+	if sup.handleNativeStartError(sa.ID, fidelity, err) {
+		return
+	}
+	sup.markNativeRunning(sa.ID, fidelity, handle)
+}
+
+func serviceReady(sup *Supervisor) bool {
+	return sup.service != nil && sup.service.DB != nil && sup.service.Connectors != nil
+}
+
+// EnsureAccount starts or restarts native watch when PreferNativeWatch is true.
+func (sup *Supervisor) EnsureAccount(ctx context.Context, accountID uint32, watches []*db.KeywordWatch) {
+	if !serviceReady(sup) {
+		return
+	}
+	sa, watcher, ok := sup.nativeWatcher(accountID)
+	if !ok {
+		return
+	}
+	keywords := watchKeywords(watches)
+	csa := toConnectorSA(sa)
+	fidelity := watcher.NativeWatchFidelity(csa, keywords)
+	if !watcher.PreferNativeWatch(csa, keywords) {
+		sup.fallbackSearch(accountID, fidelity, "")
+		return
+	}
+	sup.startNativeWatch(ctx, sa, watcher, watches, fidelity, keywords)
 }
 
 func (sup *Supervisor) fallbackSearch(accountID uint32, fidelity, errMsg string) {
@@ -181,18 +216,21 @@ func (sup *Supervisor) NotifyStreamFailure(accountID uint32, err error) {
 	_ = sup.service.DB.UpsertKeywordWatchState(st)
 }
 
+func hashtagAppearsIn(content, kw string) bool {
+	if !IsHashtagKeyword(kw) {
+		return false
+	}
+	plain := strings.ToLower(StripHTML(content))
+	tag := strings.ToLower(HashtagTag(kw))
+	return strings.Contains(plain, "#"+tag) || strings.Contains(plain, tag)
+}
+
 // MatchKeywordsAgainstPost returns which configured keywords appear in post content.
 func MatchKeywordsAgainstPost(content string, keywords []string) []string {
 	out := make([]string, 0)
 	for _, kw := range keywords {
-		if ContainsKeyword(content, kw) {
+		if ContainsKeyword(content, kw) || hashtagAppearsIn(content, kw) {
 			out = append(out, kw)
-		} else if IsHashtagKeyword(kw) {
-			tag := strings.ToLower(HashtagTag(kw))
-			if strings.Contains(strings.ToLower(StripHTML(content)), "#"+tag) ||
-				strings.Contains(strings.ToLower(StripHTML(content)), tag) {
-				out = append(out, kw)
-			}
 		}
 	}
 	return out

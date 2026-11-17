@@ -47,18 +47,33 @@ func (c *BlueskyConnector) StartKeywordWatch(ctx context.Context, sa *connector.
 }
 
 func (c *BlueskyConnector) SearchRecentByKeyword(ctx context.Context, sa *connector.SocialAccount, keyword string, since time.Time, limit int) ([]*connector.RemotePost, error) {
+	limit = clampBlueskySearchLimit(limit)
+	req, err := newBlueskySearchRequest(ctx, sa, keyword, limit)
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := doBlueskySearch(req)
+	if err != nil {
+		return nil, err
+	}
+	return mapBlueskySearchPosts(parsed, since), nil
+}
+
+func clampBlueskySearchLimit(limit int) int {
 	if limit <= 0 {
-		limit = 25
+		return 25
 	}
 	if limit > 100 {
-		limit = 100
+		return 100
 	}
+	return limit
+}
 
+func newBlueskySearchRequest(ctx context.Context, sa *connector.SocialAccount, keyword string, limit int) (*http.Request, error) {
 	q := url.Values{}
 	q.Set("q", keyword)
 	q.Set("limit", strconv.Itoa(limit))
 	q.Set("sort", "latest")
-
 	endpoint := "https://api.bsky.app/xrpc/app.bsky.feed.searchPosts?" + q.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
@@ -67,49 +82,68 @@ func (c *BlueskyConnector) SearchRecentByKeyword(ctx context.Context, sa *connec
 	if sa != nil && sa.OAuthToken != "" {
 		req.Header.Set("Authorization", "Bearer "+sa.OAuthToken)
 	}
+	return req, nil
+}
 
+func doBlueskySearch(req *http.Request) (bskySearchPostsResponse, error) {
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return nil, err
+		return bskySearchPostsResponse{}, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
+	if err := checkBlueskySearchStatus(resp.StatusCode, body); err != nil {
+		return bskySearchPostsResponse{}, err
+	}
+	var parsed bskySearchPostsResponse
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return bskySearchPostsResponse{}, err
+	}
+	return parsed, nil
+}
 
-	if resp.StatusCode == http.StatusTooManyRequests {
-		return nil, &connector.RateLimitedError{
+func checkBlueskySearchStatus(statusCode int, body []byte) error {
+	if statusCode == http.StatusTooManyRequests {
+		return &connector.RateLimitedError{
 			RetryAfter: 15 * time.Minute,
 			Message:    "bluesky search rate limited",
 		}
 	}
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("bluesky search returned %d: %s", resp.StatusCode, string(body))
+	if statusCode < 200 || statusCode >= 300 {
+		return fmt.Errorf("bluesky search returned %d: %s", statusCode, string(body))
 	}
+	return nil
+}
 
-	var parsed bskySearchPostsResponse
-	if err := json.Unmarshal(body, &parsed); err != nil {
-		return nil, err
-	}
-
+func mapBlueskySearchPosts(parsed bskySearchPostsResponse, since time.Time) []*connector.RemotePost {
 	out := make([]*connector.RemotePost, 0, len(parsed.Posts))
 	for _, p := range parsed.Posts {
-		if !since.IsZero() && !p.Record.CreatedAt.IsZero() && p.Record.CreatedAt.Before(since) {
+		if shouldSkipBlueskySearchPost(p, since) {
 			continue
 		}
-		out = append(out, &connector.RemotePost{
-			RemoteID:     p.URI,
-			RemoteURL:    blueskyWebURL(p.URI, p.Author.Handle),
-			AuthorID:     p.Author.Did,
-			AuthorHandle: p.Author.Handle,
-			Content:      p.Record.Text,
-			PostedAt:     p.Record.CreatedAt,
-
-			AuthorName:       p.Author.DisplayName,
-			AuthorAvatarURL:  p.Author.Avatar,
-			AuthorProfileURL: blueskyProfileURL(p.Author.Handle, p.Author.Did),
-			Language:         firstOrEmpty(p.Record.Langs),
-		})
+		out = append(out, blueskySearchPostToRemote(p))
 	}
-	return out, nil
+	return out
+}
+
+func shouldSkipBlueskySearchPost(p bskySearchPost, since time.Time) bool {
+	return !since.IsZero() && !p.Record.CreatedAt.IsZero() && p.Record.CreatedAt.Before(since)
+}
+
+func blueskySearchPostToRemote(p bskySearchPost) *connector.RemotePost {
+	return &connector.RemotePost{
+		RemoteID:     p.URI,
+		RemoteURL:    blueskyWebURL(p.URI, p.Author.Handle),
+		AuthorID:     p.Author.Did,
+		AuthorHandle: p.Author.Handle,
+		Content:      p.Record.Text,
+		PostedAt:     p.Record.CreatedAt,
+
+		AuthorName:       p.Author.DisplayName,
+		AuthorAvatarURL:  p.Author.Avatar,
+		AuthorProfileURL: blueskyProfileURL(p.Author.Handle, p.Author.Did),
+		Language:         firstOrEmpty(p.Record.Langs),
+	}
 }
 
 // firstOrEmpty returns the first language a post declares; Bluesky lists the

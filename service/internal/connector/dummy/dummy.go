@@ -198,29 +198,39 @@ func (c *Connector) SearchRecentByKeyword(ctx context.Context, sa *connector.Soc
 	if limit <= 0 {
 		limit = 25
 	}
-	posts := c.snapshot()
+	return filterPostsByKeyword(c.snapshot(), keyword, since, limit), nil
+}
+
+func filterPostsByKeyword(posts []simPost, keyword string, since time.Time, limit int) []*connector.RemotePost {
 	out := make([]*connector.RemotePost, 0)
 	for _, p := range slices.Backward(posts) {
-
-		if !since.IsZero() && p.PostedAt.Before(since) {
+		if !matchesKeywordSince(p, keyword, since) {
 			continue
 		}
-		if !keywordwatch.ContainsKeyword(p.Content, keyword) {
-			continue
-		}
-		out = append(out, &connector.RemotePost{
-			RemoteID:     p.RemoteID,
-			RemoteURL:    p.RemoteURL,
-			AuthorID:     p.AuthorID,
-			AuthorHandle: p.AuthorHandle,
-			Content:      p.Content,
-			PostedAt:     p.PostedAt,
-		})
+		out = append(out, simPostToRemote(p))
 		if len(out) >= limit {
 			break
 		}
 	}
-	return out, nil
+	return out
+}
+
+func matchesKeywordSince(p simPost, keyword string, since time.Time) bool {
+	if !since.IsZero() && p.PostedAt.Before(since) {
+		return false
+	}
+	return keywordwatch.ContainsKeyword(p.Content, keyword)
+}
+
+func simPostToRemote(p simPost) *connector.RemotePost {
+	return &connector.RemotePost{
+		RemoteID:     p.RemoteID,
+		RemoteURL:    p.RemoteURL,
+		AuthorID:     p.AuthorID,
+		AuthorHandle: p.AuthorHandle,
+		Content:      p.Content,
+		PostedAt:     p.PostedAt,
+	}
 }
 
 type watchHandle struct {
@@ -251,38 +261,32 @@ func (c *Connector) runNativeWatch(ctx context.Context, keywords []string, sink 
 	seen := map[string]struct{}{}
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
-	emitMatching := func() {
-		for _, p := range c.snapshot() {
-			if _, ok := seen[p.RemoteID]; ok {
-				continue
-			}
-			matched := keywordwatch.MatchKeywordsAgainstPost(p.Content, keywords)
-			if len(matched) == 0 {
-				continue
-			}
-			seen[p.RemoteID] = struct{}{}
-			sink(&connector.RemotePost{
-				RemoteID:     p.RemoteID,
-				RemoteURL:    p.RemoteURL,
-				AuthorID:     p.AuthorID,
-				AuthorHandle: p.AuthorHandle,
-				Content:      p.Content,
-				PostedAt:     p.PostedAt,
-			}, matched)
-		}
-		// Bound seen set
-		if len(seen) > 500 {
-			seen = map[string]struct{}{}
-		}
-	}
-	emitMatching()
+	c.emitMatchingPosts(keywords, sink, seen)
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
-			emitMatching()
+			c.emitMatchingPosts(keywords, sink, seen)
 		}
+	}
+}
+
+func (c *Connector) emitMatchingPosts(keywords []string, sink connector.MatchSink, seen map[string]struct{}) {
+	for _, p := range c.snapshot() {
+		if _, ok := seen[p.RemoteID]; ok {
+			continue
+		}
+		matched := keywordwatch.MatchKeywordsAgainstPost(p.Content, keywords)
+		if len(matched) == 0 {
+			continue
+		}
+		seen[p.RemoteID] = struct{}{}
+		sink(simPostToRemote(p), matched)
+	}
+	// Bound seen set
+	if len(seen) > 500 {
+		clear(seen)
 	}
 }
 
@@ -291,10 +295,17 @@ func (c *Connector) CreateAccount(identity string, ownerUserID uint32) (uint32, 
 	if c.db == nil {
 		return 0, fmt.Errorf("database not configured")
 	}
-	identity = strings.TrimSpace(identity)
-	if identity == "" {
-		identity = fmt.Sprintf("dummy-%d", time.Now().Unix()%100000)
+	created, err := c.registerDummyAccount(normalizeDummyIdentity(identity))
+	if err != nil {
+		return 0, err
 	}
+	if err := c.assignAccountOwner(created.ID, ownerUserID); err != nil {
+		return created.ID, err
+	}
+	return created.ID, nil
+}
+
+func (c *Connector) registerDummyAccount(identity string) (*db.SocialAccount, error) {
 	sa := &db.SocialAccount{
 		Connector: Protocol,
 		Identity:  identity,
@@ -303,16 +314,26 @@ func (c *Connector) CreateAccount(identity string, ownerUserID uint32) (uint32, 
 		State:     "active",
 	}
 	if err := c.db.RegisterAccount(sa); err != nil {
-		return 0, err
+		return nil, err
 	}
 	created, err := c.db.GetSocialAccountByConnectorAndIdentity(Protocol, identity, sa.Did)
 	if err != nil || created == nil {
-		return 0, fmt.Errorf("created dummy account but could not reload: %w", err)
+		return nil, fmt.Errorf("created dummy account but could not reload: %w", err)
 	}
-	if ownerUserID != 0 {
-		if err := c.db.SetSocialAccountOwner(created.ID, ownerUserID); err != nil {
-			return created.ID, err
-		}
+	return created, nil
+}
+
+func normalizeDummyIdentity(identity string) string {
+	identity = strings.TrimSpace(identity)
+	if identity == "" {
+		return fmt.Sprintf("dummy-%d", time.Now().Unix()%100000)
 	}
-	return created.ID, nil
+	return identity
+}
+
+func (c *Connector) assignAccountOwner(accountID, ownerUserID uint32) error {
+	if ownerUserID == 0 {
+		return nil
+	}
+	return c.db.SetSocialAccountOwner(accountID, ownerUserID)
 }

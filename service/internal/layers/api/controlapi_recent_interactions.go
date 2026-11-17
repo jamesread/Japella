@@ -8,6 +8,8 @@ import (
 
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
+	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/keywordwatch"
 	"github.com/jamesread/japella/internal/postengagement"
 	"github.com/jamesread/japella/internal/postreplies"
@@ -29,6 +31,25 @@ func postSnippet(content string) string {
 	return string(runes[:recentInteractionSnippetRunes-1]) + "…"
 }
 
+var recentInteractionFillers = map[string]func(*controlv1.RecentInteraction, postengagement.Interaction){
+	postengagement.InteractionEngagement: func(out *controlv1.RecentInteraction, it postengagement.Interaction) {
+		out.Engagement = countsToProto(it.Counts)
+	},
+	postengagement.InteractionReply: func(out *controlv1.RecentInteraction, it postengagement.Interaction) {
+		if replies := replyNodesToProto([]*postreplies.Node{{Reply: it.Reply}}); len(replies) == 1 {
+			out.Reply = replies[0]
+		}
+	},
+	postengagement.InteractionLiked: func(out *controlv1.RecentInteraction, it postengagement.Interaction) {
+		out.PostAuthor = it.PostAuthor
+	},
+	postengagement.InteractionCommented: func(out *controlv1.RecentInteraction, it postengagement.Interaction) {
+		out.PostAuthor = it.PostAuthor
+		out.Comment = it.Comment
+		out.CommentUrl = it.CommentURL
+	},
+}
+
 func recentInteractionToProto(it postengagement.Interaction) *controlv1.RecentInteraction {
 	out := &controlv1.RecentInteraction{
 		Kind:        it.Kind,
@@ -37,41 +58,60 @@ func recentInteractionToProto(it postengagement.Interaction) *controlv1.RecentIn
 		PostSnippet: postSnippet(it.PostContent),
 		PostUrl:     it.PostURL,
 	}
-	switch it.Kind {
-	case postengagement.InteractionEngagement:
-		out.Engagement = countsToProto(it.Counts)
-	case postengagement.InteractionReply:
-		if replies := replyNodesToProto([]*postreplies.Node{{Reply: it.Reply}}); len(replies) == 1 {
-			out.Reply = replies[0]
-		}
-	case postengagement.InteractionLiked:
-		out.PostAuthor = it.PostAuthor
-	case postengagement.InteractionCommented:
-		out.PostAuthor = it.PostAuthor
-		out.Comment = it.Comment
-		out.CommentUrl = it.CommentURL
+	if fill, ok := recentInteractionFillers[it.Kind]; ok {
+		fill(out, it)
 	}
 	return out
 }
 
-// GetSocialAccountRecentInteractions lists what happened on an account over
-// the last N days: posts it published, replies it received, increases in
-// engagement, and likes and comments it made, newest first, with totals and
-// per-day counts.
-func (s *ControlApi) GetSocialAccountRecentInteractions(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountRecentInteractionsRequest]) (*connect.Response[controlv1.GetSocialAccountRecentInteractionsResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+func recentInteractionsDays(requested uint32) int {
+	days := recentInteractionsDefaultDays
+	if d := int(requested); d > 0 {
+		days = min(d, recentInteractionsMaxDays)
 	}
+	return days
+}
 
-	accountID := req.Msg.GetSocialAccountId()
+func (s *ControlApi) loadRecentInteractionSources(accountID uint32, since time.Time, window time.Duration) (postengagement.InteractionSources, error) {
+	posts, err := s.DB.SelectCompletedPostsForAccountWithin(accountID, window)
+	if err != nil {
+		return postengagement.InteractionSources{}, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load posts"))
+	}
+	events, err := s.DB.SelectPostEngagementEventsForAccountSince(accountID, since)
+	if err != nil {
+		return postengagement.InteractionSources{}, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load engagement"))
+	}
+	replies, err := s.DB.SelectPostRepliesForAccountSince(accountID, since)
+	if err != nil {
+		return postengagement.InteractionSources{}, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load replies"))
+	}
+	activity, err := s.DB.SelectAccountActivitySince(accountID, since)
+	if err != nil {
+		return postengagement.InteractionSources{}, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load likes and comments"))
+	}
+	return postengagement.InteractionSources{
+		Posts:    posts,
+		Replies:  replies,
+		Events:   events,
+		Activity: activity,
+	}, nil
+}
+
+func (s *ControlApi) requireReadableSocialAccount(ctx context.Context, accountID uint32) (*db.SocialAccount, error) {
+	au, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
+	}
 	if accountID == 0 {
 		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id is required"))
 	}
 	if !s.userCanReadSocialAccount(au, accountID) {
 		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
 	}
+	return s.loadSocialAccountOrErr(accountID)
+}
 
+func (s *ControlApi) loadSocialAccountOrErr(accountID uint32) (*db.SocialAccount, error) {
 	sa, err := s.DB.GetSocialAccount(accountID)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load social account"))
@@ -79,42 +119,36 @@ func (s *ControlApi) GetSocialAccountRecentInteractions(ctx context.Context, req
 	if sa == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found"))
 	}
+	return sa, nil
+}
 
-	days := recentInteractionsDefaultDays
-	if d := int(req.Msg.GetDays()); d > 0 {
-		days = min(d, recentInteractionsMaxDays)
+// GetSocialAccountRecentInteractions lists what happened on an account over
+// the last N days: posts it published, replies it received, increases in
+// engagement, and likes and comments it made, newest first, with totals and
+// per-day counts.
+func (s *ControlApi) GetSocialAccountRecentInteractions(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountRecentInteractionsRequest]) (*connect.Response[controlv1.GetSocialAccountRecentInteractionsResponse], error) {
+	sa, err := s.requireReadableSocialAccount(ctx, req.Msg.GetSocialAccountId())
+	if err != nil {
+		return nil, err
 	}
+
+	days := recentInteractionsDays(req.Msg.GetDays())
 	window := time.Duration(days) * 24 * time.Hour
 	since := time.Now().UTC().Add(-window)
 
-	posts, err := s.DB.SelectCompletedPostsForAccountWithin(accountID, window)
+	sources, err := s.loadRecentInteractionSources(sa.ID, since, window)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load posts"))
+		return nil, err
 	}
-	events, err := s.DB.SelectPostEngagementEventsForAccountSince(accountID, since)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load engagement"))
-	}
-	replies, err := s.DB.SelectPostRepliesForAccountSince(accountID, since)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load replies"))
-	}
+	sources.RepliesFromThreads = s.connectorSupportsReplies(sa.Connector)
 
-	activity, err := s.DB.SelectAccountActivitySince(accountID, since)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load likes and comments"))
-	}
+	sum := postengagement.SummariseInteractions(time.Now(), days, sources, recentInteractionsMaxItems)
+	return connect.NewResponse(s.recentInteractionsResponse(sa, days, sum)), nil
+}
 
-	sum := postengagement.SummariseInteractions(time.Now(), days, postengagement.InteractionSources{
-		Posts:              posts,
-		Replies:            replies,
-		Events:             events,
-		Activity:           activity,
-		RepliesFromThreads: s.connectorSupportsReplies(sa.Connector),
-	}, recentInteractionsMaxItems)
-
+func (s *ControlApi) recentInteractionsResponse(sa *db.SocialAccount, days int, sum postengagement.InteractionSummary) *controlv1.GetSocialAccountRecentInteractionsResponse {
 	res := &controlv1.GetSocialAccountRecentInteractionsResponse{
-		Days:            uint32(days),
+		Days:            intconv.ToUint32(days),
 		Supported:       s.connectorSupportsEngagement(sa.Connector),
 		TrackingEnabled: s.postEngagementMaxAge() > 0,
 		Posts:           sum.Posts,
@@ -134,6 +168,5 @@ func (s *ControlApi) GetSocialAccountRecentInteractions(ctx context.Context, req
 	for _, it := range sum.Items {
 		res.Items = append(res.Items, recentInteractionToProto(it))
 	}
-
-	return connect.NewResponse(res), nil
+	return res
 }

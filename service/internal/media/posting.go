@@ -176,6 +176,38 @@ func postingNote(quality int, graphic bool, bounds image.Rectangle, size image.P
 	return note + "."
 }
 
+func encodeGraphicPNG(scaled *image.NRGBA) ([]byte, error) {
+	reduced, _ := reducePNG(scaled)
+	var buf bytes.Buffer
+	err := (&png.Encoder{CompressionLevel: pngCompressionLevel(reduced)}).Encode(&buf, reduced)
+	return buf.Bytes(), err
+}
+
+func encodeJPEGQualities(scaled *image.NRGBA, maxBytes int64) (best []byte, quality int, fits bool, err error) {
+	for _, q := range postingQualities {
+		var buf bytes.Buffer
+		if err := jpeg.Encode(&buf, opaqueRGBA(scaled), &jpeg.Options{Quality: q}); err != nil {
+			return nil, 0, false, err
+		}
+		best, quality = buf.Bytes(), q
+		if int64(buf.Len()) <= maxBytes {
+			return best, q, true, nil
+		}
+	}
+	return best, quality, false, nil
+}
+
+func encodeOneSize(scaled *image.NRGBA, maxBytes int64, graphic bool) (out []byte, quality int, fits bool, err error) {
+	if graphic {
+		out, err = encodeGraphicPNG(scaled)
+		if err != nil {
+			return nil, 0, false, err
+		}
+		return out, 0, int64(len(out)) <= maxBytes, nil
+	}
+	return encodeJPEGQualities(scaled, maxBytes)
+}
+
 // encodeToFit encodes img no larger than target.MaxSide, lowering JPEG
 // quality and then dimensions until it fits target.MaxBytes.
 func encodeToFit(img *image.NRGBA, target PostingTarget, graphic bool) ([]byte, image.Point, int, error) {
@@ -188,27 +220,13 @@ func encodeToFit(img *image.NRGBA, target PostingTarget, graphic bool) ([]byte, 
 	bestQuality := 0
 	for shrink := 0; shrink <= postingMaxShrinks; shrink++ {
 		scaled := resize(img, side)
-		if graphic {
-			reduced, _ := reducePNG(scaled)
-			var buf bytes.Buffer
-			if err := (&png.Encoder{CompressionLevel: pngCompressionLevel(reduced)}).Encode(&buf, reduced); err != nil {
-				return nil, image.Point{}, 0, err
-			}
-			best, bestSize = buf.Bytes(), scaled.Bounds().Size()
-			if int64(buf.Len()) <= target.MaxBytes {
-				return best, bestSize, 0, nil
-			}
-		} else {
-			for _, q := range postingQualities {
-				var buf bytes.Buffer
-				if err := jpeg.Encode(&buf, opaqueRGBA(scaled), &jpeg.Options{Quality: q}); err != nil {
-					return nil, image.Point{}, 0, err
-				}
-				best, bestSize, bestQuality = buf.Bytes(), scaled.Bounds().Size(), q
-				if int64(buf.Len()) <= target.MaxBytes {
-					return best, bestSize, q, nil
-				}
-			}
+		out, q, fits, err := encodeOneSize(scaled, target.MaxBytes, graphic)
+		if err != nil {
+			return nil, image.Point{}, 0, err
+		}
+		best, bestSize, bestQuality = out, scaled.Bounds().Size(), q
+		if fits {
+			return best, bestSize, q, nil
 		}
 		side = int(math.Round(float64(side) * postingShrinkStep))
 		if side < 64 {
@@ -272,26 +290,55 @@ func fewColours(img *image.NRGBA) bool {
 	return true
 }
 
+func jpegExifPayload(data []byte, p int) ([]byte, int, bool) {
+	marker := data[p+1]
+	n := int(data[p+2])<<8 | int(data[p+3])
+	end := p + 2 + n
+	if marker == 0xDA || n < 2 || end > len(data) {
+		return nil, 0, false
+	}
+	return data[p+4 : end], end, true
+}
+
+func orientationAtJPEGOffset(data []byte, p int) (orientation int, end int, stop bool) {
+	payload, end, ok := jpegExifPayload(data, p)
+	if !ok {
+		return 0, 0, true
+	}
+	if data[p+1] == 0xE1 && bytes.HasPrefix(payload, []byte("Exif\x00\x00")) {
+		return exifOrientation(payload[6:]), end, true
+	}
+	return 0, end, false
+}
+
 // jpegOrientation returns a JPEG's EXIF orientation, or 0.
 func jpegOrientation(data []byte) int {
 	for p := 2; p+4 <= len(data) && data[p] == 0xFF; {
-		marker := data[p+1]
-		n := int(data[p+2])<<8 | int(data[p+3])
-		end := p + 2 + n
-		if marker == 0xDA || n < 2 || end > len(data) {
-			return 0
-		}
-		if payload := data[p+4 : end]; marker == 0xE1 && bytes.HasPrefix(payload, []byte("Exif\x00\x00")) {
-			return exifOrientation(payload[6:])
+		orientation, end, stop := orientationAtJPEGOffset(data, p)
+		if stop {
+			return orientation
 		}
 		p = end
 	}
 	return 0
 }
 
+type orientMap func(x, y, w, h int) (dx, dy int)
+
+var orientationMaps = map[int]orientMap{
+	2: func(x, y, w, _ int) (int, int) { return w - 1 - x, y },
+	3: func(x, y, w, h int) (int, int) { return w - 1 - x, h - 1 - y },
+	4: func(x, y, _, h int) (int, int) { return x, h - 1 - y },
+	5: func(x, y, _, _ int) (int, int) { return y, x },
+	6: func(x, y, _, h int) (int, int) { return h - 1 - y, x },
+	7: func(x, y, w, h int) (int, int) { return h - 1 - y, w - 1 - x },
+	8: func(x, y, w, _ int) (int, int) { return y, w - 1 - x },
+}
+
 // applyOrientation rotates/flips img upright for an EXIF orientation (2-8).
 func applyOrientation(img image.Image, orientation int) image.Image {
-	if orientation < 2 || orientation > 8 {
+	fn, ok := orientationMaps[orientation]
+	if !ok {
 		return img
 	}
 	src := toNRGBA(img)
@@ -303,23 +350,7 @@ func applyOrientation(img image.Image, orientation int) image.Image {
 	dst := image.NewNRGBA(image.Rect(0, 0, dw, dh))
 	for y := range h {
 		for x := range w {
-			var dx, dy int
-			switch orientation {
-			case 2:
-				dx, dy = w-1-x, y
-			case 3:
-				dx, dy = w-1-x, h-1-y
-			case 4:
-				dx, dy = x, h-1-y
-			case 5:
-				dx, dy = y, x
-			case 6:
-				dx, dy = h-1-y, x
-			case 7:
-				dx, dy = h-1-y, w-1-x
-			case 8:
-				dx, dy = y, w-1-x
-			}
+			dx, dy := fn(x, y, w, h)
 			si, di := src.PixOffset(x, y), dst.PixOffset(dx, dy)
 			copy(dst.Pix[di:di+4], src.Pix[si:si+4])
 		}

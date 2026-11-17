@@ -32,18 +32,29 @@ func (s *ControlApi) activityFor(sa *db.SocialAccount, ref *controlv1.PostRef) *
 		PostAuthor:      ref.GetAuthorName(),
 		PostSnippet:     ref.GetSnippet(),
 	}
-	if id := ref.GetFeedPostId(); id != 0 {
-		if entry, err := s.DB.GetFeedEntryByID(id); err == nil && entry != nil && entry.SocialAccountID == sa.ID {
-			a.PostAuthor = entry.AuthorName
-			a.PostSnippet = entry.Content
-			if u := safeSnapshotURL(entry.RemoteURL); u != "" {
-				a.PostURL = u
-			}
-		}
-	}
+	s.fillActivityFromFeedEntry(a, sa.ID, ref.GetFeedPostId())
 	a.PostAuthor = truncateRunes(strings.TrimSpace(keywordwatch.StripHTML(a.PostAuthor)), activityAuthorRunes)
 	a.PostSnippet = truncateRunes(strings.TrimSpace(keywordwatch.StripHTML(a.PostSnippet)), activitySnippetRunes)
 	return a
+}
+
+func feedEntryMatchesAccount(entry *db.Feed, socialAccountID uint32, err error) bool {
+	return err == nil && entry != nil && entry.SocialAccountID == socialAccountID
+}
+
+func (s *ControlApi) fillActivityFromFeedEntry(a *db.AccountActivity, socialAccountID, feedPostID uint32) {
+	if feedPostID == 0 {
+		return
+	}
+	entry, err := s.DB.GetFeedEntryByID(feedPostID)
+	if !feedEntryMatchesAccount(entry, socialAccountID, err) {
+		return
+	}
+	a.PostAuthor = entry.AuthorName
+	a.PostSnippet = entry.Content
+	if u := safeSnapshotURL(entry.RemoteURL); u != "" {
+		a.PostURL = u
+	}
 }
 
 // recordLikeActivity keeps the account's recent interactions in step with a

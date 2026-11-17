@@ -2,7 +2,6 @@ package bluesky
 
 import (
 	"fmt"
-	"net/url"
 	"strings"
 	"time"
 
@@ -13,21 +12,9 @@ import (
 
 // fetchPostView loads one post (with its cid and reply refs) from the public AppView.
 func (b *BlueskyConnector) fetchPostView(atURI string) (*bskyPostView, error) {
-	q := url.Values{}
-	q.Set("uris", atURI)
-
-	client := utils.NewClient(b.Logger()).Get(bskyPublicAppView + "/xrpc/app.bsky.feed.getPosts?" + q.Encode())
-	if client.Err != nil {
-		return nil, client.Err
-	}
-
-	var response bskyGetPostsResponse
-	client.AsJson(&response)
-	if rl := connector.RateLimitedFromResponse(client.Res); rl != nil {
-		return nil, rl
-	}
-	if client.Err != nil {
-		return nil, fmt.Errorf("failed to fetch bluesky post %s: %w", atURI, client.Err)
+	response, err := getPostsFromAppView(atURI, b.Logger())
+	if err != nil {
+		return nil, err
 	}
 	if len(response.Posts) == 0 || response.Posts[0].CID == "" {
 		return nil, fmt.Errorf("bluesky post %s not found", atURI)
@@ -54,41 +41,65 @@ func (b *BlueskyConnector) createRecord(dbSocialAccount *db.SocialAccount, colle
 	if err != nil {
 		return "", fmt.Errorf("failed to get PDS endpoint: %w", err)
 	}
-
 	client := b.ensureDPoPClient(dbSocialAccount)
 	if client == nil {
 		return "", fmt.Errorf("could not create an authenticated Bluesky client; try reconnecting the account")
 	}
-
 	req := map[string]any{"repo": dbSocialAccount.Did, "collection": collection, "record": record}
-	res := BlueskyCreatePostResponse{}
 	endpoint := pdsURL + "/xrpc/com.atproto.repo.createRecord"
-
-	client.PostWithJson(endpoint, req)
-	client.AsJson(&res)
-
-	if client.Err != nil && strings.Contains(client.Err.Error()+string(client.ResBody), "expired") {
-		if refreshErr := b.refreshToken(dbSocialAccount); refreshErr != nil {
-			return "", fmt.Errorf("token refresh failed: %w", refreshErr)
-		}
-		updated, getErr := b.db.GetSocialAccount(dbSocialAccount.ID)
-		if getErr != nil || updated == nil {
-			return "", fmt.Errorf("failed to reload social account after token refresh")
-		}
-		if client = b.ensureDPoPClient(updated); client == nil {
-			return "", fmt.Errorf("could not create an authenticated Bluesky client after token refresh")
-		}
-		client.PostWithJson(endpoint, req)
-		client.AsJson(&res)
-	}
-
-	if client.Err != nil {
-		if len(client.ResBody) > 0 {
-			return "", fmt.Errorf("%w: %s", client.Err, string(client.ResBody))
-		}
-		return "", client.Err
+	res, err := b.postCreateRecord(client, endpoint, req, dbSocialAccount)
+	if err != nil {
+		return "", err
 	}
 	return res.Uri, nil
+}
+
+func (b *BlueskyConnector) postCreateRecord(client *utils.ChainingHttpClient, endpoint string, req map[string]any, dbSocialAccount *db.SocialAccount) (BlueskyCreatePostResponse, error) {
+	res := BlueskyCreatePostResponse{}
+	client.PostWithJson(endpoint, req)
+	client.AsJson(&res)
+	if client.Err != nil && strings.Contains(client.Err.Error()+string(client.ResBody), "expired") {
+		refreshed, err := b.retryCreateRecordAfterRefresh(endpoint, req, dbSocialAccount)
+		if err != nil {
+			return BlueskyCreatePostResponse{}, err
+		}
+		client = refreshed.client
+		res = refreshed.res
+	}
+	if client.Err != nil {
+		return BlueskyCreatePostResponse{}, createRecordClientErr(client)
+	}
+	return res, nil
+}
+
+type createRecordRetry struct {
+	client *utils.ChainingHttpClient
+	res    BlueskyCreatePostResponse
+}
+
+func (b *BlueskyConnector) retryCreateRecordAfterRefresh(endpoint string, req map[string]any, dbSocialAccount *db.SocialAccount) (createRecordRetry, error) {
+	if refreshErr := b.refreshToken(dbSocialAccount); refreshErr != nil {
+		return createRecordRetry{}, fmt.Errorf("token refresh failed: %w", refreshErr)
+	}
+	updated, getErr := b.db.GetSocialAccount(dbSocialAccount.ID)
+	if getErr != nil || updated == nil {
+		return createRecordRetry{}, fmt.Errorf("failed to reload social account after token refresh")
+	}
+	client := b.ensureDPoPClient(updated)
+	if client == nil {
+		return createRecordRetry{}, fmt.Errorf("could not create an authenticated Bluesky client after token refresh")
+	}
+	res := BlueskyCreatePostResponse{}
+	client.PostWithJson(endpoint, req)
+	client.AsJson(&res)
+	return createRecordRetry{client: client, res: res}, nil
+}
+
+func createRecordClientErr(client *utils.ChainingHttpClient) error {
+	if len(client.ResBody) > 0 {
+		return fmt.Errorf("%w: %s", client.Err, string(client.ResBody))
+	}
+	return client.Err
 }
 
 // ReplyToPost publishes a reply to any Bluesky post as the account.
@@ -101,12 +112,10 @@ func (b *BlueskyConnector) ReplyToPost(socialAccount *connector.SocialAccount, r
 	if err != nil {
 		return nil, err
 	}
-
-	dbSocialAccount, err := b.db.GetSocialAccount(socialAccount.Id)
-	if err != nil || dbSocialAccount == nil {
-		return nil, fmt.Errorf("failed to load social account %d", socialAccount.Id)
+	dbSocialAccount, err := b.loadSocialAccount(socialAccount.Id)
+	if err != nil {
+		return nil, err
 	}
-
 	now := time.Now().UTC()
 	record := BlueskyPostRecord{
 		Type:      "app.bsky.feed.post",
@@ -115,12 +124,10 @@ func (b *BlueskyConnector) ReplyToPost(socialAccount *connector.SocialAccount, r
 		Facets:    b.parseFacets(content),
 		Reply:     replyRefFor(parent),
 	}
-
 	uri, err := b.createRecord(dbSocialAccount, "app.bsky.feed.post", record)
 	if err != nil {
 		return nil, fmt.Errorf("failed to post bluesky reply: %w", err)
 	}
-
 	return &connector.PostReply{
 		RemoteID:       uri,
 		ParentRemoteID: parent.URI,
@@ -129,4 +136,12 @@ func (b *BlueskyConnector) ReplyToPost(socialAccount *connector.SocialAccount, r
 		Content:        content,
 		PostedDate:     now,
 	}, nil
+}
+
+func (b *BlueskyConnector) loadSocialAccount(id uint32) (*db.SocialAccount, error) {
+	dbSocialAccount, err := b.db.GetSocialAccount(id)
+	if err != nil || dbSocialAccount == nil {
+		return nil, fmt.Errorf("failed to load social account %d", id)
+	}
+	return dbSocialAccount, nil
 }

@@ -27,19 +27,24 @@ type FeedColumn struct {
 	SocialAccountIDs []uint32 `db:"-"`
 }
 
-// loadFeedColumnAccounts fills SocialAccountIDs for the given columns.
-func (db *DB) loadFeedColumnAccounts(cols []*FeedColumn) error {
-	if len(cols) == 0 {
-		return nil
-	}
-	byID := make(map[uint32]*FeedColumn, len(cols))
-	placeholders := make([]string, 0, len(cols))
-	args := make([]any, 0, len(cols))
+func feedColumnIDsForQuery(cols []*FeedColumn) (byID map[uint32]*FeedColumn, placeholders []string, args []any) {
+	byID = make(map[uint32]*FeedColumn, len(cols))
+	placeholders = make([]string, 0, len(cols))
+	args = make([]any, 0, len(cols))
 	for _, c := range cols {
 		byID[c.ID] = c
 		placeholders = append(placeholders, "?")
 		args = append(args, c.ID)
 	}
+	return byID, placeholders, args
+}
+
+// loadFeedColumnAccounts fills SocialAccountIDs for the given columns.
+func (db *DB) loadFeedColumnAccounts(cols []*FeedColumn) error {
+	if len(cols) == 0 {
+		return nil
+	}
+	byID, placeholders, args := feedColumnIDsForQuery(cols)
 
 	rows := make([]struct {
 		FeedColumnID    uint32 `db:"feed_column_id"`
@@ -106,11 +111,7 @@ func (db *DB) GetFeedColumn(id uint32) (*FeedColumn, error) {
 
 // CreateFeedColumn appends a column after the user's existing ones.
 func (db *DB) CreateFeedColumn(col *FeedColumn) (uint32, error) {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return 0, fmt.Errorf("database connection is not established")
-	}
-	tx, err := db.connx.Beginx()
+	tx, err := db.beginTx()
 	if err != nil {
 		return 0, err
 	}
@@ -136,18 +137,15 @@ func (db *DB) CreateFeedColumn(col *FeedColumn) (uint32, error) {
 	return intconv.ToUint32(id), tx.Commit()
 }
 
-// UpdateFeedColumn changes a column's title, query and accounts.
-func (db *DB) UpdateFeedColumn(col *FeedColumn) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
+func ensureFeedColumnOwned(tx *sqlx.Tx, col *FeedColumn) error {
+	var owner uint32
+	if err := tx.Get(&owner, `SELECT user_account_id FROM feed_columns WHERE id = ?`, col.ID); err != nil || owner != col.UserAccountID {
+		return fmt.Errorf("feed column %d not found", col.ID)
 	}
-	tx, err := db.connx.Beginx()
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tx.Rollback() }()
+	return nil
+}
 
+func (db *DB) updateFeedColumnTx(tx *sqlx.Tx, col *FeedColumn) error {
 	res, err := tx.ExecContext(context.TODO(), `
 		UPDATE feed_columns SET title = ?, query = ?, updated_at = NOW(3)
 		WHERE id = ? AND user_account_id = ?`,
@@ -158,12 +156,23 @@ func (db *DB) UpdateFeedColumn(col *FeedColumn) error {
 	}
 	if n, _ := res.RowsAffected(); n == 0 {
 		// Either not this user's column, or nothing changed; check before touching accounts.
-		var owner uint32
-		if err := tx.Get(&owner, `SELECT user_account_id FROM feed_columns WHERE id = ?`, col.ID); err != nil || owner != col.UserAccountID {
-			return fmt.Errorf("feed column %d not found", col.ID)
-		}
+		return ensureFeedColumnOwned(tx, col)
 	}
-	if err := setFeedColumnAccounts(tx, col.ID, col.SocialAccountIDs); err != nil {
+	return nil
+}
+
+// UpdateFeedColumn changes a column's title, query and accounts.
+func (db *DB) UpdateFeedColumn(col *FeedColumn) error {
+	tx, err := db.beginTx()
+	if err != nil {
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if err = db.updateFeedColumnTx(tx, col); err != nil {
+		return err
+	}
+	if err = setFeedColumnAccounts(tx, col.ID, col.SocialAccountIDs); err != nil {
 		db.Logger().Errorf("Failed to set accounts for feed column %d: %v", col.ID, err)
 		return err
 	}
@@ -179,14 +188,19 @@ func (db *DB) DeleteFeedColumn(userID, id uint32) error {
 	return err
 }
 
+func applyFeedColumnOrder(tx *sqlx.Tx, userID uint32, ids []uint32) error {
+	for i, id := range ids {
+		if _, err := tx.ExecContext(context.TODO(), `UPDATE feed_columns SET sort_order = ?, updated_at = NOW(3) WHERE id = ? AND user_account_id = ?`, i, id, userID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // ReorderFeedColumns sets the user's column order to ids, left to right.
 // Columns not listed keep their place after the listed ones.
 func (db *DB) ReorderFeedColumns(userID uint32, ids []uint32) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return fmt.Errorf("database connection is not established")
-	}
-	tx, err := db.connx.Beginx()
+	tx, err := db.beginTx()
 	if err != nil {
 		return err
 	}
@@ -195,11 +209,9 @@ func (db *DB) ReorderFeedColumns(userID uint32, ids []uint32) error {
 	if _, err = tx.ExecContext(context.TODO(), `UPDATE feed_columns SET sort_order = sort_order + ? WHERE user_account_id = ?`, len(ids), userID); err != nil {
 		return err
 	}
-	for i, id := range ids {
-		if _, err = tx.ExecContext(context.TODO(), `UPDATE feed_columns SET sort_order = ?, updated_at = NOW(3) WHERE id = ? AND user_account_id = ?`, i, id, userID); err != nil {
-			db.Logger().Errorf("Failed to reorder feed column %d: %v", id, err)
-			return err
-		}
+	if err = applyFeedColumnOrder(tx, userID, ids); err != nil {
+		db.Logger().Errorf("Failed to reorder feed columns: %v", err)
+		return err
 	}
 	return tx.Commit()
 }

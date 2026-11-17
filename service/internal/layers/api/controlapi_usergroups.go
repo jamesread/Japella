@@ -9,6 +9,7 @@ import (
 
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
+	"github.com/jamesread/japella/internal/db"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -107,23 +108,21 @@ func (s *ControlApi) GetUserGroupSharedAccounts(ctx context.Context, req *connec
 
 	out := make([]*controlv1.UserGroupSharedAccount, 0, len(rows))
 	for _, row := range rows {
-		icon := "mdi:question-mark-circle"
-		if s.cc != nil {
-			if connectorService := s.cc.Get(row.Connector); connectorService != nil {
-				icon = connectorService.GetIcon()
-			}
-		}
-		out = append(out, &controlv1.UserGroupSharedAccount{
-			SocialAccountId: row.SocialAccountID,
-			Identity:        row.Identity,
-			Connector:       row.Connector,
-			Icon:            icon,
-			Active:          row.Active,
-			CanRead:         row.CanRead,
-			CanPost:         row.CanPost,
-			CanManage:       row.CanManage,
-		})
+		out = append(out, s.userGroupSharedAccountToProto(row))
 	}
 
 	return connect.NewResponse(&controlv1.GetUserGroupSharedAccountsResponse{Accounts: out}), nil
+}
+
+func (s *ControlApi) userGroupSharedAccountToProto(row *db.SocialAccountSharedWithGroup) *controlv1.UserGroupSharedAccount {
+	return &controlv1.UserGroupSharedAccount{
+		SocialAccountId: row.SocialAccountID,
+		Identity:        row.Identity,
+		Connector:       row.Connector,
+		Icon:            s.connectorIcon(row.Connector),
+		Active:          row.Active,
+		CanRead:         row.CanRead,
+		CanPost:         row.CanPost,
+		CanManage:       row.CanManage,
+	}
 }

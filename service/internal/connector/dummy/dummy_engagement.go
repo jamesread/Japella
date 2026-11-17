@@ -18,23 +18,41 @@ var (
 
 // FetchPostEngagement returns counters that grow a little on every call.
 func (c *Connector) FetchPostEngagement(sa *connector.SocialAccount, remoteID string, postURL string) (*connector.PostEngagement, error) {
-	key := postURL
-	if key == "" {
-		key = remoteID
-	}
-	if !strings.HasPrefix(key, "https://dummy.local/posts/") && !strings.HasPrefix(key, "dummy-") {
+	key := dummyPostKey(postURL, remoteID)
+	if !isDummyPostKey(key) {
 		return nil, fmt.Errorf("not a dummy post: %q", key)
 	}
 
 	engagementMu.Lock()
 	defer engagementMu.Unlock()
 
+	e := getOrCreateEngagement(key)
+	bumpSimulatedEngagement(e)
+	out := *e
+	return &out, nil
+}
+
+func dummyPostKey(postURL, remoteID string) string {
+	if postURL != "" {
+		return postURL
+	}
+	return remoteID
+}
+
+func isDummyPostKey(key string) bool {
+	return strings.HasPrefix(key, "https://dummy.local/posts/") || strings.HasPrefix(key, "dummy-")
+}
+
+func getOrCreateEngagement(key string) *connector.PostEngagement {
 	e, ok := engagementByURL[key]
 	if !ok {
 		e = &connector.PostEngagement{}
 		engagementByURL[key] = e
 	}
+	return e
+}
 
+func bumpSimulatedEngagement(e *connector.PostEngagement) {
 	e.Likes += intconv.ToUint32(simRandIntn(4))
 	if simRandIntn(3) == 0 {
 		e.Reposts++
@@ -46,7 +64,4 @@ func (c *Connector) FetchPostEngagement(sa *connector.SocialAccount, remoteID st
 		e.Quotes++
 	}
 	e.Impressions += intconv.ToUint32(5 + simRandIntn(40))
-
-	out := *e
-	return &out, nil
 }

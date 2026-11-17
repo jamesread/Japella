@@ -10,6 +10,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/intconv"
+	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/postengagement"
 	"github.com/jamesread/japella/internal/postreplies"
 	"github.com/jamesread/japella/internal/webhook"
@@ -85,90 +86,127 @@ func (s *ControlApi) startPostEngagementJob(recordJobRun func(string)) {
 	}
 }
 
+type postEngagementRunStats struct {
+	fetched, notified, failed, threads int
+}
+
 // processPostEngagement fetches engagement counters for recently published
 // posts, stores them, and emits post.engagement when there is new activity.
 func (s *ControlApi) processPostEngagement() {
 	if s.cc == nil || s.DB == nil || !s.DB.Ready() {
 		return
 	}
-
 	maxAge := s.postEngagementMaxAge()
 	if maxAge == 0 {
 		return
 	}
+	s.runPostEngagement(maxAge)
+}
 
+func (s *ControlApi) runPostEngagement(maxAge time.Duration) {
 	_ = s.DB.DeletePostEngagementEventsBefore(time.Now().UTC().Add(-postEngagementEventRetention))
-
 	posts, err := s.DB.SelectPostsForEngagementFetch(maxAge, s.postEngagementMaxPosts())
 	if err != nil || len(posts) == 0 {
 		return
 	}
-
 	accounts := map[uint32]*db.SocialAccount{}
 	rateLimited := map[uint32]bool{}
-	fetched, notified, failed, threads := 0, 0, 0, 0
-
+	stats := postEngagementRunStats{}
 	for _, post := range posts {
-		saID := post.SocialAccountIDUint()
-		if rateLimited[saID] {
-			continue
-		}
-
-		sa, ok := accounts[saID]
-		if !ok {
-			sa, err = s.DB.GetSocialAccount(saID)
-			if err != nil || sa == nil {
-				continue
-			}
-			accounts[saID] = sa
-		}
-
-		engagementConnector, svc := s.postEngagementConnector(sa)
-		if engagementConnector == nil {
-			continue
-		}
-
-		if socialAccountNeedsTokenRefresh(sa) {
-			if refreshed, refreshErr := s.refreshSocialAccountToken(sa, svc); refreshErr == nil {
-				sa = refreshed
-				accounts[saID] = sa
-			}
-		}
-
-		result, fetchErr := s.fetchPostEngagement(engagementConnector, sa, post)
-		if rl := connector.AsRateLimited(fetchErr); rl != nil {
-			postEngagementLog(sa).Warnf("rate limited, skipping remaining posts this run (retry after %s)", rl.RetryAfter)
-			rateLimited[saID] = true
-			continue
-		}
-		if fetchErr != nil {
-			failed++
-			postEngagementLog(sa).WithField("post_id", post.ID).Warnf("failed to fetch engagement: %v", fetchErr)
-			_ = s.DB.MarkPostEngagementError(post.ID, fetchErr.Error())
-			continue
-		}
-
-		fetched++
-		stored, dispatched := s.recordPostEngagement(post, sa, result)
-		if dispatched {
-			notified++
-		}
-
-		synced, repliesErr := s.syncPostReplies(sa, post, stored, result.Replies)
-		if rl := connector.AsRateLimited(repliesErr); rl != nil {
-			postEngagementLog(sa).Warnf("rate limited fetching replies, skipping remaining posts this run (retry after %s)", rl.RetryAfter)
-			rateLimited[saID] = true
-			continue
-		}
-		if repliesErr != nil {
-			postEngagementLog(sa).WithField("post_id", post.ID).Warnf("failed to fetch replies: %v", repliesErr)
-		}
-		if synced {
-			threads++
-		}
+		s.processOnePostEngagement(post, accounts, rateLimited, &stats)
 	}
+	log.WithField("component", "PostEngagement").Infof(
+		"run complete: fetched %d, notified %d, failed %d, reply threads updated %d",
+		stats.fetched, stats.notified, stats.failed, stats.threads,
+	)
+}
 
-	log.WithField("component", "PostEngagement").Infof("run complete: fetched %d, notified %d, failed %d, reply threads updated %d", fetched, notified, failed, threads)
+func (s *ControlApi) resolveEngagementAccount(saID uint32, accounts map[uint32]*db.SocialAccount) *db.SocialAccount {
+	if sa, ok := accounts[saID]; ok {
+		return sa
+	}
+	sa, err := s.DB.GetSocialAccount(saID)
+	if err != nil || sa == nil {
+		return nil
+	}
+	accounts[saID] = sa
+	return sa
+}
+
+func (s *ControlApi) refreshEngagementAccountIfNeeded(sa *db.SocialAccount, svc connector.BaseConnector, accounts map[uint32]*db.SocialAccount) *db.SocialAccount {
+	if !socialAccountNeedsTokenRefresh(sa) {
+		return sa
+	}
+	refreshed, refreshErr := s.refreshSocialAccountToken(sa, svc)
+	if refreshErr != nil {
+		return sa
+	}
+	accounts[sa.ID] = refreshed
+	return refreshed
+}
+
+func (s *ControlApi) handleEngagementFetchError(sa *db.SocialAccount, post *db.Post, saID uint32, fetchErr error, rateLimited map[uint32]bool, stats *postEngagementRunStats) bool {
+	if rl := connector.AsRateLimited(fetchErr); rl != nil {
+		postEngagementLog(sa).Warnf("rate limited, skipping remaining posts this run (retry after %s)", rl.RetryAfter)
+		rateLimited[saID] = true
+		return true
+	}
+	if fetchErr != nil {
+		stats.failed++
+		postEngagementLog(sa).WithField("post_id", post.ID).Warnf("failed to fetch engagement: %v", fetchErr)
+		_ = s.DB.MarkPostEngagementError(post.ID, fetchErr.Error())
+		return true
+	}
+	return false
+}
+
+func (s *ControlApi) handleRepliesSyncResult(sa *db.SocialAccount, post *db.Post, saID uint32, synced bool, repliesErr error, rateLimited map[uint32]bool, stats *postEngagementRunStats) {
+	if rl := connector.AsRateLimited(repliesErr); rl != nil {
+		postEngagementLog(sa).Warnf("rate limited fetching replies, skipping remaining posts this run (retry after %s)", rl.RetryAfter)
+		rateLimited[saID] = true
+		return
+	}
+	if repliesErr != nil {
+		postEngagementLog(sa).WithField("post_id", post.ID).Warnf("failed to fetch replies: %v", repliesErr)
+	}
+	if synced {
+		stats.threads++
+	}
+}
+
+func (s *ControlApi) engagementAccountReady(post *db.Post, accounts map[uint32]*db.SocialAccount, rateLimited map[uint32]bool) (*db.SocialAccount, connector.ConnectorWithPostEngagement, bool) {
+	saID := post.SocialAccountIDUint()
+	if rateLimited[saID] {
+		return nil, nil, false
+	}
+	sa := s.resolveEngagementAccount(saID, accounts)
+	if sa == nil {
+		return nil, nil, false
+	}
+	engagementConnector, svc := s.postEngagementConnector(sa)
+	if engagementConnector == nil {
+		return nil, nil, false
+	}
+	return s.refreshEngagementAccountIfNeeded(sa, svc, accounts), engagementConnector, true
+}
+
+func (s *ControlApi) processOnePostEngagement(post *db.Post, accounts map[uint32]*db.SocialAccount, rateLimited map[uint32]bool, stats *postEngagementRunStats) {
+	sa, engagementConnector, ok := s.engagementAccountReady(post, accounts, rateLimited)
+	if !ok {
+		return
+	}
+	saID := post.SocialAccountIDUint()
+	result, fetchErr := s.fetchPostEngagement(engagementConnector, sa, post)
+	if s.handleEngagementFetchError(sa, post, saID, fetchErr, rateLimited, stats) {
+		return
+	}
+	stats.fetched++
+	stored, dispatched := s.recordPostEngagement(post, sa, result)
+	if dispatched {
+		stats.notified++
+	}
+	synced, repliesErr := s.syncPostReplies(sa, post, stored, result.Replies)
+	s.handleRepliesSyncResult(sa, post, saID, synced, repliesErr, rateLimited, stats)
 }
 
 // syncPostReplies refreshes the stored reply thread when the replies counter
@@ -179,18 +217,19 @@ func (s *ControlApi) syncPostReplies(sa *db.SocialAccount, post *db.Post, stored
 	if !ok || !postreplies.ShouldFetch(stored, replyCount) {
 		return false, nil
 	}
+	return s.fetchAndReplacePostReplies(rc, sa, post, replyCount)
+}
 
+func (s *ControlApi) fetchAndReplacePostReplies(rc connector.ConnectorWithPostReplies, sa *db.SocialAccount, post *db.Post, replyCount uint32) (synced bool, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			synced, err = false, fmt.Errorf("panic while fetching replies: %v", r)
 		}
 	}()
-
 	fetched, err := rc.FetchPostReplies(toConnectorSA(sa), post.RemoteID.String, post.PostURL.String)
 	if err != nil {
 		return false, err
 	}
-
 	if err := s.DB.ReplacePostReplies(post.ID, postreplies.ToDB(post.ID, fetched), replyCount); err != nil {
 		return false, err
 	}
@@ -296,27 +335,35 @@ func countsToProto(c postengagement.Counts) *controlv1.PostEngagement {
 	}
 }
 
-// attachEngagement fills PostStatus.Engagement for a batch of statuses in one query.
-func (s *ControlApi) attachEngagement(statuses []*controlv1.PostStatus) {
-	if s.DB == nil || len(statuses) == 0 {
-		return
-	}
+func postStatusIDs(statuses []*controlv1.PostStatus) []uint32 {
 	ids := make([]uint32, 0, len(statuses))
 	for _, st := range statuses {
 		if st != nil && st.Id != 0 {
 			ids = append(ids, st.Id)
 		}
 	}
-	rows, err := s.DB.SelectPostEngagementForPosts(ids)
+	return ids
+}
+
+// attachEngagement fills PostStatus.Engagement for a batch of statuses in one query.
+func (s *ControlApi) attachEngagement(statuses []*controlv1.PostStatus) {
+	if s.DB == nil || len(statuses) == 0 {
+		return
+	}
+	rows, err := s.DB.SelectPostEngagementForPosts(postStatusIDs(statuses))
 	if err != nil {
 		return
 	}
 	for _, st := range statuses {
-		if st == nil {
-			continue
-		}
-		st.Engagement = engagementToProto(rows[st.Id])
+		s.attachOneEngagement(st, rows)
 	}
+}
+
+func (s *ControlApi) attachOneEngagement(st *controlv1.PostStatus, rows map[uint32]*db.PostEngagement) {
+	if st == nil {
+		return
+	}
+	st.Engagement = engagementToProto(rows[st.Id])
 }
 
 func (s *ControlApi) connectorSupportsEngagement(connectorName string) bool {
@@ -348,46 +395,17 @@ func postedAt(p *db.Post) time.Time {
 	return p.CreatedAt
 }
 
-// GetSocialAccountPostPerformance summarises engagement on an account's posts
-// published during the last N calendar days.
-func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[controlv1.GetSocialAccountPostPerformanceResponse], error) {
-	au := s.getAuthenticatedUser(ctx)
-	if au == nil {
-		return nil, connect.NewError(connect.CodeUnauthenticated, fmt.Errorf("authentication required"))
+func (s *ControlApi) connectorIcon(connectorName string) string {
+	if s.cc == nil {
+		return "mdi:question-mark-circle"
 	}
+	if svc := s.cc.Get(connectorName); svc != nil {
+		return svc.GetIcon()
+	}
+	return "mdi:question-mark-circle"
+}
 
-	accountID := req.Msg.GetSocialAccountId()
-	if accountID == 0 {
-		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id is required"))
-	}
-	if !s.userCanReadSocialAccount(au, accountID) {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
-	}
-
-	sa, err := s.DB.GetSocialAccount(accountID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load social account"))
-	}
-	if sa == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found"))
-	}
-
-	days := clampPerformanceDays(req.Msg.GetDays())
-
-	posts, err := s.DB.SelectCompletedPostsForAccountSince(accountID, days)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load posts"))
-	}
-
-	ids := make([]uint32, len(posts))
-	for i, p := range posts {
-		ids[i] = p.ID
-	}
-	rows, err := s.DB.SelectPostEngagementForPosts(ids)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load engagement"))
-	}
-
+func performanceSamples(posts []*db.Post, rows map[uint32]*db.PostEngagement) (map[uint32]*db.Post, []postengagement.PostSample) {
 	byID := make(map[uint32]*db.Post, len(posts))
 	samples := make([]postengagement.PostSample, len(posts))
 	for i, p := range posts {
@@ -398,15 +416,10 @@ func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *c
 			Counts:   postengagement.FromDB(rows[p.ID]),
 		}
 	}
+	return byID, samples
+}
 
-	res := &controlv1.GetSocialAccountPostPerformanceResponse{
-		Days:            intconv.ToUint32(days),
-		Supported:       s.connectorSupportsEngagement(sa.Connector),
-		TrackingEnabled: s.postEngagementMaxAge() > 0,
-		PostCount:       intconv.ToUint32(len(posts)),
-		Totals:          countsToProto(postengagement.Total(samples)),
-	}
-
+func appendPerformanceDaily(res *controlv1.GetSocialAccountPostPerformanceResponse, days int, samples []postengagement.PostSample) {
 	for _, b := range postengagement.Daily(time.Now(), days, samples) {
 		res.Daily = append(res.Daily, &controlv1.PostPerformanceDay{
 			Date:       b.Date,
@@ -414,14 +427,10 @@ func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *c
 			Engagement: countsToProto(b.Counts),
 		})
 	}
+}
 
-	icon := "mdi:question-mark-circle"
-	if s.cc != nil {
-		if svc := s.cc.Get(sa.Connector); svc != nil {
-			icon = svc.GetIcon()
-		}
-	}
-
+func (s *ControlApi) appendPerformancePosts(res *controlv1.GetSocialAccountPostPerformanceResponse, sa *db.SocialAccount, byID map[uint32]*db.Post, rows map[uint32]*db.PostEngagement, samples []postengagement.PostSample) {
+	icon := s.connectorIcon(sa.Connector)
 	for _, sample := range postengagement.SortByInteractions(samples) {
 		if len(res.Posts) >= postPerformanceMaxPosts {
 			break
@@ -430,7 +439,7 @@ func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *c
 		res.Posts = append(res.Posts, &controlv1.PostStatus{
 			Id:                    p.ID,
 			Created:               p.CreatedAt.Format("2006-01-02 15:04:05"),
-			SocialAccountId:       accountID,
+			SocialAccountId:       sa.ID,
 			SocialAccountIcon:     icon,
 			SocialAccountIdentity: sa.Identity,
 			Content:               p.Content,
@@ -443,6 +452,64 @@ func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *c
 			Engagement:            engagementToProto(rows[p.ID]),
 		})
 	}
+}
 
+func (s *ControlApi) loadPostPerformanceAccount(au *authentication.AuthenticatedUser, accountID uint32) (*db.SocialAccount, error) {
+	if accountID == 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("social_account_id is required"))
+	}
+	if !s.userCanReadSocialAccount(au, accountID) {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("read access to this social account is required"))
+	}
+	sa, err := s.DB.GetSocialAccount(accountID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load social account"))
+	}
+	if sa == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("social account not found"))
+	}
+	return sa, nil
+}
+
+// GetSocialAccountPostPerformance summarises engagement on an account's posts
+// published during the last N calendar days.
+func (s *ControlApi) GetSocialAccountPostPerformance(ctx context.Context, req *connect.Request[controlv1.GetSocialAccountPostPerformanceRequest]) (*connect.Response[controlv1.GetSocialAccountPostPerformanceResponse], error) {
+	au, err := s.requireAuthenticatedUser(ctx)
+	if err != nil {
+		return nil, err
+	}
+	sa, err := s.loadPostPerformanceAccount(au, req.Msg.GetSocialAccountId())
+	if err != nil {
+		return nil, err
+	}
+	days := clampPerformanceDays(req.Msg.GetDays())
+	posts, rows, err := s.loadPostPerformanceData(sa.ID, days)
+	if err != nil {
+		return nil, err
+	}
+	byID, samples := performanceSamples(posts, rows)
+	res := &controlv1.GetSocialAccountPostPerformanceResponse{
+		Days: intconv.ToUint32(days), Supported: s.connectorSupportsEngagement(sa.Connector),
+		TrackingEnabled: s.postEngagementMaxAge() > 0, PostCount: intconv.ToUint32(len(posts)),
+		Totals: countsToProto(postengagement.Total(samples)),
+	}
+	appendPerformanceDaily(res, days, samples)
+	s.appendPerformancePosts(res, sa, byID, rows, samples)
 	return connect.NewResponse(res), nil
+}
+
+func (s *ControlApi) loadPostPerformanceData(accountID uint32, days int) ([]*db.Post, map[uint32]*db.PostEngagement, error) {
+	posts, err := s.DB.SelectCompletedPostsForAccountSince(accountID, days)
+	if err != nil {
+		return nil, nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load posts"))
+	}
+	ids := make([]uint32, len(posts))
+	for i, p := range posts {
+		ids[i] = p.ID
+	}
+	rows, err := s.DB.SelectPostEngagementForPosts(ids)
+	if err != nil {
+		return nil, nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load engagement"))
+	}
+	return posts, rows, nil
 }

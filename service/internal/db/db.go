@@ -278,55 +278,56 @@ func (db *DB) reconnectDatabase() error {
 	return nil
 }
 
+func (db *DB) resetAdminPasswordIfRequested(chain *ConnectionChain) {
+	if os.Getenv("JAPELLA_RESET_ADMIN_PASSWORD") == "" {
+		return
+	}
+	db.Logger().Warn("JAPELLA_RESET_ADMIN_PASSWORD environment variable is set, resetting admin password to 'admin'")
+
+	adminUser := db.GetUserByUsername("admin")
+	if adminUser == nil {
+		db.Logger().Warn("Admin user not found, creating new admin user")
+		return
+	}
+
+	passwordHash, err := utils.HashPassword("admin")
+	if err != nil {
+		db.Logger().Errorf("Error hashing admin password: %v", err)
+		chain.err = err
+		return
+	}
+	if err = db.UpdateUserPassword(adminUser.ID, passwordHash); err != nil {
+		db.Logger().Errorf("Failed to reset admin password: %v", err)
+		chain.err = err
+		return
+	}
+	db.Logger().Infof("Admin password successfully reset to 'admin'")
+}
+
+func (db *DB) createDefaultAdminIfEmpty(chain *ConnectionChain) {
+	if db.HasAnyUsers() {
+		return
+	}
+	db.Logger().Warn("No users found in the database, creating default admin user")
+
+	passwordHash, err := utils.HashPassword("admin")
+	if err != nil {
+		db.Logger().Errorf("Error hashing default password: %v", err)
+		chain.err = err
+		return
+	}
+	if _, err = db.CreateUserAccount("admin", passwordHash, UserCreatedByAdmin); err != nil {
+		db.Logger().Errorf("Failed to create default admin user: %v", err)
+		chain.err = err
+	}
+}
+
 func (db *DB) initAdminUser(chain *ConnectionChain) {
-	// Check if admin password reset is requested via environment variable
-	if os.Getenv("JAPELLA_RESET_ADMIN_PASSWORD") != "" {
-		db.Logger().Warn("JAPELLA_RESET_ADMIN_PASSWORD environment variable is set, resetting admin password to 'admin'")
-
-		// Find the admin user
-		adminUser := db.GetUserByUsername("admin")
-		if adminUser != nil {
-			// Hash the new password
-			passwordHash, err := utils.HashPassword("admin")
-			if err != nil {
-				db.Logger().Errorf("Error hashing admin password: %v", err)
-				chain.err = err
-				return
-			}
-
-			// Update the admin password
-			err = db.UpdateUserPassword(adminUser.ID, passwordHash)
-			if err != nil {
-				db.Logger().Errorf("Failed to reset admin password: %v", err)
-				chain.err = err
-				return
-			}
-
-			db.Logger().Infof("Admin password successfully reset to 'admin'")
-		} else {
-			db.Logger().Warn("Admin user not found, creating new admin user")
-			// Fall through to create admin user
-		}
+	db.resetAdminPasswordIfRequested(chain)
+	if chain.err != nil {
+		return
 	}
-
-	if !db.HasAnyUsers() {
-		db.Logger().Warn("No users found in the database, creating default admin user")
-
-		passwordHash, err := utils.HashPassword("admin")
-
-		if err != nil {
-			db.Logger().Errorf("Error hashing default password: %v", err)
-			chain.err = err
-			return
-		}
-
-		_, err = db.CreateUserAccount("admin", passwordHash, UserCreatedByAdmin)
-		if err != nil {
-			db.Logger().Errorf("Failed to create default admin user: %v", err)
-			chain.err = err
-			return
-		}
-	}
+	db.createDefaultAdminIfEmpty(chain)
 }
 
 func (db *DB) SetIAMBootstrap(st store.Store) {
@@ -345,6 +346,15 @@ func (db *DB) runRBACBootstrap(chain *ConnectionChain) {
 		db.Logger().Errorf("RBAC bootstrap failed: %v", err)
 		chain.err = err
 	}
+}
+
+// beginTx ensures a live connection and starts a transaction.
+func (db *DB) beginTx() (*sqlx.Tx, error) {
+	if db.connx == nil {
+		db.ReconnectDatabaseAndSetErrorMessage()
+		return nil, fmt.Errorf("database connection is not established")
+	}
+	return db.connx.Beginx()
 }
 
 func (db *DB) ResilientExec(query string, args ...any) (sql.Result, error) {
@@ -478,63 +488,64 @@ func (db *DB) DeleteCannedPost(id uint32) error {
 	return nil
 }
 
-func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
-	// Check if an account with the same connector and identity (or DID) already exists
-	existingAccount, err := db.GetSocialAccountByConnectorAndIdentity(socialAccount.Connector, socialAccount.Identity, socialAccount.Did)
-	if err == nil && existingAccount != nil {
-		// Account exists, update it with new tokens
-		db.Logger().Infof("Updating existing social account (ID: %d) for connector: %s, identity: %s", existingAccount.ID, socialAccount.Connector, socialAccount.Identity)
-
-		// Preserve existing homeserver if new one is empty (for Mastodon instances)
-		homeserver := socialAccount.Homeserver
-		if homeserver == "" && existingAccount.Homeserver != "" {
-			homeserver = existingAccount.Homeserver
-		}
-
-		// Update the account with new OAuth tokens and other fields
-		_, err = db.ResilientNamedExec(`UPDATE social_accounts SET
-			identity = :identity,
-			did = :did,
-			homeserver = :homeserver,
-			oauth2_token = :oauth2_token,
-			oauth2_token_expiry = :oauth2_token_expiry,
-			oauth2_refresh_token = :oauth2_refresh_token,
-			dpop_key = :dpop_key,
-			active = :active,
-			updated_at = NOW()
-			WHERE id = :id`, map[string]any{
-			"id":                   existingAccount.ID,
-			"identity":             socialAccount.Identity,
-			"did":                  socialAccount.Did,
-			"homeserver":           homeserver,
-			"oauth2_token":         socialAccount.OAuth2Token,
-			"oauth2_token_expiry":  socialAccount.OAuth2TokenExpiry,
-			"oauth2_refresh_token": socialAccount.OAuth2RefreshToken,
-			"dpop_key":             socialAccount.DpopKey,
-			"active":               socialAccount.Active,
-		})
-		if err != nil {
-			db.Logger().Errorf("Failed to update existing social account: %v", err)
-			return err
-		}
-		return nil
-	} else if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		// Error other than "not found"
-		db.Logger().Errorf("Error checking for existing social account: %v", err)
-		return err
+func preservedHomeserver(incoming, existing string) string {
+	if incoming == "" && existing != "" {
+		return existing
 	}
+	return incoming
+}
 
-	// Account doesn't exist, insert a new one
+func (db *DB) updateExistingSocialAccount(existing *SocialAccount, socialAccount *SocialAccount) error {
+	db.Logger().Infof("Updating existing social account (ID: %d) for connector: %s, identity: %s", existing.ID, socialAccount.Connector, socialAccount.Identity)
+	_, err := db.ResilientNamedExec(`UPDATE social_accounts SET
+		identity = :identity,
+		did = :did,
+		homeserver = :homeserver,
+		oauth2_token = :oauth2_token,
+		oauth2_token_expiry = :oauth2_token_expiry,
+		oauth2_refresh_token = :oauth2_refresh_token,
+		dpop_key = :dpop_key,
+		active = :active,
+		updated_at = NOW()
+		WHERE id = :id`, map[string]any{
+		"id":                   existing.ID,
+		"identity":             socialAccount.Identity,
+		"did":                  socialAccount.Did,
+		"homeserver":           preservedHomeserver(socialAccount.Homeserver, existing.Homeserver),
+		"oauth2_token":         socialAccount.OAuth2Token,
+		"oauth2_token_expiry":  socialAccount.OAuth2TokenExpiry,
+		"oauth2_refresh_token": socialAccount.OAuth2RefreshToken,
+		"dpop_key":             socialAccount.DpopKey,
+		"active":               socialAccount.Active,
+	})
+	if err != nil {
+		db.Logger().Errorf("Failed to update existing social account: %v", err)
+	}
+	return err
+}
+
+func (db *DB) insertNewSocialAccount(socialAccount *SocialAccount) error {
 	if socialAccount.State == "" {
 		socialAccount.State = "active"
 	}
 	db.Logger().Infof("Registering new social account for connector: %s, identity: %s", socialAccount.Connector, socialAccount.Identity)
-	_, err = db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, did, homeserver, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, state, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :did, :homeserver, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :state, :dpop_key, NOW(), NOW())`, socialAccount)
+	_, err := db.ResilientNamedExec(`INSERT INTO social_accounts (connector, identity, did, homeserver, oauth2_token, oauth2_token_expiry, oauth2_refresh_token, active, state, dpop_key, created_at, updated_at) VALUES (:connector, :identity, :did, :homeserver, :oauth2_token, :oauth2_token_expiry, :oauth2_refresh_token, :active, :state, :dpop_key, NOW(), NOW())`, socialAccount)
 	if err != nil {
 		db.Logger().Errorf("Failed to register social account: %v", err)
+	}
+	return err
+}
+
+func (db *DB) RegisterAccount(socialAccount *SocialAccount) error {
+	existingAccount, err := db.GetSocialAccountByConnectorAndIdentity(socialAccount.Connector, socialAccount.Identity, socialAccount.Did)
+	if err == nil && existingAccount != nil {
+		return db.updateExistingSocialAccount(existingAccount, socialAccount)
+	}
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		db.Logger().Errorf("Error checking for existing social account: %v", err)
 		return err
 	}
-	return nil
+	return db.insertNewSocialAccount(socialAccount)
 }
 
 func (db *DB) DeleteSocialAccount(id uint32) error {
@@ -746,36 +757,30 @@ func (db *DB) GetSocialAccount(id uint32) (*SocialAccount, error) {
 	return &account, nil
 }
 
+func (db *DB) getSocialAccountByField(connector, field, value, logLabel string) (*SocialAccount, error) {
+	var account SocialAccount
+	err := db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE connector = ? AND "+field+" = ? LIMIT 1", connector, value)
+	if err == nil {
+		return &account, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		db.Logger().Errorf("Error querying social account by connector and %s: %v", logLabel, err)
+		return nil, err
+	}
+	return nil, sql.ErrNoRows
+}
+
 // GetSocialAccountByConnectorAndIdentity finds a social account by connector and identity (or DID if identity is empty)
 func (db *DB) GetSocialAccountByConnectorAndIdentity(connector string, identity string, did string) (*SocialAccount, error) {
-	var account SocialAccount
-	var err error
-
-	// Try to find by connector and identity first
 	if identity != "" {
-		err = db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE connector = ? AND identity = ? LIMIT 1", connector, identity)
-		if err == nil {
-			return &account, nil
-		}
-		if !errors.Is(err, sql.ErrNoRows) {
-			db.Logger().Errorf("Error querying social account by connector and identity: %v", err)
-			return nil, err
+		account, err := db.getSocialAccountByField(connector, "identity", identity, "identity")
+		if err == nil || !errors.Is(err, sql.ErrNoRows) {
+			return account, err
 		}
 	}
-
-	// If not found and we have a DID, try to find by connector and DID
 	if did != "" {
-		err = db.ResilientGet(&account, "SELECT * FROM social_accounts WHERE connector = ? AND did = ? LIMIT 1", connector, did)
-		if err == nil {
-			return &account, nil
-		}
-		if !errors.Is(err, sql.ErrNoRows) {
-			db.Logger().Errorf("Error querying social account by connector and DID: %v", err)
-			return nil, err
-		}
+		return db.getSocialAccountByField(connector, "did", did, "DID")
 	}
-
-	// Not found
 	return nil, sql.ErrNoRows
 }
 
@@ -867,56 +872,55 @@ func (db *DB) UpdateUserPassword(userID uint32, newPasswordHash string) error {
 	return nil
 }
 
-// DeleteUserAccount removes a user and dependent rows (API keys, sessions, group memberships).
-func (db *DB) DeleteUserAccount(userID uint32) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return errors.New("database connection is not established")
+func (db *DB) deleteUserDependentRows(tx *sqlx.Tx, userID uint32) error {
+	steps := []struct {
+		query string
+		label string
+	}{
+		{"DELETE FROM api_keys WHERE user_account_id = ?", "API keys"},
+		{"DELETE FROM sessions WHERE user_account_id = ?", "sessions"},
+		{"DELETE FROM user_group_memberships WHERE user_account_id = ?", "group memberships"},
 	}
-
-	tx, err := db.connx.Beginx()
-	if err != nil {
-		db.Logger().Errorf("Failed to begin delete user transaction: %v", err)
-		return err
-	}
-
-	rollback := func() {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			db.Logger().Warnf("Rollback after delete user error: %v", rbErr)
+	for _, step := range steps {
+		if _, err := tx.ExecContext(context.TODO(), step.query, userID); err != nil {
+			db.Logger().Errorf("Failed to delete %s for user %d: %v", step.label, userID, err)
+			return err
 		}
 	}
+	return nil
+}
 
-	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM api_keys WHERE user_account_id = ?", userID); err != nil {
-		db.Logger().Errorf("Failed to delete API keys for user %d: %v", userID, err)
-		rollback()
-		return err
-	}
-	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM sessions WHERE user_account_id = ?", userID); err != nil {
-		db.Logger().Errorf("Failed to delete sessions for user %d: %v", userID, err)
-		rollback()
-		return err
-	}
-	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM user_group_memberships WHERE user_account_id = ?", userID); err != nil {
-		db.Logger().Errorf("Failed to delete group memberships for user %d: %v", userID, err)
-		rollback()
-		return err
-	}
+func (db *DB) deleteUserAccountRow(tx *sqlx.Tx, userID uint32) error {
 	res, err := tx.ExecContext(context.TODO(), "DELETE FROM user_accounts WHERE id = ?", userID)
 	if err != nil {
 		db.Logger().Errorf("Failed to delete user account %d: %v", userID, err)
-		rollback()
 		return err
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
-		rollback()
 		return err
 	}
 	if n == 0 {
-		rollback()
 		return sql.ErrNoRows
 	}
+	return nil
+}
 
+// DeleteUserAccount removes a user and dependent rows (API keys, sessions, group memberships).
+func (db *DB) DeleteUserAccount(userID uint32) error {
+	tx, err := db.beginTx()
+	if err != nil {
+		db.Logger().Errorf("Failed to begin delete user transaction: %v", err)
+		return err
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if err = db.deleteUserDependentRows(tx, userID); err != nil {
+		return err
+	}
+	if err = db.deleteUserAccountRow(tx, userID); err != nil {
+		return err
+	}
 	if err = tx.Commit(); err != nil {
 		db.Logger().Errorf("Failed to commit delete user transaction: %v", err)
 		return err
@@ -1339,6 +1343,14 @@ func (db *DB) FeedEntryExists(socialAccountID uint32, remoteID string) (bool, er
 	return count > 0, nil
 }
 
+func isDuplicateKeyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "Duplicate entry") || strings.Contains(msg, "1062")
+}
+
 // InsertFeedEntry inserts a feed row. Returns inserted=true when a new row was written.
 // Duplicate remote IDs are not an error (inserted=false).
 func (db *DB) InsertFeedEntry(feedEntry *Feed) (inserted bool, err error) {
@@ -1347,23 +1359,19 @@ func (db *DB) InsertFeedEntry(feedEntry *Feed) (inserted bool, err error) {
 		db.Logger().Errorf("Failed to check if feed entry exists: %v", err)
 		return false, err
 	}
-
 	if exists {
 		return false, nil
 	}
 
 	_, err = db.ResilientNamedExec(`INSERT INTO feed (social_account_id, content, posted_date, author_id, author_name, author_avatar_url, original_author_id, original_author_name, original_author_avatar_url, remote_url, remote_id, preview_url, preview_title, preview_description, preview_image_url, language, author_handle, author_profile_url, original_author_handle, original_author_profile_url, interaction_remote_id, liked, like_count, reply_count, created_at, updated_at) VALUES (:social_account_id, :content, :posted_date, :author_id, :author_name, :author_avatar_url, :original_author_id, :original_author_name, :original_author_avatar_url, :remote_url, :remote_id, :preview_url, :preview_title, :preview_description, :preview_image_url, :language, :author_handle, :author_profile_url, :original_author_handle, :original_author_profile_url, :interaction_remote_id, :liked, :like_count, :reply_count, NOW(), NOW())`, feedEntry)
-
-	if err != nil {
-		// MySQL error code 1062 is ER_DUP_ENTRY
-		if strings.Contains(err.Error(), "Duplicate entry") || strings.Contains(err.Error(), "1062") {
-			return false, nil
-		}
-		db.Logger().Errorf("Failed to insert feed entry: %v", err)
-		return false, err
+	if err == nil {
+		return true, nil
 	}
-
-	return true, nil
+	if isDuplicateKeyError(err) {
+		return false, nil
+	}
+	db.Logger().Errorf("Failed to insert feed entry: %v", err)
+	return false, err
 }
 
 func (db *DB) SelectFeedEntries() ([]*Feed, error) {
@@ -1576,27 +1584,19 @@ func (db *DB) SelectSocialAccountsPostableByUser(userID uint32) []*SocialAccount
 	return ret
 }
 
-func (db *DB) CanUserAccessSocialAccount(userID, socialAccountID uint32, capability string) bool {
-	account, err := db.GetSocialAccount(socialAccountID)
-	if err != nil {
-		return false
-	}
-	if account.OwnerUserID.Valid && intconv.ToUint32(account.OwnerUserID.Int32) == userID {
-		return true
-	}
-	var capCol string
-	switch capability {
-	case "read":
-		capCol = "can_read"
-	case "post":
-		capCol = "can_post"
-	case "manage":
-		capCol = "can_manage"
-	default:
-		return false
-	}
+var socialAccountShareCapColumns = map[string]string{
+	"read":   "can_read",
+	"post":   "can_post",
+	"manage": "can_manage",
+}
+
+func isSocialAccountOwner(account *SocialAccount, userID uint32) bool {
+	return account.OwnerUserID.Valid && intconv.ToUint32(account.OwnerUserID.Int32) == userID
+}
+
+func (db *DB) userHasShareCapability(userID, socialAccountID uint32, capCol string) bool {
 	var count int
-	err = db.ResilientGet(&count, fmt.Sprintf(`SELECT COUNT(*) FROM social_account_shares sas
+	err := db.ResilientGet(&count, fmt.Sprintf(`SELECT COUNT(*) FROM social_account_shares sas
 		INNER JOIN user_group_memberships ugm ON ugm.user_group_id = sas.user_group_id AND ugm.user_account_id = ?
 		WHERE sas.social_account_id = ? AND sas.%s = 1`, capCol), userID, socialAccountID)
 	if err != nil {
@@ -1604,6 +1604,21 @@ func (db *DB) CanUserAccessSocialAccount(userID, socialAccountID uint32, capabil
 		return false
 	}
 	return count > 0
+}
+
+func (db *DB) CanUserAccessSocialAccount(userID, socialAccountID uint32, capability string) bool {
+	account, err := db.GetSocialAccount(socialAccountID)
+	if err != nil {
+		return false
+	}
+	if isSocialAccountOwner(account, userID) {
+		return true
+	}
+	capCol, ok := socialAccountShareCapColumns[capability]
+	if !ok {
+		return false
+	}
+	return db.userHasShareCapability(userID, socialAccountID, capCol)
 }
 
 func (db *DB) GetSocialAccountShares(socialAccountID uint32) ([]SocialAccountShare, error) {
@@ -1621,37 +1636,31 @@ func (db *DB) GetSocialAccountShares(socialAccountID uint32) ([]SocialAccountSha
 	return ret, nil
 }
 
-func (db *DB) SetSocialAccountShares(socialAccountID uint32, shares []SocialAccountShare) error {
-	if db.connx == nil {
-		db.ReconnectDatabaseAndSetErrorMessage()
-		return errors.New("database connection is not established")
-	}
-
-	tx, err := db.connx.Beginx()
-	if err != nil {
-		return fmt.Errorf("begin tx: %w", err)
-	}
-	rollback := func() {
-		if rbErr := tx.Rollback(); rbErr != nil {
-			db.Logger().Warnf("Rollback error in SetSocialAccountShares: %v", rbErr)
-		}
-	}
-
-	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM social_account_shares WHERE social_account_id = ?", socialAccountID); err != nil {
-		rollback()
-		return fmt.Errorf("delete existing shares: %w", err)
-	}
-
+func insertSocialAccountShares(tx *sqlx.Tx, socialAccountID uint32, shares []SocialAccountShare) error {
 	for _, s := range shares {
-		if _, err = tx.ExecContext(context.TODO(),
+		if _, err := tx.ExecContext(context.TODO(),
 			"INSERT INTO social_account_shares (social_account_id, user_group_id, can_read, can_post, can_manage, created_at) VALUES (?, ?, ?, ?, ?, NOW(3))",
 			socialAccountID, s.UserGroupID, s.CanRead, s.CanPost, s.CanManage,
 		); err != nil {
-			rollback()
 			return fmt.Errorf("insert share for group %d: %w", s.UserGroupID, err)
 		}
 	}
+	return nil
+}
 
+func (db *DB) SetSocialAccountShares(socialAccountID uint32, shares []SocialAccountShare) error {
+	tx, err := db.beginTx()
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM social_account_shares WHERE social_account_id = ?", socialAccountID); err != nil {
+		return fmt.Errorf("delete existing shares: %w", err)
+	}
+	if err = insertSocialAccountShares(tx, socialAccountID, shares); err != nil {
+		return err
+	}
 	if err = tx.Commit(); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}

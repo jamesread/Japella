@@ -49,16 +49,56 @@ func (x *XConnector) StartKeywordWatch(ctx context.Context, sa *connector.Social
 }
 
 func (x *XConnector) SearchRecentByKeyword(ctx context.Context, sa *connector.SocialAccount, keyword string, since time.Time, limit int) ([]*connector.RemotePost, error) {
-	if sa == nil || sa.OAuthToken == "" {
-		return nil, fmt.Errorf("x social account token required")
+	token, err := requireXOAuthToken(sa)
+	if err != nil {
+		return nil, err
 	}
+	req, err := x.newKeywordSearchRequest(ctx, token, keyword, since, clampXSearchLimit(limit))
+	if err != nil {
+		return nil, err
+	}
+	parsed, err := doXKeywordSearch(req)
+	if err != nil {
+		return nil, err
+	}
+	return mapXSearchToRemotePosts(parsed), nil
+}
+
+func requireXOAuthToken(sa *connector.SocialAccount) (string, error) {
+	if sa == nil || sa.OAuthToken == "" {
+		return "", fmt.Errorf("x social account token required")
+	}
+	return sa.OAuthToken, nil
+}
+
+func doXKeywordSearch(req *http.Request) (xSearchResponse, error) {
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return xSearchResponse{}, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	body, _ := io.ReadAll(resp.Body)
+	if err := checkXSearchHTTPStatus(resp, body); err != nil {
+		return xSearchResponse{}, err
+	}
+	var parsed xSearchResponse
+	if err := json.Unmarshal(body, &parsed); err != nil {
+		return xSearchResponse{}, err
+	}
+	return parsed, nil
+}
+
+func clampXSearchLimit(limit int) int {
 	if limit <= 0 {
-		limit = 20
+		return 20
 	}
 	if limit > 100 {
-		limit = 100
+		return 100
 	}
+	return limit
+}
 
+func (x *XConnector) newKeywordSearchRequest(ctx context.Context, token, keyword string, since time.Time, limit int) (*http.Request, error) {
 	q := url.Values{}
 	q.Set("query", keyword)
 	q.Set("max_results", strconv.Itoa(limit))
@@ -68,64 +108,69 @@ func (x *XConnector) SearchRecentByKeyword(ctx context.Context, sa *connector.So
 	if !since.IsZero() {
 		q.Set("start_time", since.UTC().Format(time.RFC3339))
 	}
-
 	endpoint := "https://api.x.com/2/tweets/search/recent?" + q.Encode()
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+sa.OAuthToken)
+	req.Header.Set("Authorization", "Bearer "+token)
+	return req, nil
+}
 
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	body, _ := io.ReadAll(resp.Body)
-
+func checkXSearchHTTPStatus(resp *http.Response, body []byte) error {
 	if resp.StatusCode == http.StatusTooManyRequests {
-		retry := 15 * time.Minute
-		if ra := resp.Header.Get("Retry-After"); ra != "" {
-			if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
-				retry = time.Duration(secs) * time.Second
-			}
-		}
-		return nil, &connector.RateLimitedError{RetryAfter: retry, Message: "x search rate limited"}
+		return &connector.RateLimitedError{RetryAfter: parseRetryAfter(resp.Header.Get("Retry-After")), Message: "x search rate limited"}
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("x search returned %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("x search returned %d: %s", resp.StatusCode, string(body))
 	}
+	return nil
+}
 
-	var parsed xSearchResponse
-	if err := json.Unmarshal(body, &parsed); err != nil {
-		return nil, err
+func parseRetryAfter(ra string) time.Duration {
+	retry := 15 * time.Minute
+	if ra == "" {
+		return retry
 	}
+	if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
+		return time.Duration(secs) * time.Second
+	}
+	return retry
+}
 
+func mapXSearchToRemotePosts(parsed xSearchResponse) []*connector.RemotePost {
 	users := map[string]string{}
 	for _, u := range parsed.Includes.Users {
 		users[u.ID] = u.Username
 	}
-
 	out := make([]*connector.RemotePost, 0, len(parsed.Data))
 	for _, tw := range parsed.Data {
-		postedAt, _ := time.Parse(time.RFC3339, tw.CreatedAt)
-		handle := users[tw.AuthorID]
-		remoteURL, profileURL := "", ""
-		if handle != "" {
-			remoteURL = fmt.Sprintf("https://x.com/%s/status/%s", handle, tw.ID)
-			profileURL = "https://x.com/" + handle
-		}
-		out = append(out, &connector.RemotePost{
-			RemoteID:     tw.ID,
-			RemoteURL:    remoteURL,
-			AuthorID:     tw.AuthorID,
-			AuthorHandle: handle,
-			Content:      tw.Text,
-			PostedAt:     postedAt,
-			Language:     tw.Lang,
-
-			AuthorProfileURL: profileURL,
-		})
+		out = append(out, xSearchTweetToRemote(tw, users[tw.AuthorID]))
 	}
-	return out, nil
+	return out
+}
+
+func xSearchTweetToRemote(tw struct {
+	ID        string `json:"id"`
+	Text      string `json:"text"`
+	AuthorID  string `json:"author_id"`
+	CreatedAt string `json:"created_at"`
+	Lang      string `json:"lang"`
+}, handle string) *connector.RemotePost {
+	postedAt, _ := time.Parse(time.RFC3339, tw.CreatedAt)
+	remoteURL, profileURL := "", ""
+	if handle != "" {
+		remoteURL = fmt.Sprintf("https://x.com/%s/status/%s", handle, tw.ID)
+		profileURL = "https://x.com/" + handle
+	}
+	return &connector.RemotePost{
+		RemoteID:         tw.ID,
+		RemoteURL:        remoteURL,
+		AuthorID:         tw.AuthorID,
+		AuthorHandle:     handle,
+		Content:          tw.Text,
+		PostedAt:         postedAt,
+		Language:         tw.Lang,
+		AuthorProfileURL: profileURL,
+	}
 }

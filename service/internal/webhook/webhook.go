@@ -54,14 +54,21 @@ func NormalizeURL(raw string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("webhook URL is not valid")
 	}
-	scheme := strings.ToLower(u.Scheme)
-	if scheme != "http" && scheme != "https" {
-		return "", fmt.Errorf("webhook URL scheme must be http or https")
-	}
-	if strings.TrimSpace(u.Host) == "" {
-		return "", fmt.Errorf("webhook URL host is required")
+	if err := validateWebhookURL(u); err != nil {
+		return "", err
 	}
 	return raw, nil
+}
+
+func validateWebhookURL(u *url.URL) error {
+	scheme := strings.ToLower(u.Scheme)
+	if scheme != "http" && scheme != "https" {
+		return fmt.Errorf("webhook URL scheme must be http or https")
+	}
+	if strings.TrimSpace(u.Host) == "" {
+		return fmt.Errorf("webhook URL host is required")
+	}
+	return nil
 }
 
 func Signature(payloadJSON, secret string) string {

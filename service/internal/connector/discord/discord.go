@@ -20,9 +20,7 @@ var discordConnectorInstance *DiscordConnector // Global reference to access hoo
 func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 	var err error
 	goBot, err = discordgo.New("Bot " + token)
-
 	registeredCommands = make(map[string]func(s *discordgo.Session, i *discordgo.InteractionCreate))
-
 	if err != nil {
 		a.Logger().Errorf("Cannot create new discord bot: %v", err)
 		a.failStartup("Failed to initialize bot connection", "Failed to create Discord bot: "+err.Error())
@@ -31,57 +29,60 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 
 	// Store reference to connector instance so messageHandler can access hooks
 	discordConnectorInstance = a
-
 	goBot.AddHandler(messageHandler)
 	goBot.Identify.Intents = discordgo.IntentsAllWithoutPrivileged
 
-	err = goBot.Open()
-
-	if err != nil {
+	if err = goBot.Open(); err != nil {
 		a.Logger().Errorf("Error opening Discord connection: %v", err)
 		a.failStartup("Failed to connect to Discord", "Failed to open Discord connection: "+err.Error())
 		return nil
 	}
 
-	// Get user info after connection is open
-	u, err := goBot.User("@me")
-	if err != nil {
-		a.Logger().Errorf("Error getting bot user info: %v", err)
-		// Don't fail completely, just use a default
-		a.nickname = "Discord Bot"
-	} else {
-		a.nickname = u.Username
-		if a.nickname == "" {
-			a.nickname = u.ID
-		}
-	}
-
+	a.resolveBotNickname()
 	a.isRunning = true
 	a.statusMessage = "Bot is running and connected"
 	a.errorMessage = ""
+	a.loadHooksFromDB()
+	a.registerInteractionHandlers()
+	a.Logger().Infof("Discord connector is running!")
+	return goBot
+}
 
-	// Load hooks from database now that we have the nickname
-	if a.db != nil {
-		dbHooks, err := a.db.SelectWebhookHooks("discord", a.botID)
-		if err == nil && len(dbHooks) > 0 {
-			a.hooks = hooks.FromDB(dbHooks)
-			a.Logger().Infof("Loaded %d incoming message hook(s) from database", len(a.hooks))
-		} else if err != nil {
-			a.Logger().Warnf("Failed to load hooks from database: %v, using config hooks", err)
-		}
+func (a *DiscordConnector) resolveBotNickname() {
+	u, err := goBot.User("@me")
+	if err != nil {
+		a.Logger().Errorf("Error getting bot user info: %v", err)
+		a.nickname = "Discord Bot"
+		return
 	}
+	a.nickname = u.Username
+	if a.nickname == "" {
+		a.nickname = u.ID
+	}
+}
 
+func (a *DiscordConnector) loadHooksFromDB() {
+	if a.db == nil {
+		return
+	}
+	dbHooks, err := a.db.SelectWebhookHooks("discord", a.botID)
+	if err != nil {
+		a.Logger().Warnf("Failed to load hooks from database: %v, using config hooks", err)
+		return
+	}
+	if len(dbHooks) > 0 {
+		a.hooks = hooks.FromDB(dbHooks)
+		a.Logger().Infof("Loaded %d incoming message hook(s) from database", len(a.hooks))
+	}
+}
+
+func (a *DiscordConnector) registerInteractionHandlers() {
 	goBot.AddHandler(func(s *discordgo.Session, i *discordgo.InteractionCreate) {
 		if h, ok := registeredCommands[i.ApplicationCommandData().Name]; ok {
 			h(s, i)
 		}
 	})
-
 	registerCommand("ping", cmdPing)
-
-	a.Logger().Infof("Discord connector is running!")
-
-	return goBot
 }
 
 func cmdPing(s *discordgo.Session, i *discordgo.InteractionCreate) {
@@ -172,36 +173,39 @@ func (a *DiscordConnector) GetIcon() string {
 }
 
 func (a *DiscordConnector) GetChatBot() *connector.ChatBot {
-	name := a.displayName
-	if name == "" && a.nickname != "" {
-		name = a.nickname
-	}
-	if name == "" {
-		name = "Discord"
-	}
-
-	statusMsg := ""
-	switch {
-	case a.isRunning:
-		statusMsg = "Bot is running and connected"
-	case a.errorMessage != "":
-		statusMsg = a.errorMessage
-	case a.statusMessage != "":
-		statusMsg = a.statusMessage
-	default:
-		statusMsg = "Stopped (not connected)"
-	}
-
 	return &connector.ChatBot{
 		BotID:               a.botID,
 		Connector:           a.GetProtocol(),
-		Name:                name,
+		Name:                discordChatBotName(a.displayName, a.nickname),
 		Identity:            a.nickname,
 		Icon:                a.GetIcon(),
 		IsRunning:           a.isRunning,
-		StatusMessage:       statusMsg,
+		StatusMessage:       chatBotStatusMessage(a.isRunning, a.errorMessage, a.statusMessage),
 		ErrorMessage:        a.errorMessage,
 		ProtocolDisplayName: "",
+	}
+}
+
+func discordChatBotName(displayName, nickname string) string {
+	if displayName != "" {
+		return displayName
+	}
+	if nickname != "" {
+		return nickname
+	}
+	return "Discord"
+}
+
+func chatBotStatusMessage(isRunning bool, errorMessage, statusMessage string) string {
+	switch {
+	case isRunning:
+		return "Bot is running and connected"
+	case errorMessage != "":
+		return errorMessage
+	case statusMessage != "":
+		return statusMessage
+	default:
+		return "Stopped (not connected)"
 	}
 }
 
@@ -290,66 +294,68 @@ func messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	// Get bot identity from the session
-	botIdentity := ""
-	botUserID := ""
-	if goBot != nil && goBot.State != nil && goBot.State.User != nil {
-		botIdentity = goBot.State.User.Username
-		botUserID = goBot.State.User.ID
-		if botIdentity == "" {
-			botIdentity = goBot.State.User.ID
-		}
-	}
-
-	// Only process messages that mention the bot at the beginning
+	botIdentity, botUserID := discordBotIdentity()
 	if !isBotMentionedAtStart(m, botUserID) {
 		log.Infof("Ignoring message that doesn't mention bot at the beginning: Channel=%s, Author=%s, Content=%q", m.ChannelID, getUsername(m), m.Content)
 		return
 	}
 
-	// Remove the bot mention from the beginning of the content for processing
-	content := removeBotMentionFromStart(m.Content, botUserID)
-
 	msg := msgs.IncomingMessage{
 		Author:    getUsername(m),
-		Content:   content, // Use content with bot mention removed
+		Content:   removeBotMentionFromStart(m.Content, botUserID),
 		Channel:   m.ChannelID,
 		MessageId: m.ID,
 		Protocol:  "discord",
 		Timestamp: time.Now().Unix(),
-		Identity:  botIdentity, // Include bot identity so hooks can route responses correctly
+		Identity:  botIdentity,
 	}
-
-	if discordConnectorInstance != nil && discordConnectorInstance.db != nil {
-		author := getUsername(m)
-		convTitle := author
-		if convTitle == "" {
-			convTitle = "Unknown sender"
-		}
-		_ = discordConnectorInstance.db.InsertChatBotMessage(&db.ChatBotMessage{
-			Connector:         "discord",
-			Identity:          botIdentity,
-			BotID:             discordConnectorInstance.botID,
-			ConversationKey:   db.BuildConversationKey(msg.Channel, author),
-			ConversationTitle: convTitle,
-			Channel:           msg.Channel,
-			Author:            author,
-			Content:           msg.Content,
-			Direction:         "incoming",
-			MessageID:         msg.MessageId,
-			TimestampUnix:     msg.Timestamp,
-		})
-	}
-
-	// Execute hooks if configured
-	if discordConnectorInstance != nil && len(discordConnectorInstance.hooks) > 0 {
-		log.Debugf("Executing %d hook(s) for incoming Discord message", len(discordConnectorInstance.hooks))
-		hooks.ExecuteHooks(discordConnectorInstance.hooks, &msg, discordConnectorInstance.Logger())
-	}
-
+	logIncomingDiscordMessage(&msg, botIdentity)
+	executeDiscordHooks(&msg)
 	amqp.PublishPb(&msg)
+}
 
-	// _, _ = s.ChannelMessageSend(m.ChannelID, "pong")
+func discordBotIdentity() (identity, userID string) {
+	if goBot == nil || goBot.State == nil || goBot.State.User == nil {
+		return "", ""
+	}
+	identity = goBot.State.User.Username
+	userID = goBot.State.User.ID
+	if identity == "" {
+		identity = goBot.State.User.ID
+	}
+	return identity, userID
+}
+
+func logIncomingDiscordMessage(msg *msgs.IncomingMessage, botIdentity string) {
+	if discordConnectorInstance == nil || discordConnectorInstance.db == nil {
+		return
+	}
+	author := msg.Author
+	convTitle := author
+	if convTitle == "" {
+		convTitle = "Unknown sender"
+	}
+	_ = discordConnectorInstance.db.InsertChatBotMessage(&db.ChatBotMessage{
+		Connector:         "discord",
+		Identity:          botIdentity,
+		BotID:             discordConnectorInstance.botID,
+		ConversationKey:   db.BuildConversationKey(msg.Channel, author),
+		ConversationTitle: convTitle,
+		Channel:           msg.Channel,
+		Author:            author,
+		Content:           msg.Content,
+		Direction:         "incoming",
+		MessageID:         msg.MessageId,
+		TimestampUnix:     msg.Timestamp,
+	})
+}
+
+func executeDiscordHooks(msg *msgs.IncomingMessage) {
+	if discordConnectorInstance == nil || len(discordConnectorInstance.hooks) == 0 {
+		return
+	}
+	log.Debugf("Executing %d hook(s) for incoming Discord message", len(discordConnectorInstance.hooks))
+	hooks.ExecuteHooks(discordConnectorInstance.hooks, msg, discordConnectorInstance.Logger())
 }
 
 func getUsername(m *discordgo.MessageCreate) string {
@@ -369,46 +375,42 @@ func getUsername(m *discordgo.MessageCreate) string {
 // isBotMentionedAtStart checks if the bot is mentioned at the beginning of the message
 // Discord mentions can be in the format: @username, <@userID>, or <@!userID>
 func isBotMentionedAtStart(m *discordgo.MessageCreate, botUserID string) bool {
-	if botUserID == "" {
+	if botUserID == "" || m.Content == "" || !mentionsContainBot(m.Mentions, botUserID) {
 		return false
 	}
+	return contentStartsWithBotMention(m.Content, botUserID)
+}
 
-	content := m.Content
-	if content == "" {
-		return false
-	}
-
-	// First check if the bot is in the Mentions list (most reliable)
-	botMentioned := false
-	for _, mention := range m.Mentions {
+func mentionsContainBot(mentions []*discordgo.User, botUserID string) bool {
+	for _, mention := range mentions {
 		if mention.ID == botUserID {
-			botMentioned = true
-			break
+			return true
 		}
 	}
+	return false
+}
 
-	if !botMentioned {
-		return false
+func contentStartsWithBotMention(content, botUserID string) bool {
+	for _, pattern := range botMentionPatterns(botUserID) {
+		if !hasPrefixExact(content, pattern) {
+			continue
+		}
+		if len(content) == len(pattern) || content[len(pattern)] == ' ' {
+			return true
+		}
 	}
+	return false
+}
 
-	// Check if the mention is at the beginning of the message
-	// Discord mentions can be: <@userID> or <@!userID>
-	mentionPatterns := []string{
+func botMentionPatterns(botUserID string) []string {
+	return []string{
 		"<@" + botUserID + ">",
 		"<@!" + botUserID + ">",
 	}
+}
 
-	// Check if content starts with any mention pattern
-	for _, pattern := range mentionPatterns {
-		if len(content) >= len(pattern) && content[:len(pattern)] == pattern {
-			// Check if it's at the start (possibly followed by space or end of string)
-			if len(content) == len(pattern) || content[len(pattern)] == ' ' {
-				return true
-			}
-		}
-	}
-
-	return false
+func hasPrefixExact(content, pattern string) bool {
+	return len(content) >= len(pattern) && content[:len(pattern)] == pattern
 }
 
 // removeBotMentionFromStart removes the bot mention from the beginning of the message content
@@ -416,22 +418,21 @@ func removeBotMentionFromStart(content string, botUserID string) string {
 	if botUserID == "" {
 		return content
 	}
-
-	mentionPatterns := []string{
-		"<@" + botUserID + ">",
-		"<@!" + botUserID + ">",
-	}
-
-	for _, pattern := range mentionPatterns {
-		if len(content) >= len(pattern) && content[:len(pattern)] == pattern {
-			// Remove the mention and any following space
-			remaining := content[len(pattern):]
-			if len(remaining) > 0 && remaining[0] == ' ' {
-				remaining = remaining[1:]
-			}
+	for _, pattern := range botMentionPatterns(botUserID) {
+		if remaining, ok := stripExactPrefix(content, pattern); ok {
 			return remaining
 		}
 	}
-
 	return content
+}
+
+func stripExactPrefix(content, pattern string) (string, bool) {
+	if !hasPrefixExact(content, pattern) {
+		return content, false
+	}
+	remaining := content[len(pattern):]
+	if len(remaining) > 0 && remaining[0] == ' ' {
+		remaining = remaining[1:]
+	}
+	return remaining, true
 }

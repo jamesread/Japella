@@ -43,22 +43,34 @@ func allowWithoutReady(path string) bool {
 	case "/healthz", "/metrics", "/llms.txt", "/lang":
 		return true
 	}
-
-	// SPA shell and static assets (not API/MCP).
-	if !strings.HasPrefix(path, "/api") &&
-		path != "/mcp" &&
-		!strings.HasPrefix(path, "/mcp/") &&
-		path != "/upload" &&
-		!strings.HasPrefix(path, "/media/") &&
-		path != "/oauth2callback" &&
-		!strings.HasPrefix(path, "/oauth/") {
+	if isPublicSPAPath(path) {
 		return true
 	}
-
 	// Structured status for the frontend startup gate.
-	if path == "/api"+controlv1.JapellaControlApiServiceGetStatusProcedure {
+	return path == "/api"+controlv1.JapellaControlApiServiceGetStatusProcedure
+}
+
+var exactPrivilegedPaths = map[string]bool{
+	"/mcp":            true,
+	"/upload":         true,
+	"/oauth2callback": true,
+}
+
+var privilegedPrefixes = []string{"/api", "/mcp/", "/media/", "/oauth/"}
+
+// isPublicSPAPath is true for the SPA shell and static assets (not API/MCP).
+func isPublicSPAPath(path string) bool {
+	return !isPrivilegedPath(path)
+}
+
+func isPrivilegedPath(path string) bool {
+	if exactPrivilegedPaths[path] {
 		return true
 	}
-
+	for _, prefix := range privilegedPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
 	return false
 }
