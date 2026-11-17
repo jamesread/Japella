@@ -28,6 +28,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -524,168 +525,85 @@ func (b *BlueskyConnector) getFirstURL(text string) string {
 	return ""
 }
 
+var (
+	// URLs: http:// or https:// followed by non-whitespace characters.
+	facetURLRegex = regexp.MustCompile(`https?://[^\s]+`)
+	// Mentions: @ followed by a domain, as Bluesky handles are domain names.
+	facetMentionRegex = regexp.MustCompile(`@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?`)
+	// Hashtags: # followed by letters, numbers and underscores.
+	facetHashtagRegex = regexp.MustCompile(`#([\p{L}\p{N}_]+)`)
+)
+
+// facetRule turns a regexp match into a facet feature; ok is false to skip it.
+type facetRule struct {
+	re      *regexp.Regexp
+	feature func(match string) (feature BlueskyFacetFeature, ok bool)
+}
+
+// parseFacets marks up links, then mentions, then hashtags. A later kind never
+// overlaps an earlier one, so text inside a link stays part of the link.
 func (b *BlueskyConnector) parseFacets(text string) []BlueskyFacet {
 	if text == "" {
 		return nil
 	}
-
+	rules := []facetRule{
+		{facetURLRegex, linkFeature},
+		{facetMentionRegex, b.mentionFeature},
+		{facetHashtagRegex, tagFeature},
+	}
+	used := make([]bool, len(text))
 	facets := []BlueskyFacet{}
-
-	// Regular expressions for matching
-	// URLs: http:// or https:// followed by non-whitespace characters
-	urlRegex := regexp.MustCompile(`https?://[^\s]+`)
-	// Mentions: @ followed by a valid domain (e.g., @alice.bsky.social)
-	// Bluesky handles are domain names, so we match @domain.tld format
-	mentionRegex := regexp.MustCompile(`@([a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?`)
-	// Hashtags: # followed by letters, numbers, and underscores
-	hashtagRegex := regexp.MustCompile(`#([\p{L}\p{N}_]+)`)
-
-	// Track used byte ranges to avoid overlaps
-	usedRanges := make(map[int]bool)
-
-	// Find URLs
-	urlMatches := urlRegex.FindAllStringIndex(text, -1)
-	for _, match := range urlMatches {
-		start, end := match[0], match[1]
-
-		// Check if this range overlaps with any existing facet
-		overlaps := false
-		for i := start; i < end; i++ {
-			if usedRanges[i] {
-				overlaps = true
-				break
-			}
-		}
-
-		if !overlaps {
-			// Calculate byte offsets
-			byteStart := len([]byte(text[:start]))
-			byteEnd := len([]byte(text[:end]))
-
-			// Extract URL
-			urlStr := text[start:end]
-
-			// Validate URL
-			if parsedURL, err := url.Parse(urlStr); err == nil && (parsedURL.Scheme == "http" || parsedURL.Scheme == "https") {
-				facet := BlueskyFacet{
-					Index: BlueskyFacetIndex{
-						ByteStart: byteStart,
-						ByteEnd:   byteEnd,
-					},
-					Features: []BlueskyFacetFeature{
-						{
-							Type: "app.bsky.richtext.facet#link",
-							URI:  urlStr,
-						},
-					},
-				}
-				facets = append(facets, facet)
-
-				// Mark range as used
-				for i := start; i < end; i++ {
-					usedRanges[i] = true
-				}
-			}
-		}
+	for _, rule := range rules {
+		facets = append(facets, findFacets(text, rule, used)...)
 	}
-
-	// Find mentions (@handle)
-	mentionMatches := mentionRegex.FindAllStringIndex(text, -1)
-	for _, match := range mentionMatches {
-		start, end := match[0], match[1]
-
-		// Check if this range overlaps with any existing facet
-		overlaps := false
-		for i := start; i < end; i++ {
-			if usedRanges[i] {
-				overlaps = true
-				break
-			}
-		}
-
-		if !overlaps {
-			// Calculate byte offsets
-			byteStart := len([]byte(text[:start]))
-			byteEnd := len([]byte(text[:end]))
-
-			// Extract handle (without @)
-			handle := text[start+1 : end]
-
-			// Try to resolve handle to DID
-			did, err := b.resolveHandleToDID(handle)
-			if err != nil {
-				b.Logger().Warnf("Failed to resolve handle %s to DID: %v", handle, err)
-				// Continue without DID - Bluesky may still accept the mention
-				did = ""
-			}
-
-			feature := BlueskyFacetFeature{
-				Type: "app.bsky.richtext.facet#mention",
-			}
-			if did != "" {
-				feature.DID = did
-			}
-
-			facet := BlueskyFacet{
-				Index: BlueskyFacetIndex{
-					ByteStart: byteStart,
-					ByteEnd:   byteEnd,
-				},
-				Features: []BlueskyFacetFeature{feature},
-			}
-			facets = append(facets, facet)
-
-			// Mark range as used
-			for i := start; i < end; i++ {
-				usedRanges[i] = true
-			}
-		}
-	}
-
-	// Find hashtags
-	hashtagMatches := hashtagRegex.FindAllStringIndex(text, -1)
-	for _, match := range hashtagMatches {
-		start, end := match[0], match[1]
-
-		// Check if this range overlaps with any existing facet
-		overlaps := false
-		for i := start; i < end; i++ {
-			if usedRanges[i] {
-				overlaps = true
-				break
-			}
-		}
-
-		if !overlaps {
-			// Calculate byte offsets
-			byteStart := len([]byte(text[:start]))
-			byteEnd := len([]byte(text[:end]))
-
-			// Extract tag (without #)
-			tag := text[start+1 : end]
-
-			facet := BlueskyFacet{
-				Index: BlueskyFacetIndex{
-					ByteStart: byteStart,
-					ByteEnd:   byteEnd,
-				},
-				Features: []BlueskyFacetFeature{
-					{
-						Type: "app.bsky.richtext.facet#tag",
-						Tag:  tag,
-					},
-				},
-			}
-			facets = append(facets, facet)
-
-			// Mark range as used
-			for i := start; i < end; i++ {
-				usedRanges[i] = true
-			}
-		}
-	}
-
 	return facets
+}
+
+// findFacets returns the rule's facets that don't overlap a used byte range,
+// and marks their ranges used. Offsets are bytes, as Bluesky expects.
+func findFacets(text string, rule facetRule, used []bool) []BlueskyFacet {
+	var facets []BlueskyFacet
+	for _, match := range rule.re.FindAllStringIndex(text, -1) {
+		start, end := match[0], match[1]
+		if slices.Contains(used[start:end], true) {
+			continue
+		}
+		feature, ok := rule.feature(text[start:end])
+		if !ok {
+			continue
+		}
+		facets = append(facets, BlueskyFacet{
+			Index:    BlueskyFacetIndex{ByteStart: start, ByteEnd: end},
+			Features: []BlueskyFacetFeature{feature},
+		})
+		for i := start; i < end; i++ {
+			used[i] = true
+		}
+	}
+	return facets
+}
+
+func linkFeature(match string) (BlueskyFacetFeature, bool) {
+	parsed, err := url.Parse(match)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+		return BlueskyFacetFeature{}, false
+	}
+	return BlueskyFacetFeature{Type: "app.bsky.richtext.facet#link", URI: match}, true
+}
+
+// mentionFeature keeps a mention whose handle can't be resolved, without a
+// DID; Bluesky may still accept it.
+func (b *BlueskyConnector) mentionFeature(match string) (BlueskyFacetFeature, bool) {
+	handle := match[1:]
+	did, err := b.resolveHandleToDID(handle)
+	if err != nil {
+		b.Logger().Warnf("Failed to resolve handle %s to DID: %v", handle, err)
+	}
+	return BlueskyFacetFeature{Type: "app.bsky.richtext.facet#mention", DID: did}, true
+}
+
+func tagFeature(match string) (BlueskyFacetFeature, bool) {
+	return BlueskyFacetFeature{Type: "app.bsky.richtext.facet#tag", Tag: match[1:]}, true
 }
 
 func (b *BlueskyConnector) GetIcon() string {
@@ -930,9 +848,12 @@ func (b *BlueskyConnector) createDPoPClientForRefresh(sa *db.SocialAccount) *uti
 }
 
 // resolveHandleToDID resolves a handle to a DID
+// appViewURL is the public AppView used to resolve handles. Tests replace it.
+var appViewURL = "https://api.bsky.app"
+
 func (b *BlueskyConnector) resolveHandleToDID(handle string) (string, error) {
 	// Use public AppView for handle resolution (no auth required)
-	url := fmt.Sprintf("https://api.bsky.app/xrpc/com.atproto.identity.resolveHandle?handle=%s", handle)
+	url := fmt.Sprintf("%s/xrpc/com.atproto.identity.resolveHandle?handle=%s", appViewURL, handle)
 
 	client := utils.NewClient(b.Logger())
 	var response struct {
@@ -1275,83 +1196,92 @@ type dpopTransport struct {
 }
 
 func (t *dpopTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	// Calculate access token hash if not already calculated
+	t.sign(req)
+	resp, err := t.base.RoundTrip(req)
+	if isDPoPErrorStatus(resp) {
+		if handled, done, handledErr := t.handleErrorResponse(req, resp); done {
+			return handled, handledErr
+		}
+	}
+	t.rememberNonce(resp)
+	return resp, err
+}
+
+// sign adds a DPoP proof for this request, and the access token if there is one.
+func (t *dpopTransport) sign(req *http.Request) {
 	if t.accessTokenHash == "" && t.signedAccessToken != "" {
 		t.accessTokenHash = calculateAccessTokenHash(t.signedAccessToken)
 	}
-
-	dpopJwt, _ := createDPoPProof(t.privKey, req.Method, req.URL.String(), t.dpopNonce, t.accessTokenHash)
-
-	req.Header.Set("DPoP", dpopJwt)
+	proof, _ := createDPoPProof(t.privKey, req.Method, req.URL.String(), t.dpopNonce, t.accessTokenHash)
+	req.Header.Set("DPoP", proof)
 	if t.signedAccessToken != "" {
 		req.Header.Set("Authorization", "DPoP "+t.signedAccessToken)
 	}
-	resp, err := t.base.RoundTrip(req)
+}
 
-	// Handle DPoP nonce retry and token errors
-	if resp != nil && (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusBadRequest) {
-		// Read response body to check for specific errors
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		_ = resp.Body.Close()
-		bodyStr := string(bodyBytes)
+func isDPoPErrorStatus(resp *http.Response) bool {
+	return resp != nil && (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusBadRequest)
+}
 
-		// Check if this is a DPoP nonce error
-		if strings.Contains(bodyStr, "use_dpop_nonce") {
-			// Get nonce from response header
-			nonce := resp.Header.Get("DPoP-Nonce")
-			if nonce == "" {
-				nonce = resp.Header.Get("Dpop-Nonce")
-			}
+// handleErrorResponse retries once with the server's nonce when it asks for
+// one, or reports an invalid token. Otherwise done is false and resp, with its
+// body still readable, is the result.
+func (t *dpopTransport) handleErrorResponse(req *http.Request, resp *http.Response) (*http.Response, bool, error) {
+	body, _ := io.ReadAll(resp.Body)
+	_ = resp.Body.Close()
+	resp.Body = io.NopCloser(bytes.NewReader(body))
 
-			if nonce != "" {
-				// Update nonce and retry once
-				t.dpopNonce = nonce
-				// Calculate access token hash if not already calculated
-				if t.accessTokenHash == "" && t.signedAccessToken != "" {
-					t.accessTokenHash = calculateAccessTokenHash(t.signedAccessToken)
-				}
-				dpopJwt, _ = createDPoPProof(t.privKey, req.Method, req.URL.String(), t.dpopNonce, t.accessTokenHash)
-
-				// Clone request and retry
-				req2 := req.Clone(req.Context())
-				if req.Body != nil && req.GetBody != nil {
-					if bodyCopy, gerr := req.GetBody(); gerr == nil {
-						req2.Body = bodyCopy
-					}
-				}
-				req2.Header.Set("DPoP", dpopJwt)
-				if t.signedAccessToken != "" {
-					req2.Header.Set("Authorization", "DPoP "+t.signedAccessToken)
-				}
-
-				resp2, err2 := t.base.RoundTrip(req2)
-				if err2 == nil && resp2 != nil {
-					return resp2, nil
-				}
-			}
-		}
-
-		// Check if this is a token-related error
-		if strings.Contains(bodyStr, "InvalidToken") ||
-			strings.Contains(bodyStr, "OAuth tokens are meant for PDS access only") {
-			// This is a token error, not a DPoP nonce issue
-			resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
-			return resp, fmt.Errorf("invalid or expired OAuth token")
-		}
-
-		// Restore body for other errors
-		resp.Body = io.NopCloser(bytes.NewReader(bodyBytes))
+	if retried := t.retryWithNonce(req, resp, body); retried != nil {
+		return retried, true, nil
 	}
+	if isTokenError(body) {
+		return resp, true, fmt.Errorf("invalid or expired OAuth token")
+	}
+	return nil, false, nil
+}
 
-	if resp != nil {
-		// Capture nonce for next requests; accept either header capitalization
-		if n := resp.Header.Get("DPoP-Nonce"); n != "" {
-			t.dpopNonce = n
-		} else if n := resp.Header.Get("Dpop-Nonce"); n != "" {
-			t.dpopNonce = n
+// retryWithNonce returns the retried response, or nil if the server didn't ask
+// for a nonce or the retry failed.
+func (t *dpopTransport) retryWithNonce(req *http.Request, resp *http.Response, body []byte) *http.Response {
+	if !strings.Contains(string(body), "use_dpop_nonce") {
+		return nil
+	}
+	nonce := resp.Header.Get("DPoP-Nonce")
+	if nonce == "" {
+		return nil
+	}
+	t.dpopNonce = nonce
+	retried, err := t.base.RoundTrip(t.cloneForRetry(req))
+	if err != nil || retried == nil {
+		return nil
+	}
+	return retried
+}
+
+func (t *dpopTransport) cloneForRetry(req *http.Request) *http.Request {
+	retry := req.Clone(req.Context())
+	if req.Body != nil && req.GetBody != nil {
+		if body, err := req.GetBody(); err == nil {
+			retry.Body = body
 		}
 	}
-	return resp, err
+	t.sign(retry)
+	return retry
+}
+
+// isTokenError recognises an expired token, or a token used somewhere other than the PDS.
+func isTokenError(body []byte) bool {
+	return bytes.Contains(body, []byte("InvalidToken")) || bytes.Contains(body, []byte("OAuth tokens are meant for PDS access only"))
+}
+
+// rememberNonce keeps the server's latest nonce for the next request.
+func (t *dpopTransport) rememberNonce(resp *http.Response) {
+	if resp == nil {
+		return
+	}
+	if nonce := resp.Header.Get("DPoP-Nonce"); nonce != "" {
+		t.dpopNonce = nonce
+	}
 }
 
 func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, headers map[string]string) error {

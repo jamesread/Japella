@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
@@ -262,74 +263,107 @@ type mediaUploadData struct {
 	MediaID  any    `json:"media_id"`
 }
 
+// xAPIBase is the X API's address. Tests replace it.
+var xAPIBase = "https://api.x.com"
+
 // Media uploads can be large on slow links, but must not block a post forever.
 const mediaUploadTimeout = 2 * time.Minute
 
 func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error) {
+	body, contentType, err := mediaUploadForm(path)
+	if err != nil {
+		return "", err
+	}
+	out, err := sendMediaUpload(body, contentType, bearerToken)
+	if err != nil {
+		return "", err
+	}
+	return out.mediaID()
+}
+
+// mediaUploadForm builds the multipart body: the file as "media" (X API v2
+// also accepts base64 as "media_data"), and media_category for images.
+func mediaUploadForm(path string) (*bytes.Buffer, string, error) {
+	body := &bytes.Buffer{}
+	w := multipart.NewWriter(body)
+	if err := writeMediaPart(w, path); err != nil {
+		return nil, "", err
+	}
+	if isTweetImage(path) {
+		_ = w.WriteField("media_category", "tweet_image")
+	}
+	if err := w.Close(); err != nil {
+		return nil, "", fmt.Errorf("close multipart writer: %w", err)
+	}
+	return body, w.FormDataContentType(), nil
+}
+
+func writeMediaPart(w *multipart.Writer, path string) error {
 	f, err := os.Open(path) //nolint:gosec // media path resolved by media.PathFromURL
 	if err != nil {
-		return "", fmt.Errorf("open file: %w", err)
+		return fmt.Errorf("open file: %w", err)
 	}
 	defer func() { _ = f.Close() }()
 
-	body := &bytes.Buffer{}
-	w := multipart.NewWriter(body)
-
-	// X API v2 expects form field "media" with raw binary, or "media_data" with base64
 	part, err := w.CreateFormFile("media", filepath.Base(path))
 	if err != nil {
-		return "", fmt.Errorf("create form file: %w", err)
+		return fmt.Errorf("create form file: %w", err)
 	}
 	if _, err = io.Copy(part, f); err != nil {
-		return "", fmt.Errorf("write file to form: %w", err)
+		return fmt.Errorf("write file to form: %w", err)
 	}
-	// Optional: set media_category for images so X treats as tweet_image
-	ext := strings.ToLower(filepath.Ext(path))
-	if ext == ".jpg" || ext == ".jpeg" || ext == ".png" || ext == ".gif" || ext == ".webp" {
-		_ = w.WriteField("media_category", "tweet_image")
-	}
-	contentType := w.FormDataContentType()
-	if err = w.Close(); err != nil {
-		return "", fmt.Errorf("close multipart writer: %w", err)
-	}
+	return nil
+}
 
+// isTweetImage reports files X should treat as tweet_image.
+func isTweetImage(path string) bool {
+	return slices.Contains([]string{".jpg", ".jpeg", ".png", ".gif", ".webp"}, strings.ToLower(filepath.Ext(path)))
+}
+
+func sendMediaUpload(body io.Reader, contentType, bearerToken string) (*mediaUploadResponse, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), mediaUploadTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.x.com/2/media/upload", body)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, xAPIBase+"/2/media/upload", body)
 	if err != nil {
-		return "", fmt.Errorf("create request: %w", err)
+		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+bearerToken)
 	req.Header.Set("Content-Type", contentType)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("do request: %w", err)
+		return nil, fmt.Errorf("do request: %w", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if err := checkMediaUploadStatus(resp); err != nil {
+		return nil, err
+	}
+	var out mediaUploadResponse
+	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
+		return nil, fmt.Errorf("decode response: %w", err)
+	}
+	return &out, nil
+}
+
+func checkMediaUploadStatus(resp *http.Response) error {
 	if resp.StatusCode == http.StatusForbidden {
 		b, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("media upload forbidden (403): X requires the media.write scope. Disconnect and reconnect your X account in Japella so the new permission is granted. Response: %s", string(b))
+		return fmt.Errorf("media upload forbidden (403): X requires the media.write scope. Disconnect and reconnect your X account in Japella so the new permission is granted. Response: %s", string(b))
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		b, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("media upload returned %d: %s", resp.StatusCode, string(b))
+		return fmt.Errorf("media upload returned %d: %s", resp.StatusCode, string(b))
 	}
+	return nil
+}
 
-	var out mediaUploadResponse
-	if err := json.NewDecoder(resp.Body).Decode(&out); err != nil {
-		return "", fmt.Errorf("decode response: %w", err)
-	}
-	// Prefer v2 data.media_key or data.media_id, then media_id_string, then media_id
-	if out.Data != nil {
-		if out.Data.MediaKey != "" {
-			return out.Data.MediaKey, nil
-		}
-		if out.Data.MediaID != nil {
-			return fmt.Sprint(out.Data.MediaID), nil
-		}
+// mediaID prefers v2 data.media_key or data.media_id, then media_id_string,
+// then media_id.
+func (out *mediaUploadResponse) mediaID() (string, error) {
+	if id := out.Data.id(); id != "" {
+		return id, nil
 	}
 	if out.MediaIDString != "" {
 		return out.MediaIDString, nil
@@ -337,7 +371,20 @@ func (x *XConnector) uploadMedia(path string, bearerToken string) (string, error
 	if out.MediaID != nil {
 		return fmt.Sprint(out.MediaID), nil
 	}
-	return "", fmt.Errorf("media upload response missing media_id / media_key (got %+v)", out)
+	return "", fmt.Errorf("media upload response missing media_id / media_key (got %+v)", *out)
+}
+
+func (d *mediaUploadData) id() string {
+	if d == nil {
+		return ""
+	}
+	if d.MediaKey != "" {
+		return d.MediaKey
+	}
+	if d.MediaID != nil {
+		return fmt.Sprint(d.MediaID)
+	}
+	return ""
 }
 
 // mediaKeyToTweetMediaID converts a v2 media_key (e.g. "3_2032196022764445696") to the

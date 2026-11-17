@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"maps"
 	"net/url"
-	"sort"
+	"slices"
 
 	"connectrpc.com/connect"
 	connectcors "connectrpc.com/cors"
@@ -555,74 +556,14 @@ func (s *ControlApi) extractSessionID(req http.Header) string {
 }
 
 func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[controlv1.GetStatusRequest]) (*connect.Response[controlv1.GetStatusResponse], error) {
-	var authenticatedUser *authentication.AuthenticatedUser
-	username := "<anonymous>"
-	var rbacPermNames []string
-	var rbacSuper bool
-
-	if authenticatedUser = s.getAuthenticatedUser(ctx); authenticatedUser != nil {
-		username = authenticatedUser.User.Username
-		if authenticatedUser.RBAC != nil {
-			rbacSuper = authenticatedUser.RBAC.IsSuperuser
-			for n := range authenticatedUser.RBAC.Permissions {
-				rbacPermNames = append(rbacPermNames, n)
-			}
-			sort.Strings(rbacPermNames)
-		}
-	}
-
+	authenticatedUser := s.getAuthenticatedUser(ctx)
+	username, rbacPermNames, rbacSuper := describeUser(authenticatedUser)
 	log.Infof("GetStatus called by user: %s.", username)
-
-	// Get the current listening address
-	listenAddress := os.Getenv("JAPELLA_LISTEN_ADDRESS")
-	if listenAddress == "" {
-		// Determine if we're using HTTPS or HTTP based on TLS certs
-		crt := os.Getenv("JAPELLA_TLS_CRT_PATH")
-		key := os.Getenv("JAPELLA_TLS_KEY_PATH")
-		if crt != "" && key != "" {
-			listenAddress = "0.0.0.0:443"
-		} else {
-			listenAddress = "0.0.0.0:8080"
-		}
-	}
-
-	var isImpersonating bool
-	var impersonatorUsername string
-	if authenticatedUser != nil {
-		if sid := s.extractSessionID(req.Header()); sid != "" {
-			if sess := s.DB.GetSessionByID(sid); sess != nil && sess.ImpersonatorUserID.Valid {
-				isImpersonating = true
-				if imp := s.DB.GetUserByID(intconv.ToUint32(sess.ImpersonatorUserID.Int32)); imp != nil {
-					impersonatorUsername = imp.Username
-				}
-			}
-		}
-	}
 
 	dbConnected := s.DB != nil && s.DB.Ready()
 	amqpEn, amqpConn := amqp.ConnectionStatus()
-
-	status := "OK!"
-	statusMessages := append([]*controlv1.StatusMessage(nil), s.statusMessages...)
-	if !dbConnected {
-		status = "ERROR"
-		msg := s.ReadinessClientMessage()
-		if msg == "" {
-			msg = "Cannot connect to database"
-		}
-		statusMessages = append(statusMessages, &controlv1.StatusMessage{
-			Type:    "error",
-			Message: msg,
-		})
-	} else if s.cc == nil {
-		status = "STARTING"
-		statusMessages = append(statusMessages, &controlv1.StatusMessage{
-			Type:    "warning",
-			Message: "Service is starting",
-		})
-	}
-
-	availableThemes := themes.AvailableThemeNames()
+	status, statusMessages := s.serviceStatus(dbConnected)
+	isImpersonating, impersonatorUsername := s.impersonationOf(authenticatedUser, req.Header())
 
 	res := connect.NewResponse(&controlv1.GetStatusResponse{
 		Status:                 status,
@@ -634,7 +575,7 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		UsesSecureCookies:      os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
 		DatabaseHost:           s.DB.GetDatabaseHost(),
 		DatabaseName:           s.DB.GetDatabaseName(),
-		ListenAddress:          listenAddress,
+		ListenAddress:          reportedListenAddress(),
 		DatabaseSchemaVersion:  s.DB.GetCurrentSchemaVersion(),
 		DatabaseSchemaDirty:    s.DB.GetCurrentSchemaDirty(),
 		RbacPermissions:        rbacPermNames,
@@ -646,36 +587,118 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		AmqpEnabled:            amqpEn,
 		AmqpConnected:          amqpConn,
 		WebhookEvents:          append([]string(nil), webhook.SupportedEvents...),
-		AvailableThemes:        availableThemes,
+		AvailableThemes:        themes.AvailableThemeNames(),
 	})
 
-	if dbConnected {
-		res.Msg.ThemeColorSchemeSwitcherEnabled = s.DB.ThemeColorSchemeSwitcherEnabled()
-		res.Msg.ThemeName = s.DB.ThemeName()
-		res.Msg.ThemeControl = s.DB.ThemeControl()
-	}
-
-	if dbConnected && authenticatedUser != nil {
-		if account := s.DB.GetUserByID(authenticatedUser.User.ID); account != nil {
-			if !account.CreatedAt.IsZero() {
-				res.Msg.CreatedAt = account.CreatedAt.UTC().Format(time.RFC3339)
-			}
-			if account.LastLoginAt.Valid {
-				res.Msg.LastLoginAt = account.LastLoginAt.Time.UTC().Format(time.RFC3339)
-			}
-		}
-	}
-
-	if authenticatedUser == nil || !authenticatedUser.CanViewSystemDiagnostics() {
-		res.Msg.DatabaseHost = ""
-		res.Msg.DatabaseName = ""
-		res.Msg.ListenAddress = ""
-		res.Msg.ConfigFileAbsolutePath = ""
-		res.Msg.DatabaseSchemaVersion = 0
-		res.Msg.Nanoservices = nil
-	}
-
+	s.addDatabaseDetails(res.Msg, authenticatedUser, dbConnected)
+	hideDiagnosticsFrom(res.Msg, authenticatedUser)
 	return res, nil
+}
+
+// describeUser returns the caller's name and sorted permissions for GetStatus.
+func describeUser(au *authentication.AuthenticatedUser) (username string, permissions []string, superuser bool) {
+	if au == nil {
+		return "<anonymous>", nil, false
+	}
+	if au.RBAC == nil {
+		return au.User.Username, nil, false
+	}
+	return au.User.Username, slices.Sorted(maps.Keys(au.RBAC.Permissions)), au.RBAC.IsSuperuser
+}
+
+// reportedListenAddress describes the address from the environment only; it
+// does not read listenAddress from the config file.
+func reportedListenAddress() string {
+	if listenAddress := os.Getenv("JAPELLA_LISTEN_ADDRESS"); listenAddress != "" {
+		return listenAddress
+	}
+	if os.Getenv("JAPELLA_TLS_CRT_PATH") != "" && os.Getenv("JAPELLA_TLS_KEY_PATH") != "" {
+		return "0.0.0.0:443"
+	}
+	return "0.0.0.0:8080"
+}
+
+// serviceStatus adds a database or startup problem to the service's messages.
+func (s *ControlApi) serviceStatus(dbConnected bool) (string, []*controlv1.StatusMessage) {
+	messages := append([]*controlv1.StatusMessage(nil), s.statusMessages...)
+	switch {
+	case !dbConnected:
+		return "ERROR", append(messages, &controlv1.StatusMessage{Type: "error", Message: s.databaseProblem()})
+	case s.cc == nil:
+		return "STARTING", append(messages, &controlv1.StatusMessage{Type: "warning", Message: "Service is starting"})
+	}
+	return "OK!", messages
+}
+
+func (s *ControlApi) databaseProblem() string {
+	if msg := s.ReadinessClientMessage(); msg != "" {
+		return msg
+	}
+	return "Cannot connect to database"
+}
+
+// impersonationOf reports whether the caller's session is impersonating, and as whom.
+func (s *ControlApi) impersonationOf(au *authentication.AuthenticatedUser, header http.Header) (bool, string) {
+	if au == nil {
+		return false, ""
+	}
+	sess := s.currentSession(header)
+	if sess == nil || !sess.ImpersonatorUserID.Valid {
+		return false, ""
+	}
+	impersonator := s.DB.GetUserByID(intconv.ToUint32(sess.ImpersonatorUserID.Int32))
+	if impersonator == nil {
+		return true, ""
+	}
+	return true, impersonator.Username
+}
+
+func (s *ControlApi) currentSession(header http.Header) *db.Session {
+	sid := s.extractSessionID(header)
+	if sid == "" {
+		return nil
+	}
+	return s.DB.GetSessionByID(sid)
+}
+
+// addDatabaseDetails adds what needs a connected database: theme settings and
+// the caller's account dates.
+func (s *ControlApi) addDatabaseDetails(msg *controlv1.GetStatusResponse, au *authentication.AuthenticatedUser, dbConnected bool) {
+	if !dbConnected {
+		return
+	}
+	msg.ThemeColorSchemeSwitcherEnabled = s.DB.ThemeColorSchemeSwitcherEnabled()
+	msg.ThemeName = s.DB.ThemeName()
+	msg.ThemeControl = s.DB.ThemeControl()
+	if au != nil {
+		s.addAccountDates(msg, au.User.ID)
+	}
+}
+
+func (s *ControlApi) addAccountDates(msg *controlv1.GetStatusResponse, userID uint32) {
+	account := s.DB.GetUserByID(userID)
+	if account == nil {
+		return
+	}
+	if !account.CreatedAt.IsZero() {
+		msg.CreatedAt = account.CreatedAt.UTC().Format(time.RFC3339)
+	}
+	if account.LastLoginAt.Valid {
+		msg.LastLoginAt = account.LastLoginAt.Time.UTC().Format(time.RFC3339)
+	}
+}
+
+// hideDiagnosticsFrom removes system details from callers who can't view them.
+func hideDiagnosticsFrom(msg *controlv1.GetStatusResponse, au *authentication.AuthenticatedUser) {
+	if au != nil && au.CanViewSystemDiagnostics() {
+		return
+	}
+	msg.DatabaseHost = ""
+	msg.DatabaseName = ""
+	msg.ListenAddress = ""
+	msg.ConfigFileAbsolutePath = ""
+	msg.DatabaseSchemaVersion = 0
+	msg.Nanoservices = nil
 }
 
 func (s *ControlApi) marshalSocialAccountsForUser(au *authentication.AuthenticatedUser, onlyActive bool) []*controlv1.SocialAccount {

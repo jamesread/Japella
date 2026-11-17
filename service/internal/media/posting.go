@@ -10,6 +10,7 @@ import (
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 
 	xdraw "golang.org/x/image/draw"
 )
@@ -41,42 +42,68 @@ func OptimiseForPosting(filename string, target PostingTarget) (*OptimiseResult,
 	if _, kind := DerivedOf(filename); kind != "" {
 		return nil, fmt.Errorf("%s is already an optimised copy", filename)
 	}
-	if target.MaxBytes <= 0 {
-		target.MaxBytes = DefaultPostingTarget.MaxBytes
+	path, data, err := readMedia(filename)
+	if err != nil {
+		return nil, err
 	}
-	if target.MaxSide <= 0 {
-		target.MaxSide = DefaultPostingTarget.MaxSide
+	img, err := decodeForPosting(data)
+	if err != nil {
+		return nil, err
 	}
+	return preparePostingCopy(filename, path, data, img, target.withDefaults())
+}
 
+func (t PostingTarget) withDefaults() PostingTarget {
+	if t.MaxBytes <= 0 {
+		t.MaxBytes = DefaultPostingTarget.MaxBytes
+	}
+	if t.MaxSide <= 0 {
+		t.MaxSide = DefaultPostingTarget.MaxSide
+	}
+	return t
+}
+
+func readMedia(filename string) (string, []byte, error) {
 	path, err := PathFromURL(mediaFilesPrefix + filename)
 	if err != nil {
-		return nil, err
+		return "", nil, err
 	}
 	data, err := os.ReadFile(path) //nolint:gosec // path resolved by PathFromURL, confined to the media directory
-	if err != nil {
-		return nil, err
-	}
+	return path, data, err
+}
 
+// decodeForPosting rejects images that re-encoding would spoil.
+func decodeForPosting(data []byte) (image.Image, error) {
 	img, format, err := image.Decode(bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read image: %w", err)
 	}
 	switch format {
 	case "png":
-		if chunks, chunksErr := pngChunks(data); chunksErr == nil {
-			for _, c := range chunks {
-				if c.typ == "acTL" {
-					return nil, fmt.Errorf("animated PNGs can't be prepared for posting")
-				}
-			}
-		}
+		return img, rejectAnimatedPNG(data)
 	case "jpeg":
 		// Pixels are re-encoded without EXIF, so apply its rotation now.
-		img = applyOrientation(img, jpegOrientation(data))
+		return applyOrientation(img, jpegOrientation(data)), nil
 	case "gif":
 		return nil, fmt.Errorf("GIFs can't be prepared for posting without losing their animation")
 	}
+	return img, nil
+}
 
+// rejectAnimatedPNG reports an APNG; a PNG whose chunks can't be read is let
+// through, as image.Decode already accepted it.
+func rejectAnimatedPNG(data []byte) error {
+	chunks, err := pngChunks(data)
+	if err != nil {
+		return nil //nolint:nilerr // image.Decode accepted it, so treat it as a still PNG
+	}
+	if slices.ContainsFunc(chunks, func(c pngChunk) bool { return c.typ == "acTL" }) {
+		return fmt.Errorf("animated PNGs can't be prepared for posting")
+	}
+	return nil
+}
+
+func preparePostingCopy(filename, path string, data []byte, img image.Image, target PostingTarget) (*OptimiseResult, error) {
 	src := toNRGBA(img)
 	graphic := !isOpaque(src) || fewColours(src)
 
@@ -86,43 +113,67 @@ func OptimiseForPosting(filename string, target PostingTarget) (*OptimiseResult,
 	}
 
 	res := &OptimiseResult{OriginalBytes: int64(len(data)), OptimisedBytes: int64(len(out))}
-	b := img.Bounds()
-	if len(out) >= len(data) && size == b.Size() {
+	bounds := img.Bounds()
+	if wouldNotHelp(out, data, size, bounds) {
 		res.OptimisedBytes = res.OriginalBytes
 		res.Note = "This image already fits; a posting copy wouldn't be smaller."
 		return res, nil
 	}
 
-	ext := ".jpg"
-	if graphic {
-		ext = ".png"
+	name, err := savePostingCopy(filename, path, out, graphic)
+	if err != nil {
+		return nil, err
 	}
+	res.Filename = name
+	res.Note = postingNote(quality, graphic, bounds, size, int64(len(out)), target.MaxBytes)
+	return res, nil
+}
+
+// wouldNotHelp is true when the copy has no fewer bytes and the same dimensions.
+func wouldNotHelp(out, original []byte, size image.Point, bounds image.Rectangle) bool {
+	return len(out) >= len(original) && size == bounds.Size()
+}
+
+func savePostingCopy(filename, path string, out []byte, graphic bool) (string, error) {
+	ext := postingExt(graphic)
 	name := postingName(filename, ext)
 	dir := filepath.Dir(path)
-	// A previous copy may have been saved in the other format.
+	removeOtherPostingCopy(dir, filename, ext)
+	if err := writeAtomic(filepath.Join(dir, name), out); err != nil {
+		return "", err
+	}
+	return name, nil
+}
+
+func postingExt(graphic bool) string {
+	if graphic {
+		return ".png"
+	}
+	return ".jpg"
+}
+
+// A previous copy may have been saved in the other format.
+func removeOtherPostingCopy(dir, filename, ext string) {
 	for _, old := range []string{".jpg", ".png"} {
 		if old != ext {
 			_ = os.Remove(filepath.Join(dir, postingName(filename, old)))
 		}
 	}
-	if err := writeAtomic(filepath.Join(dir, name), out); err != nil {
-		return nil, err
-	}
+}
 
-	res.Filename = name
+func postingNote(quality int, graphic bool, bounds image.Rectangle, size image.Point, outBytes, maxBytes int64) string {
 	how := fmt.Sprintf("JPEG at quality %d", quality)
 	if graphic {
 		how = "PNG (kept lossless for graphics and transparency)"
 	}
-	res.Note = fmt.Sprintf("Saved as %s", how)
-	if size != b.Size() {
-		res.Note += fmt.Sprintf(", resized from %d×%d to %d×%d", b.Dx(), b.Dy(), size.X, size.Y)
+	note := "Saved as " + how
+	if size != bounds.Size() {
+		note += fmt.Sprintf(", resized from %d×%d to %d×%d", bounds.Dx(), bounds.Dy(), size.X, size.Y)
 	}
-	if int64(len(out)) > target.MaxBytes {
-		res.Note += fmt.Sprintf("; still over the %s limit", FormatBytesShort(target.MaxBytes))
+	if outBytes > maxBytes {
+		note += fmt.Sprintf("; still over the %s limit", FormatBytesShort(maxBytes))
 	}
-	res.Note += "."
-	return res, nil
+	return note + "."
 }
 
 // encodeToFit encodes img no larger than target.MaxSide, lowering JPEG

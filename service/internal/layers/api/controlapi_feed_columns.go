@@ -358,11 +358,7 @@ func (s *ControlApi) fetchFeedColumnAccount(ctx context.Context, col *db.FeedCol
 // merges the results, newest first.
 func (s *ControlApi) GetFeedColumnPosts(ctx context.Context, req *connect.Request[controlv1.GetFeedColumnPostsRequest]) (*connect.Response[controlv1.GetFeedColumnPostsResponse], error) {
 	au := s.getAuthenticatedUser(ctx)
-	userID, err := feedColumnUser(au)
-	if err != nil {
-		return nil, err
-	}
-	col, err := s.ownFeedColumn(userID, req.Msg.GetId())
+	col, err := s.callersFeedColumn(au, req.Msg.GetId())
 	if err != nil {
 		return nil, err
 	}
@@ -372,96 +368,168 @@ func (s *ControlApi) GetFeedColumnPosts(ctx context.Context, req *connect.Reques
 		return connect.NewResponse(&controlv1.GetFeedColumnPostsResponse{Error: err.Error()}), nil //nolint:nilerr // an invalid column query is shown in the column, not as an RPC error
 	}
 	if q.Tag != "" {
-		res, tagErr := s.tagColumnPosts(au, q.Tag)
-		if tagErr != nil {
-			return nil, tagErr
-		}
-		return connect.NewResponse(res), nil
+		return s.tagColumnResponse(au, q.Tag)
 	}
 
-	// Re-check access: sharing may have been revoked since the column was saved.
+	res, err := s.searchFeedColumn(ctx, au, col, q)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(res), nil
+}
+
+func (s *ControlApi) callersFeedColumn(au *authentication.AuthenticatedUser, id uint32) (*db.FeedColumn, error) {
+	userID, err := feedColumnUser(au)
+	if err != nil {
+		return nil, err
+	}
+	return s.ownFeedColumn(userID, id)
+}
+
+func (s *ControlApi) tagColumnResponse(au *authentication.AuthenticatedUser, tag string) (*connect.Response[controlv1.GetFeedColumnPostsResponse], error) {
+	res, err := s.tagColumnPosts(au, tag)
+	if err != nil {
+		return nil, err
+	}
+	return connect.NewResponse(res), nil
+}
+
+// searchFeedColumn searches every account in the column at once and merges
+// the results, newest first.
+func (s *ControlApi) searchFeedColumn(ctx context.Context, au *authentication.AuthenticatedUser, col *db.FeedColumn, q feedcolumns.Query) (*controlv1.GetFeedColumnPostsResponse, error) {
+	accounts := s.readableColumnAccounts(au, col)
+	if len(accounts) == 0 {
+		return &controlv1.GetFeedColumnPostsResponse{Error: "None of this column's accounts are available to you any more. Edit the column to choose another."}, nil
+	}
+
+	readRemote, err := s.readRemoteHashes(au)
+	if err != nil {
+		return nil, err
+	}
+
+	collected := collectColumnResults(accounts, s.fetchColumnResults(ctx, col, q, accounts), readRemote)
+	res := &controlv1.GetFeedColumnPostsResponse{Posts: s.columnPostsToProto(au, collected)}
+	collected.describeIn(res)
+	return res, nil
+}
+
+// readableColumnAccounts re-checks access: sharing may have been revoked
+// since the column was saved.
+func (s *ControlApi) readableColumnAccounts(au *authentication.AuthenticatedUser, col *db.FeedColumn) []*db.SocialAccount {
 	accounts := make([]*db.SocialAccount, 0, len(col.SocialAccountIDs))
 	for _, sa := range s.feedColumnAccounts(col.SocialAccountIDs, map[uint32]*db.SocialAccount{}) {
 		if s.userCanReadSocialAccount(au, sa.ID) {
 			accounts = append(accounts, sa)
 		}
 	}
-	if len(accounts) == 0 {
-		return connect.NewResponse(&controlv1.GetFeedColumnPostsResponse{Error: "None of this column's accounts are available to you any more. Edit the column to choose another."}), nil
-	}
+	return accounts
+}
 
-	readRemote := map[string]bool{}
-	if au.User != nil {
-		if readRemote, err = s.DB.SelectReadRemotePostHashes(au.User.ID); err != nil {
-			return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve read posts"))
-		}
+func (s *ControlApi) readRemoteHashes(au *authentication.AuthenticatedUser) (map[string]bool, error) {
+	if au.User == nil {
+		return map[string]bool{}, nil
 	}
-
-	accountIDs := make([]uint32, len(accounts))
-	for i, sa := range accounts {
-		accountIDs[i] = sa.ID
+	readRemote, err := s.DB.SelectReadRemotePostHashes(au.User.ID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to retrieve read posts"))
 	}
-	commented, _ := s.DB.SelectCommentedPostHashes(accountIDs)
-	tagsByHash := s.userPostTags(au)
+	return readRemote, nil
+}
 
+func (s *ControlApi) fetchColumnResults(ctx context.Context, col *db.FeedColumn, q feedcolumns.Query, accounts []*db.SocialAccount) []feedcolumns.Result {
 	results := make([]feedcolumns.Result, len(accounts))
 	var wg sync.WaitGroup
 	for i, sa := range accounts {
-		wg.Add(1)
-		go func(i int, sa *db.SocialAccount) {
-			defer wg.Done()
+		wg.Go(func() {
 			results[i] = s.fetchFeedColumnAccount(ctx, col, q, sa)
-		}(i, sa)
+		})
 	}
 	wg.Wait()
+	return results
+}
 
-	res := &controlv1.GetFeedColumnPostsResponse{}
-	byAccount := make(map[uint32][]*connector.RemotePost, len(accounts))
-	order := make([]uint32, 0, len(accounts))
-	accountByID := make(map[uint32]*db.SocialAccount, len(accounts))
-	var failures []string
-	var oldest time.Time
+// columnResults holds each account's unread posts, in column order.
+type columnResults struct {
+	byAccount   map[uint32][]*connector.RemotePost
+	order       []uint32
+	accountByID map[uint32]*db.SocialAccount
+	failures    []string
+	oldest      time.Time
+}
 
+func collectColumnResults(accounts []*db.SocialAccount, results []feedcolumns.Result, readRemote map[string]bool) *columnResults {
+	cr := &columnResults{
+		byAccount:   make(map[uint32][]*connector.RemotePost, len(accounts)),
+		order:       make([]uint32, 0, len(accounts)),
+		accountByID: make(map[uint32]*db.SocialAccount, len(accounts)),
+	}
 	for i, sa := range accounts {
-		r := results[i]
-		accountByID[sa.ID] = sa
-		order = append(order, sa.ID)
-		byAccount[sa.ID] = filterUnread(filterByLanguage(r.Posts, languages.NewFilter(sa.PreferredLanguages)), readRemote)
-		if !r.FetchedAt.IsZero() && (oldest.IsZero() || r.FetchedAt.Before(oldest)) {
-			oldest = r.FetchedAt
-		}
-		if r.Err != nil {
-			msg := r.Err.Error()
-			if !r.RetryAfter.IsZero() {
-				msg = "rate limited, retrying later"
-			}
-			failures = append(failures, sa.Identity+": "+msg)
-		}
+		cr.add(sa, results[i], readRemote)
 	}
+	return cr
+}
 
-	if len(failures) > 0 {
-		res.Error = "Search failed for " + strings.Join(failures, "; ")
+func (cr *columnResults) add(sa *db.SocialAccount, r feedcolumns.Result, readRemote map[string]bool) {
+	cr.accountByID[sa.ID] = sa
+	cr.order = append(cr.order, sa.ID)
+	cr.byAccount[sa.ID] = filterUnread(filterByLanguage(r.Posts, languages.NewFilter(sa.PreferredLanguages)), readRemote)
+	cr.noteFetchedAt(r.FetchedAt)
+	if r.Err != nil {
+		cr.failures = append(cr.failures, sa.Identity+": "+fetchFailureText(r))
 	}
-	if !oldest.IsZero() {
-		res.FetchedAt = oldest.UTC().Format(time.RFC3339)
-	}
+}
 
-	for _, sp := range feedcolumns.Merge(byAccount, order, feedColumnPostLimit) {
-		sa := accountByID[sp.AccountID]
-		icon := "mdi:question-mark-circle"
-		if _, svc := s.feedColumnSearch(sa.Connector); svc != nil {
-			icon = svc.GetIcon()
-		}
-		post := feedColumnPostToProto(sp.Post, sa, icon)
-		post.CanLike = s.connectorSupportsLikes(sa.Connector)
-		post.CanViewComments = s.connectorSupportsReplies(sa.Connector)
-		post.CanComment = s.connectorSupportsReplying(sa.Connector)
-		post.CanRefresh = s.connectorSupportsRefetch(sa.Connector)
-		if key := feedauthor.PostKey(sp.Post.RemoteURL, sp.Post.RemoteID); key != "" {
-			post.Commented = commented[sa.ID][feedauthor.KeyHash(key)]
-			post.Tags = tagsByHash[feedauthor.KeyHash(key)]
-		}
-		res.Posts = append(res.Posts, post)
+// noteFetchedAt keeps the oldest fetch time: the least fresh account.
+func (cr *columnResults) noteFetchedAt(t time.Time) {
+	if !t.IsZero() && (cr.oldest.IsZero() || t.Before(cr.oldest)) {
+		cr.oldest = t
 	}
-	return connect.NewResponse(res), nil
+}
+
+func fetchFailureText(r feedcolumns.Result) string {
+	if !r.RetryAfter.IsZero() {
+		return "rate limited, retrying later"
+	}
+	return r.Err.Error()
+}
+
+func (cr *columnResults) describeIn(res *controlv1.GetFeedColumnPostsResponse) {
+	if len(cr.failures) > 0 {
+		res.Error = "Search failed for " + strings.Join(cr.failures, "; ")
+	}
+	if !cr.oldest.IsZero() {
+		res.FetchedAt = cr.oldest.UTC().Format(time.RFC3339)
+	}
+}
+
+func (s *ControlApi) columnPostsToProto(au *authentication.AuthenticatedUser, cr *columnResults) []*controlv1.FeedPost {
+	commented, _ := s.DB.SelectCommentedPostHashes(cr.order)
+	tagsByHash := s.userPostTags(au)
+
+	var posts []*controlv1.FeedPost
+	for _, sp := range feedcolumns.Merge(cr.byAccount, cr.order, feedColumnPostLimit) {
+		posts = append(posts, s.feedColumnPost(sp, cr.accountByID[sp.AccountID], commented, tagsByHash))
+	}
+	return posts
+}
+
+func (s *ControlApi) feedColumnPost(sp feedcolumns.SourcedPost, sa *db.SocialAccount, commented map[uint32]map[string]bool, tagsByHash map[string][]string) *controlv1.FeedPost {
+	post := feedColumnPostToProto(sp.Post, sa, s.connectorIcon(sa.Connector))
+	post.CanLike = s.connectorSupportsLikes(sa.Connector)
+	post.CanViewComments = s.connectorSupportsReplies(sa.Connector)
+	post.CanComment = s.connectorSupportsReplying(sa.Connector)
+	post.CanRefresh = s.connectorSupportsRefetch(sa.Connector)
+	if key := feedauthor.PostKey(sp.Post.RemoteURL, sp.Post.RemoteID); key != "" {
+		hash := feedauthor.KeyHash(key)
+		post.Commented = commented[sa.ID][hash]
+		post.Tags = tagsByHash[hash]
+	}
+	return post
+}
+
+func (s *ControlApi) connectorIcon(connectorName string) string {
+	if _, svc := s.feedColumnSearch(connectorName); svc != nil {
+		return svc.GetIcon()
+	}
+	return "mdi:question-mark-circle"
 }

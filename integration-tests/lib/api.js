@@ -65,3 +65,14 @@ export async function sql (statements) {
   ])
   return stdout.trim().split('\n').filter(Boolean).map((line) => line.split('\t'))
 }
+
+// insertDummyAccount adds a social account on the built-in dummy connector,
+// which simulates a network without contacting one, owned by `username`.
+export async function insertDummyAccount (identity, username = 'admin') {
+  const [[id]] = await sql(`
+    INSERT INTO social_accounts (created_at, updated_at, connector, identity, did, homeserver, active, state, owner_user_id, oauth2_token, oauth2_token_expiry, oauth2_refresh_token)
+    SELECT NOW(), NOW(), 'dummy', '${identity}', '', '', 1, 'active', id, '', NOW() + INTERVAL 60 DAY, ''
+    FROM user_accounts WHERE username = '${username}';
+    SELECT LAST_INSERT_ID();`)
+  return Number(id)
+}

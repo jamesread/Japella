@@ -1,6 +1,6 @@
 import { describe, it, before, after } from 'mocha'
 import { expect } from 'chai'
-import { ApiClient, sql } from '../../lib/api.js'
+import { ApiClient, insertDummyAccount, sql } from '../../lib/api.js'
 
 // Pins down SubmitPost's behaviour for each kind of submission. Posts go to the
 // built-in dummy connector, which never contacts a real network.
@@ -18,14 +18,8 @@ describe('api: SubmitPost', function () {
 
     const [[adminId]] = await sql("SELECT id FROM user_accounts WHERE username = 'admin'")
     const suffix = Date.now()
-    const insertAccount = (identity) => sql(`
-      INSERT INTO social_accounts (created_at, updated_at, connector, identity, did, homeserver, active, state, owner_user_id, oauth2_token, oauth2_token_expiry, oauth2_refresh_token)
-      VALUES (NOW(), NOW(), 'dummy', '${identity}', '', '', 1, 'active', ${adminId}, '', NOW() + INTERVAL 60 DAY, '');
-      SELECT LAST_INSERT_ID();`)
-    ;[[plainAccountId]] = await insertAccount(`it-plain-${suffix}`)
-    ;[[approvalAccountId]] = await insertAccount(`it-approval-${suffix}`)
-    plainAccountId = Number(plainAccountId)
-    approvalAccountId = Number(approvalAccountId)
+    plainAccountId = await insertDummyAccount(`it-plain-${suffix}`)
+    approvalAccountId = await insertDummyAccount(`it-approval-${suffix}`)
 
     const policy = await api.call('CreateAccountPolicy', {
       name: `it-approval-${suffix}`,

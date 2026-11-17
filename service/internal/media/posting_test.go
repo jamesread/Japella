@@ -2,12 +2,17 @@ package media
 
 import (
 	"bytes"
+	"encoding/binary"
+	"hash/crc32"
 	"image"
 	"image/color"
+	"image/gif"
 	"image/jpeg"
+	"image/png"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -116,5 +121,86 @@ func TestOptimiseForPostingAlreadyFits(t *testing.T) {
 	res, err := OptimiseForPosting("small.jpg", PostingTarget{MaxBytes: 1_000_000, MaxSide: 2000})
 	if err != nil || res.Filename != "" {
 		t.Fatalf("got %+v, %v", res, err)
+	}
+}
+
+func pngChunkBytes(typ string, data []byte) []byte {
+	out := binary.BigEndian.AppendUint32(nil, uint32(len(data)))
+	out = append(out, typ...)
+	out = append(out, data...)
+	return binary.BigEndian.AppendUint32(out, crc32.ChecksumIEEE(append([]byte(typ), data...)))
+}
+
+func TestOptimiseForPostingRejects(t *testing.T) {
+	dir := inMediaDir(t)
+
+	var gifBuf bytes.Buffer
+	if err := gif.Encode(&gifBuf, image.NewPaletted(image.Rect(0, 0, 4, 4), color.Palette{color.Black, color.White}), nil); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "anim.gif"), gifBuf.Bytes(), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var pngBuf bytes.Buffer
+	if err := png.Encode(&pngBuf, photo(8, 8)); err != nil {
+		t.Fatal(err)
+	}
+	apng, err := insertPNGChunks(pngBuf.Bytes(), [][]byte{pngChunkBytes("acTL", make([]byte, 8))})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "anim.png"), apng, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "notes.png"), []byte("not an image"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	for file, want := range map[string]string{
+		"anim.gif":    "GIFs can't be prepared for posting without losing their animation",
+		"anim.png":    "animated PNGs can't be prepared for posting",
+		"notes.png":   "failed to read image",
+		"missing.png": "no such file",
+	} {
+		_, err := OptimiseForPosting(file, DefaultPostingTarget)
+		if err == nil || !strings.Contains(err.Error(), want) {
+			t.Errorf("%s: got %v, want %q", file, err, want)
+		}
+	}
+}
+
+func TestOptimiseForPostingReplacesCopyInOtherFormat(t *testing.T) {
+	dir := inMediaDir(t)
+	writePNG(t, filepath.Join(dir, "logo.png"), photo(3000, 1500))
+	stale := filepath.Join(dir, "logo.posting.png")
+	if err := os.WriteFile(stale, []byte("old copy"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err := OptimiseForPosting("logo.png", PostingTarget{MaxBytes: 1_000_000, MaxSide: 2000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Filename != "logo.posting.jpg" {
+		t.Fatalf("got %+v", res)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatalf("stale copy in the other format was kept: %v", err)
+	}
+}
+
+func TestOptimiseForPostingNote(t *testing.T) {
+	dir := inMediaDir(t)
+	writePNG(t, filepath.Join(dir, "big.png"), photo(3000, 1500))
+
+	res, err := OptimiseForPosting("big.png", PostingTarget{MaxBytes: 1000, MaxSide: 2000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(res.Note, "Saved as JPEG at quality ") ||
+		!strings.Contains(res.Note, ", resized from 3000×1500 to ") ||
+		!strings.HasSuffix(res.Note, "; still over the "+FormatBytesShort(1000)+" limit.") {
+		t.Fatalf("note: %q", res.Note)
 	}
 }
