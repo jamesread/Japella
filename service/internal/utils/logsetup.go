@@ -130,13 +130,13 @@ func SetupLogging() {
 	}
 
 	if dir := filepath.Dir(logPath); dir != "" && dir != "." {
-		if err := os.MkdirAll(dir, 0o755); err != nil {
+		if err := os.MkdirAll(dir, 0o750); err != nil { //nolint:gosec // log path is chosen by the operator
 			fmt.Fprintf(os.Stderr, "japella: failed to create log directory %s: %v\n", dir, err)
 			return
 		}
 	}
 
-	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o600) //nolint:gosec // log path is chosen by the operator
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "japella: failed to open log file %s: %v\n", logPath, err)
 		return

@@ -234,12 +234,15 @@ func (c *MastodonConnector) Start() {
 	c.Logger().Infof("Mastodon connector started")
 }
 
+// Media uploads can be large on slow links, but must not block a post forever.
+const mediaUploadTimeout = 2 * time.Minute
+
 func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (string, error) {
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // media path resolved by media.PathFromURL
 	if err != nil {
 		return "", fmt.Errorf("open file: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	body := &bytes.Buffer{}
 	w := multipart.NewWriter(body)
@@ -247,27 +250,29 @@ func (c *MastodonConnector) uploadMedia(instanceURL, path, bearerToken string) (
 	if err != nil {
 		return "", fmt.Errorf("create form file: %w", err)
 	}
-	if _, err := io.Copy(part, f); err != nil {
+	if _, err = io.Copy(part, f); err != nil {
 		return "", fmt.Errorf("write file to form: %w", err)
 	}
 	contentType := w.FormDataContentType()
-	if err := w.Close(); err != nil {
+	if err = w.Close(); err != nil {
 		return "", fmt.Errorf("close multipart writer: %w", err)
 	}
 
-	req, err := http.NewRequest(http.MethodPost, instanceURL+"/api/v2/media", body)
+	ctx, cancel := context.WithTimeout(context.Background(), mediaUploadTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, instanceURL+"/api/v2/media", body)
 	if err != nil {
 		return "", fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+bearerToken)
 	req.Header.Set("Content-Type", contentType)
 
-	httpClient := &http.Client{}
-	resp, err := httpClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("do request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	respBody, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -305,7 +310,7 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 			mediaID, err := c.uploadMedia(instanceURL, p, socialAccount.OAuthToken)
 			if err != nil {
 				c.Logger().Errorf("Mastodon media upload failed for %s: %v", p, err)
-				_ = c.db.InsertTableLog(
+				c.db.InsertTableLog(
 					fmt.Sprintf("Mastodon media upload failed for account %d: %v", socialAccount.Id, err),
 					"error",
 					&socialAccount.Id,
@@ -340,7 +345,7 @@ func (c *MastodonConnector) PostToWall(socialAccount *connector.SocialAccount, c
 		if len(client.ResBody) > 0 {
 			msg += " | response: " + string(client.ResBody)
 		}
-		_ = c.db.InsertTableLog(msg, "error", &socialAccount.Id)
+		c.db.InsertTableLog(msg, "error", &socialAccount.Id)
 		res.Err = client.Err
 		return res
 	}
@@ -582,7 +587,9 @@ func (c *MastodonConnector) whoami(socialAccount *db.SocialAccount) {
 
 	c.Logger().Infof("Whoami response: %+v", data)
 
-	c.db.UpdateSocialAccountIdentity(socialAccount.ID, data.Username)
+	if err := c.db.UpdateSocialAccountIdentity(socialAccount.ID, data.Username); err != nil {
+		c.Logger().Errorf("Failed to update account identity: %v", err)
+	}
 }
 
 func (c *MastodonConnector) OnRefresh(socialAccount *db.SocialAccount) error {

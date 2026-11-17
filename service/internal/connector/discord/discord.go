@@ -1,6 +1,8 @@
 package discord
 
 import (
+	"time"
+
 	"github.com/bwmarrin/discordgo"
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/amqp"
@@ -9,7 +11,6 @@ import (
 	"github.com/jamesread/japella/internal/hooks"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	log "github.com/sirupsen/logrus"
-	"time"
 )
 
 var goBot *discordgo.Session
@@ -63,13 +64,7 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 	if a.db != nil {
 		dbHooks, err := a.db.SelectWebhookHooks("discord", a.botID)
 		if err == nil && len(dbHooks) > 0 {
-			a.hooks = make([]runtimeconfig.IncomingMessageHook, 0, len(dbHooks))
-			for _, hook := range dbHooks {
-				a.hooks = append(a.hooks, runtimeconfig.IncomingMessageHook{
-					URL:     hook.URL,
-					Enabled: hook.Enabled,
-				})
-			}
+			a.hooks = hooks.FromDB(dbHooks)
 			a.Logger().Infof("Loaded %d incoming message hook(s) from database", len(a.hooks))
 		} else if err != nil {
 			a.Logger().Warnf("Failed to load hooks from database: %v, using config hooks", err)
@@ -90,12 +85,15 @@ func (a *DiscordConnector) startActual(token string) *discordgo.Session {
 }
 
 func cmdPing(s *discordgo.Session, i *discordgo.InteractionCreate) {
-	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+	err := s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 		Type: discordgo.InteractionResponseChannelMessageWithSource,
 		Data: &discordgo.InteractionResponseData{
 			Content: "Pong!",
 		},
 	})
+	if err != nil {
+		log.Warnf("Discord: failed to respond to ping: %v", err)
+	}
 }
 
 func registerCommand(name string, handler func(s *discordgo.Session, i *discordgo.InteractionCreate)) {
@@ -183,13 +181,14 @@ func (a *DiscordConnector) GetChatBot() *connector.ChatBot {
 	}
 
 	statusMsg := ""
-	if a.isRunning {
+	switch {
+	case a.isRunning:
 		statusMsg = "Bot is running and connected"
-	} else if a.errorMessage != "" {
+	case a.errorMessage != "":
 		statusMsg = a.errorMessage
-	} else if a.statusMessage != "" {
+	case a.statusMessage != "":
 		statusMsg = a.statusMessage
-	} else {
+	default:
 		statusMsg = "Stopped (not connected)"
 	}
 
@@ -212,8 +211,9 @@ func (a *DiscordConnector) GetHooks() []*connector.IncomingMessageHook {
 	hooks := make([]*connector.IncomingMessageHook, 0, len(a.hooks))
 	for _, hook := range a.hooks {
 		hooks = append(hooks, &connector.IncomingMessageHook{
-			URL:     hook.URL,
-			Enabled: hook.Enabled,
+			URL:           hook.URL,
+			Enabled:       hook.Enabled,
+			SkipTLSVerify: hook.SkipTLSVerify,
 		})
 	}
 	return hooks
@@ -226,8 +226,9 @@ func (a *DiscordConnector) SetHooks(hooks []*connector.IncomingMessageHook) erro
 	a.hooks = make([]runtimeconfig.IncomingMessageHook, 0, len(hooks))
 	for _, hook := range hooks {
 		a.hooks = append(a.hooks, runtimeconfig.IncomingMessageHook{
-			URL:     hook.URL,
-			Enabled: hook.Enabled,
+			URL:           hook.URL,
+			Enabled:       hook.Enabled,
+			SkipTLSVerify: hook.SkipTLSVerify,
 		})
 	}
 	a.Logger().Infof("Updated hooks: %d hook(s) configured", len(a.hooks))
@@ -253,7 +254,9 @@ func (a *DiscordConnector) Replier() {
 		// Note: AMQP binding should already filter by identity via routing key, but we keep protocol check for safety
 
 		if goBot != nil {
-			goBot.ChannelMessageSend(reply.Channel, reply.Content)
+			if _, err := goBot.ChannelMessageSend(reply.Channel, reply.Content); err != nil {
+				a.Logger().Errorf("Failed to send reply to channel %s: %v", reply.Channel, err)
+			}
 
 			if a.db != nil {
 				conversationKey, conversationTitle := a.db.ResolveOutgoingConversationForLog(

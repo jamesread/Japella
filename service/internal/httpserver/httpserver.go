@@ -6,9 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
+	"time"
 
 	"github.com/jamesread/japella/internal/httpserver/frontend"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
@@ -90,7 +88,8 @@ func handleHealthz(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func CreateServer(endpoint string) (*http.Server, error) {
+// newRouter builds the application's routes, without the readiness gate.
+func newRouter() (*http.ServeMux, *api.ControlApi, error) {
 	mux := http.NewServeMux()
 
 	apipath, apihandler, srv := api.GetNewHandler()
@@ -101,7 +100,7 @@ func CreateServer(endpoint string) (*http.Server, error) {
 
 	authLayer, err := iam.NewAuthLayer(iamStore, authentication.RequiredPermission)
 	if err != nil {
-		return nil, fmt.Errorf("armature-iam auth layer: %w", err)
+		return nil, nil, fmt.Errorf("armature-iam auth layer: %w", err)
 	}
 	srv.Auth = authLayer
 
@@ -112,7 +111,9 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	mux.Handle("/oauth2callback", http.HandlerFunc(srv.OAuth2CallbackHandler))
 	mux.HandleFunc("/oauth/client-metadata.json", srv.OAuthClientMetadataHandler)
 	mux.Handle("/lang", http.HandlerFunc(i18n.Handle))
-	mux.HandleFunc("/upload", upload.Handle)
+	// Same rules as the media RPCs: a signed-in user with app.access, and
+	// read-only API keys are refused because an upload is a write.
+	mux.Handle("/upload", authLayer.WrapHandler(http.HandlerFunc(upload.Handle)))
 	mux.HandleFunc("/media/files/", upload.HandleServeMedia)
 	mux.HandleFunc("/readyz", handleReadyz)
 	mux.HandleFunc("/healthz", handleHealthz)
@@ -122,11 +123,28 @@ func CreateServer(endpoint string) (*http.Server, error) {
 	mux.Handle("/mcp/", authenticatedMCPHandler)
 	mux.Handle("/", http.StripPrefix("/", frontend.GetNewHandler()))
 
+	return mux, srv, nil
+}
+
+func CreateServer(endpoint string) (*http.Server, error) {
+	mux, srv, err := newRouter()
+	if err != nil {
+		return nil, err
+	}
+
 	handler := healthcheck.ReadinessMiddleware(srv, mux)
 
+	// Connect clients may use HTTP/2 without TLS (prior knowledge).
+	var protocols http.Protocols
+	protocols.SetHTTP1(true)
+	protocols.SetHTTP2(true)
+	protocols.SetUnencryptedHTTP2(true)
+
 	server := &http.Server{
-		Addr:    endpoint,
-		Handler: h2c.NewHandler(handler, &http2.Server{}),
+		Addr:              endpoint,
+		Handler:           handler,
+		Protocols:         &protocols,
+		ReadHeaderTimeout: 10 * time.Second,
 	}
 
 	return server, nil

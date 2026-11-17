@@ -52,7 +52,7 @@ func OptimiseForPosting(filename string, target PostingTarget) (*OptimiseResult,
 	if err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path resolved by PathFromURL, confined to the media directory
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +63,7 @@ func OptimiseForPosting(filename string, target PostingTarget) (*OptimiseResult,
 	}
 	switch format {
 	case "png":
-		if chunks, err := pngChunks(data); err == nil {
+		if chunks, chunksErr := pngChunks(data); chunksErr == nil {
 			for _, c := range chunks {
 				if c.typ == "acTL" {
 					return nil, fmt.Errorf("animated PNGs can't be prepared for posting")
@@ -102,7 +102,7 @@ func OptimiseForPosting(filename string, target PostingTarget) (*OptimiseResult,
 	// A previous copy may have been saved in the other format.
 	for _, old := range []string{".jpg", ".png"} {
 		if old != ext {
-			os.Remove(filepath.Join(dir, postingName(filename, old)))
+			_ = os.Remove(filepath.Join(dir, postingName(filename, old)))
 		}
 	}
 	if err := writeAtomic(filepath.Join(dir, name), out); err != nil {

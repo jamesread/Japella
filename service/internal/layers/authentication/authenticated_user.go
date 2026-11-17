@@ -7,6 +7,7 @@ import (
 
 	armlayer "github.com/jamesread/armature-iam/layer"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/rbac"
 )
 
@@ -71,7 +72,7 @@ func armatureUserToJapella(au *armlayer.AuthenticatedUser) *AuthenticatedUser {
 	out := &AuthenticatedUser{
 		User: &db.UserAccount{
 			Model: db.Model{
-				ID:        uint32(au.User.ID),
+				ID:        intconv.ToUint32(au.User.ID),
 				CreatedAt: parseArmatureTime(au.User.CreatedAt),
 				UpdatedAt: parseArmatureTime(au.User.UpdatedAt),
 			},

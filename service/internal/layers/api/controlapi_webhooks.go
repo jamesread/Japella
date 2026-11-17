@@ -9,6 +9,7 @@ import (
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/webhook"
 )
 
@@ -63,9 +64,9 @@ func webhookDeliveryLogToProto(l *db.WebhookDeliveryLog) *controlv1.WebhookDeliv
 		WebhookTargetId: l.WebhookTargetID,
 		Event:           l.Event,
 		Success:         l.Success,
-		HttpStatus:      int32(l.HTTPStatus),
+		HttpStatus:      intconv.ToInt32(l.HTTPStatus),
 		ErrorMessage:    l.ErrorMessage,
-		DurationMs:      int32(l.DurationMs),
+		DurationMs:      intconv.ToInt32(l.DurationMs),
 		Created:         created,
 	}
 }
@@ -217,7 +218,7 @@ func (s *ControlApi) TestWebhook(ctx context.Context, req *connect.Request[contr
 	return connect.NewResponse(&controlv1.TestWebhookResponse{
 		Success:    ok,
 		Message:    msg,
-		HttpStatus: int32(status),
+		HttpStatus: intconv.ToInt32(status),
 	}), nil
 }
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	"connectrpc.com/connect"
@@ -12,6 +11,7 @@ import (
 	"github.com/jamesread/japella/internal/connector"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/feedauthor"
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/postreplies"
 	"github.com/jamesread/japella/internal/rbac"
@@ -33,7 +33,7 @@ func (s *ControlApi) userCanPostWithSocialAccount(au *authentication.Authenticat
 	if err != nil || sa == nil {
 		return false
 	}
-	if sa.OwnerUserID.Valid && uint32(sa.OwnerUserID.Int32) == au.User.ID {
+	if sa.OwnerUserID.Valid && intconv.ToUint32(sa.OwnerUserID.Int32) == au.User.ID {
 		return true
 	}
 	return s.DB.CanUserAccessSocialAccount(au.User.ID, socialAccountID, "post")
@@ -73,7 +73,7 @@ func (s *ControlApi) postRefAccount(ref *controlv1.PostRef) (*db.SocialAccount, 
 
 // freshSocialAccount refreshes an OAuth token that is about to expire.
 func (s *ControlApi) freshSocialAccount(sa *db.SocialAccount, svc connector.BaseConnector) *db.SocialAccount {
-	if socialAccountNeedsTokenRefresh(sa, time.Hour) {
+	if socialAccountNeedsTokenRefresh(sa) {
 		if refreshed, err := s.refreshSocialAccountToken(sa, svc); err == nil {
 			return refreshed
 		}
@@ -170,7 +170,7 @@ func (s *ControlApi) GetPostThread(ctx context.Context, req *connect.Request[con
 
 	return connect.NewResponse(&controlv1.GetPostThreadResponse{
 		Replies:    replyNodesToProto(postreplies.BuildThread(rows)),
-		ReplyCount: uint32(len(rows)),
+		ReplyCount: intconv.ToUint32(len(rows)),
 		Commented:  commented,
 	}), nil
 }

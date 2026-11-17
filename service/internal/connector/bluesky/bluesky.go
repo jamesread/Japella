@@ -12,7 +12,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
@@ -24,7 +23,6 @@ import (
 	_ "image/jpeg"
 	_ "image/png"
 	"io"
-	"math/big"
 	"net/http"
 	"net/url"
 	"os"
@@ -199,11 +197,11 @@ func blobRefMimeToContentType(ext string) string {
 
 func imageAspectRatio(path string) (w, h int) {
 	w, h = 1, 1
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // media path resolved by media.PathFromURL
 	if err != nil {
 		return 1, 1
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	cfg, _, err := image.DecodeConfig(f)
 	if err != nil {
 		return 1, 1
@@ -218,14 +216,14 @@ func imageAspectRatio(path string) (w, h int) {
 }
 
 func (b *BlueskyConnector) uploadBlob(pdsURL, path string, client *utils.ChainingHttpClient) (*BlueskyBlobRef, error) {
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // media path resolved by media.PathFromURL
 	if err != nil {
 		return nil, fmt.Errorf("read file: %w", err)
 	}
 	ext := filepath.Ext(path)
 	contentType := blobRefMimeToContentType(ext)
 
-	req, err := http.NewRequest(http.MethodPost, pdsURL+"/xrpc/com.atproto.repo.uploadBlob", bytes.NewReader(data))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, pdsURL+"/xrpc/com.atproto.repo.uploadBlob", bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("create request: %w", err)
 	}
@@ -238,7 +236,7 @@ func (b *BlueskyConnector) uploadBlob(pdsURL, path string, client *utils.Chainin
 	if err != nil {
 		return nil, fmt.Errorf("upload request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, _ := io.ReadAll(resp.Body)
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
@@ -264,7 +262,7 @@ const (
 // downloadAndUploadThumb fetches an image from imageURL, saves to a temp file, uploads as blob to PDS, and returns the blob ref.
 func (b *BlueskyConnector) downloadAndUploadThumb(pdsURL, imageURL string, client *utils.ChainingHttpClient) *BlueskyBlobRef {
 	httpClient := &http.Client{Timeout: thumbTimeout}
-	req, err := http.NewRequest(http.MethodGet, imageURL, nil)
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, imageURL, nil)
 	if err != nil {
 		return nil
 	}
@@ -273,7 +271,7 @@ func (b *BlueskyConnector) downloadAndUploadThumb(pdsURL, imageURL string, clien
 	if err != nil || resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return nil
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	ct := resp.Header.Get("Content-Type")
 	if !strings.HasPrefix(ct, "image/") {
 		return nil
@@ -296,12 +294,12 @@ func (b *BlueskyConnector) downloadAndUploadThumb(pdsURL, imageURL string, clien
 		return nil
 	}
 	tmpPath := tmp.Name()
-	defer os.Remove(tmpPath)
-	if _, err := tmp.Write(body); err != nil {
-		tmp.Close()
+	defer func() { _ = os.Remove(tmpPath) }()
+	if _, err = tmp.Write(body); err != nil {
+		_ = tmp.Close()
 		return nil
 	}
-	if err := tmp.Close(); err != nil {
+	if err = tmp.Close(); err != nil {
 		return nil
 	}
 	blob, err := b.uploadBlob(pdsURL, tmpPath, client)
@@ -360,7 +358,7 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 			blob, err := b.uploadBlob(pdsURL, p, client)
 			if err != nil {
 				b.Logger().Errorf("Bluesky blob upload failed for %s: %v", p, err)
-				_ = b.db.InsertTableLog(
+				b.db.InsertTableLog(
 					fmt.Sprintf("Bluesky blob upload failed for account %d: %v", socialAccount.Id, err),
 					"error",
 					&socialAccount.Id,
@@ -426,7 +424,7 @@ func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, co
 		if len(client.ResBody) > 0 {
 			msg += " | response: " + string(client.ResBody)
 		}
-		_ = b.db.InsertTableLog(msg, "error", &socialAccount.Id)
+		b.db.InsertTableLog(msg, "error", &socialAccount.Id)
 
 		if strings.Contains(client.Err.Error(), "invalid or expired OAuth token") {
 			b.Logger().Warnf("Detected invalid token during post, attempting refresh")
@@ -713,7 +711,7 @@ func (b *BlueskyConnector) OnRefresh(socialAccount *db.SocialAccount) error {
 			b.Logger().Infof("Retrieved handle for DID %s: %s", user, handle)
 
 			// Update the social account with the retrieved handle
-			if err := b.db.UpdateSocialAccountIdentity(socialAccount.ID, handle); err != nil {
+			if err = b.db.UpdateSocialAccountIdentity(socialAccount.ID, handle); err != nil {
 				b.Logger().Errorf("Failed to update social account identity: %v", err)
 			}
 		} else {
@@ -785,7 +783,7 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 	}
 
 	// Create HTTP request manually so we can read error responses
-	req, err := http.NewRequest(http.MethodPost, "https://bsky.social/oauth/token", strings.NewReader(form.Encode()))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, "https://bsky.social/oauth/token", strings.NewReader(form.Encode()))
 	if err != nil {
 		b.Logger().Errorf("Failed to create refresh token request: %v", err)
 		return fmt.Errorf("token refresh failed: %w", err)
@@ -798,7 +796,7 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 		b.Logger().Errorf("Failed to execute refresh token request: %v", err)
 		return fmt.Errorf("token refresh failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read the response body
 	bodyBytes, readErr := io.ReadAll(resp.Body)
@@ -841,7 +839,7 @@ func (b *BlueskyConnector) refreshToken(socialAccount *db.SocialAccount) error {
 		TokenType    string `json:"token_type"`
 		Scope        string `json:"scope"`
 	}
-	if err := json.Unmarshal(bodyBytes, &tokenResponse); err != nil {
+	if err = json.Unmarshal(bodyBytes, &tokenResponse); err != nil {
 		b.Logger().Errorf("Failed to parse token response: %v", err)
 		return fmt.Errorf("token refresh failed: failed to parse response: %w", err)
 	}
@@ -882,14 +880,11 @@ func (b *BlueskyConnector) createDPoPClientForRefresh(sa *db.SocialAccount) *uti
 		return nil
 	}
 
-	// Rebuild private key from decimal string
-	d := new(big.Int)
-	if _, ok := d.SetString(sa.DpopKey.String, 10); !ok {
+	priv, err := decodeStoredDPoPKey(sa.DpopKey.String)
+	if err != nil {
+		b.Logger().Warnf("Cannot load DPoP key for account %d: %v", sa.ID, err)
 		return nil
 	}
-	priv := &ecdsa.PrivateKey{D: d, PublicKey: ecdsa.PublicKey{Curve: elliptic.P256()}}
-	// Derive public key from D
-	priv.X, priv.Y = priv.ScalarBaseMult(d.Bytes())
 
 	client := utils.NewClient(b.Logger())
 
@@ -1176,7 +1171,7 @@ func (b *BlueskyConnector) createClientAssertion(clientId string) (string, error
 }
 
 func (b *BlueskyConnector) GetOAuth2Config() *oauth2.Config {
-	ep := oauth2.Endpoint{
+	ep := oauth2.Endpoint{ //nolint:gosec // public OAuth endpoint URLs, not credentials
 		AuthURL:  "https://bsky.social/oauth/authorize",
 		TokenURL: "https://bsky.social/oauth/token",
 	}
@@ -1268,7 +1263,7 @@ func (t *dpopTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	if resp != nil && (resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusBadRequest) {
 		// Read response body to check for specific errors
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		bodyStr := string(bodyBytes)
 
 		// Check if this is a DPoP nonce error
@@ -1363,11 +1358,11 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 	identity := ""
 	if token.AccessToken != "" {
 		// Parse JWT to extract 'sub' claim (user DID)
-		if did, err := b.extractDIDFromToken(token.AccessToken); err == nil {
+		if did, didErr := b.extractDIDFromToken(token.AccessToken); didErr == nil {
 			identity = did
 			b.Logger().Infof("Extracted user DID from token: %s", identity)
 		} else {
-			b.Logger().Warnf("Failed to extract DID from token: %v", err)
+			b.Logger().Warnf("Failed to extract DID from token: %v", didErr)
 		}
 	}
 
@@ -1375,12 +1370,17 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 	handle := ""
 	if identity != "" {
 		// Get handle from PLC directory or AppView
-		if h, err := b.getHandleFromDID(identity); err == nil && h != "" {
+		if h, handleErr := b.getHandleFromDID(identity); handleErr == nil && h != "" {
 			handle = h
 			b.Logger().Infof("Retrieved handle for DID %s: %s", identity, handle)
 		} else {
-			b.Logger().Warnf("Failed to get handle for DID %s: %v", identity, err)
+			b.Logger().Warnf("Failed to get handle for DID %s: %v", identity, handleErr)
 		}
+	}
+
+	storedKey, err := encodeStoredDPoPKey(privKey)
+	if err != nil {
+		return err
 	}
 
 	err = b.db.RegisterAccount(&db.SocialAccount{
@@ -1393,7 +1393,7 @@ func (b *BlueskyConnector) OnOAuth2Callback(code string, verifier string, header
 		OAuth2Token:        token.AccessToken,
 		OAuth2TokenExpiry:  token.Expiry,
 		OAuth2RefreshToken: token.RefreshToken,
-		DpopKey:            sql.NullString{String: privKey.D.String(), Valid: true},
+		DpopKey:            sql.NullString{String: storedKey, Valid: true},
 	})
 
 	return err
@@ -1404,14 +1404,11 @@ func (b *BlueskyConnector) ensureDPoPClient(sa *db.SocialAccount) *utils.Chainin
 	if sa == nil || !sa.DpopKey.Valid || sa.OAuth2Token == "" {
 		return nil
 	}
-	// Rebuild private key from decimal string
-	d := new(big.Int)
-	if _, ok := d.SetString(sa.DpopKey.String, 10); !ok {
+	priv, err := decodeStoredDPoPKey(sa.DpopKey.String)
+	if err != nil {
+		b.Logger().Warnf("Cannot load DPoP key for account %d: %v", sa.ID, err)
 		return nil
 	}
-	priv := &ecdsa.PrivateKey{D: d, PublicKey: ecdsa.PublicKey{Curve: elliptic.P256()}}
-	// Derive public key from D
-	priv.X, priv.Y = priv.ScalarBaseMult(d.Bytes())
 
 	client := utils.NewClient(b.Logger())
 

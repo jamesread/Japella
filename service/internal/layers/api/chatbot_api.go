@@ -147,13 +147,9 @@ func (s *ControlApi) updateChatBotCvars(protocol, botID string, telegramToken, d
 }
 
 func (s *ControlApi) reloadChatBotConnector(protocol, botID, displayName string) error {
-	svc := s.cc.Get(chatbot.ControllerKey(protocol, botID))
-	if svc == nil {
+	base := s.cc.Get(chatbot.ControllerKey(protocol, botID))
+	if base == nil {
 		return fmt.Errorf("chat bot not registered: %s/%s", protocol, botID)
-	}
-	base, ok := svc.(connector.BaseConnector)
-	if !ok {
-		return fmt.Errorf("connector does not support reload: %s/%s", protocol, botID)
 	}
 	cfg := &connector.ChatBotStartupConfig{
 		Protocol:    protocol,
@@ -350,7 +346,7 @@ func (s *ControlApi) GetBotHooks(ctx context.Context, req *connect.Request[contr
 	dbHooks, err := s.DB.SelectWebhookHooks(protocol, botID)
 	if err == nil {
 		for _, hook := range dbHooks {
-			hooks = append(hooks, &controlv1.IncomingMessageHook{Url: hook.URL, Enabled: hook.Enabled})
+			hooks = append(hooks, &controlv1.IncomingMessageHook{Url: hook.URL, Enabled: hook.Enabled, SkipTlsVerify: hook.SkipTLSVerify})
 		}
 	}
 	return connect.NewResponse(&controlv1.GetBotHooksResponse{Hooks: hooks}), nil
@@ -375,11 +371,12 @@ func (s *ControlApi) SetBotHooks(ctx context.Context, req *connect.Request[contr
 	}
 	for _, hook := range req.Msg.Hooks {
 		if err := s.DB.CreateWebhookHook(&db.WebhookHook{
-			Connector: protocol,
-			Identity:  platformIdentity,
-			BotID:     botID,
-			URL:       hook.Url,
-			Enabled:   hook.Enabled,
+			Connector:     protocol,
+			Identity:      platformIdentity,
+			BotID:         botID,
+			URL:           hook.Url,
+			Enabled:       hook.Enabled,
+			SkipTLSVerify: hook.SkipTlsVerify,
 		}); err != nil {
 			return nil, connect.NewError(connect.CodeInternal, err)
 		}
@@ -389,7 +386,7 @@ func (s *ControlApi) SetBotHooks(ctx context.Context, req *connect.Request[contr
 		connectorHooks := make([]*connector.IncomingMessageHook, 0, len(req.Msg.Hooks))
 		for _, hook := range req.Msg.Hooks {
 			connectorHooks = append(connectorHooks, &connector.IncomingMessageHook{
-				URL: hook.Url, Enabled: hook.Enabled,
+				URL: hook.Url, Enabled: hook.Enabled, SkipTLSVerify: hook.SkipTlsVerify,
 			})
 		}
 		_ = hooksConnector.SetHooks(connectorHooks)

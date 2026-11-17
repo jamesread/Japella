@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 type LlmConnection struct {
@@ -90,7 +92,7 @@ func (db *DB) CreateLlmConnection(name, baseURL, apiKey, model string, enabled b
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lastID), nil
+	return intconv.ToUint32(lastID), nil
 }
 
 func (db *DB) UpdateLlmConnection(id uint32, name, baseURL, apiKey, model string, enabled bool, keepAPIKey bool) error {
@@ -192,7 +194,7 @@ func (db *DB) CreateLlmTool(name, description string, connectionID uint32, promp
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lastID), nil
+	return intconv.ToUint32(lastID), nil
 }
 
 func (db *DB) UpdateLlmTool(id uint32, name, description string, connectionID uint32, prompt string, enabled bool, sortOrder int32) error {
@@ -250,7 +252,7 @@ func (db *DB) CreateLlmToolRun(run *LlmToolRun) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lastID), nil
+	return intconv.ToUint32(lastID), nil
 }
 
 func (db *DB) ListLlmToolRunsByPost(postID uint32) ([]*LlmToolRun, error) {

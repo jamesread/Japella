@@ -3,6 +3,8 @@ package db
 import (
 	"database/sql"
 	"time"
+
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 type Model struct {
@@ -81,14 +83,14 @@ func NullSocialAccountID(id uint32) sql.NullInt32 {
 	if id == 0 {
 		return sql.NullInt32{}
 	}
-	return sql.NullInt32{Int32: int32(id), Valid: true}
+	return sql.NullInt32{Int32: intconv.ToInt32(id), Valid: true}
 }
 
 func (p *Post) SocialAccountIDUint() uint32 {
 	if p == nil || !p.SocialAccountID.Valid {
 		return 0
 	}
-	return uint32(p.SocialAccountID.Int32)
+	return intconv.ToUint32(p.SocialAccountID.Int32)
 }
 
 func (p *Post) SocialAccountIDPtr() *uint32 {
@@ -264,11 +266,12 @@ type TableLog struct {
 type WebhookHook struct {
 	Model
 
-	Connector string `db:"connector"`
-	Identity  string `db:"identity"`
-	BotID     string `db:"bot_id"`
-	URL       string `db:"url"`
-	Enabled   bool   `db:"enabled"`
+	Connector     string `db:"connector"`
+	Identity      string `db:"identity"`
+	BotID         string `db:"bot_id"`
+	URL           string `db:"url"`
+	Enabled       bool   `db:"enabled"`
+	SkipTLSVerify bool   `db:"skip_tls_verify"`
 }
 
 type ChatBotInstance struct {

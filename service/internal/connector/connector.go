@@ -141,8 +141,9 @@ type ConnectorWithHooks interface {
 
 // IncomingMessageHook represents a webhook to call when messages are received
 type IncomingMessageHook struct {
-	URL     string
-	Enabled bool
+	URL           string
+	Enabled       bool
+	SkipTLSVerify bool
 }
 
 // ConnectorWithYamlConfig is a marker interface for connectors that use YAML configuration (as opposed to OAuth)

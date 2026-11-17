@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html/template"
+	"net/url"
 	"sort"
 
 	"connectrpc.com/connect"
@@ -38,6 +40,7 @@ import (
 	"github.com/jamesread/japella/internal/feedauthor"
 	"github.com/jamesread/japella/internal/httpserver/i18n"
 	"github.com/jamesread/japella/internal/iam"
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/keywordwatch"
 	"github.com/jamesread/japella/internal/languages"
 	"github.com/jamesread/japella/internal/layers/authentication"
@@ -307,7 +310,7 @@ func (s *ControlApi) processFeedFetching() {
 		if wallConnector, ok := connectorService.(connector.ConnectorWithWall); ok {
 			debuglog.Feedf("fetching recent posts for account %d (%s/%s)", sa.ID, sa.Connector, sa.Identity)
 
-			if socialAccountNeedsTokenRefresh(sa, time.Hour) {
+			if socialAccountNeedsTokenRefresh(sa) {
 				refreshed, refreshErr := s.refreshSocialAccountToken(sa, connectorService)
 				if refreshErr != nil {
 					feedFetcherLog(sa).Warnf("failed to refresh token before fetch: %v", refreshErr)
@@ -338,7 +341,7 @@ func (s *ControlApi) processFeedFetching() {
 				if err != nil {
 					feedFetcherLog(sa).Errorf("failed to fetch posts: %v", err)
 					if isHTTPUnauthorized(err) {
-						_ = s.DB.InsertTableLog(
+						s.DB.InsertTableLog(
 							fmt.Sprintf("Feed fetch unauthorized for %s account %d — try refreshing or reconnecting the account", sa.Connector, sa.ID),
 							"error",
 							&sa.ID,
@@ -381,11 +384,12 @@ func (s *ControlApi) processFeedFetching() {
 					}
 
 					inserted, err := s.DB.InsertFeedEntry(feedEntry)
-					if err != nil {
+					switch {
+					case err != nil:
 						feedFetcherLog(sa).WithField("remote_id", post.RemoteID).Errorf("failed to insert feed entry: %v", err)
-					} else if inserted {
+					case inserted:
 						debuglog.Feedf("inserted feed entry remote_id=%s account=%d", post.RemoteID, sa.ID)
-					} else {
+					default:
 						debuglog.Feedf("skipped duplicate feed entry remote_id=%s account=%d", post.RemoteID, sa.ID)
 					}
 				}
@@ -588,7 +592,7 @@ func (s *ControlApi) GetStatus(ctx context.Context, req *connect.Request[control
 		if sid := s.extractSessionID(req.Header()); sid != "" {
 			if sess := s.DB.GetSessionByID(sid); sess != nil && sess.ImpersonatorUserID.Valid {
 				isImpersonating = true
-				if imp := s.DB.GetUserByID(uint32(sess.ImpersonatorUserID.Int32)); imp != nil {
+				if imp := s.DB.GetUserByID(intconv.ToUint32(sess.ImpersonatorUserID.Int32)); imp != nil {
 					impersonatorUsername = imp.Username
 				}
 			}
@@ -679,9 +683,7 @@ func (s *ControlApi) marshalSocialAccountsForUser(au *authentication.Authenticat
 
 	canViewAll := au != nil && (au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser))
 
-	if canViewAll {
-		dbAccounts = s.DB.SelectSocialAccounts(onlyActive)
-	} else if au != nil {
+	if !canViewAll && au != nil {
 		dbAccounts = s.DB.SelectSocialAccountsForUser(au.User.ID, onlyActive)
 	} else {
 		dbAccounts = s.DB.SelectSocialAccounts(onlyActive)
@@ -704,11 +706,11 @@ func (s *ControlApi) marshalSocialAccountsForUser(au *authentication.Authenticat
 			tokenExpiry = socialAccount.OAuth2TokenExpiry.Format(time.RFC3339)
 		}
 
-		isOwner := au != nil && socialAccount.OwnerUserID.Valid && uint32(socialAccount.OwnerUserID.Int32) == au.User.ID
+		isOwner := au != nil && socialAccount.OwnerUserID.Valid && intconv.ToUint32(socialAccount.OwnerUserID.Int32) == au.User.ID
 		ownerUserID := uint32(0)
 		ownerUsername := ""
 		if socialAccount.OwnerUserID.Valid {
-			ownerUserID = uint32(socialAccount.OwnerUserID.Int32)
+			ownerUserID = intconv.ToUint32(socialAccount.OwnerUserID.Int32)
 			if owner := s.DB.GetUserByID(ownerUserID); owner != nil {
 				ownerUsername = owner.Username
 			}
@@ -757,7 +759,7 @@ func (s *ControlApi) userCanReadSocialAccount(au *authentication.AuthenticatedUs
 	if err != nil || socialAccount == nil {
 		return false
 	}
-	if socialAccount.OwnerUserID.Valid && uint32(socialAccount.OwnerUserID.Int32) == au.User.ID {
+	if socialAccount.OwnerUserID.Valid && intconv.ToUint32(socialAccount.OwnerUserID.Int32) == au.User.ID {
 		return true
 	}
 	return s.DB.CanUserAccessSocialAccount(au.User.ID, socialAccountID, "read")
@@ -780,7 +782,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 		if err != nil || draft == nil || draft.State != db.PostStateDraft {
 			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("from_draft_post_id is invalid"))
 		}
-		if !draft.SubmittedByUserID.Valid || uint32(draft.SubmittedByUserID.Int32) != au.User.ID {
+		if !draft.SubmittedByUserID.Valid || intconv.ToUint32(draft.SubmittedByUserID.Int32) != au.User.ID {
 			return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("not allowed to use this draft"))
 		}
 	}
@@ -798,7 +800,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 	var submittedBy sql.NullInt32
 	if au != nil && au.User != nil {
-		submittedBy = sql.NullInt32{Int32: int32(au.User.ID), Valid: true}
+		submittedBy = sql.NullInt32{Int32: intconv.ToInt32(au.User.ID), Valid: true}
 	}
 
 	if req.Msg.SaveAsDraft && len(req.Msg.SocialAccounts) == 0 {
@@ -808,7 +810,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 		campaignID := sql.NullInt32{}
 		if req.Msg.CampaignId != 0 {
-			campaignID = sql.NullInt32{Int32: int32(req.Msg.CampaignId), Valid: true}
+			campaignID = sql.NullInt32{Int32: intconv.ToInt32(req.Msg.CampaignId), Valid: true}
 		}
 
 		post := &db.Post{
@@ -858,7 +860,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 
 		campaignID := sql.NullInt32{}
 		if req.Msg.CampaignId != 0 {
-			campaignID = sql.NullInt32{Int32: int32(req.Msg.CampaignId), Valid: true}
+			campaignID = sql.NullInt32{Int32: intconv.ToInt32(req.Msg.CampaignId), Valid: true}
 		}
 
 		scheduledAt := sql.NullTime{}
@@ -902,7 +904,7 @@ func (s *ControlApi) SubmitPost(ctx context.Context, req *connect.Request[contro
 				CampaignID:        campaignID,
 				SubmissionSource:  source,
 				SubmittedByUserID: submittedBy,
-				AccountPolicyID:   sql.NullInt32{Int32: int32(policy.ID), Valid: true},
+				AccountPolicyID:   sql.NullInt32{Int32: intconv.ToInt32(policy.ID), Valid: true},
 				ApprovalStage:     0,
 			}
 			if err := s.DB.CreatePost(post); err != nil {
@@ -1039,13 +1041,13 @@ func (s *ControlApi) tryPostStatus(content string, mediaURLs []string, socialAcc
 
 			// Also persist this error into the logs table so it is visible in the UI
 			if socialAccount != nil {
-				_ = s.DB.InsertTableLog(
+				s.DB.InsertTableLog(
 					fmt.Sprintf("Error posting to wall for connector %s (account %d): %v", socialAccount.Connector, socialAccount.ID, postResult.Err),
 					"error",
 					&socialAccount.ID,
 				)
 			} else {
-				_ = s.DB.InsertTableLog(
+				s.DB.InsertTableLog(
 					fmt.Sprintf("Error posting to wall: %v", postResult.Err),
 					"error",
 					nil,
@@ -1134,7 +1136,7 @@ func (s *ControlApi) postToPostStatus(post *db.Post) *controlv1.PostStatus {
 		Content:               post.Content,
 		Success:               post.Status,
 		PostUrl:               post.PostURL.String,
-		CampaignId:            uint32(post.CampaignID.Int32),
+		CampaignId:            intconv.ToUint32(post.CampaignID.Int32),
 		CampaignName:          post.CampaignName.String,
 		State:                 post.State,
 		PostedDate:            postedDate.Format("2006-01-02 15:04:05"),
@@ -1169,12 +1171,14 @@ func feedFetcherLog(sa *db.SocialAccount) *log.Entry {
 	return log.WithFields(fields)
 }
 
-func socialAccountNeedsTokenRefresh(sa *db.SocialAccount, within time.Duration) bool {
+const tokenRefreshWindow = time.Hour
+
+func socialAccountNeedsTokenRefresh(sa *db.SocialAccount) bool {
 	if sa.OAuth2RefreshToken == "" || sa.OAuth2TokenExpiry.IsZero() {
 		return false
 	}
 
-	return sa.OAuth2TokenExpiry.Before(time.Now().Add(within))
+	return sa.OAuth2TokenExpiry.Before(time.Now().Add(tokenRefreshWindow))
 }
 
 func (s *ControlApi) refreshSocialAccountToken(sa *db.SocialAccount, connectorService connector.BaseConnector) (*db.SocialAccount, error) {
@@ -1465,7 +1469,7 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 		errDesc := r.URL.Query().Get("error_description")
 		stateKey := r.URL.Query().Get("state")
 		log.Errorf("OAuth2 callback error: error=%s error_description=%s state=%s url=%s", errText, errDesc, stateKey, r.URL.RawQuery)
-		_ = s.DB.InsertTableLog(fmt.Sprintf("OAuth2 callback error: %s — %s", errText, errDesc), "error", nil)
+		s.DB.InsertTableLog(fmt.Sprintf("OAuth2 callback error: %s — %s", errText, errDesc), "error", nil)
 		redirect(baseUrl, w, fmt.Sprintf("OAuth2 error: %v", errText), "bad")
 		return
 	}
@@ -1478,7 +1482,7 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 	if state == nil {
 		msg := fmt.Sprintf("OAuth2 callback: state not found: %v", stateKey)
 		log.Error(msg)
-		_ = s.DB.InsertTableLog(msg, "error", nil)
+		s.DB.InsertTableLog(msg, "error", nil)
 		redirect(baseUrl, w, fmt.Sprintf("state not found: %v", stateKey), "bad")
 		return
 	}
@@ -1495,7 +1499,7 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 	if err != nil {
 		msg := fmt.Sprintf("Error registering account (%s): %v", state.connector.GetProtocol(), err)
 		log.Error(msg)
-		_ = s.DB.InsertTableLog(msg, "error", nil)
+		s.DB.InsertTableLog(msg, "error", nil)
 		redirect(baseUrl, w, fmt.Sprintf("Error registering account: %v", err), "bad")
 	} else {
 		if state.userID != 0 {
@@ -1514,6 +1518,11 @@ func (s *ControlApi) OAuth2CallbackHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
+// The message can come from OAuth2 callback query parameters, so it is untrusted.
+var redirectPage = template.Must(template.New("redirect").Parse(`<html><head><meta http-equiv="Refresh" content="0; URL={{.URL}}" /></head>
+<body><style type="text/css">body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; }</style>
+<h1>Redirecting...</h1><p>{{.Message}}</p><a href="{{.URL}}">click here</a></body></html>`))
+
 func redirect(redirectUrl string, w http.ResponseWriter, message string, msgType string) {
 	inDev := os.Getenv("JAPELLA_DEV_REDIRECT_VITE") == "true"
 
@@ -1521,12 +1530,14 @@ func redirect(redirectUrl string, w http.ResponseWriter, message string, msgType
 		redirectUrl = "http://localhost:5173"
 	}
 
-	url := fmt.Sprintf("%v/?notification=%v&type=%v", redirectUrl, message, msgType)
+	query := url.Values{"notification": {message}, "type": {msgType}}
+	target := redirectUrl + "/?" + query.Encode()
 
-	w.Header().Set("Location", url)
-	w.Write([]byte("<html><head><meta http-equiv = \"Refresh\" content = \"0; URL=" + url + "\" /></head>"))
-	w.Write([]byte("<body><style type = \"text/css\">body { font-family: sans-serif; text-align: center; background-color: #222; color: #fff; }</style>"))
-	w.Write([]byte("<h1>Redirecting...</h1><p>" + message + "</p><a href = \"" + url + "\">click here</a></body></html>"))
+	w.Header().Set("Location", target)
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	if err := redirectPage.Execute(w, map[string]string{"URL": target, "Message": message}); err != nil {
+		log.Warnf("Failed to write redirect page: %v", err)
+	}
 
 	log.Infof("Redirecting with message: %v", message)
 }
@@ -1653,16 +1664,17 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 		socialAccountIdentity := "Unknown"
 
 		var sa *db.SocialAccount
-		if post.SocialAccount != nil {
+		switch {
+		case post.SocialAccount != nil:
 			sa = post.SocialAccount
-		} else if post.SocialAccountID.Valid {
+		case post.SocialAccountID.Valid:
 			fetched, ferr := s.DB.GetSocialAccount(post.SocialAccountIDUint())
 			if ferr == nil {
 				sa = fetched
 			} else {
 				log.Warnf("Failed to load social account %d for post %d: %v", post.SocialAccountIDUint(), post.ID, ferr)
 			}
-		} else if post.State == db.PostStateDraft {
+		case post.State == db.PostStateDraft:
 			socialAccountIdentity = "Draft"
 		}
 
@@ -1690,7 +1702,7 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 			Content:               post.Content,
 			Success:               post.Status,
 			PostUrl:               post.PostURL.String,
-			CampaignId:            uint32(post.CampaignID.Int32),
+			CampaignId:            intconv.ToUint32(post.CampaignID.Int32),
 			CampaignName:          post.CampaignName.String,
 			State:                 post.State,
 			PostedDate:            postedDate.Format("2006-01-02 15:04:05"),
@@ -1701,7 +1713,7 @@ func (s *ControlApi) GetTimeline(ctx context.Context, req *connect.Request[contr
 
 	res := connect.NewResponse(&controlv1.GetTimelineResponse{
 		Posts: timeline,
-		Total: uint32(total),
+		Total: intconv.ToUint32(total),
 	})
 
 	return res, nil
@@ -2071,7 +2083,7 @@ func (s *ControlApi) RetryPost(ctx context.Context, req *connect.Request[control
 	// Set the post status fields for response
 	postStatus.Id = post.ID
 	postStatus.Created = post.CreatedAt.Format("2006-01-02 15:04:05")
-	postStatus.CampaignId = uint32(post.CampaignID.Int32)
+	postStatus.CampaignId = intconv.ToUint32(post.CampaignID.Int32)
 	postStatus.CampaignName = post.CampaignName.String
 
 	// Get social account info for response
@@ -2161,7 +2173,7 @@ func (s *ControlApi) GetLogs(ctx context.Context, req *connect.Request[controlv1
 		}
 
 		if entry.RelatedSocialAccountID.Valid {
-			logEntry.RelatedSocialAccountId = uint32(entry.RelatedSocialAccountID.Int32)
+			logEntry.RelatedSocialAccountId = intconv.ToUint32(entry.RelatedSocialAccountID.Int32)
 			if entry.RelatedSocialAccountIdentity.Valid {
 				logEntry.RelatedSocialAccountIdentity = entry.RelatedSocialAccountIdentity.String
 			}
@@ -2286,7 +2298,7 @@ func (s *ControlApi) ListMedia(ctx context.Context, req *connect.Request[control
 		item := &controlv1.MediaItem{
 			Filename:         it.Filename,
 			Url:              it.URL,
-			SizeBytes:        uint64(it.SizeBytes),
+			SizeBytes:        intconv.ToUint64(it.SizeBytes),
 			OptimisedOf:      it.OptimisedOf,
 			OptimisedKind:    it.OptimisedKind,
 			OptimisedVersion: it.OptimisedVersion,
@@ -2294,7 +2306,7 @@ func (s *ControlApi) ListMedia(ctx context.Context, req *connect.Request[control
 		}
 		// Only image headers are read, so this stays cheap for a whole library.
 		if info, err := media.Inspect(it.Filename); err == nil {
-			item.Width, item.Height = uint32(info.Width), uint32(info.Height)
+			item.Width, item.Height = intconv.ToUint32(info.Width), intconv.ToUint32(info.Height)
 			item.Suitability = s.mediaSuitability(networks, info)
 		}
 		items = append(items, item)
@@ -2441,7 +2453,7 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 			Message: "Invalid username or password",
 		}
 
-		return res, nil
+		return res, nil //nolint:nilerr // a failed login is reported in the response, not as an RPC error
 	} else {
 		res.Msg.StandardResponse = &controlv1.StandardResponse{
 			Success: true,
@@ -2467,10 +2479,10 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 
 	if s.Auth != nil {
 		c := s.Auth.NewSessionCookie(sid)
-		log.Infof("Setting session cookie: %v", c.String())
+		log.Infof("Setting session cookie for %s", req.Msg.Username)
 		res.Header().Add("Set-Cookie", c.String())
 	} else {
-		c := http.Cookie{
+		c := http.Cookie{ //nolint:gosec // Secure is on unless JAPELLA_SECURE_COOKIES=false for plain-HTTP setups
 			Name:     iam.CookieName,
 			Value:    sid,
 			HttpOnly: true,
@@ -2478,7 +2490,7 @@ func (s *ControlApi) LoginWithUsernameAndPassword(ctx context.Context, req *conn
 			SameSite: http.SameSiteStrictMode,
 			Secure:   os.Getenv("JAPELLA_SECURE_COOKIES") != "false",
 		}
-		log.Infof("Setting session cookie: %v", c.String())
+		log.Infof("Setting session cookie for %s", req.Msg.Username)
 		res.Header().Add("Set-Cookie", c.String())
 	}
 
@@ -2611,7 +2623,7 @@ func (s *ControlApi) Logout(ctx context.Context, req *connect.Request[controlv1.
 		clearCookie := s.Auth.ClearSessionCookie()
 		res.Header().Add("Set-Cookie", (&clearCookie).String())
 	} else {
-		c := http.Cookie{
+		c := http.Cookie{ //nolint:gosec // Secure is on unless JAPELLA_SECURE_COOKIES=false for plain-HTTP setups
 			Name:     iam.CookieName,
 			Value:    "",
 			HttpOnly: true,

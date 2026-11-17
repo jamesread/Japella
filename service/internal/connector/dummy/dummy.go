@@ -58,12 +58,17 @@ func (c *Connector) SetStartupConfiguration(startup *connector.ControllerStartup
 	}
 }
 
+// simRandIntn picks simulated demo content; it is not security-sensitive.
+func simRandIntn(n int) int {
+	return rand.Intn(n) //nolint:gosec // simulated demo data, not security-sensitive
+}
+
 func (c *Connector) Start() {
 	c.SetPrefix("Dummy")
 	if c.interval <= 0 {
 		c.interval = 15 * time.Second
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background()) //nolint:gosec // cancel is stored in c.stopSim and called by Stop
 	c.stopSim = cancel
 	c.seedInitialPosts()
 	go c.runSimulator(ctx)
@@ -103,12 +108,12 @@ func (c *Connector) runSimulator(ctx context.Context) {
 }
 
 func (c *Connector) appendPost(at time.Time) {
-	kw := KeywordPool[rand.Intn(len(KeywordPool))]
-	tpl := templates[rand.Intn(len(templates))]
+	kw := KeywordPool[simRandIntn(len(KeywordPool))]
+	tpl := templates[simRandIntn(len(templates))]
 	content := fmt.Sprintf(tpl, kw, at.UTC().Format(time.RFC3339))
 	// Occasionally include a second keyword.
-	if rand.Intn(3) == 0 {
-		other := KeywordPool[rand.Intn(len(KeywordPool))]
+	if simRandIntn(3) == 0 {
+		other := KeywordPool[simRandIntn(len(KeywordPool))]
 		if other != kw {
 			content += " also mentioning " + other
 		}

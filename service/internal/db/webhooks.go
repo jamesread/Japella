@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/webhook"
 	"github.com/jmoiron/sqlx"
 )
@@ -96,13 +97,13 @@ func (db *DB) CreateWebhookTarget(url, secret string, events []string, enabled b
 	if err != nil {
 		return 0, err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	enabledInt := 0
 	if enabled {
 		enabledInt = 1
 	}
-	res, err := tx.Exec(`
+	res, err := tx.ExecContext(context.TODO(), `
 		INSERT INTO webhook_targets (url, secret, enabled, created_at, updated_at)
 		VALUES (?, ?, ?, NOW(3), NOW(3))`, url, secret, enabledInt)
 	if err != nil {
@@ -112,7 +113,7 @@ func (db *DB) CreateWebhookTarget(url, secret string, events []string, enabled b
 	if err != nil {
 		return 0, err
 	}
-	targetID := uint32(lastID)
+	targetID := intconv.ToUint32(lastID)
 	if err := insertWebhookEventsTx(tx, targetID, events); err != nil {
 		return 0, err
 	}
@@ -131,7 +132,7 @@ func (db *DB) UpdateWebhookTarget(id uint32, url, secret string, events []string
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	enabledInt := 0
 	if enabled {
@@ -139,20 +140,20 @@ func (db *DB) UpdateWebhookTarget(id uint32, url, secret string, events []string
 	}
 
 	if keepSecret {
-		if _, err = tx.Exec(`
+		if _, err = tx.ExecContext(context.TODO(), `
 			UPDATE webhook_targets SET url = ?, enabled = ?, updated_at = NOW(3) WHERE id = ?`,
 			url, enabledInt, id); err != nil {
 			return err
 		}
 	} else {
-		if _, err = tx.Exec(`
+		if _, err = tx.ExecContext(context.TODO(), `
 			UPDATE webhook_targets SET url = ?, secret = ?, enabled = ?, updated_at = NOW(3) WHERE id = ?`,
 			url, secret, enabledInt, id); err != nil {
 			return err
 		}
 	}
 
-	if _, err = tx.Exec(`DELETE FROM webhook_events WHERE webhook_target_id = ?`, id); err != nil {
+	if _, err = tx.ExecContext(context.TODO(), `DELETE FROM webhook_events WHERE webhook_target_id = ?`, id); err != nil {
 		return err
 	}
 	if err := insertWebhookEventsTx(tx, id, events); err != nil {
@@ -182,7 +183,7 @@ func (db *DB) selectWebhookEvents(targetID uint32) ([]string, error) {
 
 func insertWebhookEventsTx(tx *sqlx.Tx, targetID uint32, events []string) error {
 	for _, event := range events {
-		if _, err := tx.Exec(
+		if _, err := tx.ExecContext(context.TODO(),
 			`INSERT INTO webhook_events (webhook_target_id, event) VALUES (?, ?)`,
 			targetID, event); err != nil {
 			return err
@@ -270,6 +271,6 @@ func (db *DB) RecordWebhookDelivery(ctx context.Context, entry webhook.DeliveryR
 			msg += ": " + entry.ErrorMessage
 		}
 	}
-	_ = db.InsertTableLog(msg, level, nil)
+	db.InsertTableLog(msg, level, nil)
 	return nil
 }

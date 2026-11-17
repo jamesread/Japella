@@ -74,13 +74,14 @@ func (c *TelegramConnector) GetChatBot() *connector.ChatBot {
 	}
 
 	statusMsg := ""
-	if c.isRunning {
+	switch {
+	case c.isRunning:
 		statusMsg = "Bot is running and connected"
-	} else if c.errorMessage != "" {
+	case c.errorMessage != "":
 		statusMsg = c.errorMessage
-	} else if c.statusMessage != "" {
+	case c.statusMessage != "":
 		statusMsg = c.statusMessage
-	} else {
+	default:
 		statusMsg = "Stopped (not connected)"
 	}
 
@@ -215,7 +216,7 @@ func (c *TelegramConnector) startBot(botToken string) {
 		}
 
 		// Call the actual handler
-		c.messageHandler(ctx, b, update)
+		c.messageHandler(update)
 	}
 
 	opts := []tgbotapi.Option{
@@ -268,13 +269,7 @@ func (c *TelegramConnector) startBot(botToken string) {
 	if c.db != nil {
 		dbHooks, err := c.db.SelectWebhookHooks("telegram", c.botID)
 		if err == nil && len(dbHooks) > 0 {
-			c.hooks = make([]runtimeconfig.IncomingMessageHook, 0, len(dbHooks))
-			for _, hook := range dbHooks {
-				c.hooks = append(c.hooks, runtimeconfig.IncomingMessageHook{
-					URL:     hook.URL,
-					Enabled: hook.Enabled,
-				})
-			}
+			c.hooks = hooks.FromDB(dbHooks)
 			c.Logger().Infof("Loaded %d incoming message hook(s) from database", len(c.hooks))
 		} else if err != nil {
 			c.Logger().Warnf("Failed to load hooks from database: %v, using config hooks", err)
@@ -341,24 +336,25 @@ func (c *TelegramConnector) sendDebugStartupMessage(ctx context.Context, chatIdS
 	}
 }
 
-func (c *TelegramConnector) messageHandler(ctx context.Context, b *tgbotapi.Bot, update *tgbotmdl.Update) {
+func (c *TelegramConnector) messageHandler(update *tgbotmdl.Update) {
 	c.Logger().Infof("=== messageHandler ENTERED ===")
 
 	// Log all update types
-	if update.Message != nil {
+	switch {
+	case update.Message != nil:
 		c.Logger().Infof("Processing Message update")
 		c.handleMessage(update.Message)
-	} else if update.ChannelPost != nil {
+	case update.ChannelPost != nil:
 		c.Logger().Infof("Processing ChannelPost update")
 		c.handleMessage(update.ChannelPost)
-	} else if update.EditedMessage != nil {
+	case update.EditedMessage != nil:
 		c.Logger().Infof("Processing EditedMessage update")
 		c.handleMessage(update.EditedMessage)
-	} else if update.CallbackQuery != nil {
+	case update.CallbackQuery != nil:
 		c.Logger().Infof("Processing CallbackQuery update (ID: %s)", update.CallbackQuery.ID)
-	} else if update.InlineQuery != nil {
+	case update.InlineQuery != nil:
 		c.Logger().Infof("Processing InlineQuery update (ID: %s)", update.InlineQuery.ID)
-	} else {
+	default:
 		c.Logger().Warnf("Received update with unknown type")
 		c.Logger().Infof("Full update structure: %+v", update)
 	}
@@ -565,8 +561,9 @@ func (c *TelegramConnector) GetHooks() []*connector.IncomingMessageHook {
 	hooks := make([]*connector.IncomingMessageHook, 0, len(c.hooks))
 	for _, hook := range c.hooks {
 		hooks = append(hooks, &connector.IncomingMessageHook{
-			URL:     hook.URL,
-			Enabled: hook.Enabled,
+			URL:           hook.URL,
+			Enabled:       hook.Enabled,
+			SkipTLSVerify: hook.SkipTLSVerify,
 		})
 	}
 	return hooks
@@ -579,8 +576,9 @@ func (c *TelegramConnector) SetHooks(hooks []*connector.IncomingMessageHook) err
 	c.hooks = make([]runtimeconfig.IncomingMessageHook, 0, len(hooks))
 	for _, hook := range hooks {
 		c.hooks = append(c.hooks, runtimeconfig.IncomingMessageHook{
-			URL:     hook.URL,
-			Enabled: hook.Enabled,
+			URL:           hook.URL,
+			Enabled:       hook.Enabled,
+			SkipTLSVerify: hook.SkipTLSVerify,
 		})
 	}
 	c.Logger().Infof("Updated hooks: %d hook(s) configured", len(c.hooks))

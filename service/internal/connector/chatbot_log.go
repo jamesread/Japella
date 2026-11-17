@@ -18,5 +18,5 @@ func LogChatBotStartupFailure(database *db.DB, protocol, identity, errMsg string
 	}
 	msg += ": " + errMsg
 
-	_ = database.InsertTableLog(msg, "error", nil)
+	database.InsertTableLog(msg, "error", nil)
 }

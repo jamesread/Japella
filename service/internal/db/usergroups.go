@@ -1,10 +1,12 @@
 package db
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/rbac"
 )
 
@@ -39,7 +41,7 @@ func (db *DB) CreateUserGroup(name string) (uint32, error) {
 	if err != nil {
 		return 0, err
 	}
-	return uint32(lid), nil
+	return intconv.ToUint32(lid), nil
 }
 
 func (db *DB) DeleteUserGroup(id uint32) error {
@@ -60,12 +62,12 @@ func (db *DB) DeleteUserGroup(id uint32) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
-	if _, err = tx.Exec(`DELETE FROM user_group_memberships WHERE user_group_id = ?`, id); err != nil {
+	if _, err = tx.ExecContext(context.TODO(), `DELETE FROM user_group_memberships WHERE user_group_id = ?`, id); err != nil {
 		return err
 	}
-	res, err := tx.Exec(`DELETE FROM user_groups WHERE id = ?`, id)
+	res, err := tx.ExecContext(context.TODO(), `DELETE FROM user_groups WHERE id = ?`, id)
 	if err != nil {
 		return err
 	}
@@ -105,13 +107,13 @@ func (db *DB) SetUserGroupMembers(groupID uint32, userIDs []uint32) error {
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
-	if _, err = tx.Exec(`DELETE FROM user_group_memberships WHERE user_group_id = ?`, groupID); err != nil {
+	if _, err = tx.ExecContext(context.TODO(), `DELETE FROM user_group_memberships WHERE user_group_id = ?`, groupID); err != nil {
 		return err
 	}
 	for _, uid := range userIDs {
-		if _, err = tx.Exec(
+		if _, err = tx.ExecContext(context.TODO(),
 			`INSERT INTO user_group_memberships (user_account_id, user_group_id, created_at, updated_at) VALUES (?, ?, NOW(3), NOW(3))`,
 			uid, groupID); err != nil {
 			return err

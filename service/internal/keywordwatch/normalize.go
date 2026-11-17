@@ -74,9 +74,7 @@ func IsHashtagKeyword(keyword string) bool {
 	if k == "" {
 		return false
 	}
-	if strings.HasPrefix(k, "#") {
-		k = k[1:]
-	}
+	k = strings.TrimPrefix(k, "#")
 	if k == "" {
 		return false
 	}

@@ -61,11 +61,11 @@ func New(dbc *db.DB) *ConnectionController {
 	}
 
 	if isPubliclyAccessible {
-		cc.setupConnector(&mastodon.MastodonConnector{}, nil)
-		cc.setupConnector(&x.XConnector{}, nil)
-		cc.setupConnector(&bluesky.BlueskyConnector{}, nil)
-		cc.setupConnector(&facebook.FacebookConnector{}, nil)
-		cc.setupConnector(&instagram.InstagramConnector{}, nil)
+		cc.setupConnector(&mastodon.MastodonConnector{})
+		cc.setupConnector(&x.XConnector{})
+		cc.setupConnector(&bluesky.BlueskyConnector{})
+		cc.setupConnector(&facebook.FacebookConnector{})
+		cc.setupConnector(&instagram.InstagramConnector{})
 	} else {
 		log.Infof("OAuth connectors not started: IsPubliclyAccessible is false")
 	}
@@ -73,7 +73,7 @@ func New(dbc *db.DB) *ConnectionController {
 	cc.loadChatBotsFromDB()
 
 	// Always available for local/dev keyword-watch and feed testing.
-	cc.setupConnector(&dummy.Connector{}, nil)
+	cc.setupConnector(&dummy.Connector{})
 
 	return cc
 }
@@ -317,9 +317,8 @@ func (cc *ConnectionController) startControllerFromConfig(wrapper *runtimeconfig
 	}
 }
 
-func (cc *ConnectionController) setupConnector(c connector.BaseConnector, config any) {
-	name := c.GetProtocol()
-	cc.setupConnectorWithKey(c, config, name)
+func (cc *ConnectionController) setupConnector(c connector.BaseConnector) {
+	cc.setupConnectorWithKey(c, nil, c.GetProtocol())
 }
 
 func (cc *ConnectionController) setupConnectorWithKey(c connector.BaseConnector, config any, key string) {

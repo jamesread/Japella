@@ -156,7 +156,7 @@ func (s *Service) pollAccountSearch(ctx context.Context, accountID uint32, watch
 			if !ContainsKeyword(post.Content, w.Keyword) {
 				continue
 			}
-			inserted, _ := s.acceptMatch(sa, w, post, db.WatchModeSearch)
+			inserted := s.acceptMatch(sa, w, post, db.WatchModeSearch)
 			if inserted {
 				emitted++
 			}
@@ -171,9 +171,9 @@ func (s *Service) pollAccountSearch(ctx context.Context, accountID uint32, watch
 	_ = s.DB.UpsertKeywordWatchState(st)
 }
 
-func (s *Service) acceptMatch(sa *db.SocialAccount, w *db.KeywordWatch, post *connector.RemotePost, mode string) (inserted bool, emitted bool) {
+func (s *Service) acceptMatch(sa *db.SocialAccount, w *db.KeywordWatch, post *connector.RemotePost, mode string) (inserted bool) {
 	if post == nil || post.RemoteID == "" {
-		return false, false
+		return false
 	}
 	now := time.Now()
 	m := &db.KeywordMatch{
@@ -198,17 +198,17 @@ func (s *Service) acceptMatch(sa *db.SocialAccount, w *db.KeywordWatch, post *co
 
 	ok, id, err := s.DB.TryInsertKeywordMatch(m)
 	if err != nil || !ok {
-		return false, false
+		return false
 	}
 	if suppress {
-		return true, false
+		return true
 	}
 	if !s.allowEmit(sa.ID) {
 		_ = s.DB.MarkKeywordMatchWebhookDispatched(id)
-		return true, false
+		return true
 	}
 	s.dispatchMatch(w, m, id)
-	return true, true
+	return true
 }
 
 func (s *Service) allowEmit(accountID uint32) bool {

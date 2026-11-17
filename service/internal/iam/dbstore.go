@@ -9,6 +9,7 @@ import (
 	"github.com/jamesread/armature-iam/rbac"
 	"github.com/jamesread/armature-iam/store"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 // DBStore implements armature-iam store.Store on Japella's MySQL-backed db.DB.
@@ -40,7 +41,7 @@ func (s *DBStore) GetUserByUsername(ctx context.Context, username string) (*stor
 }
 
 func (s *DBStore) GetUserByID(ctx context.Context, id int) (*store.UserAccountRow, error) {
-	u := s.DB.GetUserByID(uint32(id))
+	u := s.DB.GetUserByID(intconv.ToUint32(id))
 	if u == nil {
 		return nil, nil
 	}
@@ -73,18 +74,18 @@ func (s *DBStore) CreateUserAccount(ctx context.Context, username, passwordHash,
 }
 
 func (s *DBStore) DeleteUserAccount(ctx context.Context, id int) error {
-	return s.DB.DeleteUserAccount(uint32(id))
+	return s.DB.DeleteUserAccount(intconv.ToUint32(id))
 }
 
 func (s *DBStore) UpdateUserPassword(ctx context.Context, id int, passwordHash string) error {
-	return s.DB.UpdateUserPassword(uint32(id), passwordHash)
+	return s.DB.UpdateUserPassword(intconv.ToUint32(id), passwordHash)
 }
 
 func (s *DBStore) CreateSession(ctx context.Context, sid string, userID int, impersonatorID *int) error {
 	if impersonatorID != nil {
-		return s.DB.ImpersonateSession(sid, uint32(userID), uint32(*impersonatorID))
+		return s.DB.ImpersonateSession(sid, intconv.ToUint32(userID), intconv.ToUint32(*impersonatorID))
 	}
-	return s.DB.CreateSession(sid, uint32(userID))
+	return s.DB.CreateSession(sid, intconv.ToUint32(userID))
 }
 
 func (s *DBStore) GetSessionBySID(ctx context.Context, sid string) (*store.SessionRow, error) {
@@ -140,7 +141,7 @@ func (s *DBStore) ListAPIKeysForUser(ctx context.Context, userID int) ([]store.A
 }
 
 func (s *DBStore) CreateAPIKey(ctx context.Context, userID int, name, keyValue string, readOnly bool) (int, error) {
-	user := s.DB.GetUserByID(uint32(userID))
+	user := s.DB.GetUserByID(intconv.ToUint32(userID))
 	if user == nil {
 		return 0, sql.ErrNoRows
 	}
@@ -212,12 +213,12 @@ func (s *DBStore) EnsureUserInGroup(ctx context.Context, userID int, groupName s
 		if err != nil {
 			return err
 		}
-		g = s.DB.GetUserGroupByID(uint32(id))
+		g = s.DB.GetUserGroupByID(intconv.ToUint32(id))
 	}
 	if g == nil {
 		return fmt.Errorf("group %q not found", groupName)
 	}
-	return s.DB.AddUserGroupMember(uint32(userID), g.ID)
+	return s.DB.AddUserGroupMember(intconv.ToUint32(userID), g.ID)
 }
 
 func (s *DBStore) CountUsersWithSuperuserViaGroups(ctx context.Context) (int, error) {

@@ -17,20 +17,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// HTTPClient is a reusable HTTP client for webhook calls
-var httpClient *http.Client
+const hookTimeout = 60 * time.Second
 
-func init() {
-	// Create HTTP client with timeout and skip TLS certificate validation
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{
-			InsecureSkipVerify: true, // Skip certificate validation for webhooks
+var (
+	verifyingClient = &http.Client{Timeout: hookTimeout}
+
+	// Only for hooks whose owner opted out of TLS verification, e.g. an
+	// endpoint with a self-signed certificate.
+	insecureClient = &http.Client{
+		Timeout: hookTimeout,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, //nolint:gosec // per-hook opt-out, off by default
 		},
 	}
-	httpClient = &http.Client{
-		Timeout:   60 * time.Second, // 1 minute timeout for webhook calls
-		Transport: transport,
+)
+
+func clientFor(skipTLSVerify bool) *http.Client {
+	if skipTLSVerify {
+		return insecureClient
 	}
+	return verifyingClient
 }
 
 // ExecuteHooks calls all enabled hooks for a given message
@@ -56,11 +62,12 @@ func ExecuteHooks(hooks []runtimeconfig.IncomingMessageHook, msg *msgs.IncomingM
 			continue
 		}
 
-		go executeHook(hook.URL, jsonData, i, msg, logger)
+		go executeHook(hook, jsonData, i, msg, logger)
 	}
 }
 
-func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessage, logger log.FieldLogger) {
+func executeHook(hook runtimeconfig.IncomingMessageHook, jsonData []byte, index int, msg *msgs.IncomingMessage, logger log.FieldLogger) {
+	url := hook.URL
 	// Log the full URL being called
 	if logger != nil {
 		logger.Infof("Hook %d: Calling webhook URL: %s", index, url)
@@ -89,7 +96,7 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 	req.Header.Set("Content-Type", "application/json")
 
 	// Send request
-	resp, err := httpClient.Do(req)
+	resp, err := clientFor(hook.SkipTLSVerify).Do(req)
 	if err != nil {
 		errorMsg := fmt.Sprintf("Webhook call failed: %v", err)
 		if logger != nil {
@@ -102,7 +109,7 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 		sendErrorNotification(msg, errorMsg, logger)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body for logging
 	body, err := io.ReadAll(resp.Body)
@@ -192,8 +199,6 @@ func executeHook(url string, jsonData []byte, index int, msg *msgs.IncomingMessa
 		sendErrorNotification(msg, errorMsg, logger)
 	}
 }
-
-// sendErrorNotification sends an OutgoingMessage to notify the user of a webhook failure
 func sendErrorNotification(msg *msgs.IncomingMessage, errorMsg string, logger log.FieldLogger) {
 	notificationMsg := fmt.Sprintf("⚠️ Webhook error: %s", errorMsg)
 
@@ -216,6 +221,19 @@ func sendErrorNotification(msg *msgs.IncomingMessage, errorMsg string, logger lo
 	}
 }
 
+// FromDB converts stored hooks to the form ExecuteHooks takes.
+func FromDB(dbHooks []*db.WebhookHook) []runtimeconfig.IncomingMessageHook {
+	hooks := make([]runtimeconfig.IncomingMessageHook, 0, len(dbHooks))
+	for _, hook := range dbHooks {
+		hooks = append(hooks, runtimeconfig.IncomingMessageHook{
+			URL:           hook.URL,
+			Enabled:       hook.Enabled,
+			SkipTLSVerify: hook.SkipTLSVerify,
+		})
+	}
+	return hooks
+}
+
 // GetHooksForConnector returns the hooks configured for a specific connector
 // It first tries to load from database, then falls back to config for backward compatibility
 func GetHooksForConnector(connectorType string, identity string, dbInstance *db.DB) []runtimeconfig.IncomingMessageHook {
@@ -223,14 +241,7 @@ func GetHooksForConnector(connectorType string, identity string, dbInstance *db.
 	if dbInstance != nil {
 		dbHooks, err := dbInstance.SelectWebhookHooks(connectorType, identity)
 		if err == nil && len(dbHooks) > 0 {
-			hooks := make([]runtimeconfig.IncomingMessageHook, 0, len(dbHooks))
-			for _, hook := range dbHooks {
-				hooks = append(hooks, runtimeconfig.IncomingMessageHook{
-					URL:     hook.URL,
-					Enabled: hook.Enabled,
-				})
-			}
-			return hooks
+			return FromDB(dbHooks)
 		}
 	}
 

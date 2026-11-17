@@ -56,7 +56,7 @@ func createCombineLanguageContent() *CombinedLanguageContent {
 			fullPath := filepath.Join(languageDir, file.Name())
 			log.Infof("Loading language file: %s", fullPath)
 
-			content, err := os.ReadFile(fullPath)
+			content, err := os.ReadFile(fullPath) //nolint:gosec // file name comes from listing the language directory
 
 			if err != nil {
 				log.Errorf("Error reading language file %s: %v", fullPath, err)
@@ -126,5 +126,5 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 		log.Errorf("Error marshalling combined language content: %v", err)
 	}
 
-	w.Write(jsonData)
+	_, _ = w.Write(jsonData)
 }

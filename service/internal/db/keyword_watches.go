@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 const (
@@ -128,9 +130,9 @@ func (db *DB) CreateKeywordWatch(socialAccountID uint32, keyword, keywordNormali
 		return 0, err
 	}
 	if err := db.EnsureKeywordWatchState(socialAccountID); err != nil {
-		return uint32(id), err
+		return intconv.ToUint32(id), err
 	}
-	return uint32(id), nil
+	return intconv.ToUint32(id), nil
 }
 
 func (db *DB) UpdateKeywordWatch(id uint32, keyword, keywordNormalized string, enabled bool) error {
@@ -251,7 +253,7 @@ func (db *DB) TryInsertKeywordMatch(m *KeywordMatch) (bool, uint32, error) {
 	if err != nil {
 		return false, 0, err
 	}
-	return true, uint32(id), nil
+	return true, intconv.ToUint32(id), nil
 }
 
 func (db *DB) MarkKeywordMatchWebhookDispatched(id uint32) error {

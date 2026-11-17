@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"time"
 
 	"github.com/google/uuid"
@@ -87,5 +88,26 @@ func generatePrivateKey() (*ecdsa.PrivateKey, error) {
 		return nil, fmt.Errorf("failed to generate private key: %w", err)
 	}
 	return privKey, nil
+}
 
+// DPoP keys are stored as the private scalar in decimal, a format that predates
+// these helpers; keep it so existing accounts' keys still load.
+func encodeStoredDPoPKey(priv *ecdsa.PrivateKey) (string, error) {
+	raw, err := priv.Bytes()
+	if err != nil {
+		return "", fmt.Errorf("encode DPoP key: %w", err)
+	}
+	return new(big.Int).SetBytes(raw).String(), nil
+}
+
+func decodeStoredDPoPKey(stored string) (*ecdsa.PrivateKey, error) {
+	d, ok := new(big.Int).SetString(stored, 10)
+	if !ok || d.Sign() <= 0 {
+		return nil, fmt.Errorf("invalid stored DPoP key")
+	}
+	priv, err := ecdsa.ParseRawPrivateKey(elliptic.P256(), d.FillBytes(make([]byte, 32)))
+	if err != nil {
+		return nil, fmt.Errorf("parse stored DPoP key: %w", err)
+	}
+	return priv, nil
 }

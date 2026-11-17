@@ -6,6 +6,7 @@ import (
 
 	"github.com/jamesread/armature-iam/store"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 func userRowFromAccount(u *db.UserAccount) *store.UserAccountRow {
@@ -39,7 +40,7 @@ func formatNullTime(t sql.NullTime) string {
 func intSliceToUint32(in []int) []uint32 {
 	out := make([]uint32, len(in))
 	for i, v := range in {
-		out[i] = uint32(v)
+		out[i] = intconv.ToUint32(v)
 	}
 	return out
 }

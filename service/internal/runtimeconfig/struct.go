@@ -39,8 +39,9 @@ type DiscordConfig struct {
 }
 
 type IncomingMessageHook struct {
-	URL     string `yaml:"url"`     // Webhook URL to call
-	Enabled bool   `yaml:"enabled"` // Whether this hook is enabled
+	URL           string `yaml:"url"`           // Webhook URL to call
+	Enabled       bool   `yaml:"enabled"`       // Whether this hook is enabled
+	SkipTLSVerify bool   `yaml:"skipTlsVerify"` // Accept any TLS certificate, e.g. self-signed; off by default
 }
 
 type TelegramConfig struct {

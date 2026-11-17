@@ -90,7 +90,9 @@ func TestOptimiseForPostingAppliesOrientation(t *testing.T) {
 	}
 	plain := enc.Bytes()
 	rotated := append(append([]byte{0xFF, 0xD8}, orientationEXIF(6)...), plain[2:]...)
-	os.WriteFile(filepath.Join(dir, "side.jpg"), rotated, 0644)
+	if err := os.WriteFile(filepath.Join(dir, "side.jpg"), rotated, 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	res, err := OptimiseForPosting("side.jpg", PostingTarget{MaxBytes: 1_000_000, MaxSide: 2000})
 	if err != nil || res.Filename == "" {
@@ -104,8 +106,12 @@ func TestOptimiseForPostingAppliesOrientation(t *testing.T) {
 func TestOptimiseForPostingAlreadyFits(t *testing.T) {
 	dir := inMediaDir(t)
 	var enc bytes.Buffer
-	jpeg.Encode(&enc, photo(300, 200), &jpeg.Options{Quality: 60})
-	os.WriteFile(filepath.Join(dir, "small.jpg"), enc.Bytes(), 0644)
+	if err := jpeg.Encode(&enc, photo(300, 200), &jpeg.Options{Quality: 60}); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "small.jpg"), enc.Bytes(), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	res, err := OptimiseForPosting("small.jpg", PostingTarget{MaxBytes: 1_000_000, MaxSide: 2000})
 	if err != nil || res.Filename != "" {

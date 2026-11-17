@@ -42,7 +42,7 @@ func ConfigYAMLAbsolutePath() string {
 }
 
 func readFile(filename string) ([]byte, error) {
-	handle, err := os.Open(filename)
+	handle, err := os.Open(filename) //nolint:gosec // config path is chosen by the operator
 
 	if err != nil {
 		return nil, err

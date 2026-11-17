@@ -65,7 +65,7 @@ func getDialURL() string {
 }
 
 func GetChannel(name string) (*amqp.Channel, error) {
-	conn, err := getConn()
+	c, err := getConn()
 
 	if err != nil {
 		return nil, err
@@ -74,7 +74,7 @@ func GetChannel(name string) (*amqp.Channel, error) {
 	if channel, ok := channels[name]; !ok || channel.IsClosed() {
 		log.Debugf("GetChannel() - Opening new channel for %v", name)
 
-		channel, err = conn.Channel()
+		channel, err = c.Channel()
 
 		if err != nil {
 			log.Warnf("GetChannel() - Error opening channel: %v", name)

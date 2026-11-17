@@ -51,6 +51,13 @@
 								Remove
 							</button>
 						</div>
+						<label class="hook-tls-label">
+							<input type="checkbox" v-model="hook.skipTlsVerify" @change="saveHooks" />
+							<span>Don't verify the TLS certificate (e.g. self-signed)</span>
+						</label>
+						<small v-if="hook.skipTlsVerify" class="hook-tls-warning">
+							Messages sent to this hook can be read or altered by anyone between Japella and the endpoint.
+						</small>
 					</div>
 				</div>
 
@@ -152,6 +159,7 @@
 			hooks.value = (res.hooks || []).map(hook => ({
 				url: String(hook.url || ''),
 				enabled: Boolean(hook.enabled),
+				skipTlsVerify: Boolean(hook.skipTlsVerify),
 			}));
 		} catch (e) {
 			hooksError.value = `Failed to load hooks: ${e.message || e}`;
@@ -174,6 +182,7 @@
 				hooks: hooks.value.map(hook => ({
 					url: hook.url,
 					enabled: hook.enabled,
+					skipTlsVerify: hook.skipTlsVerify,
 				})),
 			});
 			if (res.standardResponse.success) {
@@ -198,6 +207,7 @@
 		hooks.value.push({
 			url: newHookUrl.value.trim(),
 			enabled: true,
+			skipTlsVerify: false,
 		});
 		newHookUrl.value = '';
 		saveHooks();
@@ -259,6 +269,21 @@
 		font-size: 0.9em;
 		color: var(--text-muted, #666);
 		min-width: 60px;
+	}
+
+	.hook-tls-label {
+		display: flex;
+		align-items: center;
+		gap: 0.5em;
+		margin-top: 0.75em;
+		font-size: 0.9em;
+		cursor: pointer;
+	}
+
+	.hook-tls-warning {
+		display: block;
+		margin-top: 0.25em;
+		color: var(--warning-color, #b45309);
 	}
 
 	.hook-url-container {

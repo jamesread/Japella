@@ -7,17 +7,17 @@ import (
 )
 
 func TestNormalise(t *testing.T) {
-	cases := map[string]string{
-		"todo":        "todo",
-		"  #ToDo ":    "todo",
-		"##follow-up": "follow-up",
-		"read_later":  "read_later",
-		"été":         "été",
+	cases := []struct{ in, want string }{
+		{"todo", "todo"},
+		{"  #ToDo ", "todo"},
+		{"##follow-up", "follow-up"},
+		{"read_later", "read_later"},
+		{"été", "été"},
 	}
-	for in, want := range cases {
-		got, err := Normalise(in)
-		if err != nil || got != want {
-			t.Errorf("Normalise(%q) = %q, %v; want %q", in, got, err, want)
+	for _, c := range cases {
+		got, err := Normalise(c.in)
+		if err != nil || got != c.want {
+			t.Errorf("Normalise(%q) = %q, %v; want %q", c.in, got, err, c.want)
 		}
 	}
 

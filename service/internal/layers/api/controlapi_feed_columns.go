@@ -338,7 +338,7 @@ func (s *ControlApi) fetchFeedColumnAccount(ctx context.Context, col *db.FeedCol
 			}
 		}()
 
-		if socialAccountNeedsTokenRefresh(sa, time.Hour) {
+		if socialAccountNeedsTokenRefresh(sa) {
 			if refreshed, refreshErr := s.refreshSocialAccountToken(sa, svc); refreshErr == nil {
 				sa = refreshed
 			}
@@ -369,12 +369,12 @@ func (s *ControlApi) GetFeedColumnPosts(ctx context.Context, req *connect.Reques
 
 	q, err := feedcolumns.ParseQuery(col.Query)
 	if err != nil {
-		return connect.NewResponse(&controlv1.GetFeedColumnPostsResponse{Error: err.Error()}), nil
+		return connect.NewResponse(&controlv1.GetFeedColumnPostsResponse{Error: err.Error()}), nil //nolint:nilerr // an invalid column query is shown in the column, not as an RPC error
 	}
 	if q.Tag != "" {
-		res, err := s.tagColumnPosts(au, q.Tag)
-		if err != nil {
-			return nil, err
+		res, tagErr := s.tagColumnPosts(au, q.Tag)
+		if tagErr != nil {
+			return nil, tagErr
 		}
 		return connect.NewResponse(res), nil
 	}

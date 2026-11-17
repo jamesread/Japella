@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/spf13/cobra"
 )
@@ -54,6 +53,6 @@ func runAdminUserGroupAdd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("add user to group: %w", err)
 	}
 
-	fmt.Fprintf(os.Stdout, "Added user %q to group %q\n", username, groupName)
+	fmt.Printf("Added user %q to group %q\n", username, groupName)
 	return nil
 }

@@ -30,11 +30,11 @@ func Inspect(filename string) (*Info, error) {
 	if err != nil {
 		return nil, err
 	}
-	f, err := os.Open(path)
+	f, err := os.Open(path) //nolint:gosec // path resolved by PathFromURL, confined to the media directory
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	st, err := f.Stat()
 	if err != nil {

@@ -91,7 +91,7 @@ func (d *Dispatcher) Dispatch(ctx context.Context, event string, payload map[str
 	}
 
 	for _, target := range targets {
-		go d.deliver(context.Background(), client, target, event, raw)
+		go d.deliver(context.Background(), client, target, event, raw) //nolint:gosec // deliveries must outlive the request that triggered them
 	}
 }
 
@@ -159,7 +159,7 @@ func (d *Dispatcher) deliverSync(ctx context.Context, client *http.Client, targe
 		log.Warnf("webhook target %d: POST %s: %v", target.ID, target.URL, err)
 		return 0, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	ok := resp.StatusCode >= 200 && resp.StatusCode < 300
 	errMsg := ""

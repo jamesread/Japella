@@ -75,7 +75,7 @@ func (c *MastodonConnector) SearchRecentByKeyword(ctx context.Context, sa *conne
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode == http.StatusTooManyRequests {
@@ -217,7 +217,7 @@ func (c *MastodonConnector) streamHashtagOnce(ctx context.Context, instanceURL, 
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode == http.StatusTooManyRequests {
 		return &connector.RateLimitedError{

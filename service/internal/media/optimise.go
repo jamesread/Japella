@@ -76,7 +76,7 @@ func Optimise(filename string) (*OptimiseResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // path resolved by PathFromURL, confined to the media directory
 	if err != nil {
 		return nil, err
 	}
@@ -116,11 +116,11 @@ func Optimise(filename string) (*OptimiseResult, error) {
 
 func writeAtomic(dst string, data []byte) error {
 	tmp := dst + ".tmp"
-	if err := os.WriteFile(tmp, data, 0644); err != nil {
+	if err := os.WriteFile(tmp, data, 0o600); err != nil { //nolint:gosec // tmp is derived from a PathFromURL path in the media directory
 		return err
 	}
 	if err := os.Rename(tmp, dst); err != nil {
-		os.Remove(tmp)
+		_ = os.Remove(tmp)
 		return err
 	}
 	return nil
@@ -185,7 +185,7 @@ func optimisePNG(data []byte) ([]byte, string, error) {
 	reduced, how := reducePNG(img)
 	var buf bytes.Buffer
 	enc := png.Encoder{CompressionLevel: pngCompressionLevel(reduced)}
-	if err := enc.Encode(&buf, reduced); err != nil {
+	if err = enc.Encode(&buf, reduced); err != nil {
 		return nil, "", err
 	}
 	out, err := insertPNGChunks(buf.Bytes(), keep)
@@ -466,7 +466,10 @@ func exifOrientation(tiff []byte) int {
 			return 0
 		}
 		if bo.Uint16(tiff[e:]) == 0x0112 && bo.Uint16(tiff[e+2:]) == 3 {
-			return int(bo.Uint16(tiff[e+8:]))
+			if v := int(bo.Uint16(tiff[e+8:])); v >= 1 && v <= 8 {
+				return v
+			}
+			return 0
 		}
 	}
 	return 0
@@ -474,9 +477,12 @@ func exifOrientation(tiff []byte) int {
 
 // orientationEXIF is an APP1 segment holding only an Orientation tag.
 func orientationEXIF(orientation int) []byte {
+	if orientation < 1 || orientation > 8 {
+		orientation = 1
+	}
 	tiff := []byte{'M', 'M', 0, 42, 0, 0, 0, 8, 0, 1, 0x01, 0x12, 0, 3, 0, 0, 0, 1, 0, byte(orientation), 0, 0, 0, 0, 0, 0}
 	payload := append([]byte("Exif\x00\x00"), tiff...)
 	seg := []byte{0xFF, 0xE1, 0, 0}
-	binary.BigEndian.PutUint16(seg[2:], uint16(len(payload)+2))
+	binary.BigEndian.PutUint16(seg[2:], uint16(len(payload)+2)) //nolint:gosec // payload is a fixed 32-byte segment
 	return append(seg, payload...)
 }

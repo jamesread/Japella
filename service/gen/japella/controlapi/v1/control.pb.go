@@ -8795,9 +8795,11 @@ func (x *BotChannel) GetUsername() string {
 }
 
 type IncomingMessageHook struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Url           string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`          // Webhook URL to call
-	Enabled       bool                   `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"` // Whether this hook is enabled
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	Url     string                 `protobuf:"bytes,1,opt,name=url,proto3" json:"url,omitempty"`          // Webhook URL to call
+	Enabled bool                   `protobuf:"varint,2,opt,name=enabled,proto3" json:"enabled,omitempty"` // Whether this hook is enabled
+	// Accept any TLS certificate, e.g. a self-signed one. Off by default.
+	SkipTlsVerify bool `protobuf:"varint,3,opt,name=skip_tls_verify,json=skipTlsVerify,proto3" json:"skip_tls_verify,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -8842,6 +8844,13 @@ func (x *IncomingMessageHook) GetUrl() string {
 func (x *IncomingMessageHook) GetEnabled() bool {
 	if x != nil {
 		return x.Enabled
+	}
+	return false
+}
+
+func (x *IncomingMessageHook) GetSkipTlsVerify() bool {
+	if x != nil {
+		return x.SkipTlsVerify
 	}
 	return false
 }
@@ -20447,10 +20456,11 @@ const file_japella_controlapi_v1_control_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x14\n" +
 	"\x05title\x18\x02 \x01(\tR\x05title\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x1a\n" +
-	"\busername\x18\x04 \x01(\tR\busername\"A\n" +
+	"\busername\x18\x04 \x01(\tR\busername\"i\n" +
 	"\x13IncomingMessageHook\x12\x10\n" +
 	"\x03url\x18\x01 \x01(\tR\x03url\x12\x18\n" +
-	"\aenabled\x18\x02 \x01(\bR\aenabled\"G\n" +
+	"\aenabled\x18\x02 \x01(\bR\aenabled\x12&\n" +
+	"\x0fskip_tls_verify\x18\x03 \x01(\bR\rskipTlsVerify\"G\n" +
 	"\x12GetBotHooksRequest\x12\x1a\n" +
 	"\bprotocol\x18\x01 \x01(\tR\bprotocol\x12\x15\n" +
 	"\x06bot_id\x18\x02 \x01(\tR\x05botId\"W\n" +

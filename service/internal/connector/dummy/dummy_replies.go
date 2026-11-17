@@ -2,10 +2,10 @@ package dummy
 
 import (
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/jamesread/japella/internal/connector"
+	"github.com/jamesread/japella/internal/intconv"
 )
 
 // Simulated reply threads, kept in step with the simulated replies counter.
@@ -39,20 +39,20 @@ func (c *Connector) FetchPostReplies(sa *connector.SocialAccount, remoteID strin
 	}
 
 	replies := repliesByURL[key]
-	for uint32(len(replies)) < e.Replies {
+	for intconv.ToUint32(len(replies)) < e.Replies {
 		n := len(replies) + 1
 		parent := key
-		if n > 1 && rand.Intn(2) == 0 {
-			parent = replies[rand.Intn(len(replies))].RemoteID
+		if n > 1 && simRandIntn(2) == 0 {
+			parent = replies[simRandIntn(len(replies))].RemoteID
 		}
-		name := dummyRepliers[rand.Intn(len(dummyRepliers))]
+		name := dummyRepliers[simRandIntn(len(dummyRepliers))]
 		replies = append(replies, &connector.PostReply{
 			RemoteID:       fmt.Sprintf("%s#reply-%d", key, n),
 			ParentRemoteID: parent,
 			RemoteURL:      fmt.Sprintf("%s#reply-%d", key, n),
 			AuthorName:     name,
 			AuthorHandle:   "@" + name + "@dummy.local",
-			Content:        dummyReplyLines[rand.Intn(len(dummyReplyLines))],
+			Content:        dummyReplyLines[simRandIntn(len(dummyReplyLines))],
 			PostedDate:     time.Now(),
 		})
 	}

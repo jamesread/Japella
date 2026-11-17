@@ -16,11 +16,7 @@ import (
 // inMediaDir runs the test with an empty media library.
 func inMediaDir(t *testing.T) string {
 	t.Helper()
-	wd, _ := os.Getwd()
-	if err := os.Chdir(t.TempDir()); err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { os.Chdir(wd) })
+	t.Chdir(t.TempDir())
 	dir, err := GetDir()
 	if err != nil {
 		t.Fatal(err)
@@ -46,7 +42,7 @@ func decodeFile(t *testing.T, path string) image.Image {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	img, _, err := image.Decode(f)
 	if err != nil {
 		t.Fatal(err)
@@ -131,8 +127,12 @@ func TestOptimisePNGGreyAndNoGain(t *testing.T) {
 	noise := image.NewNRGBA(image.Rect(0, 0, 40, 40))
 	rng.Read(noise.Pix)
 	var buf bytes.Buffer
-	(&png.Encoder{CompressionLevel: png.BestCompression}).Encode(&buf, noise)
-	os.WriteFile(filepath.Join(dir, "n.png"), buf.Bytes(), 0644)
+	if err = (&png.Encoder{CompressionLevel: png.BestCompression}).Encode(&buf, noise); err != nil {
+		t.Fatal(err)
+	}
+	if err = os.WriteFile(filepath.Join(dir, "n.png"), buf.Bytes(), 0644); err != nil {
+		t.Fatal(err)
+	}
 	res, err = Optimise("n.png")
 	if err != nil || res.Filename != "" {
 		t.Fatalf("got %+v, %v", res, err)
@@ -159,7 +159,9 @@ func TestOptimiseJPEGStripsMetadataKeepsOrientation(t *testing.T) {
 	exif := orientationEXIF(6)
 	comment := append([]byte{0xFF, 0xFE, 0x10, 0x02}, bytes.Repeat([]byte("x"), 0x1000)...)
 	withMeta := append(append(append([]byte{0xFF, 0xD8}, exif...), comment...), plain[2:]...)
-	os.WriteFile(filepath.Join(dir, "p.jpg"), withMeta, 0644)
+	if err := os.WriteFile(filepath.Join(dir, "p.jpg"), withMeta, 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	res, err := Optimise("p.jpg")
 	if err != nil || res.Filename == "" {
@@ -179,11 +181,25 @@ func TestOptimiseJPEGStripsMetadataKeepsOrientation(t *testing.T) {
 
 func TestOptimiseRejectsOtherFormats(t *testing.T) {
 	dir := inMediaDir(t)
-	os.WriteFile(filepath.Join(dir, "a.gif"), []byte("GIF89a...."), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "a.gif"), []byte("GIF89a...."), 0644); err != nil {
+		t.Fatal(err)
+	}
 	if _, err := Optimise("a.gif"); !errors.Is(err, ErrNotOptimisable) {
 		t.Fatalf("got %v", err)
 	}
 	if _, err := Optimise("../a.gif"); err == nil {
 		t.Fatal("path traversal should fail")
+	}
+}
+
+func TestExifOrientationRejectsInvalidValues(t *testing.T) {
+	// orientationEXIF returns the APP1 marker and length, "Exif\0\0", then the TIFF data.
+	tiff := append([]byte(nil), orientationEXIF(6)[10:]...)
+	if got := exifOrientation(tiff); got != 6 {
+		t.Fatalf("exifOrientation = %d, want 6", got)
+	}
+	tiff[18], tiff[19] = 0x01, 0x2C // 300
+	if got := exifOrientation(tiff); got != 0 {
+		t.Fatalf("exifOrientation for 300 = %d, want 0", got)
 	}
 }

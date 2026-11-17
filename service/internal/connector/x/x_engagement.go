@@ -90,7 +90,7 @@ func (x *XConnector) fetchPostEngagementWithToken(accessToken string, tweetID st
 	}
 
 	if response.Data.ID == "" {
-		return nil, fmt.Errorf("X tweet %s not found", tweetID)
+		return nil, fmt.Errorf("tweet %s not found on X", tweetID)
 	}
 
 	return response.Data.PublicMetrics.toPostEngagement(), nil

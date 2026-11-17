@@ -3,7 +3,8 @@ package frontend
 import (
 	"net/http"
 	"os"
-	"path/filepath"
+	"path"
+	"strings"
 
 	"github.com/jamesread/golure/pkg/dirs"
 )
@@ -26,16 +27,7 @@ func spaHandler(webuiDir string) http.Handler {
 	fileServer := http.FileServer(http.Dir(webuiDir))
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the requested file exists
-		path := filepath.Join(webuiDir, r.URL.Path)
-
-		// If the path is a directory, check for index.html
-		if info, err := os.Stat(path); err == nil && info.IsDir() {
-			path = filepath.Join(path, "index.html")
-		}
-
-		// If the file doesn't exist, serve index.html for SPA routing
-		if _, err := os.Stat(path); os.IsNotExist(err) {
+		if !webuiFileExists(webuiDir, r.URL.Path) {
 			// Check if this is an API route or other non-SPA route
 			if r.URL.Path == "/api" ||
 				r.URL.Path == "/oauth2callback" ||
@@ -55,6 +47,26 @@ func spaHandler(webuiDir string) http.Handler {
 
 		fileServer.ServeHTTP(w, r)
 	})
+}
+
+// webuiFileExists reports whether urlPath names a file in webuiDir, or a
+// directory with an index.html. os.Root keeps the lookup inside webuiDir.
+func webuiFileExists(webuiDir, urlPath string) bool {
+	root, err := os.OpenRoot(webuiDir)
+	if err != nil {
+		return false
+	}
+	defer func() { _ = root.Close() }()
+
+	name := strings.TrimPrefix(path.Clean("/"+urlPath), "/")
+	if name == "" {
+		name = "."
+	}
+	info, err := root.Stat(name)
+	if err == nil && info.IsDir() {
+		_, err = root.Stat(path.Join(name, "index.html"))
+	}
+	return err == nil
 }
 
 func GetNewHandler() http.Handler {

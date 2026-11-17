@@ -4,17 +4,18 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+	"time"
+
 	"github.com/google/shlex"
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
 	"github.com/jamesread/japella/internal/botbase"
 	"github.com/jamesread/japella/internal/db"
 	"github.com/jamesread/japella/internal/nanoservice"
 	"github.com/jamesread/japella/internal/runtimeconfig"
-	log "github.com/sirupsen/logrus"
-	"os"
-	"os/exec"
-	"strings"
-	"time"
 )
 
 type Exec struct {
@@ -48,7 +49,7 @@ func (e *Exec) Start() {
 }
 
 func (b *ExecBot) refreshCommands(m *msgs.IncomingMessage, command string, arguments string) {
-	files, err := os.ReadDir("/usr/libexec/japella/")
+	files, err := os.ReadDir(execScriptDir)
 
 	if err != nil {
 		b.Logger().Errorf("Error reading directory: %v", err)
@@ -86,6 +87,8 @@ func (b *ExecBot) exechelp(m *msgs.IncomingMessage, command string, arguments st
 	b.SendMessage(out)
 }
 
+const execScriptDir = "/usr/libexec/japella/"
+
 func getCommandContext(ctx context.Context, command string) (*exec.Cmd, error) {
 	args, err := shlex.Split(command)
 
@@ -93,7 +96,12 @@ func getCommandContext(ctx context.Context, command string) (*exec.Cmd, error) {
 		return nil, err
 	}
 
-	cmd := exec.CommandContext(ctx, "/usr/libexec/japella/"+args[0], args[1:]...)
+	if len(args) == 0 || args[0] != filepath.Base(args[0]) {
+		return nil, fmt.Errorf("invalid command: %q", command)
+	}
+
+	// Running operator-provided scripts with chat-supplied arguments is this bot's purpose.
+	cmd := exec.CommandContext(ctx, filepath.Join(execScriptDir, args[0]), args[1:]...) //nolint:gosec // script name is confined to execScriptDir above
 
 	return cmd, nil
 }
@@ -114,7 +122,7 @@ func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments str
 
 	b.Logger().Infof("Executing command: %v", script)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(10*time.Second))
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 
 	defer cancel()
 
@@ -131,7 +139,7 @@ func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments str
 		args["server"] = m.Server
 		args["content"] = m.Content
 		args["args"] = arguments
-		cmd.Env = buildEnv(b.Logger(), args)
+		cmd.Env = buildEnv(args)
 		cmd.Stderr = &stderr
 
 		var outputBytes []byte
@@ -151,7 +159,7 @@ func (b *ExecBot) execreq(m *msgs.IncomingMessage, command string, arguments str
 	b.SendMessage(out)
 }
 
-func buildEnv(logger *log.Entry, args map[string]string) []string {
+func buildEnv(args map[string]string) []string {
 	env := os.Environ()
 	env = append(env, "JAPELLA=1")
 

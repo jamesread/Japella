@@ -10,11 +10,7 @@ import (
 
 func TestInspect(t *testing.T) {
 	dir := t.TempDir()
-	wd, _ := os.Getwd()
-	if err := os.Chdir(dir); err != nil {
-		t.Fatal(err)
-	}
-	defer os.Chdir(wd)
+	t.Chdir(dir)
 
 	mediaDir, err := GetDir()
 	if err != nil {
@@ -24,10 +20,12 @@ func TestInspect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := png.Encode(f, image.NewRGBA(image.Rect(0, 0, 30, 20))); err != nil {
+	if err = png.Encode(f, image.NewRGBA(image.Rect(0, 0, 30, 20))); err != nil {
 		t.Fatal(err)
 	}
-	f.Close()
+	if err = f.Close(); err != nil {
+		t.Fatal(err)
+	}
 
 	info, err := Inspect("pic.png")
 	if err != nil {

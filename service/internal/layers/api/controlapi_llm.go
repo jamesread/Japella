@@ -10,6 +10,7 @@ import (
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/db"
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/layers/authentication"
 	"github.com/jamesread/japella/internal/llm"
 	"github.com/jamesread/japella/internal/rbac"
@@ -85,11 +86,11 @@ func llmToolRunToProto(r *db.LlmToolRun) *controlv1.LlmToolRun {
 	}
 	var toolID uint32
 	if r.LlmToolID.Valid {
-		toolID = uint32(r.LlmToolID.Int32)
+		toolID = intconv.ToUint32(r.LlmToolID.Int32)
 	}
 	var createdBy uint32
 	if r.CreatedByUserID.Valid {
-		createdBy = uint32(r.CreatedByUserID.Int32)
+		createdBy = intconv.ToUint32(r.CreatedByUserID.Int32)
 	}
 	return &controlv1.LlmToolRun{
 		Id:              r.ID,
@@ -427,7 +428,7 @@ func (s *ControlApi) canEditPostContent(auUserID uint32, post *db.Post) bool {
 	if post == nil {
 		return false
 	}
-	isSubmitter := post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == auUserID
+	isSubmitter := post.SubmittedByUserID.Valid && intconv.ToUint32(post.SubmittedByUserID.Int32) == auUserID
 	switch post.State {
 	case db.PostStateDraft:
 		return isSubmitter
@@ -436,7 +437,7 @@ func (s *ControlApi) canEditPostContent(auUserID uint32, post *db.Post) bool {
 			return true
 		}
 		if post.AccountPolicyID.Valid {
-			stage, stErr := s.DB.GetApprovalStageByPolicyAndOrder(uint32(post.AccountPolicyID.Int32), post.ApprovalStage)
+			stage, stErr := s.DB.GetApprovalStageByPolicyAndOrder(intconv.ToUint32(post.AccountPolicyID.Int32), post.ApprovalStage)
 			if stErr == nil {
 				ok, _ := s.DB.CanUserApproveStage(auUserID, stage)
 				return ok
@@ -455,7 +456,7 @@ func (s *ControlApi) canViewPostForLlm(au *authentication.AuthenticatedUser, pos
 	if au.HasPermission(rbac.PermissionSocialAccountsViewAll) || (au.RBAC != nil && au.RBAC.IsSuperuser) {
 		return true
 	}
-	if post.SubmittedByUserID.Valid && uint32(post.SubmittedByUserID.Int32) == au.User.ID {
+	if post.SubmittedByUserID.Valid && intconv.ToUint32(post.SubmittedByUserID.Int32) == au.User.ID {
 		return true
 	}
 	if post.State == db.PostStatePendingApproval {
@@ -469,7 +470,7 @@ func (s *ControlApi) canViewPostForLlm(au *authentication.AuthenticatedUser, pos
 		}
 	}
 	if post.SocialAccountID.Valid {
-		return s.DB.CanUserAccessSocialAccount(au.User.ID, uint32(post.SocialAccountID.Int32), "read")
+		return s.DB.CanUserAccessSocialAccount(au.User.ID, intconv.ToUint32(post.SocialAccountID.Int32), "read")
 	}
 	return false
 }
@@ -552,12 +553,12 @@ func (s *ControlApi) RunLlmTool(ctx context.Context, req *connect.Request[contro
 
 	run := &db.LlmToolRun{
 		PostID:          post.ID,
-		LlmToolID:       sql.NullInt32{Int32: int32(tool.ID), Valid: true},
+		LlmToolID:       sql.NullInt32{Int32: intconv.ToInt32(tool.ID), Valid: true},
 		ToolName:        tool.Name,
 		ConnectionName:  conn.Name,
 		ModelName:       conn.ModelName,
 		InputContent:    content,
-		CreatedByUserID: sql.NullInt32{Int32: int32(au.User.ID), Valid: true},
+		CreatedByUserID: sql.NullInt32{Int32: intconv.ToInt32(au.User.ID), Valid: true},
 	}
 	if chatErr != nil {
 		run.Status = db.LlmToolRunStatusError

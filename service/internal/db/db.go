@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jamesread/armature-iam/store"
 	"github.com/jamesread/golure/pkg/dirs"
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/runtimeconfig"
 	"github.com/jamesread/japella/internal/utils"
 	"github.com/jmoiron/sqlx"
@@ -64,6 +66,9 @@ func (db *DB) GetDatabaseName() string {
 }
 
 func (db *DB) GetCurrentSchemaVersion() uint32 {
+	if db.currentSchemaVersion > math.MaxUint32 {
+		return 0
+	}
 	return uint32(db.currentSchemaVersion)
 }
 
@@ -147,12 +152,13 @@ func (db *DB) Migrate(chain *ConnectionChain) {
 
 	err = m.Up()
 
-	if errors.Is(err, migrate.ErrNoChange) {
+	switch {
+	case errors.Is(err, migrate.ErrNoChange):
 		db.Logger().Info("Database is already at the latest version, no migration needed")
-	} else if err != nil {
+	case err != nil:
 		db.Logger().Errorf("Failed to migrate database: %v", err)
 		chain.err = err
-	} else {
+	default:
 		db.currentSchemaVersion, db.currentSchemaDirty, _ = m.Version()
 		db.Logger().Infof("Database upgraded to schema version: %v, dirty: %v", db.currentSchemaVersion, db.currentSchemaDirty)
 	}
@@ -162,13 +168,13 @@ type databaseConnectionCheck func(*ConnectionChain)
 
 func (db *DB) checkConnNotNil(chain *ConnectionChain) {
 	if db.connx != nil {
-		if db.connx.Ping() == nil {
+		if db.connx.PingContext(context.TODO()) == nil {
 			db.Logger().Debugf("Database connection is alive, skipping reconnection")
 			chain.continueConnecting = false
 		} else {
 			db.Logger().Warn("Database connection is not alive, reconnecting")
 
-			db.connx.Close()
+			_ = db.connx.Close()
 			db.connx = nil
 		}
 	}
@@ -196,7 +202,7 @@ func (db *DB) connectToDatabase(chain *ConnectionChain) {
 }
 
 func (db *DB) pingOk(chain *ConnectionChain) {
-	chain.err = db.connx.Ping()
+	chain.err = db.connx.PingContext(context.TODO())
 }
 
 func (db *DB) checkServerVersionSupported(chain *ConnectionChain) {
@@ -348,7 +354,7 @@ func (db *DB) ResilientExec(query string, args ...any) (sql.Result, error) {
 		return nil, errors.New("database connection is not established")
 	}
 
-	return db.connx.Exec(query, args...)
+	return db.connx.ExecContext(context.TODO(), query, args...)
 }
 
 func (db *DB) ResilientNamedExec(query string, args ...any) (sql.Result, error) {
@@ -545,12 +551,8 @@ func (db *DB) CreatePost(post *Post) error {
 		post.SubmissionSource = SubmissionSourceUI
 	}
 	var socialAccountID any
-	if !post.SocialAccountID.Valid && post.State == PostStateDraft {
-		socialAccountID = nil
-	} else if post.SocialAccountID.Valid {
+	if post.SocialAccountID.Valid {
 		socialAccountID = post.SocialAccountID.Int32
-	} else {
-		socialAccountID = nil
 	}
 	res, err := db.ResilientNamedExec(`INSERT INTO posts (
 		social_account_id, status, state, content, post_url, remote_id, scheduled_at,
@@ -579,7 +581,7 @@ func (db *DB) CreatePost(post *Post) error {
 		return err
 	}
 	if id, lidErr := res.LastInsertId(); lidErr == nil {
-		post.ID = uint32(id)
+		post.ID = intconv.ToUint32(id)
 	}
 	return nil
 }
@@ -849,7 +851,7 @@ func (db *DB) CreateUserAccount(username, passwordHash, createdBy string) (*User
 		return nil, err
 	}
 	return &UserAccount{
-		Model:        Model{ID: uint32(id)},
+		Model:        Model{ID: intconv.ToUint32(id)},
 		Username:     username,
 		PasswordHash: passwordHash,
 		CreatedBy:    createdBy,
@@ -884,22 +886,22 @@ func (db *DB) DeleteUserAccount(userID uint32) error {
 		}
 	}
 
-	if _, err = tx.Exec("DELETE FROM api_keys WHERE user_account_id = ?", userID); err != nil {
+	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM api_keys WHERE user_account_id = ?", userID); err != nil {
 		db.Logger().Errorf("Failed to delete API keys for user %d: %v", userID, err)
 		rollback()
 		return err
 	}
-	if _, err = tx.Exec("DELETE FROM sessions WHERE user_account_id = ?", userID); err != nil {
+	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM sessions WHERE user_account_id = ?", userID); err != nil {
 		db.Logger().Errorf("Failed to delete sessions for user %d: %v", userID, err)
 		rollback()
 		return err
 	}
-	if _, err = tx.Exec("DELETE FROM user_group_memberships WHERE user_account_id = ?", userID); err != nil {
+	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM user_group_memberships WHERE user_account_id = ?", userID); err != nil {
 		db.Logger().Errorf("Failed to delete group memberships for user %d: %v", userID, err)
 		rollback()
 		return err
 	}
-	res, err := tx.Exec("DELETE FROM user_accounts WHERE id = ?", userID)
+	res, err := tx.ExecContext(context.TODO(), "DELETE FROM user_accounts WHERE id = ?", userID)
 	if err != nil {
 		db.Logger().Errorf("Failed to delete user account %d: %v", userID, err)
 		rollback()
@@ -935,7 +937,7 @@ func (db *DB) CreateApiKey(user *UserAccount, name, keyValue string, readOnly bo
 		return nil, err
 	}
 	return &ApiKey{
-		Model:         Model{ID: uint32(id)},
+		Model:         Model{ID: intconv.ToUint32(id)},
 		Name:          name,
 		ReadOnly:      readOnly,
 		KeyValue:      keyValue,
@@ -1036,7 +1038,7 @@ func (db *DB) StopImpersonation(sid string) (*Session, error) {
 		return nil, errors.New("session is not impersonating")
 	}
 
-	originalUID := uint32(sess.ImpersonatorUserID.Int32)
+	originalUID := intconv.ToUint32(sess.ImpersonatorUserID.Int32)
 	_, err := db.ResilientExec(
 		"UPDATE sessions SET user_account_id = ?, impersonator_user_id = NULL WHERE sid = ?",
 		originalUID, sid,
@@ -1430,7 +1432,9 @@ func (db *DB) CleanupOldFeedPosts(keepCount int) error {
 	return nil
 }
 
-func (db *DB) InsertTableLog(message string, level string, relatedSocialAccountID *uint32) error {
+// InsertTableLog records an entry in the in-app log. Failures are logged here;
+// callers have nothing useful to do with them.
+func (db *DB) InsertTableLog(message string, level string, relatedSocialAccountID *uint32) {
 	logEntry := &TableLog{
 		Message: message,
 		Level:   level,
@@ -1438,7 +1442,7 @@ func (db *DB) InsertTableLog(message string, level string, relatedSocialAccountI
 
 	if relatedSocialAccountID != nil {
 		logEntry.RelatedSocialAccountID = sql.NullInt32{
-			Int32: int32(*relatedSocialAccountID),
+			Int32: intconv.ToInt32(*relatedSocialAccountID),
 			Valid: true,
 		}
 	} else {
@@ -1449,10 +1453,7 @@ func (db *DB) InsertTableLog(message string, level string, relatedSocialAccountI
 
 	if err != nil {
 		db.Logger().Errorf("Failed to insert table log: %v", err)
-		return err
 	}
-
-	return nil
 }
 
 func (db *DB) SelectTableLogs(limit int, relatedSocialAccountID uint32) ([]*TableLog, error) {
@@ -1533,7 +1534,7 @@ func (db *DB) DeleteWebhookHooks(connector string, botID string) error {
 
 // CreateWebhookHook creates a new webhook hook
 func (db *DB) CreateWebhookHook(hook *WebhookHook) error {
-	_, err := db.ResilientNamedExec(`INSERT INTO webhook_hooks (connector, identity, bot_id, url, enabled, created_at, updated_at) VALUES (:connector, :identity, :bot_id, :url, :enabled, NOW(), NOW())`, hook)
+	_, err := db.ResilientNamedExec(`INSERT INTO webhook_hooks (connector, identity, bot_id, url, enabled, skip_tls_verify, created_at, updated_at) VALUES (:connector, :identity, :bot_id, :url, :enabled, :skip_tls_verify, NOW(), NOW())`, hook)
 	if err != nil {
 		db.Logger().Errorf("Failed to create webhook hook: %v", err)
 		return err
@@ -1580,7 +1581,7 @@ func (db *DB) CanUserAccessSocialAccount(userID, socialAccountID uint32, capabil
 	if err != nil {
 		return false
 	}
-	if account.OwnerUserID.Valid && uint32(account.OwnerUserID.Int32) == userID {
+	if account.OwnerUserID.Valid && intconv.ToUint32(account.OwnerUserID.Int32) == userID {
 		return true
 	}
 	var capCol string
@@ -1636,13 +1637,13 @@ func (db *DB) SetSocialAccountShares(socialAccountID uint32, shares []SocialAcco
 		}
 	}
 
-	if _, err = tx.Exec("DELETE FROM social_account_shares WHERE social_account_id = ?", socialAccountID); err != nil {
+	if _, err = tx.ExecContext(context.TODO(), "DELETE FROM social_account_shares WHERE social_account_id = ?", socialAccountID); err != nil {
 		rollback()
 		return fmt.Errorf("delete existing shares: %w", err)
 	}
 
 	for _, s := range shares {
-		if _, err = tx.Exec(
+		if _, err = tx.ExecContext(context.TODO(),
 			"INSERT INTO social_account_shares (social_account_id, user_group_id, can_read, can_post, can_manage, created_at) VALUES (?, ?, ?, ?, ?, NOW(3))",
 			socialAccountID, s.UserGroupID, s.CanRead, s.CanPost, s.CanManage,
 		); err != nil {

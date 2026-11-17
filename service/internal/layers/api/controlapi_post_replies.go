@@ -8,6 +8,7 @@ import (
 	"connectrpc.com/connect"
 	controlv1 "github.com/jamesread/japella/gen/japella/controlapi/v1"
 	"github.com/jamesread/japella/internal/connector"
+	"github.com/jamesread/japella/internal/intconv"
 	"github.com/jamesread/japella/internal/postreplies"
 )
 
@@ -80,7 +81,7 @@ func (s *ControlApi) GetPostReplies(ctx context.Context, req *connect.Request[co
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("failed to load replies"))
 	}
 
-	res.ReplyCount = uint32(len(rows))
+	res.ReplyCount = intconv.ToUint32(len(rows))
 	res.Replies = replyNodesToProto(postreplies.BuildThread(rows))
 
 	return connect.NewResponse(res), nil

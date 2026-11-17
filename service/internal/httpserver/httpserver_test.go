@@ -1,9 +1,14 @@
 package httpserver
 
 import (
+	"bytes"
 	"context"
+	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -40,10 +45,10 @@ func TestCreateServer(t *testing.T) {
 			server, err := CreateServer(tt.endpoint)
 
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Nil(t, server)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, server)
 				assert.Equal(t, tt.endpoint, server.Addr)
 				assert.NotNil(t, server.Handler)
@@ -110,7 +115,7 @@ func TestCreateServer_RouteRegistration(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req, err := http.NewRequest(http.MethodGet, "http://localhost"+server.Addr+tc.path, nil)
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://localhost"+server.Addr+tc.path, nil)
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
@@ -133,7 +138,7 @@ func TestCreateServer_RouteRegistration(t *testing.T) {
 }
 
 func TestHandleReadyz(t *testing.T) {
-	req, err := http.NewRequest(http.MethodGet, "/readyz", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/readyz", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -147,7 +152,7 @@ func TestHandleReadyz(t *testing.T) {
 }
 
 func TestHandleHealthz(t *testing.T) {
-	req, err := http.NewRequest(http.MethodGet, "/healthz", nil)
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "/healthz", nil)
 	require.NoError(t, err)
 
 	rr := httptest.NewRecorder()
@@ -165,18 +170,35 @@ func TestCreateServer_HTTP2Support(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, server)
 
-	// Check that the handler is wrapped with h2c
-	// This is a bit implementation-specific, but we can verify the handler exists
-	assert.NotNil(t, server.Handler, "Server handler should not be nil")
-
-	// Test that the server can handle requests (basic functionality test)
-	req, err := http.NewRequest(http.MethodGet, "/healthz", nil)
+	listener, err := (&net.ListenConfig{}).Listen(t.Context(), "tcp", "127.0.0.1:0")
 	require.NoError(t, err)
+	go func() { _ = server.Serve(listener) }()
+	t.Cleanup(func() { _ = server.Close() })
 
-	rr := httptest.NewRecorder()
-	server.Handler.ServeHTTP(rr, req)
+	for _, proto := range []struct {
+		name  string
+		set   func(*http.Protocols)
+		major int
+	}{
+		{"HTTP/1.1", func(p *http.Protocols) { p.SetHTTP1(true) }, 1},
+		// Connect clients use cleartext HTTP/2 with prior knowledge.
+		{"cleartext HTTP/2", func(p *http.Protocols) { p.SetUnencryptedHTTP2(true) }, 2},
+	} {
+		t.Run(proto.name, func(t *testing.T) {
+			var protocols http.Protocols
+			proto.set(&protocols)
+			client := &http.Client{Transport: &http.Transport{Protocols: &protocols}}
 
-	assert.Equal(t, http.StatusOK, rr.Code)
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, "http://"+listener.Addr().String()+"/healthz", nil)
+			require.NoError(t, err)
+			res, err := client.Do(req)
+			require.NoError(t, err)
+			t.Cleanup(func() { assert.NoError(t, res.Body.Close()) })
+
+			assert.Equal(t, http.StatusOK, res.StatusCode)
+			assert.Equal(t, proto.major, res.ProtoMajor)
+		})
+	}
 }
 
 func TestCreateServer_AuthenticationLayer(t *testing.T) {
@@ -187,7 +209,7 @@ func TestCreateServer_AuthenticationLayer(t *testing.T) {
 	// Test that API endpoints are properly protected
 	// The GetStatus endpoint should be accessible without authentication (it's in the allowlist)
 	// and bypasses the readiness gate, so it succeeds whether or not the database is up.
-	req, err := http.NewRequest(http.MethodPost, "/api/japella.controlapi.v1.JapellaControlApiService/GetStatus", strings.NewReader("{}"))
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodPost, "/api/japella.controlapi.v1.JapellaControlApiService/GetStatus", strings.NewReader("{}"))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
 
@@ -223,7 +245,7 @@ func TestCreateServer_HandlerChain(t *testing.T) {
 
 	for _, endpoint := range endpoints {
 		t.Run("endpoint_"+endpoint, func(t *testing.T) {
-			req, err := http.NewRequest(http.MethodGet, endpoint, nil)
+			req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, endpoint, nil)
 			require.NoError(t, err)
 
 			rr := httptest.NewRecorder()
@@ -233,4 +255,31 @@ func TestCreateServer_HandlerChain(t *testing.T) {
 			assert.NotEqual(t, http.StatusNotFound, rr.Code, "Endpoint %s should not return 404", endpoint)
 		})
 	}
+}
+
+// The readiness gate answers 500 until the database is up, so this goes to the
+// router directly to test the route's own authentication.
+func TestUploadRequiresAuthentication(t *testing.T) {
+	mediaDir := filepath.Join(t.TempDir(), "media")
+	t.Chdir(filepath.Dir(mediaDir))
+
+	router, _, err := newRouter()
+	require.NoError(t, err)
+
+	var body bytes.Buffer
+	mw := multipart.NewWriter(&body)
+	part, err := mw.CreateFormFile("file", "anon.html")
+	require.NoError(t, err)
+	_, err = part.Write([]byte("<script>alert(1)</script>"))
+	require.NoError(t, err)
+	require.NoError(t, mw.Close())
+
+	req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/upload", &body)
+	req.Header.Set("Content-Type", mw.FormDataContentType())
+	rr := httptest.NewRecorder()
+	router.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusUnauthorized, rr.Code)
+	entries, _ := os.ReadDir(mediaDir)
+	assert.Empty(t, entries, "an unauthenticated upload must not be stored")
 }

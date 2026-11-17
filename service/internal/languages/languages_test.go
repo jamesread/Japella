@@ -3,13 +3,13 @@ package languages
 import "testing"
 
 func TestBase(t *testing.T) {
-	cases := map[string]string{
-		"en": "en", " EN ": "en", "pt-BR": "pt", "zh_Hant": "zh", "fil": "fil",
-		"": "", "und": "", "zxx": "", "qme": "", "english": "", "e": "", "12": "",
+	cases := []struct{ in, want string }{
+		{"en", "en"}, {" EN ", "en"}, {"pt-BR", "pt"}, {"zh_Hant", "zh"}, {"fil", "fil"},
+		{"", ""}, {"und", ""}, {"zxx", ""}, {"qme", ""}, {"english", ""}, {"e", ""}, {"12", ""},
 	}
-	for in, want := range cases {
-		if got := Base(in); got != want {
-			t.Errorf("Base(%q) = %q, want %q", in, got, want)
+	for _, c := range cases {
+		if got := Base(c.in); got != c.want {
+			t.Errorf("Base(%q) = %q, want %q", c.in, got, c.want)
 		}
 	}
 }

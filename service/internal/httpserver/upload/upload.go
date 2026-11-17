@@ -14,6 +14,9 @@ import (
 
 const maxUploadSize = 10 << 20 // 10MB
 
+// Room for multipart boundaries and headers around a file of maxUploadSize.
+const multipartOverhead = 1 << 20
+
 func Handle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -23,7 +26,8 @@ func Handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleFileUpload(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(maxUploadSize); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, maxUploadSize+multipartOverhead)
+	if err := r.ParseMultipartForm(maxUploadSize); err != nil { //nolint:gosec // body is bounded by http.MaxBytesReader above
 		http.Error(w, "Unable to parse form", http.StatusBadRequest)
 		return
 	}
@@ -32,7 +36,11 @@ func handleFileUpload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error retrieving file", http.StatusBadRequest)
 		return
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
+	if header.Size > maxUploadSize {
+		http.Error(w, "File too large", http.StatusRequestEntityTooLarge)
+		return
+	}
 
 	dir, err := media.GetDir()
 	if err != nil {
@@ -44,23 +52,33 @@ func handleFileUpload(w http.ResponseWriter, r *http.Request) {
 	if ext == "" {
 		ext = ".bin"
 	}
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		log.Errorf("open media dir: %v", err)
+		http.Error(w, "Failed to access media directory", http.StatusInternalServerError)
+		return
+	}
+	defer func() { _ = root.Close() }()
+
 	name := uuid.New().String() + ext
-	path := filepath.Join(dir, name)
-	dst, err := os.Create(path)
+	dst, err := root.Create(name)
 	if err != nil {
 		log.Errorf("create media file: %v", err)
 		http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		return
 	}
-	defer dst.Close()
-	if _, err := io.Copy(dst, file); err != nil {
-		os.Remove(path)
+	_, err = io.Copy(dst, file)
+	if closeErr := dst.Close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
+		_ = root.Remove(name)
 		log.Errorf("write media file: %v", err)
 		http.Error(w, "Failed to save file", http.StatusInternalServerError)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("File uploaded successfully"))
+	_, _ = w.Write([]byte("File uploaded successfully"))
 }
 
 // HandleServeMedia serves a single file under GET /media/files/<filename>.
@@ -79,23 +97,13 @@ func HandleServeMedia(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to access media directory", http.StatusInternalServerError)
 		return
 	}
-	path := filepath.Join(dir, filepath.Base(filename))
-	absPath, err := filepath.Abs(path)
+	root, err := os.OpenRoot(dir)
 	if err != nil {
-		http.NotFound(w, r)
+		http.Error(w, "Failed to access media directory", http.StatusInternalServerError)
 		return
 	}
-	absDir, err := filepath.Abs(dir)
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
-	if absDir != absPath && !strings.HasPrefix(absPath, absDir+string(os.PathSeparator)) {
-		http.Error(w, "Not found", http.StatusNotFound)
-		return
-	}
-	path = absPath
-	f, err := os.Open(path)
+	defer func() { _ = root.Close() }()
+	f, err := root.Open(filename)
 	if err != nil {
 		if os.IsNotExist(err) {
 			http.NotFound(w, r)
@@ -104,7 +112,7 @@ func HandleServeMedia(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to open file", http.StatusInternalServerError)
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	info, err := f.Stat()
 	if err != nil || info.IsDir() {
 		http.NotFound(w, r)

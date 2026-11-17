@@ -49,7 +49,7 @@ func parseThemeID(raw json.RawMessage) string {
 
 func readThemeNamesFromIndex(webuiDir, relativePath string, seen map[string]struct{}, names *[]string) {
 	path := filepath.Join(webuiDir, relativePath)
-	data, err := os.ReadFile(path)
+	data, err := os.ReadFile(path) //nolint:gosec // file name comes from listing the themes directory
 	if err != nil {
 		return
 	}

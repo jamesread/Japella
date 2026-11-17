@@ -2,7 +2,6 @@ package commands
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/jamesread/japella/internal/utils"
 	"github.com/spf13/cobra"
@@ -45,6 +44,6 @@ func runAdminPasswordReset(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("update password: %w", err)
 	}
 
-	fmt.Fprintf(os.Stdout, "Password reset for user %q\nNew password: %s\n", username, password)
+	fmt.Printf("Password reset for user %q\nNew password: %s\n", username, password)
 	return nil
 }

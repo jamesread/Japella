@@ -2,11 +2,13 @@ package utils
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -66,8 +68,11 @@ func (l *ChainingHttpClient) RoundTrip(req *http.Request) (*http.Response, error
 	if req.Body != nil {
 		contentType := req.Header.Get("Content-Type")
 		buf := new(bytes.Buffer)
-		n, _ := buf.ReadFrom(req.Body)
-		req.Body.Close()
+		n, err := buf.ReadFrom(req.Body)
+		_ = req.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("read request body: %w", err)
+		}
 		bodyBytes := buf.Bytes()
 		req.Body = io.NopCloser(bytes.NewReader(bodyBytes))
 
@@ -128,7 +133,7 @@ func ReadBody(r *http.Response) (string, error) {
 		}
 
 		bodyString = buf.String()
-		r.Body.Close()                                           // Close the body to avoid resource leaks
+		_ = r.Body.Close()
 		r.Body = io.NopCloser(bytes.NewBufferString(bodyString)) // Reassign the body to allow further reading
 	}
 
@@ -158,9 +163,11 @@ func ReadBodyNoChange(r *http.Response) string {
 	}
 	// Duplicate the body reader by reading it, but we cannot without consuming; rely on callers that just need a one-off
 	buf := new(bytes.Buffer)
-	io.Copy(buf, r.Body)
+	if _, err := io.Copy(buf, r.Body); err != nil {
+		logp.Warnf("Response body read was incomplete: %v", err)
+	}
 	body := buf.String()
-	r.Body.Close()
+	_ = r.Body.Close()
 	r.Body = io.NopCloser(strings.NewReader(body))
 	return body
 }
@@ -176,6 +183,10 @@ func NewLoggingTransport(rt http.RoundTripper, logger *logp.Entry) *ChainingHttp
 	}
 }
 
+// Social network APIs occasionally accept a connection and never answer; without
+// a timeout that would block the calling job forever.
+const chainingClientTimeout = 2 * time.Minute
+
 func NewClient(logger *logp.Entry) *ChainingHttpClient {
 	logger = logger.WithField("client", uuid.New().String())
 
@@ -184,6 +195,7 @@ func NewClient(logger *logp.Entry) *ChainingHttpClient {
 		logger: logger,
 		client: &http.Client{
 			Transport: NewLoggingTransport(nil, logger),
+			Timeout:   chainingClientTimeout,
 		},
 	}
 
@@ -191,14 +203,14 @@ func NewClient(logger *logp.Entry) *ChainingHttpClient {
 }
 
 func (c *ChainingHttpClient) AsJson(v any) {
-	c.Res, c.Err = c.client.Do(c.req)
+	c.Res, c.Err = c.client.Do(c.req) //nolint:bodyclose // closed by the defer below once Err is checked
 
 	if c.Err != nil {
 		c.Err = fmt.Errorf("error making request: %w", c.Err)
 		return
 	}
 
-	defer c.Res.Body.Close()
+	defer func() { _ = c.Res.Body.Close() }()
 
 	if c.Res.StatusCode < 200 || c.Res.StatusCode >= 300 {
 		c.ResBody, _ = io.ReadAll(c.Res.Body)
@@ -221,7 +233,10 @@ func (c *ChainingHttpClient) PostWithFormVars(requrl string, body map[string]str
 		form.Add(key, value)
 	}
 
-	c.req, c.Err = http.NewRequest(http.MethodPost, c.url, strings.NewReader(form.Encode()))
+	c.req, c.Err = http.NewRequestWithContext(context.Background(), http.MethodPost, c.url, strings.NewReader(form.Encode()))
+	if c.Err != nil {
+		return c
+	}
 	c.req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	return c
@@ -231,7 +246,7 @@ func (c *ChainingHttpClient) Get(requrl string) *ChainingHttpClient {
 	c.url = requrl
 
 	var err error
-	c.req, err = http.NewRequest(http.MethodGet, c.url, nil)
+	c.req, err = http.NewRequestWithContext(context.Background(), http.MethodGet, c.url, nil)
 
 	if err != nil {
 		c.Err = fmt.Errorf("error creating request: %w", err)
@@ -253,7 +268,10 @@ func (c *ChainingHttpClient) PostWithJson(requrl string, body any) *ChainingHttp
 		return c
 	}
 
-	c.req, c.Err = http.NewRequest(http.MethodPost, requrl, bytes.NewReader(jsonBody))
+	c.req, c.Err = http.NewRequestWithContext(context.Background(), http.MethodPost, requrl, bytes.NewReader(jsonBody))
+	if c.Err != nil {
+		return c
+	}
 	// Allow body to be recreated on retry (e.g., DPoP nonce retry)
 	reqBody := append([]byte(nil), jsonBody...)
 	c.req.GetBody = func() (io.ReadCloser, error) {

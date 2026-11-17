@@ -149,7 +149,7 @@ func (c *Client) ListModels(ctx context.Context, baseURL, apiKey string) ([]Mode
 	if err != nil {
 		return nil, fmt.Errorf("llm models request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	limited := io.LimitReader(resp.Body, maxResponseBytes+1)
 	raw, err := io.ReadAll(limited)
@@ -229,7 +229,7 @@ func (c *Client) ChatCompletion(ctx context.Context, baseURL, apiKey, model stri
 	if err != nil {
 		return "", fmt.Errorf("llm request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	limited := io.LimitReader(resp.Body, maxResponseBytes+1)
 	raw, err := io.ReadAll(limited)

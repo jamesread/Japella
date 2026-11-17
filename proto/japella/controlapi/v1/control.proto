@@ -897,6 +897,8 @@ message BotChannel {
 message IncomingMessageHook {
 	string url = 1; // Webhook URL to call
 	bool enabled = 2; // Whether this hook is enabled
+	// Accept any TLS certificate, e.g. a self-signed one. Off by default.
+	bool skip_tls_verify = 3;
 }
 
 message GetBotHooksRequest {
