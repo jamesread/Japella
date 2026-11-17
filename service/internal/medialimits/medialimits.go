@@ -126,69 +126,121 @@ func FormatBytes(n int64) string {
 // Evaluate checks a file against a network's limits. The verdict is the
 // worst level among the checks.
 func Evaluate(l Limits, m Media) (verdict string, checks []Check) {
-	add := func(level, format string, args ...any) {
-		checks = append(checks, Check{Level: level, Message: fmt.Sprintf(format, args...)})
-	}
-
 	ext := m.Ext()
-	video := IsVideo(ext)
-
-	formats, maxBytes, kind := l.ImageFormats, l.ImageMaxBytes, "image"
-	if video {
-		formats, maxBytes, kind = l.VideoFormats, l.VideoMaxBytes, "video"
-	} else if ext == "gif" && l.GIFMaxBytes > 0 {
-		maxBytes, kind = l.GIFMaxBytes, "GIF"
+	r := &report{}
+	if IsVideo(ext) {
+		r.checkFormat(l, l.VideoFormats, ext)
+		r.checkSize(m.SizeBytes, l.VideoMaxBytes, "video")
+		return r.result()
 	}
 
+	maxBytes, kind := l.imageSizeLimit(ext)
+	r.checkFormat(l, l.ImageFormats, ext)
+	r.checkSize(m.SizeBytes, maxBytes, kind)
+	if m.Width > 0 && m.Height > 0 {
+		r.checkDimensions(l, m.Width, m.Height)
+	}
+	return r.result()
+}
+
+// report collects checks in the order they are made.
+type report struct {
+	checks []Check
+}
+
+func (r *report) add(level, format string, args ...any) {
+	r.checks = append(r.checks, Check{Level: level, Message: fmt.Sprintf(format, args...)})
+}
+
+func (r *report) result() (string, []Check) {
+	return worst(r.checks), r.checks
+}
+
+func (l Limits) imageSizeLimit(ext string) (int64, string) {
+	if ext == "gif" && l.GIFMaxBytes > 0 {
+		return l.GIFMaxBytes, "GIF"
+	}
+	return l.ImageMaxBytes, "image"
+}
+
+func (r *report) checkFormat(l Limits, formats []string, ext string) {
 	if !slices.Contains(formats, ext) {
-		add(LevelError, "%s doesn't accept .%s files", l.Name, ext)
+		r.add(LevelError, "%s doesn't accept .%s files", l.Name, ext)
 	} else if ext == "gif" && l.StaticGIFs {
-		add(LevelWarning, "%s shows GIFs without animation", l.Name)
+		r.add(LevelWarning, "%s shows GIFs without animation", l.Name)
 	}
+}
 
+// A maxBytes of 0 means the network sets no size limit.
+func (r *report) checkSize(size, maxBytes int64, kind string) {
 	switch {
 	case maxBytes == 0:
-	case m.SizeBytes > maxBytes:
-		add(LevelError, "%s is over the %s %s limit", FormatBytes(m.SizeBytes), FormatBytes(maxBytes), kind)
-	case m.SizeBytes > maxBytes*9/10:
-		add(LevelWarning, "%s is close to the %s %s limit", FormatBytes(m.SizeBytes), FormatBytes(maxBytes), kind)
+	case size > maxBytes:
+		r.add(LevelError, "%s is over the %s %s limit", FormatBytes(size), FormatBytes(maxBytes), kind)
+	case size > maxBytes*9/10:
+		r.add(LevelWarning, "%s is close to the %s %s limit", FormatBytes(size), FormatBytes(maxBytes), kind)
 	default:
-		add(LevelOK, "%s is within the %s %s limit", FormatBytes(m.SizeBytes), FormatBytes(maxBytes), kind)
+		r.add(LevelOK, "%s is within the %s %s limit", FormatBytes(size), FormatBytes(maxBytes), kind)
 	}
+}
 
-	if video || m.Width == 0 || m.Height == 0 {
-		return worst(checks), checks
+// checkDimensions runs every dimension rule, in order, and reports the
+// dimensions as fine only if none of them found a problem.
+func (r *report) checkDimensions(l Limits, w, h int) {
+	found := []bool{
+		r.checkMinimumSize(l, w, h),
+		r.checkMaximumSize(l, w, h),
+		r.checkMegapixels(l, w, h),
+		r.checkLongestSide(l, w, h),
+		r.checkAspectRatio(l, w, h),
 	}
+	if !slices.Contains(found, true) {
+		r.add(LevelOK, "%d×%d dimensions are fine", w, h)
+	}
+}
 
-	w, h := m.Width, m.Height
-	dimsOK := true
+func (r *report) checkMinimumSize(l Limits, w, h int) bool {
 	if (l.MinWidth > 0 && w < l.MinWidth) || (l.MinHeight > 0 && h < l.MinHeight) {
-		add(LevelError, "%d×%d is smaller than the %d×%d minimum", w, h, l.MinWidth, l.MinHeight)
-		dimsOK = false
+		r.add(LevelError, "%d×%d is smaller than the %d×%d minimum", w, h, l.MinWidth, l.MinHeight)
+		return true
 	}
-	if (l.MaxWidth > 0 && w > l.MaxWidth) || (l.MaxHeight > 0 && h > l.MaxHeight) {
-		add(LevelError, "%d×%d is larger than the %d×%d maximum", w, h, l.MaxWidth, l.MaxHeight)
-		dimsOK = false
-	}
-	if l.MaxPixels > 0 && int64(w)*int64(h) > l.MaxPixels {
-		add(LevelWarning, "%d×%d is over %.1f megapixels and will be downscaled", w, h, float64(l.MaxPixels)/1e6)
-		dimsOK = false
-	}
-	if l.ResizeLongestSide > 0 && max(w, h) > l.ResizeLongestSide {
-		add(LevelWarning, "%d×%d will be shown downscaled to %dpx on the longest side", w, h, l.ResizeLongestSide)
-		dimsOK = false
-	}
-	if l.CropAspectRatio > 0 {
-		if ratio := float64(max(w, h)) / float64(min(w, h)); ratio > l.CropAspectRatio {
-			add(LevelWarning, "%d×%d is very %s (%.1f:1) and will be cropped in timelines", w, h, shape(w, h), ratio)
-			dimsOK = false
-		}
-	}
-	if dimsOK {
-		add(LevelOK, "%d×%d dimensions are fine", w, h)
-	}
+	return false
+}
 
-	return worst(checks), checks
+func (r *report) checkMaximumSize(l Limits, w, h int) bool {
+	if (l.MaxWidth > 0 && w > l.MaxWidth) || (l.MaxHeight > 0 && h > l.MaxHeight) {
+		r.add(LevelError, "%d×%d is larger than the %d×%d maximum", w, h, l.MaxWidth, l.MaxHeight)
+		return true
+	}
+	return false
+}
+
+func (r *report) checkMegapixels(l Limits, w, h int) bool {
+	if l.MaxPixels > 0 && int64(w)*int64(h) > l.MaxPixels {
+		r.add(LevelWarning, "%d×%d is over %.1f megapixels and will be downscaled", w, h, float64(l.MaxPixels)/1e6)
+		return true
+	}
+	return false
+}
+
+func (r *report) checkLongestSide(l Limits, w, h int) bool {
+	if l.ResizeLongestSide > 0 && max(w, h) > l.ResizeLongestSide {
+		r.add(LevelWarning, "%d×%d will be shown downscaled to %dpx on the longest side", w, h, l.ResizeLongestSide)
+		return true
+	}
+	return false
+}
+
+func (r *report) checkAspectRatio(l Limits, w, h int) bool {
+	if l.CropAspectRatio <= 0 {
+		return false
+	}
+	ratio := float64(max(w, h)) / float64(min(w, h))
+	if ratio > l.CropAspectRatio {
+		r.add(LevelWarning, "%d×%d is very %s (%.1f:1) and will be cropped in timelines", w, h, shape(w, h), ratio)
+		return true
+	}
+	return false
 }
 
 func shape(w, h int) string {

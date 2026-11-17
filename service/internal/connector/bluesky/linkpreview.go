@@ -35,86 +35,129 @@ func (b *BlueskyConnector) fetchLinkPreview(rawURL string) (*LinkPreview, error)
 		return nil, err
 	}
 
-	client := &http.Client{Timeout: linkPreviewTimeout}
+	doc, err := fetchHTML(rawURL)
+	if doc == nil {
+		return nil, err
+	}
+
+	preview := extractLinkPreview(doc, parsed.Scheme+"://"+parsed.Host)
+	preview.fillFallbackTitle(parsed, rawURL)
+	return preview, nil
+}
+
+// fetchHTML returns nil without an error when the page is not a successful
+// HTML response, so there is simply no preview.
+func fetchHTML(rawURL string) (*html.Node, error) {
 	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, rawURL, nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("User-Agent", ogUserAgent)
 
-	resp, err := client.Do(req)
+	resp, err := (&http.Client{Timeout: linkPreviewTimeout}).Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if !isHTMLResponse(resp) {
+		return nil, nil
+	}
+	return html.Parse(io.LimitReader(resp.Body, linkPreviewMaxBody))
+}
+
+func isHTMLResponse(resp *http.Response) bool {
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, nil
+		return false
 	}
-
 	ct := resp.Header.Get("Content-Type")
-	if !strings.Contains(ct, "text/html") && !strings.Contains(ct, "application/xhtml") {
-		return nil, nil
-	}
+	return strings.Contains(ct, "text/html") || strings.Contains(ct, "application/xhtml")
+}
 
-	body := io.LimitReader(resp.Body, linkPreviewMaxBody)
-	doc, err := html.Parse(body)
-	if err != nil {
-		return nil, err
-	}
+// Preview fields, in the order a tag naming two of them resolves to.
+const (
+	previewFieldNone = iota
+	previewFieldTitle
+	previewFieldDescription
+	previewFieldImage
+)
 
+var (
+	metaPropertyFields = map[string]int{
+		"og:title":       previewFieldTitle,
+		"og:description": previewFieldDescription,
+		"og:image":       previewFieldImage,
+	}
+	metaNameFields = map[string]int{
+		"twitter:title":       previewFieldTitle,
+		"twitter:description": previewFieldDescription,
+		"description":         previewFieldDescription,
+		"twitter:image":       previewFieldImage,
+	}
+)
+
+func extractLinkPreview(doc *html.Node, baseURL string) *LinkPreview {
 	preview := &LinkPreview{}
-	baseURL := parsed.Scheme + "://" + parsed.Host
-
-	var walk func(*html.Node)
-	walk = func(n *html.Node) {
+	for n := range doc.Descendants() {
 		if n.Type == html.ElementNode && n.Data == "meta" {
-			var prop, name, content string
-			for _, a := range n.Attr {
-				switch strings.ToLower(a.Key) {
-				case "property":
-					prop = a.Val
-				case "name":
-					name = a.Val
-				case "content":
-					content = a.Val
-				}
-			}
-			if content == "" {
-				return
-			}
-			prop = strings.ToLower(prop)
-			name = strings.ToLower(name)
-			switch {
-			case prop == "og:title" || name == "twitter:title":
-				if preview.Title == "" {
-					preview.Title = trimAndTruncate(content, maxTitleLength)
-				}
-			case prop == "og:description" || name == "twitter:description" || name == "description":
-				if preview.Description == "" {
-					preview.Description = trimAndTruncate(content, maxDescriptionLength)
-				}
-			case prop == "og:image" || name == "twitter:image":
-				if preview.ImageURL == "" {
-					preview.ImageURL = resolveURL(baseURL, content)
-				}
-			}
-		}
-		for c := n.FirstChild; c != nil; c = c.NextSibling {
-			walk(c)
+			prop, name, content := metaAttrs(n)
+			preview.setOnce(metaField(prop, name), content, baseURL)
 		}
 	}
-	walk(doc)
+	return preview
+}
 
-	// Require at least title or description for a valid card; use URL as fallback title
-	if preview.Title == "" && preview.Description == "" {
-		preview.Title = trimAndTruncate(parsed.Host+parsed.Path, maxTitleLength)
+func metaAttrs(n *html.Node) (prop, name, content string) {
+	for _, a := range n.Attr {
+		switch strings.ToLower(a.Key) {
+		case "property":
+			prop = strings.ToLower(a.Val)
+		case "name":
+			name = strings.ToLower(a.Val)
+		case "content":
+			content = a.Val
+		}
 	}
-	if preview.Title == "" {
-		preview.Title = trimAndTruncate(rawURL, maxTitleLength)
-	}
+	return prop, name, content
+}
 
-	return preview, nil
+func metaField(prop, name string) int {
+	byProp, byName := metaPropertyFields[prop], metaNameFields[name]
+	if byProp == previewFieldNone || (byName != previewFieldNone && byName < byProp) {
+		return byName
+	}
+	return byProp
+}
+
+// setOnce keeps the first value found for each field.
+func (p *LinkPreview) setOnce(field int, content, baseURL string) {
+	if content == "" {
+		return
+	}
+	switch field {
+	case previewFieldTitle:
+		setIfEmpty(&p.Title, trimAndTruncate(content, maxTitleLength))
+	case previewFieldDescription:
+		setIfEmpty(&p.Description, trimAndTruncate(content, maxDescriptionLength))
+	case previewFieldImage:
+		setIfEmpty(&p.ImageURL, resolveURL(baseURL, content))
+	}
+}
+
+func setIfEmpty(dst *string, value string) {
+	if *dst == "" {
+		*dst = value
+	}
+}
+
+// A card needs a title, so fall back to the URL.
+func (p *LinkPreview) fillFallbackTitle(parsed *url.URL, rawURL string) {
+	if p.Title == "" && p.Description == "" {
+		p.Title = trimAndTruncate(parsed.Host+parsed.Path, maxTitleLength)
+	}
+	if p.Title == "" {
+		p.Title = trimAndTruncate(rawURL, maxTitleLength)
+	}
 }
 
 func trimAndTruncate(s string, max int) string {
@@ -133,17 +176,11 @@ func trimAndTruncate(s string, max int) string {
 
 func resolveURL(base, ref string) string {
 	ref = strings.TrimSpace(ref)
-	if ref == "" {
-		return ""
-	}
-	if strings.HasPrefix(ref, "http://") || strings.HasPrefix(ref, "https://") {
+	refURL, err := url.Parse(ref)
+	if ref == "" || err != nil || refURL.IsAbs() {
 		return ref
 	}
 	baseURL, err := url.Parse(base)
-	if err != nil {
-		return ref
-	}
-	refURL, err := url.Parse(ref)
 	if err != nil {
 		return ref
 	}

@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	msgs "github.com/jamesread/japella/gen/japella/nodemsgs/v1"
@@ -31,6 +32,11 @@ var (
 		},
 	}
 )
+
+// publishOutgoing sends a reply to the chat the message came from. Tests replace it.
+var publishOutgoing = func(m *msgs.OutgoingMessage) {
+	amqp.PublishPbWithRoutingKey(m, amqp.GetOutgoingMessageRoutingKey(m.Protocol, m.Identity))
+}
 
 func clientFor(skipTLSVerify bool) *http.Client {
 	if skipTLSVerify {
@@ -67,138 +73,126 @@ func ExecuteHooks(hooks []runtimeconfig.IncomingMessageHook, msg *msgs.IncomingM
 }
 
 func executeHook(hook runtimeconfig.IncomingMessageHook, jsonData []byte, index int, msg *msgs.IncomingMessage, logger log.FieldLogger) {
-	url := hook.URL
-	// Log the full URL being called
-	if logger != nil {
-		logger.Infof("Hook %d: Calling webhook URL: %s", index, url)
-	} else {
-		log.Infof("Hook %d: Calling webhook URL: %s", index, url)
-	}
+	logger = orStandardLogger(logger)
+	logger.Infof("Hook %d: Calling webhook URL: %s", index, hook.URL)
 
-	// Create HTTP request
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second) // 1 minute timeout
+	status, body, failure := callHook(hook, jsonData, index, logger)
+	switch {
+	case failure != "":
+		sendErrorNotification(msg, failure, logger)
+	case status < 200 || status >= 300:
+		reportHookErrorStatus(msg, hook.URL, index, status, body, logger)
+	default:
+		logger.Debugf("Hook %d: Successfully sent message to webhook %s (status: %d)", index, hook.URL, status)
+		emitHookOutput(msg, body, index, logger)
+	}
+}
+
+func orStandardLogger(logger log.FieldLogger) log.FieldLogger {
+	if logger == nil {
+		return log.StandardLogger()
+	}
+	return logger
+}
+
+// callHook posts the payload. When the call itself fails, failure holds the
+// message to send back to the chat.
+func callHook(hook runtimeconfig.IncomingMessageHook, jsonData []byte, index int, logger log.FieldLogger) (status int, body []byte, failure string) {
+	ctx, cancel := context.WithTimeout(context.Background(), hookTimeout)
 	defer cancel()
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewBuffer(jsonData))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, hook.URL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		errorMsg := fmt.Sprintf("Failed to create webhook request: %v", err)
-		if logger != nil {
-			logger.Errorf("Hook %d: Failed to create HTTP request to %s: %v", index, url, err)
-		} else {
-			log.Errorf("Hook %d: Failed to create HTTP request to %s: %v", index, url, err)
-		}
-
-		// Send error notification to user
-		sendErrorNotification(msg, errorMsg, logger)
-		return
+		logger.Errorf("Hook %d: Failed to create HTTP request to %s: %v", index, hook.URL, err)
+		return 0, nil, fmt.Sprintf("Failed to create webhook request: %v", err)
 	}
-
 	req.Header.Set("Content-Type", "application/json")
 
-	// Send request
 	resp, err := clientFor(hook.SkipTLSVerify).Do(req)
 	if err != nil {
-		errorMsg := fmt.Sprintf("Webhook call failed: %v", err)
-		if logger != nil {
-			logger.Errorf("Hook %d: Failed to send message to webhook %s: %v", index, url, err)
-		} else {
-			log.Errorf("Hook %d: Failed to send message to webhook %s: %v", index, url, err)
-		}
-
-		// Send error notification to user
-		sendErrorNotification(msg, errorMsg, logger)
-		return
+		logger.Errorf("Hook %d: Failed to send message to webhook %s: %v", index, hook.URL, err)
+		return 0, nil, fmt.Sprintf("Webhook call failed: %v", err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
-	// Read response body for logging
-	body, err := io.ReadAll(resp.Body)
+	body, err = io.ReadAll(resp.Body)
 	if err != nil {
-		if logger != nil {
-			logger.Warnf("Hook %d: Failed to read response body from %s: %v", index, url, err)
-		} else {
-			log.Warnf("Hook %d: Failed to read response body from %s: %v", index, url, err)
-		}
+		logger.Warnf("Hook %d: Failed to read response body from %s: %v", index, hook.URL, err)
+	}
+	return resp.StatusCode, body, ""
+}
+
+func reportHookErrorStatus(msg *msgs.IncomingMessage, url string, index, status int, body []byte, logger log.FieldLogger) {
+	errorMsg := fmt.Sprintf("Webhook returned error status %d", status)
+	if len(body) > 0 {
+		errorMsg = fmt.Sprintf("Webhook returned error status %d: %s", status, string(body))
+	}
+	logger.Errorf("Hook %d: Webhook %s returned error status: %d, response: %s", index, url, status, string(body))
+	sendErrorNotification(msg, errorMsg, logger)
+}
+
+// emitHookOutput sends the response's "output" field, if any, back to the chat.
+func emitHookOutput(msg *msgs.IncomingMessage, body []byte, index int, logger log.FieldLogger) {
+	if len(body) == 0 {
+		return
+	}
+	logger.Debugf("Hook %d: Webhook response: %s", index, string(body))
+
+	output, err := hookOutput(body)
+	if err != nil {
+		logger.Warnf("Hook %d: Failed to parse webhook response JSON: %v", index, err)
+		return
+	}
+	if output == "" {
+		return
 	}
 
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		if logger != nil {
-			logger.Debugf("Hook %d: Successfully sent message to webhook %s (status: %d)", index, url, resp.StatusCode)
-			if len(body) > 0 {
-				logger.Debugf("Hook %d: Webhook response: %s", index, string(body))
-			}
-		}
+	publishOutgoing(&msgs.OutgoingMessage{
+		Content:            output,
+		Channel:            msg.Channel,
+		Protocol:           msg.Protocol,
+		IncommingMessageId: msg.MessageId,
+		Identity:           msg.Identity, // Include bot identity to route to correct bot instance
+		ConversationKey:    db.BuildConversationKey(msg.Channel, msg.Author),
+	})
+	logger.Debugf("Hook %d: Emitted OutgoingMessage with output: %s", index, output)
+}
 
-		// Extract "output" field from webhook response and emit OutgoingMessage
-		if len(body) > 0 {
-			var responseData map[string]any
-			if err := json.Unmarshal(body, &responseData); err != nil {
-				if logger != nil {
-					logger.Warnf("Hook %d: Failed to parse webhook response JSON: %v", index, err)
-				} else {
-					log.Warnf("Hook %d: Failed to parse webhook response JSON: %v", index, err)
-				}
-			} else {
-				if output, ok := responseData["output"]; ok {
-					outputStr := ""
-					switch v := output.(type) {
-					case string:
-						outputStr = v
-					case float64:
-						outputStr = fmt.Sprintf("%g", v)
-					case bool:
-						if v {
-							outputStr = "true"
-						} else {
-							outputStr = "false"
-						}
-					default:
-						// For other types, marshal back to JSON string
-						if outputBytes, err := json.Marshal(v); err == nil {
-							outputStr = string(outputBytes)
-						} else {
-							outputStr = ""
-						}
-					}
+// hookOutput returns the response's "output" field as text, or "" if absent.
+// A JSON null becomes "null".
+func hookOutput(body []byte) (string, error) {
+	var responseData map[string]any
+	if err := json.Unmarshal(body, &responseData); err != nil {
+		return "", err
+	}
+	output, ok := responseData["output"]
+	if !ok {
+		return "", nil
+	}
+	return outputText(output), nil
+}
 
-					if outputStr != "" {
-						outgoingMsg := &msgs.OutgoingMessage{
-							Content:            outputStr,
-							Channel:            msg.Channel,
-							Protocol:           msg.Protocol,
-							IncommingMessageId: msg.MessageId,
-							Identity:           msg.Identity, // Include bot identity to route to correct bot instance
-							ConversationKey:    db.BuildConversationKey(msg.Channel, msg.Author),
-						}
-
-						routingKey := amqp.GetOutgoingMessageRoutingKey(msg.Protocol, msg.Identity)
-						amqp.PublishPbWithRoutingKey(outgoingMsg, routingKey)
-
-						if logger != nil {
-							logger.Debugf("Hook %d: Emitted OutgoingMessage with output: %s", index, outputStr)
-						} else {
-							log.Debugf("Hook %d: Emitted OutgoingMessage with output: %s", index, outputStr)
-						}
-					}
-				}
-			}
-		}
-	} else {
-		errorMsg := fmt.Sprintf("Webhook returned error status %d", resp.StatusCode)
-		if len(body) > 0 {
-			errorMsg = fmt.Sprintf("Webhook returned error status %d: %s", resp.StatusCode, string(body))
-		}
-
-		if logger != nil {
-			logger.Errorf("Hook %d: Webhook %s returned error status: %d, response: %s", index, url, resp.StatusCode, string(body))
-		} else {
-			log.Errorf("Hook %d: Webhook %s returned error status: %d, response: %s", index, url, resp.StatusCode, string(body))
-		}
-
-		// Send error notification to user
-		sendErrorNotification(msg, errorMsg, logger)
+func outputText(v any) string {
+	switch v := v.(type) {
+	case string:
+		return v
+	case float64:
+		return fmt.Sprintf("%g", v)
+	case bool:
+		return strconv.FormatBool(v)
+	default:
+		return jsonText(v)
 	}
 }
+
+func jsonText(v any) string {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return ""
+	}
+	return string(b)
+}
+
 func sendErrorNotification(msg *msgs.IncomingMessage, errorMsg string, logger log.FieldLogger) {
 	notificationMsg := fmt.Sprintf("⚠️ Webhook error: %s", errorMsg)
 
@@ -211,8 +205,7 @@ func sendErrorNotification(msg *msgs.IncomingMessage, errorMsg string, logger lo
 		ConversationKey:    db.BuildConversationKey(msg.Channel, msg.Author),
 	}
 
-	routingKey := amqp.GetOutgoingMessageRoutingKey(msg.Protocol, msg.Identity)
-	amqp.PublishPbWithRoutingKey(outgoingMsg, routingKey)
+	publishOutgoing(outgoingMsg)
 
 	if logger != nil {
 		logger.Debugf("Sent error notification to user: %s", notificationMsg)

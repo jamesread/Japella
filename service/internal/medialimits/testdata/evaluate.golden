@@ -1,0 +1,136 @@
+bluesky a.jpg 300000 1600x900 => ok
+  ok: 300.0 KB is within the 1.0 MB image limit
+  ok: 1600×900 dimensions are fine
+bluesky b.png 0 0x0 => ok
+  ok: 0 bytes is within the 1.0 MB image limit
+bluesky c.png 950000 1000x1000 => warning
+  warning: 950.0 KB is close to the 1.0 MB image limit
+  ok: 1000×1000 dimensions are fine
+bluesky d.png 31457280 9000x9000 => error
+  error: 31.5 MB is over the 1.0 MB image limit
+  warning: 9000×9000 will be shown downscaled to 2000px on the longest side
+bluesky e.jpg 1000 10x10 => ok
+  ok: 1.0 KB is within the 1.0 MB image limit
+  ok: 10×10 dimensions are fine
+bluesky f.jpg 1000 10000x1000 => warning
+  ok: 1.0 KB is within the 1.0 MB image limit
+  warning: 10000×1000 will be shown downscaled to 2000px on the longest side
+  warning: 10000×1000 is very wide (10.0:1) and will be cropped in timelines
+bluesky g.jpg 1000 1000x5000 => warning
+  ok: 1.0 KB is within the 1.0 MB image limit
+  warning: 1000×5000 will be shown downscaled to 2000px on the longest side
+  warning: 1000×5000 is very tall (5.0:1) and will be cropped in timelines
+bluesky h.gif 4194304 500x500 => error
+  warning: Bluesky shows GIFs without animation
+  error: 4.2 MB is over the 1.0 MB image limit
+  ok: 500×500 dimensions are fine
+bluesky i.gif 20971520 500x500 => error
+  warning: Bluesky shows GIFs without animation
+  error: 21.0 MB is over the 1.0 MB image limit
+  ok: 500×500 dimensions are fine
+bluesky j.webp 1000 4000x3000 => warning
+  ok: 1.0 KB is within the 1.0 MB image limit
+  warning: 4000×3000 will be shown downscaled to 2000px on the longest side
+bluesky k.heic 1000 100x100 => error
+  error: Bluesky doesn't accept .heic files
+  ok: 1.0 KB is within the 1.0 MB image limit
+  ok: 100×100 dimensions are fine
+bluesky l.mp4 50000000 0x0 => ok
+  ok: 50.0 MB is within the 100.0 MB video limit
+bluesky m.webm 1000000000 0x0 => error
+  error: Bluesky doesn't accept .webm files
+  error: 1.0 GB is over the 100.0 MB video limit
+bluesky n.MOV 1000 0x0 => error
+  error: Bluesky doesn't accept .mov files
+  ok: 1.0 KB is within the 100.0 MB video limit
+bluesky noext 1000 100x100 => error
+  error: Bluesky doesn't accept . files
+  ok: 1.0 KB is within the 1.0 MB image limit
+  ok: 100×100 dimensions are fine
+mastodon a.jpg 300000 1600x900 => ok
+  ok: 300.0 KB is within the 16.8 MB image limit
+  ok: 1600×900 dimensions are fine
+mastodon b.png 0 0x0 => ok
+  ok: 0 bytes is within the 16.8 MB image limit
+mastodon c.png 950000 1000x1000 => ok
+  ok: 950.0 KB is within the 16.8 MB image limit
+  ok: 1000×1000 dimensions are fine
+mastodon d.png 31457280 9000x9000 => error
+  error: 31.5 MB is over the 16.8 MB image limit
+  warning: 9000×9000 is over 33.2 megapixels and will be downscaled
+mastodon e.jpg 1000 10x10 => ok
+  ok: 1.0 KB is within the 16.8 MB image limit
+  ok: 10×10 dimensions are fine
+mastodon f.jpg 1000 10000x1000 => ok
+  ok: 1.0 KB is within the 16.8 MB image limit
+  ok: 10000×1000 dimensions are fine
+mastodon g.jpg 1000 1000x5000 => ok
+  ok: 1.0 KB is within the 16.8 MB image limit
+  ok: 1000×5000 dimensions are fine
+mastodon h.gif 4194304 500x500 => ok
+  ok: 4.2 MB is within the 16.8 MB image limit
+  ok: 500×500 dimensions are fine
+mastodon i.gif 20971520 500x500 => error
+  error: 21.0 MB is over the 16.8 MB image limit
+  ok: 500×500 dimensions are fine
+mastodon j.webp 1000 4000x3000 => ok
+  ok: 1.0 KB is within the 16.8 MB image limit
+  ok: 4000×3000 dimensions are fine
+mastodon k.heic 1000 100x100 => ok
+  ok: 1.0 KB is within the 16.8 MB image limit
+  ok: 100×100 dimensions are fine
+mastodon l.mp4 50000000 0x0 => ok
+  ok: 50.0 MB is within the 103.8 MB video limit
+mastodon m.webm 1000000000 0x0 => error
+  error: 1.0 GB is over the 103.8 MB video limit
+mastodon n.MOV 1000 0x0 => ok
+  ok: 1.0 KB is within the 103.8 MB video limit
+mastodon noext 1000 100x100 => error
+  error: Mastodon doesn't accept . files
+  ok: 1.0 KB is within the 16.8 MB image limit
+  ok: 100×100 dimensions are fine
+x a.jpg 300000 1600x900 => ok
+  ok: 300.0 KB is within the 5.2 MB image limit
+  ok: 1600×900 dimensions are fine
+x b.png 0 0x0 => ok
+  ok: 0 bytes is within the 5.2 MB image limit
+x c.png 950000 1000x1000 => ok
+  ok: 950.0 KB is within the 5.2 MB image limit
+  ok: 1000×1000 dimensions are fine
+x d.png 31457280 9000x9000 => error
+  error: 31.5 MB is over the 5.2 MB image limit
+  error: 9000×9000 is larger than the 8192×8192 maximum
+x e.jpg 1000 10x10 => ok
+  ok: 1.0 KB is within the 5.2 MB image limit
+  ok: 10×10 dimensions are fine
+x f.jpg 1000 10000x1000 => error
+  ok: 1.0 KB is within the 5.2 MB image limit
+  error: 10000×1000 is larger than the 8192×8192 maximum
+  warning: 10000×1000 is very wide (10.0:1) and will be cropped in timelines
+x g.jpg 1000 1000x5000 => warning
+  ok: 1.0 KB is within the 5.2 MB image limit
+  warning: 1000×5000 is very tall (5.0:1) and will be cropped in timelines
+x h.gif 4194304 500x500 => ok
+  ok: 4.2 MB is within the 15.7 MB GIF limit
+  ok: 500×500 dimensions are fine
+x i.gif 20971520 500x500 => error
+  error: 21.0 MB is over the 15.7 MB GIF limit
+  ok: 500×500 dimensions are fine
+x j.webp 1000 4000x3000 => ok
+  ok: 1.0 KB is within the 5.2 MB image limit
+  ok: 4000×3000 dimensions are fine
+x k.heic 1000 100x100 => error
+  error: X doesn't accept .heic files
+  ok: 1.0 KB is within the 5.2 MB image limit
+  ok: 100×100 dimensions are fine
+x l.mp4 50000000 0x0 => ok
+  ok: 50.0 MB is within the 536.9 MB video limit
+x m.webm 1000000000 0x0 => error
+  error: X doesn't accept .webm files
+  error: 1.0 GB is over the 536.9 MB video limit
+x n.MOV 1000 0x0 => ok
+  ok: 1.0 KB is within the 536.9 MB video limit
+x noext 1000 100x100 => error
+  error: X doesn't accept . files
+  ok: 1.0 KB is within the 5.2 MB image limit
+  ok: 100×100 dimensions are fine

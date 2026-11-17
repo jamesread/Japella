@@ -310,172 +310,201 @@ func (b *BlueskyConnector) downloadAndUploadThumb(pdsURL, imageURL string, clien
 }
 
 func (b *BlueskyConnector) PostToWall(socialAccount *connector.SocialAccount, content string, mediaPaths []string) *connector.PostResult {
-	// Get the full social account from database to access OAuth fields
+	// The full account holds the OAuth fields.
 	dbSocialAccount, err := b.db.GetSocialAccount(socialAccount.Id)
 	if err != nil {
 		b.Logger().Errorf("Failed to get social account: %v", err)
 		return &connector.PostResult{Err: fmt.Errorf("failed to get social account: %w", err), URL: ""}
 	}
 
-	// Parse facets from content
-	facets := b.parseFacets(content)
+	pdsURL, client, err := b.postingTarget(dbSocialAccount)
+	if err != nil {
+		return &connector.PostResult{Err: err, URL: ""}
+	}
 
+	record, err := b.buildPostRecord(pdsURL, client, content, mediaPaths)
+	if err != nil {
+		b.db.InsertTableLog(fmt.Sprintf("Bluesky blob upload failed for account %d: %v", socialAccount.Id, err), "error", &socialAccount.Id)
+		return &connector.PostResult{Err: err, URL: ""}
+	}
+
+	req := &BlueskyCreatePostRequest{Repo: dbSocialAccount.Did, Collection: "app.bsky.feed.post", Record: record}
+	res, err := b.publishRecord(client, pdsURL+"/xrpc/com.atproto.repo.createRecord", req, dbSocialAccount)
+	if err != nil {
+		return &connector.PostResult{Err: err, URL: ""}
+	}
+	return &connector.PostResult{Err: nil, URL: b.postWebURL(socialAccount, res.Uri)}
+}
+
+// postingTarget returns the account's PDS and the DPoP client for it;
+// OAuth/DPoP tokens are only valid at the PDS.
+func (b *BlueskyConnector) postingTarget(sa *db.SocialAccount) (string, *utils.ChainingHttpClient, error) {
+	pdsURL, err := b.getPDSEndpoint(sa)
+	if err != nil {
+		b.Logger().Errorf("Failed to get PDS endpoint: %v", err)
+		return "", nil, fmt.Errorf("failed to get PDS endpoint: %w", err)
+	}
+	b.Logger().Infof("Posting to Bluesky PDS at: %s", pdsURL)
+
+	if b.tmpClient == nil {
+		b.tmpClient = b.ensureDPoPClient(sa)
+	}
+	if b.tmpClient == nil {
+		b.Logger().Errorf("Bluesky HTTP client not initialized; OAuth2 flow not completed")
+		return "", nil, fmt.Errorf("bluesky http client not initialized")
+	}
+	return pdsURL, b.tmpClient, nil
+}
+
+func (b *BlueskyConnector) buildPostRecord(pdsURL string, client *utils.ChainingHttpClient, content string, mediaPaths []string) (BlueskyPostRecord, error) {
 	record := BlueskyPostRecord{
 		Type:      "app.bsky.feed.post",
 		Text:      content,
 		CreatedAt: time.Now().UTC().Format("2006-01-02T15:04:05Z"),
-		Facets:    facets,
+		Facets:    b.parseFacets(content),
 	}
+	embed, err := b.buildEmbed(pdsURL, client, content, mediaPaths)
+	record.Embed = embed
+	return record, err
+}
 
-	// Get the PDS endpoint for this social account
-	pdsURL, pdsErr := b.getPDSEndpoint(dbSocialAccount)
-	if pdsErr != nil {
-		b.Logger().Errorf("Failed to get PDS endpoint: %v", pdsErr)
-		return &connector.PostResult{Err: fmt.Errorf("failed to get PDS endpoint: %w", pdsErr), URL: ""}
-	}
-
-	b.Logger().Infof("Posting to Bluesky PDS at: %s", pdsURL)
-
-	// Always use DPoP client for PDS calls (OAuth/DPoP tokens are valid only at the PDS)
-	client := b.tmpClient
-	if client == nil {
-		client = b.ensureDPoPClient(dbSocialAccount)
-		b.tmpClient = client
-	}
-	if client == nil {
-		b.Logger().Errorf("Bluesky HTTP client not initialized; OAuth2 flow not completed")
-		return &connector.PostResult{Err: fmt.Errorf("bluesky http client not initialized"), URL: ""}
-	}
-
-	// Upload attached images and build embed (Bluesky supports up to 4 images)
+// buildEmbed attaches images, or failing that a link card for the first URL.
+// It returns an untyped nil when there is nothing to embed, so "embed" is omitted.
+func (b *BlueskyConnector) buildEmbed(pdsURL string, client *utils.ChainingHttpClient, content string, mediaPaths []string) (any, error) {
 	if len(mediaPaths) > 0 {
-		var images []BlueskyEmbedImageItem
-		for i, p := range mediaPaths {
-			if i >= 4 {
-				b.Logger().Warnf("Bluesky allows max 4 images per post, skipping remaining %d", len(mediaPaths)-4)
-				break
-			}
-			blob, err := b.uploadBlob(pdsURL, p, client)
-			if err != nil {
-				b.Logger().Errorf("Bluesky blob upload failed for %s: %v", p, err)
-				b.db.InsertTableLog(
-					fmt.Sprintf("Bluesky blob upload failed for account %d: %v", socialAccount.Id, err),
-					"error",
-					&socialAccount.Id,
-				)
-				return &connector.PostResult{Err: err, URL: ""}
-			}
-			aw, ah := imageAspectRatio(p)
-			images = append(images, BlueskyEmbedImageItem{
-				Image:       *blob,
-				Alt:         "",
-				AspectRatio: &BlueskyAspectRatio{Width: aw, Height: ah},
-			})
+		return b.imagesEmbed(pdsURL, client, mediaPaths)
+	}
+	if card := b.linkCardEmbed(pdsURL, client, content); card != nil {
+		return card, nil
+	}
+	return nil, nil
+}
+
+const maxBlueskyImages = 4
+
+func (b *BlueskyConnector) imagesEmbed(pdsURL string, client *utils.ChainingHttpClient, mediaPaths []string) (*BlueskyEmbedImages, error) {
+	if len(mediaPaths) > maxBlueskyImages {
+		b.Logger().Warnf("Bluesky allows max 4 images per post, skipping remaining %d", len(mediaPaths)-maxBlueskyImages)
+		mediaPaths = mediaPaths[:maxBlueskyImages]
+	}
+	images := make([]BlueskyEmbedImageItem, 0, len(mediaPaths))
+	for _, p := range mediaPaths {
+		item, err := b.uploadImage(pdsURL, client, p)
+		if err != nil {
+			return nil, err
 		}
-		if len(images) > 0 {
-			record.Embed = &BlueskyEmbedImages{
-				Type:   "app.bsky.embed.images",
-				Images: images,
-			}
-		}
-	} else if firstURL := b.getFirstURL(content); firstURL != "" {
-		// Rich link preview: fetch Open Graph data and add app.bsky.embed.external
-		if preview, err := b.fetchLinkPreview(firstURL); err == nil && preview != nil {
-			ext := BlueskyExternal{
-				URI:         firstURL,
-				Title:       preview.Title,
-				Description: preview.Description,
-			}
-			if preview.ImageURL != "" {
-				if thumbBlob := b.downloadAndUploadThumb(pdsURL, preview.ImageURL, client); thumbBlob != nil {
-					ext.Thumb = thumbBlob
-				}
-			}
-			record.Embed = &BlueskyEmbedExternal{
-				Type:     "app.bsky.embed.external",
-				External: ext,
-			}
-		}
+		images = append(images, item)
+	}
+	return &BlueskyEmbedImages{Type: "app.bsky.embed.images", Images: images}, nil
+}
+
+func (b *BlueskyConnector) uploadImage(pdsURL string, client *utils.ChainingHttpClient, path string) (BlueskyEmbedImageItem, error) {
+	blob, err := b.uploadBlob(pdsURL, path, client)
+	if err != nil {
+		b.Logger().Errorf("Bluesky blob upload failed for %s: %v", path, err)
+		return BlueskyEmbedImageItem{}, err
+	}
+	aw, ah := imageAspectRatio(path)
+	return BlueskyEmbedImageItem{Image: *blob, Alt: "", AspectRatio: &BlueskyAspectRatio{Width: aw, Height: ah}}, nil
+}
+
+// linkCardEmbed builds an app.bsky.embed.external card from the first URL's
+// Open Graph data, or returns nil.
+func (b *BlueskyConnector) linkCardEmbed(pdsURL string, client *utils.ChainingHttpClient, content string) *BlueskyEmbedExternal {
+	firstURL := b.getFirstURL(content)
+	if firstURL == "" {
+		return nil
+	}
+	preview, err := b.fetchLinkPreview(firstURL)
+	if err != nil || preview == nil {
+		return nil
+	}
+	ext := BlueskyExternal{URI: firstURL, Title: preview.Title, Description: preview.Description}
+	if preview.ImageURL != "" {
+		ext.Thumb = b.downloadAndUploadThumb(pdsURL, preview.ImageURL, client)
+	}
+	return &BlueskyEmbedExternal{Type: "app.bsky.embed.external", External: ext}
+}
+
+// publishRecord creates the post, refreshing the token and retrying once if
+// Bluesky reports it expired.
+func (b *BlueskyConnector) publishRecord(client *utils.ChainingHttpClient, endpoint string, req *BlueskyCreatePostRequest, sa *db.SocialAccount) (*BlueskyCreatePostResponse, error) {
+	res := &BlueskyCreatePostResponse{}
+	b.Logger().Infof("Posting to Bluesky with request: %+v %+v", b, *req)
+	client.PostWithJson(endpoint, req)
+	client.AsJson(res)
+	b.Logger().Infof("Response from Bluesky: %+v", *res)
+	if client.Err == nil {
+		return res, nil
 	}
 
-	req := BlueskyCreatePostRequest{
-		Repo:       dbSocialAccount.Did,
-		Collection: "app.bsky.feed.post",
-		Record:     record,
+	b.recordPostFailure(client, sa.ID)
+	if strings.Contains(client.Err.Error(), "invalid or expired OAuth token") {
+		retried, err := b.retryAfterTokenRefresh(client, endpoint, req, res, sa)
+		if err != nil {
+			return nil, err
+		}
+		client = retried
 	}
-
-	res := BlueskyCreatePostResponse{}
-
-	b.Logger().Infof("Posting to Bluesky with request: %+v %+v", b, req)
-
-	endpoint := pdsURL + "/xrpc/com.atproto.repo.createRecord"
-	client.PostWithJson(endpoint, &req)
-	client.AsJson(&res)
-
-	b.Logger().Infof("Response from Bluesky: %+v", res)
-
-	// Check for token-related errors in the response
 	if client.Err != nil {
-		b.Logger().Errorf("Error posting to Bluesky: %v", client.Err)
-		if len(client.ResBody) > 0 {
-			b.Logger().Errorf("Bluesky API response body: %s", string(client.ResBody))
-		}
-		msg := fmt.Sprintf("Error posting to Bluesky for account %d: %v", socialAccount.Id, client.Err)
-		if len(client.ResBody) > 0 {
-			msg += " | response: " + string(client.ResBody)
-		}
-		b.db.InsertTableLog(msg, "error", &socialAccount.Id)
-
-		if strings.Contains(client.Err.Error(), "invalid or expired OAuth token") {
-			b.Logger().Warnf("Detected invalid token during post, attempting refresh")
-
-			if refreshErr := b.refreshToken(dbSocialAccount); refreshErr != nil {
-				b.Logger().Errorf("Failed to refresh token after detecting invalid token during post: %v", refreshErr)
-				return &connector.PostResult{Err: fmt.Errorf("token refresh failed: %w", refreshErr), URL: ""}
-			}
-			// Reload the social account and retry the post
-			if updatedAccount, err := b.db.GetSocialAccount(socialAccount.Id); err == nil {
-				// Recreate the DPoP client with the new token
-				if newClient := b.ensureDPoPClient(updatedAccount); newClient != nil {
-					b.tmpClient = newClient
-					client = newClient
-					// Retry the post
-					client.PostWithJson(endpoint, &req)
-					client.AsJson(&res)
-					b.Logger().Infof("Retry response from Bluesky: %+v", res)
-				}
-			} else {
-				b.Logger().Errorf("Failed to get social account for token refresh: %v", err)
-				return &connector.PostResult{Err: fmt.Errorf("failed to get social account: %w", err), URL: ""}
-			}
-		}
-
-		// If we still have an error after potential retry, return it
-		if client.Err != nil {
-			b.Logger().Errorf("Error posting to Bluesky (after retry): %v", client.Err)
-			if len(client.ResBody) > 0 {
-				b.Logger().Errorf("Bluesky API response body: %s", string(client.ResBody))
-			}
-			return &connector.PostResult{Err: client.Err, URL: ""}
-		}
+		b.logClientError("Error posting to Bluesky (after retry)", client)
+		return nil, client.Err
 	}
+	return res, nil
+}
 
-	// Build a web URL from the at:// URI: at://<repo>/app.bsky.feed.post/<rkey>
-	rkey := res.Uri
+// retryAfterTokenRefresh returns the client used for the retry, or the
+// original client when no new one could be made.
+func (b *BlueskyConnector) retryAfterTokenRefresh(client *utils.ChainingHttpClient, endpoint string, req *BlueskyCreatePostRequest, res *BlueskyCreatePostResponse, sa *db.SocialAccount) (*utils.ChainingHttpClient, error) {
+	b.Logger().Warnf("Detected invalid token during post, attempting refresh")
+	if err := b.refreshToken(sa); err != nil {
+		b.Logger().Errorf("Failed to refresh token after detecting invalid token during post: %v", err)
+		return nil, fmt.Errorf("token refresh failed: %w", err)
+	}
+	updated, err := b.db.GetSocialAccount(sa.ID)
+	if err != nil {
+		b.Logger().Errorf("Failed to get social account for token refresh: %v", err)
+		return nil, fmt.Errorf("failed to get social account: %w", err)
+	}
+	newClient := b.ensureDPoPClient(updated)
+	if newClient == nil {
+		return client, nil
+	}
+	b.tmpClient = newClient
+	newClient.PostWithJson(endpoint, req)
+	newClient.AsJson(res)
+	b.Logger().Infof("Retry response from Bluesky: %+v", *res)
+	return newClient, nil
+}
+
+func (b *BlueskyConnector) recordPostFailure(client *utils.ChainingHttpClient, accountID uint32) {
+	b.logClientError("Error posting to Bluesky", client)
+	msg := fmt.Sprintf("Error posting to Bluesky for account %d: %v", accountID, client.Err)
+	if len(client.ResBody) > 0 {
+		msg += " | response: " + string(client.ResBody)
+	}
+	b.db.InsertTableLog(msg, "error", &accountID)
+}
+
+func (b *BlueskyConnector) logClientError(label string, client *utils.ChainingHttpClient) {
+	b.Logger().Errorf("%s: %v", label, client.Err)
+	if len(client.ResBody) > 0 {
+		b.Logger().Errorf("Bluesky API response body: %s", string(client.ResBody))
+	}
+}
+
+// postWebURL builds the bsky.app URL from at://<repo>/app.bsky.feed.post/<rkey>.
+func (b *BlueskyConnector) postWebURL(sa *connector.SocialAccount, uri string) string {
+	rkey := uri
 	if idx := strings.LastIndex(rkey, "/"); idx >= 0 && idx+1 < len(rkey) {
 		rkey = rkey[idx+1:]
 	}
-
-	// Use identity for URL, fallback to DID if identity is empty
-	profileHandle := socialAccount.Identity
+	profileHandle := sa.Identity
 	if profileHandle == "" {
-		profileHandle = socialAccount.Did
+		profileHandle = sa.Did
 		b.Logger().Warnf("Using DID as fallback for profile URL since identity is empty: %s", profileHandle)
 	}
-
-	ret := &connector.PostResult{Err: nil, URL: "https://bsky.app/profile/" + profileHandle + "/post/" + rkey}
-
-	return ret
+	return "https://bsky.app/profile/" + profileHandle + "/post/" + rkey
 }
 
 // parseFacets parses URLs, mentions, and hashtags from text and returns Bluesky facets
