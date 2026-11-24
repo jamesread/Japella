@@ -23,7 +23,7 @@ require (
 	github.com/jamesread/golure v0.0.0-20260927082702-900b761e432f
 	github.com/jamesread/httpauthshim v0.2.0
 	github.com/jmoiron/sqlx v1.4.0
-	github.com/mark3labs/mcp-go v1.3.0
+	github.com/mark3labs/mcp-go v1.6.0
 	github.com/mattn/go-isatty v0.0.24
 	github.com/mattn/go-sqlite3 v1.14.52
 	github.com/prometheus/client_golang v1.24.1
